@@ -28,4 +28,5 @@ All notable changes are listed here. Versions follow Semantic Versioning (MAJOR.
 - Inventory: warehouses per branch, immutable movement ledger with locked balances and average cost, adjustments, transfers, automatic issue of a work order's materials (all-or-nothing, no negative stock).
 - Purchasing: suppliers, purchase orders, partial receiving into stock, last purchase price becomes the company cost.
 - Treasury: cashboxes per branch, receipts/payments linked to work orders and purchase orders, reversals instead of edits, customer and supplier statements.
+- Personal data (Law 151/2020): export of everything held about a customer/user/supplier, erasure by anonymisation (financial records kept), access-log query; log redaction fix for bearer tokens.
 - `tools/vendor_admin`: key generation, licence issuing/inspection, company and subscription management.

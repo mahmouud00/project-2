@@ -9,8 +9,9 @@ import logging
 import re
 
 _PATTERNS = [
-    (re.compile(r"(?i)(authorization|password|passwd|token|secret|refresh_token|access_token)(\"?\s*[:=]\s*\"?)([^\s\",]+)"), r"\1\2***"),
-    (re.compile(r"(?i)bearer\s+[A-Za-z0-9\-_\.]+"), "Bearer ***"),
+    # bearer tokens first, so the key/value rule below cannot leave the token behind
+    (re.compile(r"(?i)bearer\s+[A-Za-z0-9\-_\.=]+"), "Bearer ***"),
+    (re.compile(r"(?i)(authorization|password|passwd|token|secret|refresh_token|access_token)(\"?\s*[:=]\s*\"?)(?!Bearer \*\*\*)([^\s\",]+)"), r"\1\2***"),
     (re.compile(r"\b[23]\d{13}\b"), "[NATIONAL_ID]"),           # Egyptian national id (14 digits)
     (re.compile(r"(?<!\d)(\+?20)?0?1[0125]\d{8}(?!\d)"), "[PHONE]"),  # Egyptian mobile
     (re.compile(r"[\w.+-]+@[\w-]+\.[\w.]+"), "[EMAIL]"),
