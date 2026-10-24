@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block docmeta %}
+  <div>أمر: <b class="num">{{ wo.number }}</b></div>
+  <div>العميل: {{ customer.name }}</div>
+  {% if wo.due_date %}<div>التسليم: <span class="num">{{ wo.due_date }}</span></div>{% endif %}
+{% endblock %}
+{% block content %}
+<h3 style="margin:12px 0 6px">الأصناف</h3>
+<table>
+  <tr><th>#</th><th class="draw">الشكل</th><th>الصنف</th><th>الفتحة سم</th><th>التصنيع سم</th><th>الكمية</th></tr>
+  {% for d in outputs.drawings %}
+  <tr><td class="num">{{ d.item }}</td><td class="draw">{{ drawing(d.elements, d.width_mm, d.height_mm, 110, 70) }}</td>
+    <td><b>{{ d.model_name }}</b><div class="small">{{ d.location }}</div></td>
+    <td>{{ size(d.opening_width_mm, d.opening_height_mm) }}</td><td>{{ size(d.width_mm, d.height_mm) }}</td><td class="num">{{ d.qty }}</td></tr>
+  {% endfor %}
+</table>
+{% for c in outputs.cut_list %}
+<h3 style="margin:14px 0 6px">{{ c.material_name or c.material_code }} <span class="small num">{{ c.sku }}</span></h3>
+<table>
+  <tr><th>العنصر</th><th>عرض / ارتفاع</th><th>الطول سم</th><th>العدد</th><th>الزاوية</th><th>للأصناف</th></tr>
+  {% for p in c.pieces %}
+  <tr><td>{{ p.element or p.label }}</td><td>{% if p.side == "width" %}عرض{% elif p.side == "height" %}ارتفاع{% else %}—{% endif %}</td>
+    <td class="num"><b>{{ p.length_mm | cm }}</b></td><td class="num">{{ p.qty }}</td>
+    <td class="num">{{ p.angle_left }}° / {{ p.angle_right }}°</td><td class="small">{{ p.refs | join("، ") }}</td></tr>
+  {% endfor %}
+</table>
+{% for plan in outputs.optimisation if plan.sku == c.sku %}
+<div class="small" style="margin:4px 0">خطة الأعواد: <b class="num">{{ plan.bars_count }}</b> عود × <span class="num">{{ plan.bar_length_mm | cm }}</span> سم · الهالك <b class="num">{{ plan.waste_pct }}%</b></div>
+{% for bar in plan.bars %}
+<div style="display:flex;direction:ltr;height:16px;border:1px solid #CBD5E1;margin:2px 0;font-size:9px">
+  {% for p in bar.pieces %}<div style="width:{{ (p.length_mm|float) / (plan.bar_length_mm|float) * 100 }}%;background:#E0E7FF;border-right:1px solid #fff;text-align:center">{{ p.length_mm | cm }}</div>{% endfor %}
+  <div style="flex:1;background:{% if bar.offcut_reusable %}#E7F6EC{% else %}#FDECEC{% endif %};text-align:center">{{ bar.offcut_mm | cm }}</div>
+</div>
+{% endfor %}
+{% endfor %}
+{% endfor %}
+{% if outputs.glass %}
+<h3 style="margin:14px 0 6px">الزجاج</h3>
+<table><tr><th>الصنف</th><th>النوع</th><th>المقاس سم (عرض × ارتفاع)</th><th>العدد</th><th>م²</th></tr>
+{% for g in outputs.glass %}<tr><td>{{ g.item }} {{ g.location }}</td><td>{{ g.material_code or "" }}</td><td>{{ size(g.width_mm, g.height_mm) }}</td><td class="num">{{ g.qty }}</td><td class="num">{{ g.area_m2[:6] }}</td></tr>{% endfor %}
+</table>{% endif %}
+{% if outputs.accessories %}
+<h3 style="margin:14px 0 6px">الإكسسوار</h3>
+<table><tr><th>الصنف</th><th>الكود</th><th>الكمية</th></tr>
+{% for a in outputs.accessories %}<tr><td>{{ a.material_name or "" }}</td><td class="num">{{ a.sku }}</td><td class="num">{{ a.qty }} {{ a.unit or "" }}</td></tr>{% endfor %}
+</table>{% endif %}
+{% endblock %}

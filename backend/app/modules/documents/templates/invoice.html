@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block docmeta %}
+  <div>رقم: <b class="num">{{ doc.number or "مسودة" }}</b></div>
+  <div>التاريخ: <span class="num">{{ doc.issue_date or "—" }}</span></div>
+  {% if doc.due_date %}<div>الاستحقاق: <span class="num">{{ doc.due_date }}</span></div>{% endif %}
+  {% if doc.status == "cancelled" %}<div class="cancelled">ملغاة</div>{% endif %}
+{% endblock %}
+{% block content %}
+<div class="meta">
+  <div class="box"><h4>العميل</h4><b>{{ customer.name }}</b>
+    <div>{% if customer.phone %}<span class="num">{{ customer.phone }}</span>{% endif %}</div>
+    <div>{{ customer.address or "" }}</div>{% if customer.tax_number %}<div>الرقم الضريبي: <span class="num">{{ customer.tax_number }}</span></div>{% endif %}</div>
+  <div class="box"><h4>بيانات</h4>
+    {% if work_order %}<div>أمر التصنيع: <span class="num">{{ work_order.number }}</span></div>{% endif %}
+    {% if quotation %}<div>عرض السعر: <span class="num">{{ quotation.number }}</span></div>{% endif %}
+    <div>العملة: {{ company.currency }} · المقاسات بالسنتيمتر (العرض × الارتفاع)</div></div>
+</div>
+<table>
+  <tr><th>#</th><th class="draw">الشكل</th><th>الصنف</th><th>المقاس سم<br><span class="small">(عرض × ارتفاع)</span></th><th>الكمية</th><th>سعر الوحدة</th><th>خصم</th><th>الإجمالي</th></tr>
+  {% for l in lines %}
+  <tr>
+    <td class="num">{{ loop.index }}</td>
+    <td class="draw">{% if l.image %}<img src="{{ l.image }}" alt=""><br>{% endif %}{{ drawing(l.drawing, l.width_mm, l.height_mm, 110, 80) }}</td>
+    <td><b>{{ l.description or l.model_name }}</b>{% if l.location %}<div class="small">{{ l.location }}</div>{% endif %}
+      {% if l.color_name or l.glass_name %}<div class="small">{% if l.color_name %}اللون: {{ l.color_name }}{% endif %}{% if l.glass_name %} · الزجاج: {{ l.glass_name }}{% endif %}</div>{% endif %}
+      {% for p in l.param_labels %}<div class="small">{{ p }}</div>{% endfor %}</td>
+    <td>{% if l.opening_width_mm %}{{ size(l.opening_width_mm, l.opening_height_mm) }}
+      {% if l.width_mm %}<div class="small">تصنيع {{ size(l.width_mm, l.height_mm) }}</div>{% endif %}{% else %}—{% endif %}</td>
+    <td class="num">{{ l.qty_text }}</td>
+    <td class="num">{{ l.unit_price | money }}</td>
+    <td class="num">{% if l.discount_amount and l.discount_amount != 0 %}{{ l.discount_amount | money }}<div class="small">{{ l.discount_pct_text }}%</div>{% else %}—{% endif %}</td>
+    <td class="num"><b>{{ l.line_total | money }}</b></td>
+  </tr>
+  {% endfor %}
+</table>
+<table class="totals">
+  {% if doc.lines_discount and doc.lines_discount != 0 %}<tr><td>إجمالي خصومات الأصناف</td><td class="num">{{ doc.lines_discount | money }}</td></tr>{% endif %}
+  <tr><td>الإجمالي</td><td class="num">{{ doc.lines_total | money }}</td></tr>
+  {% if doc.discount_amount and doc.discount_amount != 0 %}<tr><td>خصم إضافي</td><td class="num">− {{ doc.discount_amount | money }}</td></tr>{% endif %}
+  <tr><td>ضريبة القيمة المضافة <span class="num">{{ tax_pct_text }}%</span></td><td class="num">{{ doc.tax_amount | money }}</td></tr>
+  <tr class="grand"><td>الإجمالي المستحق</td><td class="num">{{ doc.total | money }} {{ company.currency }}</td></tr>
+  <tr><td>المدفوع</td><td class="num">{{ paid | money }}</td></tr>
+  <tr><td><b>المتبقي</b></td><td class="num"><b>{{ balance | money }}</b></td></tr>
+</table>
+{% if doc.terms %}<div class="terms"><b>الشروط:</b> {{ doc.terms }}</div>{% endif %}
+{% if doc.notes %}<div class="terms"><b>ملاحظات:</b> {{ doc.notes }}</div>{% endif %}
+<div class="stamp"><div>توقيع العميل</div><div>ختم وتوقيع الشركة</div></div>
+{% endblock %}

@@ -38,6 +38,8 @@ class CashTransaction(Base, IdMixin, TenantMixin):
                                                             nullable=True, index=True)
     purchase_order_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("purchase_orders.id"),
                                                                 nullable=True, index=True)
+    invoice_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("invoices.id"),
+                                                         nullable=True, index=True)
     reference: Mapped[str] = mapped_column(String(100), default="")  # cheque / transfer number
     note: Mapped[str] = mapped_column(Text, default="")
     user_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)

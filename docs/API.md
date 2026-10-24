@@ -74,11 +74,14 @@ WS /api/v1/system/events?token=<access_token>
 | POST | `/system/license` | (أوفلاين، `system.manage`) رفع ملف ترخيص موقّع (multipart `file`) |
 | GET / POST | `/system/backups` | قايمة النسخ الاحتياطية وآخر حالة / نسخة فورية (`system.manage`؛ في الأونلاين MYTech بس) |
 | WS | `/system/events` | التحديث اللحظي |
+| GET | `/system/branding?company_code=`، `/system/branding/logo?company_code=` | (عام) اسم الشركة ولوجوها ولونها، عشان شاشة الدخول. في الأوفلاين `company_code` اختياري |
 
 ### org: الشركة والفروع والمستخدمين
 | | | |
 |---|---|---|
 | GET / PATCH | `/company` | بيانات الشركة وإعداداتها: العملة، الضريبة الافتراضية، نسبة العربون، صلاحية العرض، هالك التسعير، سلاح المنشار، تشذيب أطراف العود، أقل باقي يرجع المخزن، شروط العرض |
+| | | `branding` جوه الرد: الاسم المعروض، التليفونات، الإيميل، الموقع، العنوان، الرقم الضريبي، السجل التجاري، تذييل الفاتورة، لون الشركة، `logo_media_id`، `length_unit` (`cm` افتراضي) |
+| GET / POST | `/company/logo` | لوجو الشركة (multipart `file`، PNG/JPEG/WEBP). بيظهر في كل صفحات البرنامج والمطبوعات |
 | GET / POST / PATCH | `/branches`، `/branches/{id}` | الفروع (مصنع / مخزن / معرض / مكتب) |
 | GET | `/permissions` | كل الصلاحيات |
 | GET / POST / PATCH | `/roles`، `/roles/{id}` | الأدوار. فيه أدوار جاهزة: مدير، مبيعات، إنتاج، مخازن، حسابات |
@@ -166,6 +169,26 @@ WS /api/v1/system/events?token=<access_token>
 | GET / POST | `/cash-transactions` | قبض أو صرف (`in`/`out`)، مربوط بعميل وأمر تصنيع أو بمورد وأمر شراء |
 | POST | `/cash-transactions/{id}/reverse` | عكس الحركة (الحركات مابتتعدلش) |
 | GET | `/customers/{id}/statement`، `/suppliers/{id}/statement` | كشف حساب |
+
+### invoicing: فواتير العملاء
+صلاحية `treasury.write` للتعديل و`treasury.read` للقراءة.
+| | | |
+|---|---|---|
+| GET / POST | `/invoices` | الفواتير. الإنشاء من `work_order_id` أو `quotation_id` (السطور بتتنسخ بالموديل وصورته ورسمته والمقاسات واللون والزجاج والسعر)، أو سطور يدوي `lines` |
+| GET / PATCH | `/invoices/{id}` | الفاتورة بسطورها والمدفوع والباقي. التعديل في المسودة بس: خصم، ضريبة، تاريخ استحقاق، ملاحظات، شروط |
+| POST | `/invoices/{id}/lines`، PATCH / DELETE `/invoice-lines/{id}` | سطور المسودة (صنف أو خدمة، كمية، سعر، خصم %) |
+| POST | `/invoices/{id}/issue` | إصدار: رقم متسلسل من غير فراغات (`INV-…`) والفاتورة بتتقفل |
+| POST | `/invoices/{id}/cancel` | `{reason}` إلغاء (مابتتمسحش) |
+
+القبض على فاتورة: `POST /cash-transactions` بـ `invoice_id` (لازم تكون صادرة ونفس العميل).
+
+### documents: المطبوعات (A4 HTML جاهز للطباعة أو حفظ PDF)
+كل مطبوع فيه اسم الشركة ولوجوها وبياناتها، والمقاسات بالسنتيمتر والعرض قبل الارتفاع، والصور والخطوط جوه الملف (من غير إنترنت).
+| | | |
+|---|---|---|
+| GET | `/invoices/{id}/print` | الفاتورة: شكل النموذج ورسمته، المقاس، اللون، الزجاج، الكمية، السعر، الخصم، الضريبة، المدفوع والباقي |
+| GET | `/quotations/{id}/print` | عرض السعر بنفس التفاصيل والعربون المطلوب |
+| GET | `/work-orders/{id}/print/cut-list` | كشف التقطيع: القطع لكل خامة (العنصر، عرض/ارتفاع، الطول، العدد، الزوايا) وخطة الأعواد والزجاج والإكسسوار |
 
 ### privacy: البيانات الشخصية
 | | | |

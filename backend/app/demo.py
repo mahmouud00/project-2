@@ -175,9 +175,13 @@ def setup_demo() -> bool:
     a = login(DEMO_CODE, ADMIN)
     company = _ok(client.get("/api/v1/company", headers=a))
     _ok(client.patch("/api/v1/company", headers=a, json={"version": company["version"], "settings": {
+        "display_name": "مصنع النور للشبابيك (تجريبي)", "phone": "0223456789", "phone2": "01000000000",
+        "address": "المنطقة الصناعية - القاهرة", "tax_number": "000-000-000", "commercial_register": "00000",
+        "invoice_footer": "شكرًا لثقتكم · الضمان 5 سنوات على القطاعات", "accent_color": "#5048E5",
         "default_tax_pct": "14", "deposit_pct": "30", "quote_waste_pct": "10", "saw_kerf_mm": "4",
         "bar_trim_mm": "10", "min_reusable_offcut_mm": "500", "quote_validity_days": 15,
         "quote_terms": "الأسعار سارية 15 يوم. التسليم خلال 21 يوم من دفع العربون."}}))
+    _ok(client.post("/api/v1/company/logo", headers=a, files={"file": ("logo.png", _png(240, 160), "image/png")}))
     branch = _ok(client.get("/api/v1/branches", headers=a))["items"][0]
     for code, name, ctype, margin in (("END", "عميل نهائي", "end", "30"), ("DEALER", "تاجر", "dealer", "15"),
                                       ("CONTRACTOR", "مقاول", "contractor", "20")):
@@ -201,6 +205,20 @@ def setup_demo() -> bool:
              "params": {"leaf_count": 2}, "color_code": "W", "glass_material_code": "DEMO-GLASS6"},
             {"location": "مطبخ", "opening_width_mm": 1200, "opening_height_mm": 1000, "model_id": model["id"],
              "params": {"leaf_count": 2}, "color_code": "B", "glass_material_code": "DEMO-GLASS6"}]}))
-    _ok(client.post("/api/v1/quotations", headers=a, json={
+    quote = _ok(client.post("/api/v1/quotations", headers=a, json={
+        "customer_id": customer["id"], "branch_id": branch["id"], "survey_id": survey["id"], "discount_amount": "250"}))
+    # a second, accepted quotation with its work order, deposit and an issued invoice
+    q2 = _ok(client.post("/api/v1/quotations", headers=a, json={
         "customer_id": customer["id"], "branch_id": branch["id"], "survey_id": survey["id"]}))
+    q2 = _ok(client.post(f"/api/v1/quotations/{q2['id']}/status", headers=a,
+                         json={"version": q2["version"], "status": "accepted"}))
+    wo = _ok(client.post("/api/v1/work-orders/from-quotation", headers=a, json={"quotation_id": q2["id"]}))
+    box = _ok(client.get("/api/v1/cashboxes", headers=a))[0]
+    _ok(client.post("/api/v1/cash-transactions", headers=a, json={
+        "cashbox_id": box["id"], "direction": "in", "amount": wo["deposit_required"], "party_type": "customer",
+        "party_id": customer["id"], "work_order_id": wo["id"], "note": "عربون"}))
+    inv = _ok(client.post("/api/v1/invoices", headers=a, json={"work_order_id": wo["id"]}))
+    inv = _ok(client.post(f"/api/v1/invoices/{inv['id']}/lines", headers=a, json={
+        "kind": "service", "description": "تركيب ونقل", "qty": "1", "unit_price": "600"}))
+    _ok(client.post(f"/api/v1/invoices/{inv['id']}/issue", headers=a, json={"version": inv["version"]}))
     return True

@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block docmeta %}
+  <div>رقم: <b class="num">{{ doc.number }}</b></div>
+  <div>التاريخ: <span class="num">{{ doc.issue_date or "" }}</span></div>
+  {% if doc.valid_until %}<div>صالح حتى: <span class="num">{{ doc.valid_until }}</span></div>{% endif %}
+{% endblock %}
+{% block content %}
+<div class="meta">
+  <div class="box"><h4>السادة</h4><b>{{ customer.name }}</b><div>{% if customer.phone %}<span class="num">{{ customer.phone }}</span>{% endif %}</div><div>{{ customer.address or "" }}</div></div>
+  <div class="box"><h4>بيانات</h4><div>المقاسات بالسنتيمتر (العرض × الارتفاع)</div><div>العملة: {{ company.currency }}</div></div>
+</div>
+<table>
+  <tr><th>#</th><th class="draw">الشكل</th><th>الصنف</th><th>المقاس سم<br><span class="small">(عرض × ارتفاع)</span></th><th>الكمية</th><th>سعر الوحدة</th><th>الإجمالي</th></tr>
+  {% for l in lines %}
+  <tr>
+    <td class="num">{{ loop.index }}</td>
+    <td class="draw">{% if l.image %}<img src="{{ l.image }}" alt=""><br>{% endif %}{{ drawing(l.drawing, l.width_mm, l.height_mm, 110, 80) }}</td>
+    <td><b>{{ l.model_name }}</b>{% if l.location %}<div class="small">{{ l.location }}</div>{% endif %}
+      {% if l.color_name or l.glass_name %}<div class="small">{% if l.color_name %}اللون: {{ l.color_name }}{% endif %}{% if l.glass_name %} · الزجاج: {{ l.glass_name }}{% endif %}</div>{% endif %}
+      {% for p in l.param_labels %}<div class="small">{{ p }}</div>{% endfor %}</td>
+    <td>{{ size(l.opening_width_mm, l.opening_height_mm) }}</td>
+    <td class="num">{{ l.qty }}</td>
+    <td class="num">{{ l.unit_price | money }}</td>
+    <td class="num"><b>{{ l.line_total | money }}</b></td>
+  </tr>
+  {% endfor %}
+</table>
+<table class="totals">
+  <tr><td>الإجمالي</td><td class="num">{{ doc.subtotal | money }}</td></tr>
+  {% if doc.discount_amount and doc.discount_amount != 0 %}<tr><td>خصم</td><td class="num">− {{ doc.discount_amount | money }}</td></tr>{% endif %}
+  <tr><td>ضريبة القيمة المضافة <span class="num">{{ tax_pct_text }}%</span></td><td class="num">{{ doc.tax_amount | money }}</td></tr>
+  <tr class="grand"><td>الإجمالي</td><td class="num">{{ doc.total | money }} {{ company.currency }}</td></tr>
+  {% if deposit %}<tr><td>العربون المطلوب</td><td class="num">{{ deposit | money }}</td></tr>{% endif %}
+</table>
+{% if doc.terms %}<div class="terms"><b>الشروط:</b> {{ doc.terms }}</div>{% endif %}
+<div class="stamp"><div>موافقة العميل</div><div>ختم وتوقيع الشركة</div></div>
+{% endblock %}

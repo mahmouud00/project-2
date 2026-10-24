@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>{{ title }}</title>
+<style>
+{{ fonts_css }}
+@page { size: A4; margin: 12mm 12mm 14mm; }
+* { box-sizing: border-box; }
+body { font-family: "Cairo", "Segoe UI", Tahoma, sans-serif; color: #1B2533; font-size: 11.5px; margin: 0; direction: rtl; }
+.dim, .num, .ltr { unicode-bidi: isolate; font-variant-numeric: tabular-nums; }
+.num, .ltr { direction: ltr; }
+.dim { direction: rtl; white-space: nowrap; } .dim .x { color: #94A3B8; margin: 0 2px; }
+header { display: flex; align-items: center; gap: 14px; padding-bottom: 10px; border-bottom: 3px solid {{ company.accent_color or '#5048E5' }}; }
+header img { max-height: 64px; max-width: 200px; object-fit: contain; }
+header .co { flex: 1; }
+header .co h1 { margin: 0; font-size: 19px; }
+header .co div { color: #586476; font-size: 11px; }
+header .doc { text-align: left; }
+header .doc h2 { margin: 0; font-size: 20px; color: {{ company.accent_color or '#5048E5' }}; }
+header .doc div { font-size: 11px; color: #586476; }
+.meta { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 12px 0; }
+.box { border: 1px solid #E2E7EE; border-radius: 6px; padding: 8px 10px; }
+.box h4 { margin: 0 0 4px; font-size: 11px; color: #6A7686; font-weight: 700; }
+table { width: 100%; border-collapse: collapse; }
+th { background: #F1F4F8; font-size: 10.5px; color: #475467; text-align: start; padding: 6px 6px; border-bottom: 1px solid #DDE3EA; }
+td { padding: 6px; border-bottom: 1px solid #EEF1F5; vertical-align: middle; }
+tr { page-break-inside: avoid; }
+.draw { width: 120px; text-align: center; }
+.draw img { max-width: 110px; max-height: 80px; }
+.small { font-size: 10px; color: #6A7686; }
+.totals { width: 300px; margin-inline-start: auto; margin-top: 10px; }
+.totals td { padding: 4px 8px; }
+.totals .grand td { font-size: 15px; font-weight: 800; border-top: 2px solid #1B2533; }
+.terms { margin-top: 14px; font-size: 10.5px; color: #475467; white-space: pre-line; }
+footer { margin-top: 18px; padding-top: 8px; border-top: 1px solid #E2E7EE; font-size: 10px; color: #6A7686; display: flex; justify-content: space-between; }
+.stamp { margin-top: 26px; display: flex; justify-content: space-between; font-size: 11px; }
+.stamp div { width: 40%; border-top: 1px dashed #94A3B8; padding-top: 4px; text-align: center; color: #586476; }
+.cancelled { color: #C62828; border: 2px solid #C62828; display: inline-block; padding: 2px 10px; border-radius: 4px; font-weight: 800; }
+@media screen { body { background: #E5E9EF; } .page { background: #fff; width: 210mm; min-height: 297mm; margin: 12px auto; padding: 12mm; box-shadow: 0 2px 10px rgba(0,0,0,.12); } }
+@media print { .page { padding: 0; } }
+</style></head>
+<body><div class="page">
+<header>
+  {% if company.logo %}<img src="{{ company.logo }}" alt="">{% endif %}
+  <div class="co"><h1>{{ company.name }}</h1>
+    <div>{{ company.address }}</div>
+    <div>{% if company.phone %}<span class="num">{{ company.phone }}</span>{% endif %}{% if company.phone2 %} · <span class="num">{{ company.phone2 }}</span>{% endif %}{% if company.email %} · <span class="ltr">{{ company.email }}</span>{% endif %}</div>
+    <div>{% if company.tax_number %}الرقم الضريبي: <span class="num">{{ company.tax_number }}</span>{% endif %}{% if company.commercial_register %} · السجل التجاري: <span class="num">{{ company.commercial_register }}</span>{% endif %}</div>
+  </div>
+  <div class="doc"><h2>{{ title }}</h2>{% block docmeta %}{% endblock %}</div>
+</header>
+{% block content %}{% endblock %}
+<footer><span>{{ company.invoice_footer }}</span><span>طُبع بواسطة MYTech Solutions · {{ printed_at }}</span></footer>
+</div></body></html>

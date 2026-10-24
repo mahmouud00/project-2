@@ -4,6 +4,9 @@ All notable changes are listed here. Versions follow Semantic Versioning (MAJOR.
 
 ## [Unreleased]
 ### Added
+- Company branding: display name, phones, e-mail, website, address, tax number, commercial register, invoice footer, accent colour and logo (`POST/GET /company/logo`); public `GET /system/branding` for the login screen.
+- Customer invoices (`/invoices`): created from a work order, a quotation or manual lines; model, image, drawing, sizes, colour, glass, price and discounts per line; invoice discount and tax; gap-free number on issue; cancel with a reason; cash receipts linked to invoices (migration 0004).
+- Printable A4 documents (self-contained HTML, company logo and details on every page, sizes in cm, width first): invoice, quotation, cut list.
 - Model pieces carry `element` (e.g. حلق، ضلفة، باكتة) and `side` (`width`/`height`) so each element's width and height deductions are shown together; passed through calculation results and cut lists.
 - Company setting `length_unit` (default `cm`): the desktop app shows and accepts lengths in cm (the API stays in mm).
 - UI mockups updated with the MYTech logo and colours, cm everywhere, width always before height.

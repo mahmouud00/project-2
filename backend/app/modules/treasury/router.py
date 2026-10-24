@@ -76,6 +76,7 @@ class TxIn(BaseModel):
     party_id: uuid.UUID | None = None
     work_order_id: uuid.UUID | None = None
     purchase_order_id: uuid.UUID | None = None
+    invoice_id: uuid.UUID | None = None
     reference: str = ""
     note: str = ""
 
@@ -92,6 +93,7 @@ class TxOut(ORMModel):
     party_id: uuid.UUID | None
     work_order_id: uuid.UUID | None
     purchase_order_id: uuid.UUID | None
+    invoice_id: uuid.UUID | None
     reference: str
     note: str
     reverses_id: uuid.UUID | None
@@ -125,6 +127,15 @@ def create_tx(body: TxIn, dc=Depends(require("treasury.write"))):
         wo = get_or_404(db, WorkOrder, body.work_order_id)
         if body.party_type != "customer" or wo.customer_id != body.party_id:
             raise ValidationFailed("Work order belongs to another customer", code="PARTY_MISMATCH")
+    if body.invoice_id:
+        from app.modules.invoicing.models import Invoice
+        inv = get_or_404(db, Invoice, body.invoice_id)
+        if body.party_type != "customer" or inv.customer_id != body.party_id or inv.status != "issued":
+            raise ValidationFailed("Invoice not payable by this customer", code="PARTY_MISMATCH")
+        if inv.work_order_id:
+            if body.work_order_id not in (None, inv.work_order_id):
+                raise ValidationFailed("Invoice belongs to another work order", code="PARTY_MISMATCH")
+            body.work_order_id = inv.work_order_id
     if body.purchase_order_id:
         po = get_or_404(db, PurchaseOrder, body.purchase_order_id)
         if body.party_type != "supplier" or po.supplier_id != body.party_id:
@@ -161,6 +172,7 @@ def reverse_tx(tx_id: uuid.UUID, body: ReverseIn, dc=Depends(require("treasury.w
     rev = CashTransaction(number=next_number(db, "cash", "RV", branch.code), cashbox_id=tx.cashbox_id,
                           direction="out" if tx.direction == "in" else "in", amount=tx.amount, method=tx.method,
                           party_type=tx.party_type, party_id=tx.party_id, reference=tx.reference,
+                          work_order_id=tx.work_order_id, invoice_id=tx.invoice_id, purchase_order_id=tx.purchase_order_id,
                           note=body.note, user_id=ctx.user_id, reverses_id=tx.id)
     db.add(rev)
     tx.reversed = True

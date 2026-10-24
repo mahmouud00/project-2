@@ -8,4 +8,8 @@ def test_demo_setup_runs_and_is_idempotent(monkeypatch, client):
                                                   "client_id": "DEMO"}).json()["access_token"]
     h = {"Authorization": f"Bearer {tok}"}
     q = client.get("/api/v1/quotations", headers=h).json()["items"]
-    assert len(q) == 1 and float(q[0]["total"]) > 0
+    assert len(q) == 2 and all(float(x["total"]) > 0 for x in q)
+    inv = client.get("/api/v1/invoices", headers=h).json()["items"]
+    assert len(inv) == 1 and inv[0]["status"] == "issued" and inv[0]["number"]
+    page = client.get(f"/api/v1/invoices/{inv[0]['id']}/print", headers=h)
+    assert page.status_code == 200 and "<svg" in page.text

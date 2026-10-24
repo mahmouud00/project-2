@@ -1,0 +1,154 @@
+"""GET .../print -> printable A4 HTML (the desktop app prints it or saves it as PDF)."""
+from __future__ import annotations
+
+import base64
+import uuid
+from datetime import datetime
+from decimal import Decimal
+from pathlib import Path
+
+from fastapi import APIRouter, Depends
+from fastapi.responses import HTMLResponse
+from sqlalchemy import select
+
+from app.core.pii import log_pii
+from app.modules.crm.models import Customer
+from app.modules.crm.router import get_or_404
+from app.modules.documents.render import company_context, data_uri, render
+from app.modules.library.models import Color, ProductModel
+from app.modules.library.service import find_material
+from app.tenancy.context import require
+
+router = APIRouter(tags=["documents"])
+_FONTS = Path(__file__).with_name("fonts")
+
+
+def _fonts_css() -> str:
+    faces = []
+    for f in sorted(_FONTS.glob("cairo-*.woff2")):
+        b64 = base64.b64encode(f.read_bytes()).decode()
+        faces.append(f"@font-face{{font-family:'Cairo';font-weight:200 1000;src:url(data:font/woff2;base64,{b64}) format('woff2');}}")
+    return "\n".join(faces)
+
+
+def _num(x) -> str:
+    d = Decimal(str(x)).normalize()
+    return format(d, "f")
+
+
+class _Lookups:
+    def __init__(self, db):
+        self.db = db
+        self.colors = {c.code: c.name for c in db.scalars(select(Color))}
+        self.images: dict = {}
+
+    def image(self, media_id):
+        if media_id not in self.images:
+            self.images[media_id] = data_uri(self.db, media_id)
+        return self.images[media_id]
+
+    def glass(self, code):
+        if not code:
+            return ""
+        m = find_material(self.db, code)
+        return m.name if m else code
+
+    def params(self, model_id, values: dict) -> list[str]:
+        model = self.db.get(ProductModel, model_id) if model_id else None
+        if model is None:
+            return []
+        out = []
+        for p in model.definition.get("params", []):
+            if p["name"] not in values:
+                continue
+            v = values[p["name"]]
+            if p.get("type") == "bool":
+                if v in (True, "true", 1, "1"):
+                    out.append(p.get("label") or p["name"])
+                continue
+            if p.get("type") == "choice":
+                label = next((c["label"] for c in p.get("choices", []) if Decimal(str(c["value"])) == Decimal(str(v))), v)
+                out.append(f"{p.get('label') or p['name']}: {label}")
+            else:
+                out.append(f"{p.get('label') or p['name']}: {v}")
+        return out
+
+
+def _page(template: str, db, ctx, **kw) -> HTMLResponse:
+    html = render(template, company=company_context(db, ctx.company_id), fonts_css=_fonts_css(),
+                  printed_at=datetime.now().strftime("%Y-%m-%d %H:%M"), **kw)
+    return HTMLResponse(html)
+
+
+@router.get("/invoices/{inv_id}/print", response_class=HTMLResponse)
+def print_invoice(inv_id: uuid.UUID, dc=Depends(require("treasury.read"))):
+    from app.modules.invoicing.models import Invoice
+    from app.modules.invoicing.router import _lines, invoice_out
+    from app.modules.production.models import WorkOrder
+    from app.modules.sales.models import Quotation
+
+    db, ctx = dc
+    inv = get_or_404(db, Invoice, inv_id)
+    ctx.require("treasury.read", inv.branch_id)
+    out = invoice_out(db, inv)
+    look = _Lookups(db)
+    lines = []
+    for l in _lines(db, inv):
+        lines.append({**{c: getattr(l, c) for c in ("description", "model_name", "location", "opening_width_mm",
+                                                     "opening_height_mm", "width_mm", "height_mm", "drawing",
+                                                     "unit_price", "discount_amount", "line_total")},
+                      "qty_text": _num(l.qty), "discount_pct_text": _num(l.discount_pct),
+                      "image": look.image(l.model_image_id), "color_name": look.colors.get(l.color_code or "", l.color_code),
+                      "glass_name": look.glass(l.glass_material_code), "param_labels": look.params(l.model_id, l.params)})
+    customer = db.get(Customer, inv.customer_id)
+    log_pii(db, ctx, "customer", [customer.id], "export", ["name", "phone", "address"])
+    db.commit()
+    title = "فاتورة" if inv.status != "draft" else "فاتورة (مسودة)"
+    return _page("invoice.html", db, ctx, title=title, doc=inv, lines=lines, customer=customer,
+                 work_order=db.get(WorkOrder, inv.work_order_id) if inv.work_order_id else None,
+                 quotation=db.get(Quotation, inv.quotation_id) if inv.quotation_id else None,
+                 paid=out.paid_amount, balance=out.balance, tax_pct_text=_num(inv.tax_pct))
+
+
+@router.get("/quotations/{quote_id}/print", response_class=HTMLResponse)
+def print_quotation(quote_id: uuid.UUID, dc=Depends(require("quotes.read"))):
+    from app.modules.org.settings import get_company_settings
+    from app.modules.sales.models import Quotation, QuotationLine
+    from app.modules.sales.pricing import money
+
+    db, ctx = dc
+    q = get_or_404(db, Quotation, quote_id)
+    ctx.require("quotes.read", q.branch_id)
+    look = _Lookups(db)
+    lines = []
+    for l in db.scalars(select(QuotationLine).where(QuotationLine.quotation_id == q.id).order_by(QuotationLine.position)):
+        model = db.get(ProductModel, l.model_id)
+        inputs = (l.calc or {}).get("inputs", {})
+        lines.append({"model_name": model.name if model else "", "location": l.location,
+                      "opening_width_mm": l.opening_width_mm, "opening_height_mm": l.opening_height_mm,
+                      "width_mm": inputs.get("width_mm"), "height_mm": inputs.get("height_mm"),
+                      "drawing": (l.calc or {}).get("drawing", []), "qty": l.qty, "unit_price": l.unit_price,
+                      "line_total": l.line_total, "image": look.image(model.image_id if model else None),
+                      "color_name": look.colors.get(l.color_code or "", l.color_code),
+                      "glass_name": look.glass(l.glass_material_code), "param_labels": look.params(l.model_id, l.params)})
+    customer = db.get(Customer, q.customer_id)
+    log_pii(db, ctx, "customer", [customer.id], "export", ["name", "phone", "address"])
+    db.commit()
+    deposit = money(q.total * get_company_settings(db, ctx.company_id).deposit_pct / 100)
+    return _page("quotation.html", db, ctx, title="عرض سعر", doc=q, lines=lines, customer=customer,
+                 deposit=deposit if deposit else None, tax_pct_text=_num(q.tax_pct))
+
+
+@router.get("/work-orders/{wo_id}/print/cut-list", response_class=HTMLResponse)
+def print_cut_list(wo_id: uuid.UUID, dc=Depends(require("workorders.read"))):
+    from app.modules.production.manufacturing import generate_outputs
+    from app.modules.production.models import WorkOrder
+
+    db, ctx = dc
+    wo = get_or_404(db, WorkOrder, wo_id)
+    ctx.require("workorders.read", wo.branch_id)
+    outputs = wo.outputs or generate_outputs(db, wo)
+    log_pii(db, ctx, "customer", [wo.customer_id], "export", ["name"])
+    db.commit()
+    return _page("cutlist.html", db, ctx, title="كشف تقطيع", wo=wo, outputs=outputs,
+                 customer=db.get(Customer, wo.customer_id))

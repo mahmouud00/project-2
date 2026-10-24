@@ -56,17 +56,22 @@ def _media_out(m: MediaFile) -> S.MediaOut:
     return out
 
 
-@router.post("/library/media", response_model=S.MediaOut, status_code=201)
-async def upload_media(file: UploadFile, dc=Depends(get_db_and_ctx)):
-    db, ctx = dc
-    svc.require_author(ctx)
+async def read_image(db, file: UploadFile) -> MediaFile:
+    """Validate an uploaded image (content-sniffed, 5 MB) and store it."""
     data = await file.read(MAX_IMAGE_BYTES + 1)
     if len(data) > MAX_IMAGE_BYTES:
         raise ValidationFailed("Image larger than 5 MB", code="FILE_TOO_LARGE")
     mime = next((t for magic, t in _MAGIC.items() if data.startswith(magic)), None)
     if mime is None or (mime == "image/webp" and data[8:12] != b"WEBP"):
         raise ValidationFailed("Only PNG, JPEG or WEBP images", code="FILE_TYPE")
-    media = store_media(db, data, file.filename or "image", mime)
+    return store_media(db, data, file.filename or "image", mime)
+
+
+@router.post("/library/media", response_model=S.MediaOut, status_code=201)
+async def upload_media(file: UploadFile, dc=Depends(get_db_and_ctx)):
+    db, ctx = dc
+    svc.require_author(ctx)
+    media = await read_image(db, file)
     db.commit()
     return _media_out(media)
 

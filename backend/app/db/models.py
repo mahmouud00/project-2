@@ -8,3 +8,4 @@ from app.modules.production import models as _production  # noqa: F401
 from app.modules.inventory import models as _inventory  # noqa: F401
 from app.modules.purchasing import models as _purchasing  # noqa: F401
 from app.modules.treasury import models as _treasury  # noqa: F401
+from app.modules.invoicing import models as _invoicing  # noqa: F401

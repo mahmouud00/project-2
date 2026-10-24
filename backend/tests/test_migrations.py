@@ -49,11 +49,26 @@ def test_upgrade_from_old_revision_keeps_data():
     before2 = _dump(engine)
     engine.dispose()
 
+    migrate(url=url, revision="0003")
+    engine = create_engine(url)
+    with engine.begin() as c:
+        bid, box, tx = uuid.uuid4(), uuid.uuid4(), uuid.uuid4()
+        c.execute(text("INSERT INTO branches (id, company_id, code, name, kind, is_active, version) "
+                       "VALUES (:b, :c, 'MAIN', 'Main', 'factory', true, 1)"), {"b": bid, "c": cid})
+        c.execute(text("INSERT INTO cashboxes (id, company_id, code, name, branch_id, is_active, version) "
+                       "VALUES (:x, :c, 'BOX', 'Box', :b, true, 1)"), {"x": box, "c": cid, "b": bid})
+        c.execute(text("INSERT INTO cash_transactions (id, company_id, number, at, cashbox_id, direction, amount, "
+                       "method, party_type, reference, note, reversed) VALUES (:t, :c, 'CT-1', now(), :x, "
+                       "'in', 125.50, 'cash', 'other', '', 'old receipt', false)"), {"t": tx, "c": cid, "x": box})
+    before3 = _dump(engine)
+    engine.dispose()
+
     migrate(url=url)  # head
     engine = create_engine(url)
     after = _dump(engine)
     engine.dispose()
-    for table, rows in {**before, **before2}.items():
+    assert after["cash_transactions"][str(tx)]["invoice_id"] is None
+    for table, rows in {**before, **before2, **before3}.items():
         assert set(after[table]) == set(rows), f"rows lost or added in {table}"
         for row_id, old in rows.items():
             new = after[table][row_id]

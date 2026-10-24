@@ -25,6 +25,40 @@ def info():
             "min_client_version": s.min_client_version, "api": "/api/v1"}
 
 
+def _branding_company(db, company_code: str | None):
+    from sqlalchemy import select
+
+    from app.core.errors import NotFound
+    from app.db.base import PLATFORM_COMPANY_ID
+    from app.modules.org.models import Company
+
+    stmt = select(Company).where(Company.is_active, Company.id != PLATFORM_COMPANY_ID)
+    if company_code:
+        stmt = stmt.where(Company.code == company_code)
+    elif get_settings().is_online:
+        raise NotFound("Company code required", code="COMPANY_REQUIRED")
+    companies = db.scalars(stmt.limit(2)).all()
+    if len(companies) != 1:
+        raise NotFound("Company not found")
+    return companies[0]
+
+
+@router.get("/branding")
+def public_branding(company_code: str | None = None, db=Depends(iter_system_session)):
+    """(Public) company name and logo for the login screen. No personal data."""
+    from app.modules.org.settings import branding
+
+    b = branding(db, _branding_company(db, company_code))
+    return {k: b[k] for k in ("company_code", "name", "has_logo", "accent_color")}
+
+
+@router.get("/branding/logo")
+def public_logo(company_code: str | None = None, db=Depends(iter_system_session)):
+    from app.modules.org.settings import _logo_response
+
+    return _logo_response(db, _branding_company(db, company_code))
+
+
 @router.get("/health")
 def health(db=Depends(iter_system_session)):
     db.execute(text("SELECT 1"))

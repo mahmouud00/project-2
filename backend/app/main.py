@@ -96,6 +96,8 @@ MODULE_ROUTERS: list[str] = [
     "app.modules.purchasing.router",
     "app.modules.treasury.router",
     "app.modules.privacy.router",
+    "app.modules.invoicing.router",
+    "app.modules.documents.router",
 ]
 
 app = create_app()
