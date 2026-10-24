@@ -173,3 +173,34 @@ WS /api/v1/system/events?token=<access_token>
 | GET | `/privacy/subjects/{customer|user|supplier}/{id}/export` | كل البيانات عن الشخص |
 | POST | `/privacy/subjects/{type}/{id}/erase` | `{reason}`: إخفاء الهوية مع الإبقاء على السجلات المالية |
 | GET | `/privacy/access-log?subject_id=&user_id=` | مين شاف أو عدّل أو صدّر أو مسح، وإمتى |
+
+---
+
+## برنامج الديسكتوب: إزاي يتعامل مع السيرفر
+الواجهة **برنامج ديسكتوب** (قرار صاحب المشروع). المطلوب من البرنامج:
+
+1. **إيجاد السيرفر (أوفلاين):**
+   - يبعت UDP broadcast بالنص `MYTECH_DISCOVER` على بورت `47800`.
+   - كل سيرفر بيرد بـ JSON: `{"product", "version", "host", "address", "port", "scheme", "api"}`.
+   - بديل: يدوّر على خدمة mDNS `_mytech._tcp.local.`.
+   - لو مالقاش حاجة، يطلب من المستخدم يكتب العنوان يدوي.
+   - يحفظ آخر عنوان شغال ويجرّبه الأول المرة الجاية.
+   - المرجع: `backend/app/ops/discovery.py` (الدالة `discover()`) و`tools/find_server.py`.
+   - في الأونلاين: العنوان ثابت (https).
+2. **هوية الجهاز:** أول تشغيل يولّد `device_key` عشوائي (UUID) ويحفظه، ويبعته مع كل `login` ومعاه `device_name` و`platform` و`client_version`.
+3. **التوكنز:**
+   - يحفظ الـ refresh token بشكل آمن (Windows Credential Manager / DPAPI).
+   - لما ييجي `401 TOKEN_EXPIRED`، يعمل `refresh` ويعيد الطلب مرة واحدة.
+   - لو جه `TOKEN_REUSED` أو `TOKEN_INVALID` أو `USER_DISABLED`، يرجّع شاشة الدخول.
+4. **الإصدار:**
+   - يبعت `X-Client-Version` مع كل طلب.
+   - لو جه `426 CLIENT_UPDATE_REQUIRED`، يعرض إن البرنامج محتاج يتحدث (`details.min_client_version`).
+5. **التحديث اللحظي:**
+   - يفتح `WS /api/v1/system/events?token=...` بعد الدخول، ولما ييجي `change` يعيد تحميل الشاشة المفتوحة لو بتعرض نفس الـ `entity`/`id`.
+   - يتجاهل `ping`.
+6. **انقطاع الشبكة:**
+   - يعرض حالة "غير متصل" ويعيد المحاولة لوحده (backoff: 1، 2، 5، 10 ثواني...).
+   - مايخزّنش عمليات محليًا ولا يزامن بعدين (offline sync ممنوع).
+   - لما الاتصال يرجع، يجدد التوكن ويفتح الـ WebSocket تاني.
+7. **التعديل المتزامن:** يبعت `version` مع كل `PATCH`. لو جه `409 VERSION_CONFLICT` يعرض للمستخدم `details.current` ويخيّره (يحمّل الجديد أو يعيد تعديله).
+8. **الصور:** `GET /media/{id}` بنفس التوكن، ويعمل لها cache محلي بالـ id (الصورة بالـ id مابتتغيرش).
