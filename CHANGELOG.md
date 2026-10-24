@@ -17,5 +17,6 @@ All notable changes are listed here. Versions follow Semantic Versioning (MAJOR.
 - Publishing creates an immutable, hashed version of a system; publishing is refused if a definition is invalid or a reference test drifts > 0.1 mm. Calculations (`POST /engine/calculate`) use the published version and return the version id.
 - Company calibration deltas and constant overrides, company material settings (price, internal code, hidden) kept outside library rows.
 - Companies can create their own private systems; library rows are read-only for customers; library visibility follows licensed material types.
+- Library update packages: vendor export (`POST /library/packages/export`), offline signing (`vendor_admin sign-package`), customer preview with a full change list (`/library/packages/preview`) and apply (`/library/packages/{id}/apply`); signature and file-hash verification, same ids at every customer, published versions never rewritten, removed items deactivated (never deleted), company calibration untouched. Online: only MYTech updates the shared library.
 - Image upload (PNG/JPEG/WEBP, content-sniffed, 5 MB) and authenticated download.
 - `tools/vendor_admin`: key generation, licence issuing/inspection, company and subscription management.

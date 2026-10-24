@@ -2,16 +2,18 @@ from __future__ import annotations
 
 import hashlib
 import uuid
+from datetime import datetime, timezone
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends, UploadFile
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
+from pydantic import BaseModel
 from sqlalchemy import or_, select
 
 from app.api.common import Page, PageParams, paginate
 from app.core.audit import apply_changes, audit, check_version, snapshot
 from app.core.config import get_settings
-from app.core.errors import Conflict, NotFound, ValidationFailed
+from app.core.errors import Conflict, Forbidden, NotFound, ValidationFailed
 from app.db.base import PLATFORM_COMPANY_ID
 from app.engine.compute import CalcError, calculate, check_definition
 from app.modules.library import schemas as S
@@ -546,3 +548,95 @@ def calculate_endpoint(body: S.CalculateIn, dc=Depends(require("engine.calculate
     return svc.calculate_model(db, ctx, body.model_id, opening_width_mm=body.opening_width_mm,
                                opening_height_mm=body.opening_height_mm, params=body.params,
                                version_id=body.version_id)
+
+
+# ---------------------------------------------------------------- packages
+class ExportIn(BaseModel):
+    system_codes: list[str] = []
+    notes: str = ""
+
+
+@router.post("/library/packages/export")
+def export_library_package(body: ExportIn, dc=Depends(get_db_and_ctx)):
+    """Vendor: unsigned package of the platform library. Sign it with
+    `python -m tools.vendor_admin sign-package` before sending to customers."""
+    from app.modules.library.packages import export_package
+
+    db, ctx = dc
+    if not ctx.is_platform:
+        raise Forbidden("Only MYTech can export the library", code="PLATFORM_ONLY")
+    ctx.require("platform.library.author")
+    data = export_package(db, body.system_codes or None, body.notes)
+    name = f"mytech-library-{datetime.now(timezone.utc):%Y%m%d-%H%M}.unsigned.zip"
+    return Response(data, media_type="application/zip",
+                    headers={"Content-Disposition": f'attachment; filename="{name}"'})
+
+
+def _check_can_import(ctx) -> None:
+    ctx.require("library.import")
+    if get_settings().is_online and not ctx.is_platform:
+        # online: the library is shared by every company, only MYTech updates it
+        raise Forbidden("Library updates are managed by MYTech", code="PLATFORM_ONLY")
+
+
+@router.post("/library/packages/preview")
+async def preview_library_package(file: UploadFile, dc=Depends(get_db_and_ctx)):
+    """Verify a signed package and show exactly what it would change. Nothing is applied."""
+    from app.modules.library.packages import MAX_PACKAGE_BYTES, compute_diff, open_package, pending_path
+    from app.modules.library.models import LibraryImport
+
+    db, ctx = dc
+    _check_can_import(ctx)
+    data = await file.read(MAX_PACKAGE_BYTES + 1)
+    if len(data) > MAX_PACKAGE_BYTES:
+        raise ValidationFailed("Package too large", code="FILE_TOO_LARGE")
+    payload, _ = open_package(data)
+    diff = compute_diff(db, payload)
+    record = LibraryImport(package_id=payload["package_id"], package_created_at=payload["created_at"],
+                           status="previewed", summary=diff)
+    db.add(record)
+    db.flush()
+    path = pending_path(record.id)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(data)
+    db.commit()
+    return {"import_id": str(record.id), "diff": diff}
+
+
+@router.post("/library/packages/{import_id}/apply")
+def apply_library_package(import_id: uuid.UUID, dc=Depends(get_db_and_ctx)):
+    from app.db.session import system_session
+    from app.modules.library.models import LibraryImport
+    from app.modules.library.packages import apply_package, open_package, pending_path
+
+    db, ctx = dc
+    _check_can_import(ctx)
+    record = db.get(LibraryImport, import_id)
+    if record is None:
+        raise NotFound("Import not found")
+    if record.status != "previewed":
+        raise Conflict("Import already processed", code="IMPORT_DONE")
+    path = pending_path(record.id)
+    if not path.exists():
+        raise NotFound("Package file missing; preview again", code="PACKAGE_MISSING")
+    payload, z = open_package(path.read_bytes())
+    with system_session() as sys_db:  # writes platform rows: verified vendor package only
+        apply_package(sys_db, payload, z)
+        sys_db.commit()
+    record.status = "applied"
+    record.applied_at = datetime.now(timezone.utc)
+    audit(db, record, "update", None, note=f"library package {record.package_id} applied")
+    db.commit()
+    path.unlink(missing_ok=True)
+    return {"status": "applied", "import_id": str(record.id), "summary": record.summary}
+
+
+@router.get("/library/packages/imports")
+def list_imports(dc=Depends(require("library.import"))):
+    from app.modules.library.models import LibraryImport
+
+    db, _ = dc
+    rows = db.scalars(select(LibraryImport).order_by(LibraryImport.created_at.desc())).all()
+    return [{"id": str(r.id), "package_id": r.package_id, "package_created_at": r.package_created_at,
+             "status": r.status, "created_at": r.created_at.isoformat(),
+             "applied_at": r.applied_at.isoformat() if r.applied_at else None} for r in rows]

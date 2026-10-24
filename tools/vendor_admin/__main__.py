@@ -159,6 +159,20 @@ def cmd_list_subscriptions(a) -> None:
                   f"devices={s.max_devices} expires={s.expires_at.date()}")
 
 
+def cmd_sign_package(a) -> None:
+    from app.licensing.signing import verify_document
+    from app.modules.library.packages import sign_package
+
+    data = Path(a.package).read_bytes()
+    signed = sign_package(data, _private_key(a.key))
+    out = Path(a.out or a.package.replace(".unsigned", "").replace(".zip", ".signed.zip"))
+    out.write_bytes(signed)
+    import io, zipfile
+    doc = json.loads(zipfile.ZipFile(io.BytesIO(signed)).read("package.json"))
+    print(f"signed package {doc['payload']['package_id']} -> {out}")
+    print("systems:", ", ".join(s["system"]["code"] for s in doc["payload"]["systems"]))
+
+
 def main(argv=None) -> int:
     p = argparse.ArgumentParser(prog="vendor_admin")
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -194,10 +208,14 @@ def main(argv=None) -> int:
     ss.add_argument("--max-devices", type=int, required=True)
     ss.add_argument("--expires", required=True)
     sub.add_parser("list-subscriptions")
+    sp = sub.add_parser("sign-package")
+    sp.add_argument("package")
+    sp.add_argument("--key", default="~/.mytech/vendor_private.pem")
+    sp.add_argument("--out")
     a = p.parse_args(argv)
     {"keygen": cmd_keygen, "issue-license": cmd_issue, "show-license": cmd_show,
      "create-company": cmd_create_company, "set-subscription": cmd_set_subscription,
-     "list-subscriptions": cmd_list_subscriptions}[a.cmd](a)
+     "list-subscriptions": cmd_list_subscriptions, "sign-package": cmd_sign_package}[a.cmd](a)
     return 0
 
 
