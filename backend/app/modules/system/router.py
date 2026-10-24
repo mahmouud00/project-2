@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 
-from fastapi import APIRouter, Depends, UploadFile
+from fastapi import APIRouter, Depends, UploadFile, WebSocket, WebSocketDisconnect
 from sqlalchemy import text
 
 from app.core.config import get_settings
@@ -64,3 +64,70 @@ async def upload_license(file: UploadFile, dc=Depends(require("system.manage")))
     if isinstance(provider, OfflineFileLicenseProvider):
         provider.invalidate()
     return ent.as_dict()
+
+
+# ---------------------------------------------------------------- backups
+def _require_backup_admin(ctx) -> None:
+    ctx.require("system.manage")
+    if get_settings().is_online and not ctx.is_platform:
+        # online: one database holds every company; backups are run by MYTech
+        from app.core.errors import Forbidden
+        raise Forbidden("Backups are managed by MYTech", code="PLATFORM_ONLY")
+
+
+@router.get("/backups")
+def backups(dc=Depends(get_db_and_ctx)):
+    from app.ops.backup import last_status, list_backups
+
+    _require_backup_admin(dc[1])
+    return {"last_status": last_status(), "backups": list_backups(),
+            "directory": str(get_settings().backup_dir), "keep": get_settings().backup_keep}
+
+
+@router.post("/backups", status_code=201)
+def backup_now(dc=Depends(get_db_and_ctx)):
+    from app.core.errors import AppError
+    from app.ops.backup import BackupError, run_backup, verify
+
+    _require_backup_admin(dc[1])
+    try:
+        path = run_backup("manual")
+    except BackupError as e:
+        raise AppError(str(e), code="BACKUP_FAILED", status_code=500)
+    return verify(path)
+
+
+# ---------------------------------------------------------------- live events
+@router.websocket("/events")
+async def events(websocket: WebSocket, token: str | None = None):
+    """Live change feed: {"entity", "id", "action", "at"} for the caller's company.
+    Browsers pass the access token as ?token=..., other clients may use the header."""
+    import asyncio
+    import uuid
+
+    from app.auth.security import decode_access_token
+    from app.core.errors import Unauthorized
+    from app.ops.events import hub
+
+    raw = token or (websocket.headers.get("authorization", "").split(" ", 1)[-1] or None)
+    try:
+        claims = decode_access_token(raw or "")
+    except Unauthorized:
+        await websocket.close(code=4401)
+        return
+    company_id = uuid.UUID(claims["cid"])
+    await websocket.accept()
+    queue = hub.subscribe(company_id)
+    try:
+        while True:
+            try:
+                event = await asyncio.wait_for(queue.get(), timeout=25)
+            except asyncio.TimeoutError:
+                await websocket.send_json({"type": "ping"})
+                continue
+            event.pop("cid", None)
+            await websocket.send_json({"type": "change", **event})
+    except WebSocketDisconnect:
+        pass
+    finally:
+        hub.unsubscribe(company_id, queue)

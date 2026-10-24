@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -15,7 +17,8 @@ API_PREFIX = "/api/v1"
 def create_app() -> FastAPI:
     setup_logging()
     s = get_settings()
-    app = FastAPI(title=s.app_name, version=s.version, docs_url="/api/docs", openapi_url="/api/openapi.json")
+    app = FastAPI(title=s.app_name, version=s.version, docs_url="/api/docs", openapi_url="/api/openapi.json",
+                  lifespan=lifespan)
     install_error_handlers(app)
     if s.cors_origins:
         app.add_middleware(CORSMiddleware, allow_origins=s.cors_origins, allow_methods=["*"], allow_headers=["*"],
@@ -43,6 +46,36 @@ def create_app() -> FastAPI:
         app.include_router(r, prefix=API_PREFIX)
     _include_optional(app)
     return app
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Background services. Not started by tests that use TestClient without `with`."""
+    import logging
+
+    s = get_settings()
+    started = []
+    if s.background_jobs:
+        from app.ops.events import hub
+        hub.start()
+        started.append(hub.stop)
+        from app.ops.scheduler import start_scheduler
+        sched = start_scheduler()
+        started.append(lambda: sched.shutdown(wait=False))
+        if not s.is_online and s.discovery_enabled:
+            from app.ops.discovery import MdnsAdvertiser, UdpResponder
+            for svc in (UdpResponder(), MdnsAdvertiser()):
+                try:
+                    svc.start()
+                    started.append(svc.stop)
+                except Exception as exc:  # discovery is a convenience; never block startup
+                    logging.getLogger("mytech").warning("discovery %s not started: %s", type(svc).__name__, exc)
+    yield
+    for stop in reversed(started):
+        try:
+            stop()
+        except Exception:
+            pass
 
 
 def _include_optional(app: FastAPI) -> None:

@@ -60,6 +60,9 @@ class Settings(BaseSettings):
     backup_hour: int = 2
     pg_bin_dir: str = ""
 
+    # Background services (backup scheduler, live events, LAN discovery)
+    background_jobs: bool = True
+
     # Network
     discovery_enabled: bool = True
     discovery_udp_port: int = 47800

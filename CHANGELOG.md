@@ -29,4 +29,7 @@ All notable changes are listed here. Versions follow Semantic Versioning (MAJOR.
 - Purchasing: suppliers, purchase orders, partial receiving into stock, last purchase price becomes the company cost.
 - Treasury: cashboxes per branch, receipts/payments linked to work orders and purchase orders, reversals instead of edits, customer and supplier statements.
 - Personal data (Law 151/2020): export of everything held about a customer/user/supplier, erasure by anonymisation (financial records kept), access-log query; log redaction fix for bearer tokens.
+- Daily automatic backup (pg_dump, checksum sidecar, retention, single-runner lock), manual backup endpoint, verified restore that rebuilds the schema and re-grants roles.
+- Live change events over WebSocket (`/api/v1/system/events`) fed by PostgreSQL NOTIFY from every audited change; no personal data in events.
+- LAN discovery: UDP broadcast responder + mDNS service `_mytech._tcp`; client `discover()` helper.
 - `tools/vendor_admin`: key generation, licence issuing/inspection, company and subscription management.

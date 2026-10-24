@@ -32,11 +32,14 @@ def init_db(admin_url: str) -> None:
     dbname = owner.database
     engine = create_engine(admin_url, isolation_level="AUTOCOMMIT")
     with engine.connect() as c:
-        for url, extra in ((owner, "NOBYPASSRLS"), (app, "NOBYPASSRLS"), (system, "BYPASSRLS")):
+        # owner: migrations, backups, restores and data migrations must see every company
+        for url, extra in ((owner, "BYPASSRLS"), (app, "NOBYPASSRLS"), (system, "BYPASSRLS")):
             exists = c.scalar(text("SELECT 1 FROM pg_roles WHERE rolname = :r"), {"r": url.username})
             verb = "ALTER" if exists else "CREATE"
             c.execute(text(f"{verb} ROLE {_quote_ident(url.username)} LOGIN {extra} "
                            f"PASSWORD {_quote_lit(url.password or '')}"))
+        # the owner stops API sessions before a restore
+        c.execute(text(f"GRANT pg_signal_backend TO {_quote_ident(owner.username)}"))
         if not c.scalar(text("SELECT 1 FROM pg_database WHERE datname = :d"), {"d": dbname}):
             c.execute(text(f"CREATE DATABASE {_quote_ident(dbname)} OWNER {_quote_ident(owner.username)} "
                            f"ENCODING 'UTF8' TEMPLATE template0"))

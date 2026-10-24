@@ -54,12 +54,16 @@ def audit(db: Session, obj: Any, action: str, before: dict | None = None, note: 
     changes = diff(before, after) if action == "update" else (after or before or {})
     if action == "update" and not changes:
         return
+    company_id = db.info.get("company_id") or getattr(obj, "company_id", None)
     db.add(AuditLog(
-        company_id=db.info.get("company_id") or getattr(obj, "company_id", None),
+        company_id=company_id,
         user_id=db.info.get("user_id"), device_id=db.info.get("device_id"),
         entity=obj.__tablename__, entity_id=str(getattr(obj, "id", "")), action=action,
         changes=changes, note=note,
     ))
+    if company_id is not None:
+        from app.ops.events import notify
+        notify(db, company_id, obj.__tablename__, getattr(obj, "id", ""), action)
 
 
 def check_version(obj: Any, expected: int | None) -> None:
