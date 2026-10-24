@@ -36,7 +36,7 @@ def main() -> int:
         "--windows-console-mode=disable", "--mingw64",
     ]
     if a.icon:
-        args.append(f"--windows-icon-from-ico={a.icon}")
+        args.append(f"--windows-icon-from-ico={Path(a.icon).resolve()}")
     args.append(str(ROOT / "tools" / "vendor_admin" / "gui.py"))
     env = dict(os.environ, PYTHONPATH=os.pathsep.join([str(ROOT), str(ROOT / "backend")]))
     subprocess.run(args, check=True, cwd=str(ROOT), env=env)

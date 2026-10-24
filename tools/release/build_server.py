@@ -61,7 +61,8 @@ def main() -> int:
         shutil.rmtree(out)
     out.parent.mkdir(parents=True, exist_ok=True)
     env = dict(os.environ, PYTHONPATH=str(BACKEND))
-    subprocess.run(nuitka_args(out, version, Path(a.icon) if a.icon else None, a.jobs), check=True, cwd=str(BACKEND), env=env)
+    icon = Path(a.icon).resolve() if a.icon else None   # Nuitka runs from backend/
+    subprocess.run(nuitka_args(out, version, icon, a.jobs), check=True, cwd=str(BACKEND), env=env)
     dist = out.parent / "mytech_server.dist"
     if out.exists():
         shutil.rmtree(out)
