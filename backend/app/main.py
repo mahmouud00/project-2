@@ -54,7 +54,14 @@ def _include_optional(app: FastAPI) -> None:
 
 
 MODULE_ROUTERS: list[str] = [
+    "app.modules.org.settings",
     "app.modules.library.router",
+    "app.modules.crm.router",
+    "app.modules.sales.router",
+    "app.modules.production.router",
+    "app.modules.inventory.router",
+    "app.modules.purchasing.router",
+    "app.modules.treasury.router",
 ]
 
 app = create_app()

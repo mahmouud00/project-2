@@ -19,4 +19,13 @@ All notable changes are listed here. Versions follow Semantic Versioning (MAJOR.
 - Companies can create their own private systems; library rows are read-only for customers; library visibility follows licensed material types.
 - Library update packages: vendor export (`POST /library/packages/export`), offline signing (`vendor_admin sign-package`), customer preview with a full change list (`/library/packages/preview`) and apply (`/library/packages/{id}/apply`); signature and file-hash verification, same ids at every customer, published versions never rewritten, removed items deactivated (never deleted), company calibration untouched. Online: only MYTech updates the shared library.
 - Image upload (PNG/JPEG/WEBP, content-sniffed, 5 MB) and authenticated download.
+- Company settings (tax, deposit %, quote validity/waste, saw kerf, bar trims, reusable offcut).
+- Customers (PII-tagged, access logged), site surveys with measured openings (site size kept apart from manufacturing size).
+- Price lists (end customer / dealer / contractor) with margin, labour per m², minimum price and per-model/system overrides (margin or price per m²); material cost resolution (company price → colour price → library reference).
+- Quotations generated from a survey or lines: every line calculated with the published formulas (version stored), cost breakdown, totals, discount, tax, status workflow, explicit recalculation.
+- Work orders from accepted quotations with frozen items, stage workflow (survey → quotation → approved/deposit → manufacturing → assembly → quality → delivered, or cancelled) and stage log; deposit check.
+- Manufacturing outputs: cut list per SKU (length, count, angles, item references), bar optimisation (best-fit decreasing + improvement, kerf, trims, reusable offcuts, waste %), glass list, accessories, actual material cost, drawing data per item with model image; frozen once manufacturing starts.
+- Inventory: warehouses per branch, immutable movement ledger with locked balances and average cost, adjustments, transfers, automatic issue of a work order's materials (all-or-nothing, no negative stock).
+- Purchasing: suppliers, purchase orders, partial receiving into stock, last purchase price becomes the company cost.
+- Treasury: cashboxes per branch, receipts/payments linked to work orders and purchase orders, reversals instead of edits, customer and supplier statements.
 - `tools/vendor_admin`: key generation, licence issuing/inspection, company and subscription management.
