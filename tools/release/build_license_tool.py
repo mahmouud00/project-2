@@ -33,7 +33,7 @@ def main() -> int:
         "--python-flag=no_docstrings",
         "--product-name=MYTech Licence Tool", "--company-name=MYTech Solutions", f"--file-version={version}",
         f"--product-version={version}", "--file-description=MYTech Licence Tool", "--copyright=MYTech Solutions",
-        "--windows-console-mode=disable", "--msvc=latest",
+        "--windows-console-mode=disable", "--mingw64",
     ]
     if a.icon:
         args.append(f"--windows-icon-from-ico={a.icon}")

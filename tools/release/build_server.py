@@ -40,7 +40,7 @@ def nuitka_args(out: Path, version: str, icon: Path | None, jobs: int | None) ->
         "--copyright=MYTech Solutions",
     ]
     if win:
-        args += ["--msvc=latest", "--windows-console-mode=attach"]
+        args += ["--mingw64", "--windows-console-mode=attach"]
         if icon:
             args.append(f"--windows-icon-from-ico={icon}")
     if jobs:

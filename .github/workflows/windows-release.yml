@@ -82,10 +82,12 @@ jobs:
         run: |
           $v = (Get-Content VERSION).Trim()
           python tools/release/build_server.py --out "build/stage/app/$v" --icon desktop/src-tauri/icons/icon.ico
-          python -m nuitka --onefile --assume-yes-for-downloads --msvc=latest --windows-console-mode=attach `
+          if ($LASTEXITCODE -ne 0) { throw "server compile failed" }
+          python -m nuitka --onefile --assume-yes-for-downloads --mingw64 --windows-console-mode=attach `
             --output-dir=build/launcher --output-filename=mytech-service.exe `
             --windows-icon-from-ico=desktop/src-tauri/icons/icon.ico --product-name="MYTech Solutions Service" `
             --company-name="MYTech Solutions" --file-version=$v --product-version=$v deploy/windows/launcher.py
+          if ($LASTEXITCODE -ne 0) { throw "launcher compile failed" }
           New-Item -ItemType Directory -Force build/stage/service, build/stage/scripts, build/stage/redist | Out-Null
           Copy-Item build/launcher/mytech-service.exe build/stage/service/
           Copy-Item deploy/windows/MYTechServer.xml build/stage/service/
@@ -174,6 +176,7 @@ jobs:
         run: |
           $v = (Get-Content VERSION).Trim()
           python tools/release/build_license_tool.py --out "out/MYTech-License-Tool-$v.exe" --icon desktop/src-tauri/icons/icon.ico
+          if ($LASTEXITCODE -ne 0) { throw "licence tool compile failed" }
       - name: Self test of the compiled tool
         shell: pwsh
         run: |
