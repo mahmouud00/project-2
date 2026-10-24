@@ -367,13 +367,29 @@ def selftest() -> int:
     return 0
 
 
+def _error_log() -> Path:
+    import os
+    import tempfile
+    return Path(os.environ.get("MYTECH_TOOL_LOG") or Path(tempfile.gettempdir()) / "mytech-license-tool-error.log")
+
+
 def main() -> int:
-    if "--selftest" in sys.argv:
-        return selftest()
-    root = Tk()
-    App(root)
-    root.mainloop()
-    return 0
+    try:
+        if "--selftest" in sys.argv:
+            return selftest()
+        root = Tk()
+        App(root)
+        root.mainloop()
+        return 0
+    except Exception:  # noqa: BLE001 - a GUI without a console must still report why it stopped
+        import traceback
+        _error_log().write_text(traceback.format_exc(), encoding="utf-8")
+        if "--selftest" not in sys.argv:
+            try:
+                messagebox.showerror(APP_TITLE, f"Unexpected error. Details: {_error_log()}")
+            except Exception:  # noqa: BLE001
+                pass
+        return 1
 
 
 if __name__ == "__main__":
