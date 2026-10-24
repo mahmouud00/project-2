@@ -3,6 +3,8 @@
 All notable changes are listed here. Versions follow Semantic Versioning (MAJOR.MINOR.PATCH).
 
 ## [Unreleased]
+
+## [0.1.0] - 2026-10-24
 ### Added
 - Backend skeleton: FastAPI app, settings (`.env`), uniform error format, PII-redacting logging.
 - PostgreSQL with three roles (app / system / owner), Alembic migrations, Row-Level Security on every tenant table.
@@ -35,4 +37,5 @@ All notable changes are listed here. Versions follow Semantic Versioning (MAJOR.
 - Safe updates: signed update files (`*.mtu`) with per-version install folders, mandatory pre-update backup, migrations with the new code, health check, automatic rollback (database restore + previous version) on any failure; `tools/release/build_update.py`.
 - Windows deployment: launcher, WinSW service definition (auto start, restart on failure), install and update PowerShell scripts, firewall rules.
 - Migration safety test (seed at old revisions, upgrade, compare data); CI workflow and pre-commit hook running the full test suite.
+- Documentation: API.md, LIBRARY.md (authoring guide), INSTALL.md, UPDATE.md, ONLINE.md.
 - `tools/vendor_admin`: key generation, licence issuing/inspection, company and subscription management.

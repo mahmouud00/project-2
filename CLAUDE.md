@@ -19,7 +19,8 @@
 - `docs/BOM_ANALYSIS.md` — تحليل `data/bom.xlsx` + كل المعادلات + التناقضات والأسئلة المفتوحة.
 - `docs/ARCHITECTURE.md` — تصميم الداتابيز والـ API والوضعين.
 - `docs/PROGRESS.md` — اللي خلص واللي فاضل (يتحدث بعد كل مرحلة).
-- هتتكتب بعدين: `docs/API.md`، `docs/INSTALL.md`، `docs/UPDATE.md`، `docs/ONLINE.md`، `CHANGELOG.md`.
+- `docs/LIBRARY.md` — إزاي MYTech بتضيف القطاعات والخامات والنماذج والتخصيمات وتنشرها وتوصّلها.
+- `docs/API.md` · `docs/INSTALL.md` · `docs/UPDATE.md` · `docs/ONLINE.md` · `CHANGELOG.md`.
 
 ## التقنيات
 Python 3.12 · FastAPI · SQLAlchemy 2.0 + psycopg 3 · Alembic · PostgreSQL 16 (مع Row-Level Security) · Pydantic v2 · Argon2id · JWT (PyJWT) · Ed25519 (`cryptography`) · pytest · LibreOffice headless (لتوليد القيم المرجعية من الإكسيل) · WinSW (خدمة ويندوز، اقتراح).
@@ -47,7 +48,8 @@ python -m app.cli create-company --code ACME --name "..."        # شركة عم
 uvicorn app.main:app --port 8000                   # التوثيق: /api/docs
 python -m pytest                                   # لازم كله يعدّي (بيعمل داتابيز mytech_test بأدوار mytech_test_*)
 ```
-الاختبارات محتاجة PostgreSQL شغالة و`TEST_ADMIN_URL` (افتراضي `postgresql+psycopg://postgres:postgres@localhost:5432/postgres`).
+الاختبارات محتاجة PostgreSQL شغالة و`pg_dump`/`pg_restore` و`TEST_ADMIN_URL` (افتراضي `postgresql+psycopg://postgres:postgres@localhost:5432/postgres`).
+فعّل الـ hook مرة واحدة: `git config core.hooksPath .githooks` (بيشغّل كل الاختبارات قبل أي commit). وGitHub Actions بيشغّلها مع كل push.
 
 ## خريطة الكود
 - `app/core` إعدادات، أخطاء، لوجات بتحجب البيانات الشخصية، audit + optimistic locking
@@ -56,6 +58,10 @@ python -m pytest                                   # لازم كله يعدّي 
 - `app/auth` الدخول/التوكنز/الصلاحيات · `app/licensing` الترخيص بالوضعين + التوقيع Ed25519
 - `app/engine` لغة المعادلات (`expr.py`) والحساب (`compute.py`) — عام، مفيهوش أي تخصيم
 - `app/modules/library` المكتبة، النشر، الحساب، الحزم · `app/modules/org` · `app/modules/system`
+- `app/modules/{crm,sales,production,inventory,purchasing,treasury,privacy}` النواة الإدارية
+- `app/engine/cutting.py` تحسين التقطيع · `app/modules/production/manufacturing.py` مخرجات التصنيع
+- `app/ops` النسخ الاحتياطي، الأحداث اللحظية، الاكتشاف، الجدولة، التحديثات (`updater.py`)
+- `deploy/windows` خدمة ويندوز وسكريبتات التسطيب والتحديث · `tools/release` بناء ملفات التحديث
 - `migrations/versions` — كل migration بيفعّل RLS على جداوله الجديدة (`rls.enable`)
 - `tools/vendor_admin` أداة MYTech: مفاتيح، تراخيص، اشتراكات، توقيع الحزم
 
@@ -74,7 +80,9 @@ python -m pytest                                   # لازم كله يعدّي 
 12. الأسرار في `.env` بس. `.env` عمره ما يترفع على GitHub (موجود في `.gitignore`)، وأي إعداد جديد يتضاف لـ `.env.example`.
 13. المفتاح الخاص بتوقيع التراخيص والحزم عمره ما يدخل الريبو.
 14. الفرق بين الأوفلاين والأونلاين يفضل ورا واجهات (`LicenseProvider`، مصدر المكتبة). باقي الكود مايسألش "أنا في أنهي وضع".
-15. بعد كل مرحلة: commit واضح + تحديث `docs/PROGRESS.md` + `CHANGELOG.md`. وحدّث الملف ده كل ما حاجة أساسية تتغير.
+15. أي جدول جديد فيه `company_id` لازم يتفعّل عليه RLS في نفس الـ migration (`rls.enable(op, table)` أو `rls.enable(op, table, "library")`).
+16. الحركات المالية والمخزنية مابتتعدلش ولا بتتمسح؛ التصحيح بحركة عكسية.
+17. بعد كل مرحلة: commit واضح + تحديث `docs/PROGRESS.md` + `CHANGELOG.md`. وحدّث الملف ده كل ما حاجة أساسية تتغير.
 
 ## مصطلحات
 فتحة (opening) · حلق (frame) · ضلفة (sash) · باكتة (glazing bead) · بار/برور (frame extension) · قاطوع (mullion) · سقاس · طبة وسكينة (interlock) · بندة/بانل (panel) · سلك (insect screen) · بليسيه (pleated screen) · شفاط (exhaust fan opening) · خلوص التركيب (installation clearance) · سماحية اللحام (weld allowance) · بوكس/خد/طمبورة/شريحة/علاقة/حباسة (shutter box/end cap/tube/slat/hanger/stopper).

@@ -3,7 +3,7 @@
 
   Prerequisites on the server PC:
     - PostgreSQL 16 for Windows installed as a service (postgresql-x64-16), superuser password known.
-  Contents of the installation folder (produced by tools/release/build_installer):
+  Contents of the installation folder (prepared as described in docs/INSTALL.md "تجهيز فولدر التسطيب"):
     python\            embeddable Python 3.12 (with pip-free site-packages support)
     app\<version>\     server code + site-packages
     service\           launcher.py, MYTechServer.xml, MYTechServer.exe (WinSW)
