@@ -11,7 +11,9 @@
 **ممنوع** أي "offline sync" (تخزين محلي يزامن بعدين). مش مطلوب.
 
 ## الحالة
-المرحلة 0 (تحليل وتصميم) خلصت ومستنية موافقة صاحب المشروع. مفيش كود لسه. شوف `docs/PROGRESS.md`.
+شوف `docs/PROGRESS.md`. **مهم:** القطاعات والتخصيمات مش متكتوبة من ملف الإكسيل؛ صاحب المشروع بيدخّلها بنفسه في "المكتبة"
+(سيستم ← ثوابت ← خامات بألوانها ← نماذج بصورها وتعريف كامل: متغيرات، معادلات، قطع لكل خامة بمعادلة طولها وعددها وزواياها،
+زجاج، إكسسوار، تحقق، رسمة ← اختبارات مرجعية ← نشر). النشر بيعمل نسخة مجمّدة، وهي اللي الحسابات بتستخدمها.
 
 ## المستندات
 - `docs/BOM_ANALYSIS.md` — تحليل `data/bom.xlsx` + كل المعادلات + التناقضات والأسئلة المفتوحة.
@@ -34,13 +36,28 @@ docs/
 ```
 
 ## التشغيل والاختبارات
-(هتتملا في المرحلة 1 لما الكود يتعمل.)
 ```
-cp .env.example .env          # وعدّل القيم
-alembic upgrade head
-uvicorn app.main:app
-pytest                        # لازم كله يعدّي
+python -m venv .venv && .venv/bin/pip install -e "backend[dev]"
+cp .env.example backend/.env                       # وعدّل القيم (الأسرار)
+cd backend
+python -m app.cli init-db --admin-url postgresql+psycopg://postgres:***@localhost/postgres   # الأدوار والداتابيز
+python -m app.cli migrate                          # alembic upgrade head
+python -m app.cli create-platform-admin --username vendor        # حساب MYTech لتأليف المكتبة
+python -m app.cli create-company --code ACME --name "..."        # شركة عميل
+uvicorn app.main:app --port 8000                   # التوثيق: /api/docs
+python -m pytest                                   # لازم كله يعدّي (بيعمل داتابيز mytech_test بأدوار mytech_test_*)
 ```
+الاختبارات محتاجة PostgreSQL شغالة و`TEST_ADMIN_URL` (افتراضي `postgresql+psycopg://postgres:postgres@localhost:5432/postgres`).
+
+## خريطة الكود
+- `app/core` إعدادات، أخطاء، لوجات بتحجب البيانات الشخصية، audit + optimistic locking
+- `app/db` Base/mixins، الجلسات (app بـ RLS / system بـ BYPASSRLS)، RLS DDL
+- `app/tenancy/context.py` سياق الطلب (الشركة، المستخدم، الصلاحيات لكل فرع)، بوابة الترخيص
+- `app/auth` الدخول/التوكنز/الصلاحيات · `app/licensing` الترخيص بالوضعين + التوقيع Ed25519
+- `app/engine` لغة المعادلات (`expr.py`) والحساب (`compute.py`) — عام، مفيهوش أي تخصيم
+- `app/modules/library` المكتبة، النشر، الحساب، الحزم · `app/modules/org` · `app/modules/system`
+- `migrations/versions` — كل migration بيفعّل RLS على جداوله الجديدة (`rls.enable`)
+- `tools/vendor_admin` أداة MYTech: مفاتيح، تراخيص، اشتراكات، توقيع الحزم
 
 ## قواعد ممنوع تتكسر
 1. **ممنوع أي معادلة أو ثابت تخصيم جوه الكود.** كل المعادلات والثوابت بيانات في الداتابيز. الكود فيه الـ parser والـ evaluator والقواعد العامة بس.
