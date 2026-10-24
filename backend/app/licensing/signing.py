@@ -1,0 +1,80 @@
+"""Ed25519 signing of JSON documents (licences, library packages, updates).
+
+Signature covers the canonical JSON of `payload` (sorted keys, no spaces, UTF-8).
+The vendor's PRIVATE key lives only with the vendor (tools/vendor_admin); the
+PUBLIC key ships inside the application.
+"""
+from __future__ import annotations
+
+import base64
+import json
+from pathlib import Path
+
+from cryptography.exceptions import InvalidSignature
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey, Ed25519PublicKey
+
+PUBLIC_KEY_FILE = Path(__file__).with_name("vendor_public_key.pem")
+
+
+def canonical(payload: dict) -> bytes:
+    return json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+
+
+def sign_bytes(private_key: Ed25519PrivateKey, data: bytes) -> str:
+    return base64.b64encode(private_key.sign(data)).decode()
+
+
+def sign_document(private_key: Ed25519PrivateKey, payload: dict) -> dict:
+    return {"payload": payload, "signature": sign_bytes(private_key, canonical(payload))}
+
+
+def load_public_key(pem: bytes | None = None) -> Ed25519PublicKey:
+    key = serialization.load_pem_public_key(pem or PUBLIC_KEY_FILE.read_bytes())
+    assert isinstance(key, Ed25519PublicKey)
+    return key
+
+
+def verify_bytes(data: bytes, signature_b64: str, public_key: Ed25519PublicKey | None = None) -> bool:
+    try:
+        (public_key or vendor_public_key()).verify(base64.b64decode(signature_b64), data)
+        return True
+    except (InvalidSignature, ValueError):
+        return False
+
+
+def verify_document(doc: dict, public_key: Ed25519PublicKey | None = None) -> bool:
+    if not isinstance(doc, dict) or "payload" not in doc or "signature" not in doc:
+        return False
+    return verify_bytes(canonical(doc["payload"]), doc["signature"], public_key)
+
+
+_cached: Ed25519PublicKey | None = None
+
+
+def vendor_public_key() -> Ed25519PublicKey:
+    global _cached
+    if _cached is None:
+        _cached = load_public_key()
+    return _cached
+
+
+def set_vendor_public_key(key: Ed25519PublicKey | None) -> None:
+    """Tests only."""
+    global _cached
+    _cached = key
+
+
+def generate_keypair() -> tuple[bytes, bytes]:
+    private = Ed25519PrivateKey.generate()
+    priv_pem = private.private_bytes(serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8,
+                                     serialization.NoEncryption())
+    pub_pem = private.public_key().public_bytes(serialization.Encoding.PEM,
+                                                serialization.PublicFormat.SubjectPublicKeyInfo)
+    return priv_pem, pub_pem
+
+
+def load_private_key(pem: bytes, password: bytes | None = None) -> Ed25519PrivateKey:
+    key = serialization.load_pem_private_key(pem, password=password)
+    assert isinstance(key, Ed25519PrivateKey)
+    return key

@@ -24,3 +24,7 @@ backups/
 logs/
 *.log
 .DS_Store
+
+# runtime data
+media/
+license/
