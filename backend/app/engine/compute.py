@@ -318,6 +318,7 @@ def calculate(snapshot: dict, *, opening_width_mm, opening_height_mm, params: di
         mat = materials.get(item["material_code"], {})
         piece = {
             "key": item["key"], "label": item.get("label", item["key"]), "role": item.get("role"),
+            "element": item.get("element"), "side": item.get("side"),
             "material_code": item["material_code"], "material_name": mat.get("name"),
             "length_mm": length, "length_exact_mm": exact, "qty": qty,
             "angle_left": to_decimal(_eval(_compile(item.get("angle_left", "90"), where), env, where)),

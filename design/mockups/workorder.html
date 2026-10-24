@@ -8,7 +8,7 @@
   .step .c { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; font-size: 13px;
     border: 2px solid #CBD5E1; color: #94A3B8; background: #fff; }
   .step.done .c { background: var(--success); border-color: var(--success); color: #fff; }
-  .step.now .c { background: var(--primary); border-color: var(--primary); color: #fff; box-shadow: 0 0 0 4px rgba(22, 99, 214, .15); }
+  .step.now .c { background: var(--primary); border-color: var(--primary); color: #fff; box-shadow: 0 0 0 4px rgba(80, 72, 229, .15); }
   .step .l { font-weight: 600; font-size: 13px; color: #94A3B8; }
   .step.done .l { color: var(--text); }
   .step.now .l { color: var(--primary); }
@@ -27,7 +27,7 @@
   .bar .track { flex: 1; height: 30px; display: flex; direction: ltr; border-radius: 5px; overflow: hidden; border: 1px solid #CDD6E2; background: #fff; }
   .seg { display: grid; place-items: center; color: #fff; font-size: 11.5px; font-weight: 700; border-left: 2px solid #fff;
     font-variant-numeric: tabular-nums; position: relative; }
-  .seg.a { background: #2F6FD0; } .seg.b { background: #5B8FE0; } .seg.c { background: #0E8A82; } .seg.d { background: #46B1A8; }
+  .seg.a { background: #5048E5; } .seg.b { background: #8781F0; } .seg.c { background: #0E8FB0; } .seg.d { background: #4BBCD6; }
   .seg.cut::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 0; border-left: 2px dashed #fff; }
   .seg.trim { background: repeating-linear-gradient(45deg, #CBD5E1 0 3px, #E2E8F0 3px 6px); color: transparent; }
   .seg.off { background: #E8F6EC; color: var(--success); border-left: 0; }
@@ -35,7 +35,7 @@
   .bar .pct { width: 48px; font-size: 12px; text-align: left; flex: none; }
   .legend { display: flex; gap: 14px; font-size: 12px; color: var(--muted); padding: 4px 16px 14px; flex-wrap: wrap; }
   .legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -2px; margin-inline-end: 4px; }
-  .cut td { padding: 6px 10px; font-size: 12.5px; }
+  .cut td { padding: 6px 10px; font-size: 12.5px; white-space: nowrap; }
   .ang { display: inline-flex; gap: 2px; direction: ltr; }
   .ang span { font-size: 11px; border: 1px solid var(--border); border-radius: 4px; padding: 0 4px; background: #F8FAFC; }
   .items { padding: 10px 14px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
@@ -69,38 +69,38 @@
     <div class="sum">
       <div><span class="muted">أعواد مستخدمة</span><b class="num">14</b></div>
       <div><span class="muted">نسبة الهالك</span><b class="num" style="color:var(--success)">2.6%</b></div>
-      <div><span class="muted">بواقي ترجع المخزن</span><b class="num">3 <span style="font-size:13px;font-weight:600" class="muted">(2.4 م)</span></b></div>
-      <div><span class="muted">إعدادات المنشار</span><b style="font-size:14px;padding-top:6px">سلاح <span class="num">4</span> مم · أطراف <span class="num">10</span> مم</b></div>
+      <div><span class="muted">بواقي ترجع المخزن</span><b class="num">3 <span style="font-size:13px;font-weight:600" class="muted">(<span class="num">340</span> سم)</span></b></div>
+      <div><span class="muted">إعدادات المنشار</span><b style="font-size:14px;padding-top:6px">سلاح <span class="num">0.4</span> سم · أطراف <span class="num">1</span> سم</b></div>
     </div>
 
-    <div class="sku"><b>حلق جرار 3 مجرى ببرور 3.8</b><span class="code">KP-WG6W</span><span class="chip gray">أبيض</span><span class="grow"></span><span class="muted">عود <span class="num">6000</span> مم · 4 أعواد</span></div>
+    <div class="sku"><b>حلق جرار 3 مجرى ببرور 3.8</b><span class="code">KP-WG6W</span><span class="chip gray">أبيض</span><span class="grow"></span><span class="muted">عود <span class="num">600</span> سم · 4 أعواد</span></div>
     <div class="bars">
       <div class="bar"><span class="no">عود 1</span><div class="track">
-        <div class="seg trim" style="width:.3%"></div><div class="seg a" style="width:29.8%">1786</div><div class="seg a" style="width:29.8%">1786</div><div class="seg b" style="width:23.1%">1386</div>
-        <div class="seg off" style="width:16.6%">بواقي 977</div></div><span class="pct num" style="color:var(--success)">0.6%</span></div>
+        <div class="seg trim" style="width:.3%"></div><div class="seg a" style="width:29.8%">179.6</div><div class="seg a" style="width:29.8%">179.6</div><div class="seg b" style="width:23.1%">139.6</div>
+        <div class="seg off" style="width:16.6%">بواقي 97.7</div></div><span class="pct num" style="color:var(--success)">0.6%</span></div>
       <div class="bar"><span class="no">عود 2</span><div class="track">
-        <div class="seg trim" style="width:.3%"></div><div class="seg a" style="width:29.8%">1786</div><div class="seg a" style="width:29.8%">1786</div><div class="seg b" style="width:23.1%">1386</div>
-        <div class="seg c" style="width:13.3%">796</div><div class="seg waste" style="width:3.5%"></div></div><span class="pct num">3.6%</span></div>
+        <div class="seg trim" style="width:.3%"></div><div class="seg a" style="width:29.8%">179.6</div><div class="seg a" style="width:29.8%">179.6</div><div class="seg b" style="width:23.1%">139.6</div>
+        <div class="seg c" style="width:13.3%">79.6</div><div class="seg waste" style="width:3.5%"></div></div><span class="pct num">3.6%</span></div>
       <div class="bar"><span class="no">عود 3</span><div class="track">
-        <div class="seg trim" style="width:.3%"></div><div class="seg b" style="width:23.1%">1386</div><div class="seg b" style="width:23.1%">1386</div><div class="seg c" style="width:20%">1196</div>
-        <div class="seg c" style="width:20%">1196</div><div class="seg c" style="width:13.3%">796</div><div class="seg waste" style="width:.4%"></div></div><span class="pct num">0.7%</span></div>
+        <div class="seg trim" style="width:.3%"></div><div class="seg b" style="width:23.1%">139.6</div><div class="seg b" style="width:23.1%">139.6</div><div class="seg c" style="width:20%">119.6</div>
+        <div class="seg c" style="width:20%">119.6</div><div class="seg c" style="width:13.3%">79.6</div><div class="seg waste" style="width:.4%"></div></div><span class="pct num">0.7%</span></div>
       <div class="bar"><span class="no">عود 4</span><div class="track">
-        <div class="seg trim" style="width:.3%"></div><div class="seg d" style="width:16.6%">996</div><div class="seg d" style="width:16.6%">996</div><div class="seg d" style="width:15%">896</div>
-        <div class="seg d" style="width:15%">896</div><div class="seg off" style="width:36.5%">بواقي 2186</div></div><span class="pct num" style="color:var(--success)">0.6%</span></div>
+        <div class="seg trim" style="width:.3%"></div><div class="seg d" style="width:16.6%">99.6</div><div class="seg d" style="width:16.6%">99.6</div><div class="seg d" style="width:15%">89.6</div>
+        <div class="seg d" style="width:15%">89.6</div><div class="seg off" style="width:36.5%">بواقي 218.6</div></div><span class="pct num" style="color:var(--success)">0.6%</span></div>
     </div>
 
-    <div class="sku" style="border-top:1px solid var(--border)"><b>ضلفة جرار كبيرة</b><span class="code">KP-WG8W</span><span class="chip gray">أبيض</span><span class="grow"></span><span class="muted">عود <span class="num">6000</span> مم · 5 أعواد</span></div>
+    <div class="sku" style="border-top:1px solid var(--border)"><b>ضلفة جرار كبيرة</b><span class="code">KP-WG8W</span><span class="chip gray">أبيض</span><span class="grow"></span><span class="muted">عود <span class="num">600</span> سم · 5 أعواد</span></div>
     <div class="bars">
       <div class="bar"><span class="no">عود 1</span><div class="track">
-        <div class="seg trim" style="width:.3%"></div><div class="seg a" style="width:21.9%">1311</div><div class="seg a" style="width:21.9%">1311</div><div class="seg a" style="width:21.9%">1311</div>
-        <div class="seg a" style="width:21.9%">1311</div><div class="seg c" style="width:11.6%">695</div><div class="seg waste" style="width:.5%"></div></div><span class="pct num">0.9%</span></div>
+        <div class="seg trim" style="width:.3%"></div><div class="seg a" style="width:21.9%">131.1</div><div class="seg a" style="width:21.9%">131.1</div><div class="seg a" style="width:21.9%">131.1</div>
+        <div class="seg a" style="width:21.9%">131.1</div><div class="seg c" style="width:11.6%">69.5</div><div class="seg waste" style="width:.5%"></div></div><span class="pct num">0.9%</span></div>
       <div class="bar"><span class="no">عود 2</span><div class="track">
-        <div class="seg trim" style="width:.3%"></div><div class="seg b" style="width:15.6%">937.5</div><div class="seg b" style="width:15.6%">937.5</div><div class="seg b" style="width:15.6%">937.5</div>
-        <div class="seg b" style="width:15.6%">937.5</div><div class="seg c" style="width:15.2%">912</div><div class="seg c" style="width:15.2%">912</div><div class="seg waste" style="width:6.9%"></div></div><span class="pct num" style="color:var(--warning)">7.2%</span></div>
+        <div class="seg trim" style="width:.3%"></div><div class="seg b" style="width:15.6%">93.75</div><div class="seg b" style="width:15.6%">93.75</div><div class="seg b" style="width:15.6%">93.75</div>
+        <div class="seg b" style="width:15.6%">93.75</div><div class="seg c" style="width:15.2%">91.2</div><div class="seg c" style="width:15.2%">91.2</div><div class="seg waste" style="width:6.9%"></div></div><span class="pct num" style="color:var(--warning)">7.2%</span></div>
     </div>
-    <div class="legend"><span><i style="background:#2F6FD0"></i>قطع شباك الصالة</span><span><i style="background:#0E8A82"></i>قطع شباك المطبخ</span>
+    <div class="legend"><span><i style="background:#5048E5"></i>قطع شباك الصالة</span><span><i style="background:#0E8FB0"></i>قطع شباك المطبخ</span>
       <span><i style="background:repeating-linear-gradient(45deg,#CBD5E1 0 3px,#E2E8F0 3px 6px)"></i>تشذيب الأطراف</span>
-      <span><i style="background:#E8F6EC;border:1px solid #BFE3CA"></i>بواقي قابلة للاستخدام (أكبر من 500 مم)</span>
+      <span><i style="background:#E8F6EC;border:1px solid #BFE3CA"></i>بواقي قابلة للاستخدام (أكبر من 50 سم)</span>
       <span><i style="background:repeating-linear-gradient(45deg,#FAD4D4 0 4px,#FDECEC 4px 8px)"></i>هالك</span></div>
   </div>
 
@@ -117,13 +117,13 @@
     <div class="card" style="flex:1;min-height:0;overflow:hidden">
       <div class="card-h"><h3>كشف التقطيع</h3><span class="chip gray">KP-WG6W</span></div>
       <table class="cut">
-        <tr><th>الطول</th><th>العدد</th><th>الزاوية</th><th>لـ</th></tr>
-        <tr><td class="num"><b>1786</b></td><td class="num">4</td><td><span class="ang"><span>45°</span><span>45°</span></span></td><td>صالة 1، 2</td></tr>
-        <tr><td class="num"><b>1386</b></td><td class="num">4</td><td><span class="ang"><span>45°</span><span>45°</span></span></td><td>صالة 1، 2</td></tr>
-        <tr><td class="num"><b>1196</b></td><td class="num">2</td><td><span class="ang"><span>45°</span><span>45°</span></span></td><td>مطبخ</td></tr>
-        <tr><td class="num"><b>996</b></td><td class="num">2</td><td><span class="ang"><span>45°</span><span>45°</span></span></td><td>مطبخ</td></tr>
-        <tr><td class="num"><b>896</b></td><td class="num">2</td><td><span class="ang"><span>45°</span><span>45°</span></span></td><td>حمام</td></tr>
-        <tr><td class="num"><b>796</b></td><td class="num">2</td><td><span class="ang"><span>45°</span><span>45°</span></span></td><td>حمام</td></tr>
+        <tr><th>العنصر</th><th>الطول سم</th><th>العدد</th><th>الزاوية</th><th>لـ</th></tr>
+        <tr><td>حلق <span class="chip" style="background:#E0F4F9;color:#0E7490;padding:0 7px">عرض</span></td><td class="num"><b>179.6</b></td><td class="num">4</td><td><span class="num">45°</span></td><td>صالة ×2</td></tr>
+        <tr><td>حلق <span class="chip" style="background:#F1EAFE;color:#7C3AED;padding:0 7px">ارتفاع</span></td><td class="num"><b>139.6</b></td><td class="num">4</td><td><span class="num">45°</span></td><td>صالة ×2</td></tr>
+        <tr><td>حلق <span class="chip" style="background:#E0F4F9;color:#0E7490;padding:0 7px">عرض</span></td><td class="num"><b>119.6</b></td><td class="num">2</td><td><span class="num">45°</span></td><td>مطبخ</td></tr>
+        <tr><td>حلق <span class="chip" style="background:#F1EAFE;color:#7C3AED;padding:0 7px">ارتفاع</span></td><td class="num"><b>99.6</b></td><td class="num">2</td><td><span class="num">45°</span></td><td>مطبخ</td></tr>
+        <tr><td>حلق <span class="chip" style="background:#E0F4F9;color:#0E7490;padding:0 7px">عرض</span></td><td class="num"><b>59.6</b></td><td class="num">2</td><td><span class="num">45°</span></td><td>حمام</td></tr>
+        <tr><td>حلق <span class="chip" style="background:#F1EAFE;color:#7C3AED;padding:0 7px">ارتفاع</span></td><td class="num"><b>89.6</b></td><td class="num">2</td><td><span class="num">45°</span></td><td>حمام</td></tr>
       </table>
       <div style="padding:10px 14px;font-size:12.5px" class="row"><span class="muted">تكلفة الخامات الفعلية</span><b class="num" style="margin-inline-start:auto">14,286.30</b><span class="muted">ج.م</span></div>
     </div>

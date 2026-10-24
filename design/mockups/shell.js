@@ -30,7 +30,7 @@ window.ICON = (name, extra = "") => `<svg viewBox="0 0 24 24" ${extra}>${I[name]
   const navHtml = nav.map(([g, items]) => (g ? `<div class="nav-group">${g}</div>` : "") + items.map(([id, ic, label, badge]) =>
     `<a class="${id === page ? "active" : ""}">${ICON(ic)}<span>${label}</span>${badge ? `<span class="badge num">${badge}</span>` : ""}</a>`).join("")).join("");
   const sidebar = `<aside class="sidebar">
-    <div class="brand"><div class="brand-mark">M</div><div><div class="brand-name">MYTech</div><div class="brand-sub">Solutions</div></div></div>
+    <div class="brand"><img class="brand-logo" src="logo-transparent.png" alt="MYTech Solutions"></div>
     <nav class="nav">${navHtml}</nav>
     <div class="sidebar-foot">
       <div class="conn"><span class="dot"></span>متصل بسيرفر المصنع</div>

@@ -6,6 +6,7 @@ kerf...), not deduction formulas. Defaults apply until the company sets them.
 from __future__ import annotations
 
 from decimal import Decimal
+from typing import Literal
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
@@ -25,6 +26,8 @@ class CompanySettings(BaseModel):
     bar_trim_mm: Decimal = Field(Decimal(0), ge=0, description="trimmed at each end of a bar")
     min_reusable_offcut_mm: Decimal = Field(Decimal(0), ge=0)
     quote_terms: str = ""
+    # Unit the desktop app shows and accepts lengths in. The API always speaks millimetres.
+    length_unit: Literal["cm", "mm"] = "cm"
 
 
 def get_company_settings(db, company_id) -> CompanySettings:

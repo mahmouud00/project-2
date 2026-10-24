@@ -98,3 +98,12 @@ def test_definition_checks():
     del s["constants"]["install_clearance_width"]
     errors = "\n".join(check_definition(s))
     assert "Circular" in errors and "NOPE" in errors and "missing_name" in errors and "install_clearance_width" in errors
+
+
+def test_element_and_side_pass_through():
+    s = snap()
+    s["model"]["pieces"][0].update(element="حلق", side="width")
+    s["model"]["pieces"][1].update(element="حلق", side="height")
+    r = calculate(s, opening_width_mm=1000, opening_height_mm=1200)
+    sides = {p["key"]: (p["element"], p["side"]) for p in r.pieces}
+    assert sides == {"top": ("حلق", "width"), "side": ("حلق", "height")}

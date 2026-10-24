@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>مكتبة القطاعات</title><link rel="stylesheet" href="style.css">
 <style>
-  .layout { display: grid; grid-template-columns: 200px 1fr 290px; gap: 14px; height: 100%; }
+  .layout { display: grid; grid-template-columns: 190px 1fr 280px; gap: 14px; height: 100%; }
   .tree { padding: 8px; font-size: 13px; }
   .tree .sys { display: flex; align-items: center; gap: 6px; padding: 7px 8px; border-radius: 7px; font-weight: 700; margin-top: 4px; }
   .tree .mdl { display: flex; align-items: center; gap: 6px; padding: 6px 8px 6px 8px; padding-inline-start: 26px; border-radius: 7px; color: #344054; }
@@ -12,7 +12,7 @@
   .mhead { display: flex; gap: 14px; padding: 14px 16px; align-items: center; border-bottom: 1px solid var(--border); }
   .mimg { width: 76px; height: 62px; border: 1px solid var(--border); border-radius: 8px; display: grid; place-items: center; background: #F7F9FC; }
   .mhead h2 { margin: 0; font-size: 17px; }
-  .pieces td { padding: 7px 10px; font-size: 12.5px; }
+  .pieces td, .pieces th { padding: 7px 7px; font-size: 12.5px; }
   .consts { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 16px; border-top: 1px solid var(--border); background: #FBFCFE; }
   .consts .k { display: inline-flex; gap: 6px; align-items: center; border: 1px solid var(--border); background: #fff; border-radius: 6px;
     padding: 2px 8px; font-size: 12px; }
@@ -22,8 +22,10 @@
   .test { display: flex; align-items: center; gap: 8px; padding: 6px 0; font-size: 12.5px; }
   .ok { color: var(--success); font-weight: 700; }
   .pieces .code, .pieces .mono, .pieces td { white-space: nowrap; }
-  .pieces .code { font-size: 12px; padding: 1px 6px; }
+  .pieces .code { font-size: 11.5px; padding: 1px 5px; }
+  .pieces td.mono { font-size: 11.5px; color: #475467; }
   .tabs a { padding: 10px 8px; font-size: 12.5px; }
+  .res td:nth-child(n+2), .res th:nth-child(n+2) { text-align: center; }
   .editing td { background: #FFFBEB; }
 </style></head>
 <body data-page="library" data-title="مكتبة القطاعات" data-crumbs="الإعداد › المكتبة العامة" data-user="MYTech" data-role="مدير المنصة" data-initial="M" data-branch="—">
@@ -55,32 +57,21 @@
       <div class="mimg" data-win='{"w":200,"h":130,"leaves":3,"type":"sliding","scale":0.33}'></div>
       <div>
         <div class="row"><h2>جرار 3 ضلفة</h2><span class="chip amber">تحت التجربة</span><span class="code">SL3</span></div>
-        <div class="muted">كومبن جرار · المعادلات بالسم · آخر نشر <span class="num">v3</span></div>
+        <div class="muted">كومبن جرار · كل المقاسات بالسم · آخر نشر <span class="num">v3</span></div>
       </div>
       <span class="grow"></span>
       <a class="btn">تغيير الصورة</a>
     </div>
-    <div class="tabs"><a>المتغيرات</a><a>المعادلات</a><a class="on">القطع والتخصيمات <span class="n">8</span></a><a>الزجاج</a><a>الإكسسوار</a><a>التحقق</a><a>الرسمة</a><a>الاختبارات</a></div>
+    <div class="tabs"><a>المتغيرات</a><a>المعادلات</a><a class="on">التخصيمات (عرض × ارتفاع) <span class="n">6</span></a><a>الزجاج</a><a>الإكسسوار</a><a>التحقق</a><a>الرسمة</a><a>الاختبارات</a></div>
     <table class="pieces">
-      <tr><th>القطعة</th><th>الخامة</th><th>معادلة الطول</th><th>العدد</th><th>الزاوية</th><th>شرط</th></tr>
-      <tr><td><b>حلق أفقي</b></td><td><span class="code">KP-WG6</span></td>
-        <td><span class="code"><span class="v">width</span> + 2 * <span class="c">weld_allowance</span></span></td><td class="mono">2</td><td class="num">45°/45°</td><td class="muted">—</td></tr>
-      <tr><td><b>حلق رأسي</b></td><td><span class="code">KP-WG6</span></td>
-        <td><span class="code"><span class="v">height</span> + 2 * <span class="c">weld_allowance</span></span></td><td class="mono">2</td><td class="num">45°/45°</td><td class="muted">—</td></tr>
-      <tr class="editing"><td><b>ضلفة أفقي</b></td><td><span class="code">KP-WG7</span></td>
-        <td><div class="input focus" style="min-height:30px;padding:3px 8px"><span class="mono" style="font-size:12px"><span style="color:#6D4AFF">sash_w</span> + 2 * <span style="color:#0B7A75">weld_allowance</span>|</span></div></td>
-        <td class="mono">2 * <span style="color:#6D4AFF">leaf_count</span></td><td class="num">45°/45°</td><td class="muted">—</td></tr>
-      <tr><td><b>ضلفة رأسي</b></td><td><span class="code">KP-WG7</span></td>
-        <td><span class="code"><span class="v">sash_h</span> + 2 * <span class="c">weld_allowance</span></span></td><td class="mono">2 * leaf_count</td><td class="num">45°/45°</td><td class="muted">—</td></tr>
-      <tr><td><b>طبة وسكينة</b></td><td><span class="code">KP-WG14</span></td>
-        <td><span class="code"><span class="v">sash_h</span> - <span class="c">interlock_ded</span></span></td><td class="mono">leaf_count - 1</td><td class="num">90°/90°</td><td class="muted">—</td></tr>
-      <tr><td><b>باكتة</b></td><td><span class="code">KP-WG12</span></td>
-        <td><span class="code"><span class="v">glass_w</span> + <span class="n">0.2</span></span></td><td class="mono">2 * leaf_count</td><td class="num">45°/45°</td><td class="muted">—</td></tr>
-      <tr><td><b>ضلفة سلك</b></td><td><span class="code">KP-WG16</span></td>
-        <td><span class="code"><span class="v">screen_w</span></span></td><td class="mono">2</td><td class="num">45°/45°</td><td><span class="code">with_screen</span></td></tr>
-      <tr><td><b>حديد تدعيم</b></td><td><span class="code">KP-IR1</span></td>
-        <td><span class="code"><span class="v">width</span> - <span class="n">10</span></span></td><td class="mono">2</td><td class="num">90°/90°</td><td><span class="code">width &gt; 100</span></td></tr>
-      <tr><td colspan="6" style="color:var(--primary);font-weight:600">＋ قطعة جديدة</td></tr>
+      <tr><th>العنصر / الخامة</th><th class="side-w">معادلة العرض</th><th>عدد</th><th class="side-h">معادلة الارتفاع</th><th>عدد</th><th>زاوية</th></tr>
+      <tr><td><b>حلق</b><div class="mono muted" style="font-size:11px;text-align:right">KP-WG6</div></td><td><span class="code"><span class="v">width</span> + 2 * <span class="c">weld_allowance</span></span></td><td class="mono">2</td><td><span class="code"><span class="v">height</span> + 2 * <span class="c">weld_allowance</span></span></td><td class="mono">2</td><td><span class="num">45°</span></td></tr>
+      <tr class="editing"><td><b>ضلفة</b><div class="mono muted" style="font-size:11px;text-align:right">KP-WG7</div></td><td><div class="input focus" style="min-height:28px;padding:2px 8px;display:inline-flex"><span class="mono" style="font-size:12px"><span style="color:#6D4AFF">sash_w</span> + 2 * <span style="color:#0B7A75">weld_allowance</span>|</span></div></td><td class="mono">2 * leaf_count</td><td><span class="code"><span class="v">sash_h</span> + 2 * <span class="c">weld_allowance</span></span></td><td class="mono">2 * leaf_count</td><td><span class="num">45°</span></td></tr>
+      <tr><td><b>باكتة</b><div class="mono muted" style="font-size:11px;text-align:right">KP-WG12</div></td><td><span class="code"><span class="v">glass_w</span> + <span class="n">0.2</span></span></td><td class="mono">2 * leaf_count</td><td><span class="code"><span class="v">glass_h</span> + <span class="n">0.2</span></span></td><td class="mono">2 * leaf_count</td><td><span class="num">45°</span></td></tr>
+      <tr><td><b>ضلفة سلك</b><div class="mono muted" style="font-size:11px;text-align:right">KP-WG16</div></td><td><span class="code"><span class="v">sash_w</span></span></td><td class="mono">2</td><td><span class="code"><span class="v">sash_h</span> + <span class="n">2</span></span></td><td class="mono">2</td><td><span class="num">45°</span></td></tr>
+      <tr><td><b>طبة وسكينة</b><div class="mono muted" style="font-size:11px;text-align:right">KP-WG14</div></td><td><span class="muted">—</span></td><td class="mono"></td><td><span class="code"><span class="v">sash_h</span> - <span class="c">interlock_ded</span></span></td><td class="mono">leaf_count - 1</td><td><span class="num">90°</span></td></tr>
+      <tr><td><b>حديد تدعيم</b><div class="mono muted" style="font-size:11px;text-align:right">KP-IR1</div></td><td><span class="code"><span class="v">width</span> - <span class="n">1</span></span></td><td class="mono">2</td><td><span class="muted">—</span></td><td class="mono"></td><td><span class="num">90°</span></td></tr>
+      <tr><td colspan="6" style="color:var(--primary);font-weight:600">＋ عنصر جديد (عرض وارتفاع)</td></tr>
     </table>
     <div class="consts" style="margin-top:auto">
       <span class="muted" style="font-size:12px;font-weight:600">ثوابت السيستم:</span>
@@ -97,25 +88,24 @@
     <div class="card live">
       <div class="card-h"><h3>تجربة فورية</h3><span class="grow"></span><span class="chip green">✓ المعادلات سليمة</span></div>
       <div class="inp">
-        <div class="field"><label>عرض الفتحة مم</label><div class="input num">2400</div></div>
-        <div class="field"><label>الارتفاع مم</label><div class="input num">1500</div></div>
+        <div class="field"><label>العرض سم</label><div class="input num">240</div></div>
+        <div class="field"><label>الارتفاع سم</label><div class="input num">150</div></div>
         <div class="field"><label>الضلف</label><div class="input num">3</div></div>
       </div>
       <div style="display:grid;place-items:center;padding-bottom:6px" data-win='{"w":240,"h":150,"leaves":3,"type":"sliding","scale":0.85}'></div>
       <table class="res">
-        <tr><th>القطعة</th><th>الطول</th><th>العدد</th></tr>
-        <tr><td>حلق أفقي</td><td class="num">2396</td><td class="num">2</td></tr>
-        <tr><td>حلق رأسي</td><td class="num">1496</td><td class="num">2</td></tr>
-        <tr style="background:#FFFBEB"><td>ضلفة أفقي</td><td class="num"><b>828.5</b></td><td class="num">6</td></tr>
-        <tr><td>ضلفة رأسي</td><td class="num">1421</td><td class="num">6</td></tr>
-        <tr><td>زجاج (×3)</td><td class="num">692.5 × 1285</td><td class="muted">م²<span class="num"> 2.67</span></td></tr>
+        <tr><th>العنصر</th><th class="side-w">العرض</th><th>عدد</th><th class="side-h">الارتفاع</th><th>عدد</th></tr>
+        <tr><td>حلق</td><td class="num">239.6</td><td class="num muted">2</td><td class="num">149.6</td><td class="num muted">2</td></tr>
+        <tr style="background:#FFFBEB"><td>ضلفة</td><td class="num"><b>83.0</b></td><td class="num muted">6</td><td class="num">142.1</td><td class="num muted">6</td></tr>
+        <tr><td>باكتة</td><td class="num">69.6</td><td class="num muted">6</td><td class="num">128.7</td><td class="num muted">6</td></tr>
+        <tr><td>زجاج</td><td class="num">69.4</td><td></td><td class="num">128.5</td><td class="num muted">3</td></tr>
       </table>
     </div>
     <div class="card card-b">
       <div class="row" style="margin-bottom:4px"><b>الاختبارات المرجعية</b><span class="grow"></span><span class="ok">3 / 3 ✓</span></div>
-      <div class="test"><span class="ok">✓</span>1800×1200 · 3 ضلف<span class="muted" style="margin-inline-start:auto">فرق 0.0 مم</span></div>
-      <div class="test"><span class="ok">✓</span>3000×2000 · 3 ضلف<span class="muted" style="margin-inline-start:auto">فرق 0.0 مم</span></div>
-      <div class="test"><span class="ok">✓</span>1200×1000 · 3 ضلف<span class="muted" style="margin-inline-start:auto">فرق 0.0 مم</span></div>
+      <div class="test"><span class="ok">✓</span><span class="dim">180<span class="x">×</span>120</span> سم · 3 ضلف<span class="muted" style="margin-inline-start:auto">فرق 0.00 سم</span></div>
+      <div class="test"><span class="ok">✓</span><span class="dim">300<span class="x">×</span>200</span> سم · 3 ضلف<span class="muted" style="margin-inline-start:auto">فرق 0.00 سم</span></div>
+      <div class="test"><span class="ok">✓</span><span class="dim">120<span class="x">×</span>100</span> سم · 3 ضلف<span class="muted" style="margin-inline-start:auto">فرق 0.00 سم</span></div>
       <a class="btn success" style="width:100%;justify-content:center;margin-top:10px">نشر نسخة <span class="num">v4</span> للعملاء</a>
       <div class="muted" style="font-size:11.5px;margin-top:6px;text-align:center">الأوامر القديمة هتفضل محسوبة بنسختها</div>
     </div>

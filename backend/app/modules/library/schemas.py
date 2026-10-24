@@ -219,6 +219,10 @@ class Piece(BaseModel):
     key: str
     label: str = ""
     role: str | None = None  # frame | sash | mullion | bead | reinforcement | screen | track | ...
+    # Element the piece belongs to (e.g. "حلق", "ضلفة", "باكتة") and which side it is cut for,
+    # so screens can show every element's width and height deductions together (width first).
+    element: str | None = None
+    side: Literal["width", "height"] | None = None
     material_code: str
     length_expr: str
     qty_expr: str = "1"

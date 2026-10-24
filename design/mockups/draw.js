@@ -12,7 +12,7 @@ window.drawWindow = function ({ w, h, leaves = 2, type = "sliding", scale = 1, d
       inner += `<rect x="${x}" y="${pad + f}" width="${lw}" height="${H - 2 * f}" fill="${color}" stroke="#5B6B80"/>`;
       inner += glass(x + f * .8, pad + f * 1.8, lw - f * 1.6, H - f * 3.6);
       const ax = x + lw / 2, ay = pad + H / 2, d = i % 2 ? -1 : 1;
-      inner += `<path d="M${ax - 12 * d} ${ay} h${24 * d} m${-6 * d} -5 l${6 * d} 5 l${-6 * d} 5" stroke="#1663D6" stroke-width="1.6" fill="none"/>`;
+      inner += `<path d="M${ax - 12 * d} ${ay} h${24 * d} m${-6 * d} -5 l${6 * d} 5 l${-6 * d} 5" stroke="#5048E5" stroke-width="1.6" fill="none"/>`;
     }
   } else if (type === "casement") {
     const lw = (W - 2 * f) / leaves;
@@ -22,7 +22,7 @@ window.drawWindow = function ({ w, h, leaves = 2, type = "sliding", scale = 1, d
       inner += glass(x + f * .8, y + f * .8, lw - f * 1.6, hh - f * 1.6);
       const hinge = i % 2 === 0 ? x + lw - f : x + f;
       const tip = i % 2 === 0 ? x + f : x + lw - f;
-      inner += `<path d="M${hinge} ${y + f} L${tip} ${y + hh / 2} L${hinge} ${y + hh - f}" stroke="#1663D6" stroke-width="1.3" fill="none" stroke-dasharray="5 3"/>`;
+      inner += `<path d="M${hinge} ${y + f} L${tip} ${y + hh / 2} L${hinge} ${y + hh - f}" stroke="#5048E5" stroke-width="1.3" fill="none" stroke-dasharray="5 3"/>`;
     }
   } else if (type === "shutter") {
     const box = H * .16;

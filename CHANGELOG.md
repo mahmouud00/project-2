@@ -4,6 +4,9 @@ All notable changes are listed here. Versions follow Semantic Versioning (MAJOR.
 
 ## [Unreleased]
 ### Added
+- Model pieces carry `element` (e.g. حلق، ضلفة، باكتة) and `side` (`width`/`height`) so each element's width and height deductions are shown together; passed through calculation results and cut lists.
+- Company setting `length_unit` (default `cm`): the desktop app shows and accepts lengths in cm (the API stays in mm).
+- UI mockups updated with the MYTech logo and colours, cm everywhere, width always before height.
 - Trial environment: `docker compose up --build` (PostgreSQL + API + demo data: MYTech and DEMO accounts, an example library system clearly marked as not real, price lists, stock, customer, survey and quotation); `python -m app.cli demo` / `serve`; guide `docs/TRY.md`.
 - "Authorize" button on `/api/docs` (OAuth2 password form, `POST /auth/token`, client_id = company code).
 

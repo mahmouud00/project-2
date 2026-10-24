@@ -46,7 +46,8 @@ def generate_outputs(db: Session, wo: WorkOrder) -> dict:
                 "sku": sku, "material_code": p["material_code"], "material_name": p.get("material_name"),
                 "unit": (mat or {}).get("unit", "m"), "bar_length_mm": (mat or {}).get("bar_length_mm"),
                 "color": item.color_code, "pieces": defaultdict(lambda: {"qty": 0, "refs": []})})
-            key = (p["length_mm"], p["angle_left"], p["angle_right"], p.get("label", p["key"]))
+            key = (p["length_mm"], p["angle_left"], p["angle_right"], p.get("label", p["key"]),
+                   p.get("element"), p.get("side"))
             entry = g["pieces"][key]
             entry["qty"] += int(p["qty"]) * item.qty
             entry["refs"].append(ref)
@@ -78,7 +79,7 @@ def generate_outputs(db: Session, wo: WorkOrder) -> dict:
     for sku, g in sorted(cut_groups.items()):
         # (group key is the SKU, so all its pieces share one colour)
         pieces = [{"length_mm": Decimal(k[0]), "angle_left": k[1], "angle_right": k[2], "label": k[3],
-                   "qty": v["qty"], "refs": v["refs"]} for k, v in g["pieces"].items()]
+                   "element": k[4], "side": k[5], "qty": v["qty"], "refs": v["refs"]} for k, v in g["pieces"].items()]
         pieces.sort(key=lambda p: p["length_mm"], reverse=True)
         cut_list.append({"sku": sku, "material_code": g["material_code"], "material_name": g["material_name"],
                          "pieces": pieces, "total_pieces": sum(p["qty"] for p in pieces),

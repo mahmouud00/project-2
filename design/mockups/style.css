@@ -1,11 +1,15 @@
 @import url("fonts/cairo.css");
 
 :root {
-  --nav: #0E2238;
-  --nav-2: #16314F;
-  --nav-text: #B9C6D6;
-  --primary: #1663D6;
-  --primary-soft: #E8F0FC;
+  /* MYTech brand: cyan -> violet on deep navy (from the logo) */
+  --brand-cyan: #35D9FA;
+  --brand-violet: #AE51F9;
+  --brand-grad: linear-gradient(270deg, #1597D6 0%, #5B5CF0 55%, #8D45F2 100%);
+  --nav: #0A1520;
+  --nav-2: #142338;
+  --nav-text: #A9B6C8;
+  --primary: #5048E5;
+  --primary-soft: #EEEDFD;
   --bg: #F3F5F8;
   --card: #FFFFFF;
   --border: #E2E7EE;
@@ -40,6 +44,7 @@ body {
 .app { display: grid; grid-template-columns: 232px 1fr; height: 100vh; }
 .sidebar { background: var(--nav); color: var(--nav-text); display: flex; flex-direction: column; padding: 18px 12px; }
 .brand { display: flex; align-items: center; gap: 10px; padding: 4px 8px 18px; }
+.brand-logo { height: 36px; max-width: 200px; display: block; }
 .brand-mark { width: 34px; height: 34px; border-radius: 9px; background: linear-gradient(135deg, #2E7CF6, #1650B3);
   display: grid; place-items: center; color: #fff; font-weight: 800; font-size: 15px; }
 .brand-name { color: #fff; font-weight: 800; font-size: 16px; line-height: 1.1; }
@@ -48,7 +53,10 @@ body {
 .nav a { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px; color: var(--nav-text);
   text-decoration: none; font-weight: 500; margin-bottom: 2px; }
 .nav a svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 1.8; flex: none; }
-.nav a.active { background: var(--nav-2); color: #fff; box-shadow: inset -3px 0 0 #3B8BFF; }
+.nav a.active { background: var(--nav-2); color: #fff; position: relative; }
+.nav a.active::after { content: ""; position: absolute; right: 0; top: 6px; bottom: 6px; width: 3px; border-radius: 3px;
+  background: linear-gradient(180deg, var(--brand-cyan), var(--brand-violet)); }
+.nav a.active svg { stroke: var(--brand-cyan); }
 .nav a .badge { margin-inline-start: auto; background: #2B4A70; color: #DCE7F5; font-size: 11px; padding: 0 7px; border-radius: 10px; }
 .sidebar-foot { margin-top: auto; border-top: 1px solid #1E3A5C; padding: 12px 8px 0; font-size: 11.5px; }
 .conn { display: flex; align-items: center; gap: 8px; color: #CFE3D6; }
@@ -87,7 +95,7 @@ body {
 .btn { display: inline-flex; align-items: center; gap: 6px; border-radius: 8px; padding: 7px 14px; font-weight: 600;
   border: 1px solid var(--border); background: #fff; color: var(--text); font-size: 13px; white-space: nowrap; }
 .btn svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.9; }
-.btn.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+.btn.primary { background: var(--brand-grad); border-color: transparent; color: #fff; }
 .btn.success { background: var(--success); border-color: var(--success); color: #fff; }
 .btn.ghost { border-color: transparent; background: transparent; color: var(--primary); }
 .chip { display: inline-flex; align-items: center; gap: 5px; border-radius: 20px; padding: 1px 10px; font-size: 12px; font-weight: 600;
@@ -109,7 +117,11 @@ tr.sel td:first-child { box-shadow: inset -3px 0 0 var(--primary); }
 .field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; font-weight: 600; }
 .input { border: 1px solid var(--border); border-radius: 8px; padding: 7px 10px; background: #fff; min-height: 36px;
   display: flex; align-items: center; gap: 6px; }
-.input.focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(22, 99, 214, .14); }
+.input.focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(80, 72, 229, .14); }
+/* sizes: always width first (in reading order, i.e. on the right), in cm */
+.dim { direction: rtl; unicode-bidi: isolate; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.dim .x { color: #98A2B3; margin: 0 3px; }
+.side-w { color: #0E7490; } .side-h { color: #7C3AED; }
 
 .kpi { padding: 14px 16px; }
 .kpi .label { color: var(--muted); font-size: 12.5px; font-weight: 600; }

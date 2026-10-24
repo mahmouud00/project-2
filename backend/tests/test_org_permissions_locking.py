@@ -44,3 +44,7 @@ def test_audit_log_records_and_masks_pii(tenant_a, client):
 def test_unknown_permission_rejected(tenant_a, client):
     r = client.post("/api/v1/roles", headers=tenant_a.h, json={"code": "x", "name": "x", "permissions": ["nope"]})
     assert r.status_code == 422
+
+
+def test_length_unit_defaults_to_cm(tenant_a, client):
+    assert client.get("/api/v1/company", headers=tenant_a.h).json()["settings"]["length_unit"] == "cm"
