@@ -32,4 +32,7 @@ All notable changes are listed here. Versions follow Semantic Versioning (MAJOR.
 - Daily automatic backup (pg_dump, checksum sidecar, retention, single-runner lock), manual backup endpoint, verified restore that rebuilds the schema and re-grants roles.
 - Live change events over WebSocket (`/api/v1/system/events`) fed by PostgreSQL NOTIFY from every audited change; no personal data in events.
 - LAN discovery: UDP broadcast responder + mDNS service `_mytech._tcp`; client `discover()` helper.
+- Safe updates: signed update files (`*.mtu`) with per-version install folders, mandatory pre-update backup, migrations with the new code, health check, automatic rollback (database restore + previous version) on any failure; `tools/release/build_update.py`.
+- Windows deployment: launcher, WinSW service definition (auto start, restart on failure), install and update PowerShell scripts, firewall rules.
+- Migration safety test (seed at old revisions, upgrade, compare data); CI workflow and pre-commit hook running the full test suite.
 - `tools/vendor_admin`: key generation, licence issuing/inspection, company and subscription management.

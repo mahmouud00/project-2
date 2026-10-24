@@ -1,0 +1,35 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: PostgreSQL client tools (pg_dump / pg_restore 16)
+        run: |
+          sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+          wget -qO- https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo tee /etc/apt/trusted.gpg.d/pgdg.asc > /dev/null
+          sudo apt-get update -q && sudo apt-get install -yq postgresql-client-16
+          echo "/usr/lib/postgresql/16/bin" >> $GITHUB_PATH
+      - name: Install
+        run: pip install -e "backend[dev]"
+      - name: Tests (golden deduction tests included)
+        working-directory: backend
+        env:
+          TEST_ADMIN_URL: postgresql+psycopg://postgres:postgres@localhost:5432/postgres
+        run: python -m pytest
