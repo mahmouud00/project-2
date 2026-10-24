@@ -53,6 +53,8 @@ def _include_optional(app: FastAPI) -> None:
         app.include_router(importlib.import_module(mod).router, prefix=API_PREFIX)
 
 
-MODULE_ROUTERS: list[str] = []
+MODULE_ROUTERS: list[str] = [
+    "app.modules.library.router",
+]
 
 app = create_app()

@@ -30,10 +30,8 @@ def utcnow() -> datetime:
 class Base(DeclarativeBase):
     metadata = MetaData(naming_convention=NAMING)
 
-    # Set on subclasses: "tenant" (company-private), "library" (company rows +
-    # platform rows readable by all). Used by the RLS migration helper and by
-    # the session-level tenant filter.
-    __tenancy__: str = "tenant"
+    # Tenancy is declared by mixin: LibraryEntity sets __tenancy__ = "library"
+    # (company rows + platform rows readable by all); anything else is "tenant".
     # Columns holding personal data (PDPL). Masked in the audit log.
     __pii__: tuple[str, ...] = ()
 

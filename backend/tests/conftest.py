@@ -10,9 +10,9 @@ ADMIN_URL = os.environ.get("TEST_ADMIN_URL", "postgresql+psycopg://postgres:post
 TEST_DB = os.environ.get("TEST_DB_NAME", "mytech_test")
 os.environ.update({
     "APP_MODE": "offline",
-    "DATABASE_URL": f"postgresql+psycopg://mytech_app:testapp@localhost:5432/{TEST_DB}",
-    "DATABASE_SYSTEM_URL": f"postgresql+psycopg://mytech_system:testsystem@localhost:5432/{TEST_DB}",
-    "DATABASE_OWNER_URL": f"postgresql+psycopg://mytech_owner:testowner@localhost:5432/{TEST_DB}",
+    "DATABASE_URL": f"postgresql+psycopg://mytech_test_app:testapp@localhost:5432/{TEST_DB}",
+    "DATABASE_SYSTEM_URL": f"postgresql+psycopg://mytech_test_system:testsystem@localhost:5432/{TEST_DB}",
+    "DATABASE_OWNER_URL": f"postgresql+psycopg://mytech_test_owner:testowner@localhost:5432/{TEST_DB}",
     "JWT_SECRET": "test-secret-0123456789-0123456789-abcdef",
 })
 
@@ -21,6 +21,10 @@ from sqlalchemy import create_engine, text  # noqa: E402
 from app.core.config import get_settings  # noqa: E402
 
 get_settings.cache_clear()
+
+import logging  # noqa: E402
+
+logging.getLogger("httpx").setLevel(logging.WARNING)
 
 
 def _drop_db():
