@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import uuid
+from decimal import Decimal
 from datetime import date
 
 from fastapi import APIRouter, Depends
@@ -153,8 +154,8 @@ def update_customer(customer_id: uuid.UUID, body: CustomerUpdate, dc=Depends(req
 # ---------------------------------------------------------------- surveys
 class OpeningIn(BaseModel):
     location: str = ""
-    opening_width_mm: float = Field(gt=0)
-    opening_height_mm: float = Field(gt=0)
+    opening_width_mm: Decimal = Field(gt=0, max_digits=12, decimal_places=2)
+    opening_height_mm: Decimal = Field(gt=0, max_digits=12, decimal_places=2)
     qty: int = Field(1, ge=1)
     model_id: uuid.UUID | None = None
     params: dict = {}
@@ -168,8 +169,8 @@ class OpeningOut(ORMModel):
     id: uuid.UUID
     position: int
     location: str
-    opening_width_mm: float
-    opening_height_mm: float
+    opening_width_mm: Decimal
+    opening_height_mm: Decimal
     qty: int
     model_id: uuid.UUID | None
     params: dict

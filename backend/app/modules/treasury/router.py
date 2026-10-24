@@ -210,10 +210,20 @@ def customer_statement(customer_id: uuid.UUID, dc=Depends(require("treasury.read
     signed = case((CashTransaction.direction == "in", CashTransaction.amount), else_=-CashTransaction.amount)
     paid = db.scalar(select(func.coalesce(func.sum(signed), 0)).where(
         CashTransaction.party_type == "customer", CashTransaction.party_id == customer_id))
-    billed = sum((o.total for o in orders), Decimal(0))
+    from app.modules.invoicing.models import Invoice
+
+    invoices = db.scalars(select(Invoice).where(Invoice.customer_id == customer_id, Invoice.status == "issued",
+                                                Invoice.deleted_at.is_(None)).order_by(Invoice.issue_date)).all()
+    # an issued invoice replaces its work order's amount (it may add services or discounts)
+    invoiced_orders = {i.work_order_id for i in invoices if i.work_order_id}
+    billed = (sum((i.total for i in invoices), Decimal(0))
+              + sum((o.total for o in orders if o.id not in invoiced_orders), Decimal(0)))
     return {"customer_id": str(customer_id), "billed": str(billed), "paid": str(paid), "balance": str(billed - paid),
             "orders": [{"id": str(o.id), "number": o.number, "stage": o.stage, "total": str(o.total),
-                        "paid": str(o.paid_amount)} for o in orders]}
+                        "paid": str(o.paid_amount), "invoiced": o.id in invoiced_orders} for o in orders],
+            "invoices": [{"id": str(i.id), "number": i.number, "issue_date": i.issue_date.isoformat() if i.issue_date else None,
+                          "work_order_id": str(i.work_order_id) if i.work_order_id else None, "total": str(i.total)}
+                         for i in invoices]}
 
 
 @router.get("/suppliers/{supplier_id}/statement")

@@ -155,6 +155,12 @@ def list_pos(status: str | None = None, supplier_id: uuid.UUID | None = None, pa
     return paginate(db, stmt, params, POOut)
 
 
+@router.get("/purchase-orders/{po_id}", response_model=POOut)
+def get_po(po_id: uuid.UUID, dc=Depends(require("purchasing.read"))):
+    db, ctx = dc
+    return _po_out(db, _get_po(db, ctx, po_id, "purchasing.read"))
+
+
 @router.post("/purchase-orders", response_model=POOut, status_code=201)
 def create_po(body: POIn, dc=Depends(require("purchasing.write"))):
     db, ctx = dc

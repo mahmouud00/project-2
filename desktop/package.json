@@ -1,0 +1,29 @@
+{
+  "name": "mytech-desktop",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "gen:api": "openapi-typescript src/api/openapi.json -o src/api/schema.d.ts",
+    "tauri": "tauri",
+    "test": "node --experimental-strip-types --no-warnings tests/format.test.ts"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "2.8.0",
+    "react": "19.1.1",
+    "react-dom": "19.1.1"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "2.8.4",
+    "@types/react": "19.1.12",
+    "@types/react-dom": "19.1.9",
+    "@vitejs/plugin-react": "5.0.2",
+    "openapi-typescript": "7.9.1",
+    "typescript": "5.9.2",
+    "vite": "7.1.5"
+  }
+}

@@ -1,0 +1,261 @@
+// HTTP client for the MYTech server: bearer tokens with one shared refresh, uniform errors,
+// client version header (426 = this program must be updated). Lengths go to the API in mm.
+import type { components } from "./schema";
+
+export type S<K extends keyof components["schemas"]> = components["schemas"][K];
+export type Page<T> = { items: T[]; total: number; limit: number; offset: number };
+
+export const CLIENT_VERSION: string = __APP_VERSION__;
+
+const K = { server: "mytech.server", company: "mytech.company", refresh: "mytech.refresh", device: "mytech.device",
+  user: "mytech.username" };
+
+export class ApiError extends Error {
+  constructor(public status: number, public code: string, message: string, public details?: unknown) {
+    super(message);
+  }
+}
+
+function read(key: string): string | null {
+  try { return localStorage.getItem(key); } catch { return null; }
+}
+function write(key: string, value: string | null) {
+  try { value === null ? localStorage.removeItem(key) : localStorage.setItem(key, value); } catch { /* storage blocked */ }
+}
+
+export const store = {
+  get server() { return read(K.server); },
+  set server(v: string | null) { write(K.server, v); },
+  get company() { return read(K.company) ?? ""; },
+  set company(v: string) { write(K.company, v); },
+  get username() { return read(K.user) ?? ""; },
+  set username(v: string) { write(K.user, v); },
+  get deviceKey() {
+    let k = read(K.device);
+    if (!k) { k = crypto.randomUUID(); write(K.device, k); }
+    return k;
+  },
+};
+
+type Listener = (event: "logout" | "update-required" | "license", detail?: unknown) => void;
+const listeners = new Set<Listener>();
+export function onApiEvent(fn: Listener) { listeners.add(fn); return () => { listeners.delete(fn); }; }
+const emit: Listener = (e, d) => listeners.forEach((l) => l(e, d));
+
+let access: string | null = null;
+let refreshing: Promise<boolean> | null = null;
+
+export function normalizeServer(input: string): string {
+  let s = input.trim().replace(/\/+$/, "");
+  if (!/^https?:\/\//i.test(s)) s = "http://" + s;
+  if (!/:\d+$/.test(s.replace(/^https?:\/\//i, "").split("/")[0])) s += ":8000";
+  return s;
+}
+
+function base(): string {
+  if (!store.server) throw new ApiError(0, "NO_SERVER", "لم يتم اختيار السيرفر");
+  return store.server + "/api/v1";
+}
+
+function qs(query?: Record<string, unknown>): string {
+  if (!query) return "";
+  const p = new URLSearchParams();
+  for (const [k, v] of Object.entries(query)) if (v !== undefined && v !== null && v !== "") p.set(k, String(v));
+  const s = p.toString();
+  return s ? "?" + s : "";
+}
+
+async function parseError(r: Response): Promise<ApiError> {
+  let body: any = null;
+  try { body = await r.json(); } catch { /* not json */ }
+  const e = body?.error;
+  return new ApiError(r.status, e?.code ?? `HTTP_${r.status}`, e?.message ?? r.statusText, e?.details);
+}
+
+async function doRefresh(): Promise<boolean> {
+  const token = read(K.refresh);
+  if (!token) return false;
+  try {
+    const r = await fetch(base() + "/auth/refresh", { method: "POST", headers: { "Content-Type": "application/json",
+      "X-Client-Version": CLIENT_VERSION }, body: JSON.stringify({ refresh_token: token }) });
+    if (!r.ok) { write(K.refresh, null); access = null; return false; }
+    const t = await r.json();
+    access = t.access_token;
+    write(K.refresh, t.refresh_token);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function refreshOnce(): Promise<boolean> {
+  if (!refreshing) refreshing = doRefresh().finally(() => { refreshing = null; });
+  return refreshing;
+}
+
+export async function raw(path: string, init: RequestInit = {}, retry = true): Promise<Response> {
+  const headers = new Headers(init.headers);
+  headers.set("X-Client-Version", CLIENT_VERSION);
+  if (access) headers.set("Authorization", "Bearer " + access);
+  let r: Response;
+  try {
+    r = await fetch(base() + path, { ...init, headers });
+  } catch {
+    throw new ApiError(0, "NETWORK", "تعذّر الاتصال بالسيرفر");
+  }
+  if (r.status === 401 && retry && read(K.refresh)) {
+    if (await refreshOnce()) return raw(path, init, false);
+    emit("logout");
+  }
+  if (r.status === 426) emit("update-required", await r.clone().json().catch(() => null));
+  if (r.status === 402) emit("license", await r.clone().json().catch(() => null));
+  return r;
+}
+
+async function json<T>(method: string, path: string, body?: unknown, query?: Record<string, unknown>): Promise<T> {
+  const r = await raw(path + qs(query), {
+    method, headers: body === undefined ? {} : { "Content-Type": "application/json" },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  if (!r.ok) throw await parseError(r);
+  if (r.status === 204) return undefined as T;
+  const text = await r.text();
+  return (text ? JSON.parse(text) : undefined) as T;
+}
+
+export const api = {
+  get: <T>(path: string, query?: Record<string, unknown>) => json<T>("GET", path, undefined, query),
+  post: <T>(path: string, body?: unknown, query?: Record<string, unknown>) => json<T>("POST", path, body ?? {}, query),
+  patch: <T>(path: string, body: unknown) => json<T>("PATCH", path, body),
+  put: <T>(path: string, body: unknown) => json<T>("PUT", path, body),
+  del: <T>(path: string) => json<T>("DELETE", path),
+  async upload<T>(path: string, file: File | Blob, name = "file"): Promise<T> {
+    const fd = new FormData();
+    fd.append(name, file, (file as File).name ?? "upload");
+    const r = await raw(path, { method: "POST", body: fd });
+    if (!r.ok) throw await parseError(r);
+    return r.json();
+  },
+  async text(path: string): Promise<string> {
+    const r = await raw(path);
+    if (!r.ok) throw await parseError(r);
+    return r.text();
+  },
+  async blob(path: string): Promise<Blob> {
+    const r = await raw(path);
+    if (!r.ok) throw await parseError(r);
+    return r.blob();
+  },
+  /** Public endpoint (no token), e.g. server info or branding before login. */
+  async public<T>(path: string, query?: Record<string, unknown>, server?: string): Promise<T> {
+    const root = (server ?? store.server) + "/api/v1";
+    let r: Response;
+    try {
+      r = await fetch(root + path + qs(query), { headers: { "X-Client-Version": CLIENT_VERSION } });
+    } catch {
+      throw new ApiError(0, "NETWORK", "تعذّر الاتصال بالسيرفر");
+    }
+    if (!r.ok) throw await parseError(r);
+    return r.headers.get("content-type")?.includes("json") ? r.json() : (r.blob() as any);
+  },
+};
+
+export async function login(company: string, username: string, password: string) {
+  const r = await fetch(base() + "/auth/login", {
+    method: "POST", headers: { "Content-Type": "application/json", "X-Client-Version": CLIENT_VERSION },
+    body: JSON.stringify({ company_code: company || null, username, password, device_key: store.deviceKey,
+      device_name: deviceName(), client_version: CLIENT_VERSION, platform: platformName() }),
+  }).catch(() => { throw new ApiError(0, "NETWORK", "تعذّر الاتصال بالسيرفر"); });
+  if (!r.ok) throw await parseError(r);
+  const t = await r.json();
+  access = t.access_token;
+  write(K.refresh, t.refresh_token);
+  store.company = company;
+  store.username = username;
+  return t;
+}
+
+export async function resume(): Promise<boolean> {
+  return refreshOnce();
+}
+
+export async function logout() {
+  const token = read(K.refresh);
+  if (token) await fetch(base() + "/auth/logout", { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ refresh_token: token }) }).catch(() => undefined);
+  write(K.refresh, null);
+  access = null;
+}
+
+function platformName() {
+  const ua = navigator.userAgent;
+  return /Windows/i.test(ua) ? "windows" : /Mac/i.test(ua) ? "mac" : /Linux/i.test(ua) ? "linux" : "other";
+}
+function deviceName() {
+  return "MYTech Desktop (" + platformName() + ")";
+}
+
+/** Arabic message for an API error. */
+export function errorText(e: unknown): string {
+  if (!(e instanceof ApiError)) return e instanceof Error ? e.message : String(e);
+  const m = MESSAGES[e.code];
+  if (m) return m;
+  if (e.code === "VALIDATION_FAILED" && Array.isArray(e.details)) {
+    return "بيانات غير صحيحة: " + (e.details as any[]).map((d) => (d.loc ?? []).slice(1).join(".") + " " + (d.msg ?? "")).join("، ");
+  }
+  return e.message || e.code;
+}
+
+const MESSAGES: Record<string, string> = {
+  NETWORK: "تعذّر الاتصال بالسيرفر. اتأكد إن السيرفر شغال وإن الجهاز على نفس الشبكة.",
+  NO_SERVER: "اختار السيرفر الأول.",
+  INVALID_CREDENTIALS: "اسم المستخدم أو كلمة المرور غلط.",
+  ACCOUNT_LOCKED: "الحساب متقفل مؤقتًا بسبب محاولات دخول كتير. حاول بعد شوية.",
+  USER_DISABLED: "المستخدم ده متوقف.",
+  DEVICE_DISABLED: "الجهاز ده متوقف من الإدارة.",
+  COMPANY_REQUIRED: "اكتب كود الشركة.",
+  VERSION_CONFLICT: "البيانات دي اتعدلت من جهاز تاني. حدّث الصفحة وحاول تاني.",
+  PERMISSION_DENIED: "مالكش صلاحية تعمل ده.",
+  FORBIDDEN: "مالكش صلاحية تعمل ده.",
+  NOT_FOUND: "مش موجود.",
+  LICENSE_INVALID: "الترخيص غير صالح أو مش موجود.",
+  LICENSE_READ_ONLY: "الترخيص منتهي: البرنامج شغال قراءة بس.",
+  LICENSE_DEVICE_LIMIT: "عدد الأجهزة وصل للحد المسموح في الترخيص.",
+  LICENSE_USER_LIMIT: "عدد المستخدمين وصل للحد المسموح في الترخيص.",
+  LICENSE_BRANCH_LIMIT: "عدد الفروع وصل للحد المسموح في الترخيص.",
+  LICENSE_REJECTED: "ملف الترخيص مرفوض (مش لنفس الجهاز أو التوقيع غلط أو منتهي).",
+  LICENSE_FILE_INVALID: "ده مش ملف ترخيص.",
+  MODULE_NOT_LICENSED: "الجزء ده مش ضمن الترخيص.",
+  CLIENT_UPDATE_REQUIRED: "لازم تحدّث البرنامج عشان يشتغل مع السيرفر.",
+  DUPLICATE_CODE: "الكود ده مستخدم قبل كده.",
+  DUPLICATE_USERNAME: "اسم المستخدم ده موجود.",
+  DUPLICATE_NAME: "الاسم ده موجود.",
+  LIBRARY_READ_ONLY: "دي من مكتبة MYTech ومينفعش تتعدل. تقدر تعمل معايرة خاصة بالشركة.",
+  QUOTE_LOCKED: "عرض السعر مقفول ومينفعش يتعدل.",
+  INVOICE_LOCKED: "الفاتورة صدرت ومينفعش تتعدل. تقدر تلغيها.",
+  INVOICE_EMPTY: "الفاتورة مفيهاش سطور.",
+  ALREADY_INVOICED: "اتعملت فاتورة لده قبل كده.",
+  QUOTE_NOT_ACCEPTED: "لازم عرض السعر يتقبل الأول.",
+  QUOTE_ALREADY_ORDERED: "عرض السعر ده اتعمل منه أمر تصنيع.",
+  INVALID_TRANSITION: "مينفعش تنقل للمرحلة دي من المرحلة الحالية.",
+  DEPOSIT_REQUIRED: "لازم العربون يتدفع الأول.",
+  INSUFFICIENT_STOCK: "الكمية في المخزن مش كفاية.",
+  INSUFFICIENT_CASH: "رصيد الخزينة مش كفاية.",
+  MANUFACTURING_ERRORS: "فيه أخطاء في الحسابات لازم تتصلح الأول.",
+  MODEL_NOT_PUBLISHED: "النموذج ده لسه مش منشور.",
+  NOT_PUBLISHED: "القطاع لسه مش منشور.",
+  NOTHING_TO_PUBLISH: "مفيش نماذج للنشر.",
+  PUBLISH_FAILED: "النشر اترفض: فيه نموذج فيه غلط أو اختبار مرجعي مش مطابق.",
+  NO_PRICE_LIST: "مفيش قائمة أسعار. اعمل قائمة أسعار الأول.",
+  NO_WAREHOUSE: "اختار المخزن.",
+  MATERIALS_ISSUED: "الخامات اتصرفت خلاص.",
+  OUTPUTS_FROZEN: "مخرجات التصنيع اتجمدت بعد صرف الخامات.",
+  ALREADY_REVERSED: "الحركة دي اتعكست قبل كده.",
+  DISCOUNT_TOO_LARGE: "الخصم أكبر من الإجمالي.",
+  FILE_TOO_LARGE: "الملف كبير (الحد 5 ميجا).",
+  FILE_TYPE: "نوع الملف مش مدعوم (PNG أو JPEG أو WEBP).",
+  WRONG_PASSWORD: "كلمة المرور الحالية غلط.",
+  PACKAGE_SIGNATURE_INVALID: "توقيع الحزمة غلط. الحزمة مش من MYTech أو اتعدلت.",
+  BACKUP_FAILED: "النسخة الاحتياطية فشلت.",
+  SELF_ERASE: "مينفعش تمسح بياناتك بنفسك.",
+};

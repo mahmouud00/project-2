@@ -170,6 +170,8 @@ def test_purchasing_transfers_and_treasury(platform, tenant_a, client):
     po = client.post(f"/api/v1/purchase-orders/{po['id']}/receive", headers=h, json={
         "version": po["version"], "lines": [{"line_id": po["lines"][0]["id"], "qty": "40"}]}).json()
     assert po["status"] == "partial"
+    got = client.get(f"/api/v1/purchase-orders/{po['id']}", headers=h).json()
+    assert got["number"] == po["number"] and D(got["lines"][0]["received_qty"]) == 40
     r = client.post(f"/api/v1/purchase-orders/{po['id']}/receive", headers=h, json={
         "version": po["version"], "lines": [{"line_id": po["lines"][0]["id"], "qty": "30"}]})
     assert r.status_code == 422 and r.json()["error"]["code"] == "OVER_RECEIPT"

@@ -53,6 +53,10 @@ def test_invoice_from_work_order_with_discounts_and_payment(platform, tenant_a, 
     inv = client.get(f"/api/v1/invoices/{inv['id']}", headers=h).json()
     assert D(inv["paid_amount"]) == 1000 and D(inv["balance"]) == D(inv["total"]) - 1000
     assert D(client.get(f"/api/v1/work-orders/{wo['id']}", headers=h).json()["paid_amount"]) == 1000
+    # the customer statement bills the issued invoice (with its service line), not the work order amount
+    st = client.get(f"/api/v1/customers/{customer['id']}/statement", headers=h).json()
+    assert D(st["billed"]) == D(inv["total"]) and D(st["balance"]) == D(inv["balance"])
+    assert st["orders"][0]["invoiced"] is True and st["invoices"][0]["number"] == inv["number"]
 
     html = client.get(f"/api/v1/invoices/{inv['id']}/print", headers=h)
     assert html.status_code == 200 and "text/html" in html.headers["content-type"]
@@ -61,6 +65,8 @@ def test_invoice_from_work_order_with_discounts_and_payment(platform, tenant_a, 
     assert "@font-face" in body
     r = client.post(f"/api/v1/invoices/{inv['id']}/cancel", headers=h, json={"version": inv["version"], "reason": "خطأ في البيانات"})
     assert r.status_code == 200 and r.json()["status"] == "cancelled"
+    st = client.get(f"/api/v1/customers/{customer['id']}/statement", headers=h).json()
+    assert D(st["billed"]) == D(wo["total"]) and st["invoices"] == []   # cancelled: back to the order amount
 
 
 def test_manual_invoice_and_isolation(platform, tenant_a, tenant_b, client):
