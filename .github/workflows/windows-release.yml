@@ -17,7 +17,7 @@ permissions:
 
 concurrency:
   group: windows-release-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false   # a new push waits for the running build instead of discarding an hour of compiling
 
 env:
   PYTHON_VERSION: "3.12"
