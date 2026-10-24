@@ -30,7 +30,7 @@ export default function Inventory({ route }: PageProps) {
           { id: "warehouses", label: "المخازن", hidden: !s.can("org.manage") },
         ]} />
         <div className="card-b">
-          {tab !== "warehouses" && tab !== "transfers" && <div className="row" style={{ width: 260 }}><WarehouseSelect value={wh} onChange={setWh} allowAll={tab === "movements" ? "كل المخازن" : undefined} /></div>}
+          {tab !== "warehouses" && tab !== "transfers" && <div className="row" style={{ width: 260 }}><WarehouseSelect value={wh} onChange={setWh} /></div>}
           {tab === "balances" && <Balances wh={wh} />}
           {tab === "movements" && <Movements wh={wh} />}
           {tab === "transfers" && <Transfers />}
@@ -116,7 +116,8 @@ function Movements({ wh }: { wh: string }) {
   const [offset, setOffset] = useState(0);
   const [q, setQ] = useState("");
   const dq = useDebounced(q);
-  const list = useLoad(() => api.get<S<"Page_MovementOut_">>("/inventory/movements", { warehouse_id: wh || undefined, sku: dq || undefined, limit: 50, offset }), [wh, dq, offset]);
+  const list = useLoad(() => wh ? api.get<S<"Page_MovementOut_">>("/inventory/movements", { warehouse_id: wh, sku: dq || undefined, limit: 50, offset })
+    : Promise.resolve(undefined), [wh, dq, offset]);
   const whs = useLoad(() => lookups.warehouses(), []);
   return (
     <div className="col mt">

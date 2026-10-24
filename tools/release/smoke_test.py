@@ -77,7 +77,8 @@ try:
     ok("quotation print", lambda: call("GET", f"/quotations/{q[0]['id']}/print", token=tok, raw=True))
     ok("cut list print", lambda: call("GET", f"/work-orders/{wo['id']}/print/cut-list", token=tok, raw=True))
     ok("statement", lambda: call("GET", f"/customers/{wo['customer_id']}/statement", token=tok))
-    ok("inventory", lambda: call("GET", "/inventory/movements", token=tok))
+    wh = call("GET", "/warehouses", token=tok)[0]
+    ok("inventory", lambda: call("GET", f"/inventory/movements?warehouse_id={wh['id']}", token=tok))
     ok("audit", lambda: call("GET", "/audit-log", token=tok))
     ok("logo", lambda: call("GET", "/company/logo", token=tok, raw=False) if False else urllib.request.urlopen(urllib.request.Request(B + "/company/logo", headers={"Authorization": "Bearer " + tok})).read())
     vt = call("POST", "/auth/login", {"company_code": "__platform__", "username": "vendor", "password": "Vendor@12345", "device_key": "full-test-v"})["access_token"]
