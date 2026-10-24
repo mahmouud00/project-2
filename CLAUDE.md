@@ -37,6 +37,7 @@ docs/
 ```
 
 ## التشغيل والاختبارات
+للتجربة السريعة: `docker compose up --build` ← `http://localhost:8000/api/docs` (شوف `docs/TRY.md`). وللتطوير:
 ```
 python -m venv .venv && .venv/bin/pip install -e "backend[dev]"
 cp .env.example backend/.env                       # وعدّل القيم (الأسرار)

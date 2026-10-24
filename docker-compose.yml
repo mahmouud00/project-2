@@ -1,0 +1,37 @@
+# Try MYTech Solutions locally:   docker compose up --build
+# then open http://localhost:8000/api/docs   (see docs/TRY.md)
+# These passwords are for a local trial only.
+services:
+  db:
+    image: postgres:16-trixie
+    environment:
+      POSTGRES_PASSWORD: trial-postgres-pass
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 3s
+      retries: 20
+
+  api:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    environment:
+      APP_MODE: online            # trial uses database subscriptions (no licence file needed)
+      DEMO: "1"                   # create demo companies and example data on first start
+      DATABASE_ADMIN_URL: postgresql+psycopg://postgres:trial-postgres-pass@db:5432/postgres
+      DATABASE_URL: postgresql+psycopg://mytech_app:trial-app-pass@db:5432/mytech
+      DATABASE_SYSTEM_URL: postgresql+psycopg://mytech_system:trial-system-pass@db:5432/mytech
+      DATABASE_OWNER_URL: postgresql+psycopg://mytech_owner:trial-owner-pass@db:5432/mytech
+      JWT_SECRET: trial-only-secret-change-me-0123456789abcdef
+      DISCOVERY_ENABLED: "false"
+    volumes:
+      - appdata:/data
+
+volumes:
+  pgdata:
+  appdata:

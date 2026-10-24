@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends
+from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel, Field
 
 from app.auth import service
@@ -35,6 +36,15 @@ class ChangePasswordIn(BaseModel):
 @router.post("/login")
 def login(body: LoginIn, db=Depends(iter_system_session)):
     return service.login(db, **body.model_dump())
+
+
+@router.post("/token")
+def token(form: OAuth2PasswordRequestForm = Depends(), db=Depends(iter_system_session)):
+    """OAuth2 password form (used by the "Authorize" button of /api/docs).
+    client_id = company code (needed when the server hosts several companies)."""
+    tokens = service.login(db, company_code=form.client_id or None, username=form.username, password=form.password,
+                           device_key="api-docs-browser", device_name="API docs")
+    return {"access_token": tokens["access_token"], "token_type": "bearer"}
 
 
 @router.post("/refresh")

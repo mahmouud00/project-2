@@ -87,12 +87,20 @@ def main(argv: list[str] | None = None) -> int:
     p = sub.add_parser("create-platform-admin")
     p.add_argument("--username", required=True)
     p.add_argument("--password")
+    sub.add_parser("demo", help="create the demo companies and example data (APP_MODE=online)")
+    sub.add_parser("serve", help="run the API server")
     args = parser.parse_args(argv)
 
     if args.cmd == "init-db":
         init_db(args.admin_url)
     elif args.cmd == "migrate":
         migrate()
+    elif args.cmd == "demo":
+        from app.demo import setup_demo
+        print("demo data created" if setup_demo() else "demo data already exists")
+    elif args.cmd == "serve":
+        from app.server import serve
+        serve()
     elif args.cmd in ("create-company", "create-platform-admin"):
         from app.db import models  # noqa: F401
         from app.db.session import system_session

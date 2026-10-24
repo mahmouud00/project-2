@@ -3,6 +3,9 @@
 All notable changes are listed here. Versions follow Semantic Versioning (MAJOR.MINOR.PATCH).
 
 ## [Unreleased]
+### Added
+- Trial environment: `docker compose up --build` (PostgreSQL + API + demo data: MYTech and DEMO accounts, an example library system clearly marked as not real, price lists, stock, customer, survey and quotation); `python -m app.cli demo` / `serve`; guide `docs/TRY.md`.
+- "Authorize" button on `/api/docs` (OAuth2 password form, `POST /auth/token`, client_id = company code).
 
 ## [0.1.0] - 2026-10-24
 ### Added

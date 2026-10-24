@@ -5,7 +5,8 @@ import uuid
 from collections.abc import Iterator
 from dataclasses import dataclass, field
 
-from fastapi import Depends, Header, Request
+from fastapi import Depends, Request
+from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy import select
 
 from app.auth.security import decode_access_token
@@ -47,16 +48,21 @@ class RequestContext:
                             details={"permission": permission, "branch_id": str(branch_id) if branch_id else None})
 
 
-def _bearer(authorization: str | None) -> str:
-    if not authorization or not authorization.lower().startswith("bearer "):
+# Standard "Authorization: Bearer <token>" header. Declared as OAuth2 so the API
+# docs page (/api/docs) offers an "Authorize" button (username/password form).
+oauth2 = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/token", auto_error=False)
+
+
+def _bearer(token: str | None) -> str:
+    if not token:
         raise Unauthorized("Missing bearer token")
-    return authorization.split(" ", 1)[1].strip()
+    return token
 
 
-def get_db_and_ctx(request: Request, authorization: str | None = Header(default=None)) -> Iterator[tuple[TenantSession, RequestContext]]:
+def get_db_and_ctx(request: Request, token: str | None = Depends(oauth2)) -> Iterator[tuple[TenantSession, RequestContext]]:
     from app.modules.org.models import Role, User, UserBranchRole
 
-    claims = decode_access_token(_bearer(authorization))
+    claims = decode_access_token(_bearer(token))
     company_id = uuid.UUID(claims["cid"])
     user_id = uuid.UUID(claims["sub"])
     device_id = uuid.UUID(claims["did"]) if claims.get("did") else None
