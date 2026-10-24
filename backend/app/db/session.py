@@ -59,12 +59,13 @@ def _tenant_filter(state) -> None:
         cls = mapper.class_
         if not issubclass(cls, TenantMixin) or not hasattr(cls, "__table__"):
             continue
+        # plain expressions, not lambdas: SQLAlchemy analyses a lambda's bytecode, which the compiled
+        # (Nuitka) server does not have
         if getattr(cls, "__tenancy__", "tenant") == "library":
-            state.statement = state.statement.options(
-                with_loader_criteria(cls, lambda c: c.company_id.in_(visible), include_aliases=True))
+            criteria = cls.company_id.in_(visible)
         else:
-            state.statement = state.statement.options(
-                with_loader_criteria(cls, lambda c: c.company_id == company_id, include_aliases=True))
+            criteria = cls.company_id == company_id
+        state.statement = state.statement.options(with_loader_criteria(cls, criteria, include_aliases=True))
 
 
 @event.listens_for(TenantSession, "before_flush")

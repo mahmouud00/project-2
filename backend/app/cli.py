@@ -75,7 +75,21 @@ def migrate(url: str | None = None, revision: str = "head") -> None:
     command.upgrade(cfg, revision)
 
 
+def _utf8_args(argv: list[str]) -> list[str]:
+    """Arguments decoded under a non-UTF-8 locale arrive with surrogates; recover the UTF-8 text
+    (e.g. an Arabic company name passed to the compiled server on a C-locale shell)."""
+    out = []
+    for a in argv:
+        try:
+            a.encode("utf-8")
+        except UnicodeEncodeError:
+            a = os.fsencode(a).decode("utf-8", errors="replace")
+        out.append(a)
+    return out
+
+
 def main(argv: list[str] | None = None) -> int:
+    argv = _utf8_args(sys.argv[1:] if argv is None else argv)
     parser = argparse.ArgumentParser(prog="mytech")
     sub = parser.add_subparsers(dest="cmd", required=True)
     p = sub.add_parser("init-db")

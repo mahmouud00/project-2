@@ -137,3 +137,11 @@ def test_desktop_program_origin_allowed_by_cors(client):
     assert ok.headers.get("access-control-allow-origin") == "http://tauri.localhost"
     bad = client.options("/api/v1/system/info", headers={"Origin": "http://evil.example", "Access-Control-Request-Method": "GET"})
     assert "access-control-allow-origin" not in bad.headers
+
+
+def test_cli_recovers_utf8_arguments():
+    from app.cli import _utf8_args
+
+    raw = "مصنع".encode("utf-8").decode("ascii", "surrogateescape")   # how a C-locale shell hands it over
+    assert raw != "مصنع"
+    assert _utf8_args([raw, "ACME"]) == ["مصنع", "ACME"]

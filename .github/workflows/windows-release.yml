@@ -129,12 +129,19 @@ jobs:
           $branding = Invoke-RestMethod http://localhost:8000/api/v1/system/branding
           if ($branding.company_code -ne "CI") { throw "branding $($branding | ConvertTo-Json)" }
           # no licence yet: login must be refused with the licence error (auth + database + licensing all ran)
-          $body = @{ username = "admin"; password = "Ci-Admin-Pass-123"; device_key = "ci" } | ConvertTo-Json
+          $body = @{ username = "admin"; password = "Ci-Admin-Pass-123"; device_key = "ci-smoke-test" } | ConvertTo-Json
           try { Invoke-RestMethod -Method Post http://localhost:8000/api/v1/auth/login -ContentType "application/json" -Body $body; throw "login without licence was accepted" }
           catch { if ($_.Exception.Response.StatusCode.value__ -ne 402) { throw "expected 402, got $($_.Exception.Message)" } }
           Push-Location "$root\config"; & "$root\app\$v\mytech-server.exe" backup --label ci; Pop-Location
           if ($LASTEXITCODE -ne 0) { throw "backup failed" }
           Get-Content "$root\license\fingerprint.txt"
+          # authenticated paths of the compiled server: switch this throw-away install to online mode
+          # (subscriptions instead of a licence file), add the demo data and call the main endpoints
+          Stop-Service MYTechServer
+          $envf = "$root\config\.env"
+          [IO.File]::WriteAllText($envf, ((Get-Content -Raw $envf) -replace 'APP_MODE=offline', 'APP_MODE=online'))
+          python tools/release/smoke_test.py --exe "$root\app\$v\mytech-server.exe" --config "$root\config" --port 8000
+          if ($LASTEXITCODE -ne 0) { Get-Content "$root\config\smoke-serve.log" -Tail 80; throw "compiled server smoke test failed" }
           powershell -NoProfile -ExecutionPolicy Bypass -File "$root\scripts\uninstall-server.ps1" -Root $root
       - name: Installer (Inno Setup)
         shell: pwsh
