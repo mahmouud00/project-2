@@ -1,0 +1,34 @@
+{
+  "_comment": "Golden fixture. Reference values come from data/bom.xlsx sheet 'تخصيمات UPVC' block 'جرار كرافت لاين 3 ضلفه' (rows 14-23, cached Excel results for W=300cm, H=200cm). The formulas below are TEST DATA only, they are not library content.",
+  "snapshot": {
+    "system": {"code": "TEST-SLIDE", "name": "Test sliding", "material_type": "upvc", "unit": "cm",
+               "rounding_step_mm": "0", "rounding_mode": "half_up"},
+    "constants": {
+      "install_clearance_width": {"value": "0"},
+      "install_clearance_height": {"value": "0"},
+      "sash_overlap_total": {"value": "11.2"},
+      "sash_height_deduction": {"value": "7.5"},
+      "screen_width_extra": {"value": "2"},
+      "screen_height_extra": {"value": "4"},
+      "glass_deduction": {"value": "15"}
+    },
+    "materials": {},
+    "model": {
+      "code": "SL3", "name": "جرار 3 ضلفة", "category": "window",
+      "params": [{"name": "leaf_count", "type": "int", "default": 3, "min": 2, "max": 4}],
+      "formulas": [
+        {"key": "sash_width", "expr": "(width + sash_overlap_total) / leaf_count", "unit": "length"},
+        {"key": "sash_height", "expr": "height - sash_height_deduction", "unit": "length"},
+        {"key": "screen_width", "expr": "sash_width + screen_width_extra", "unit": "length"},
+        {"key": "screen_height", "expr": "sash_height + screen_height_extra", "unit": "length"},
+        {"key": "glass_width", "expr": "sash_width - glass_deduction", "unit": "length"},
+        {"key": "glass_height", "expr": "sash_height - glass_deduction", "unit": "length"}
+      ]
+    }
+  },
+  "cases": [
+    {"opening_width_mm": 3000, "opening_height_mm": 2000, "params": {"leaf_count": 3},
+     "expected_cm": {"sash_width": 103.73333333333333, "sash_height": 192.5, "screen_width": 105.73333333333333,
+                     "screen_height": 196.5, "glass_width": 88.73333333333333, "glass_height": 177.5}}
+  ]
+}
