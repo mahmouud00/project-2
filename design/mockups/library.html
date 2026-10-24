@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>مكتبة القطاعات</title><link rel="stylesheet" href="style.css">
+<style>
+  .layout { display: grid; grid-template-columns: 200px 1fr 290px; gap: 14px; height: 100%; }
+  .tree { padding: 8px; font-size: 13px; }
+  .tree .sys { display: flex; align-items: center; gap: 6px; padding: 7px 8px; border-radius: 7px; font-weight: 700; margin-top: 4px; }
+  .tree .mdl { display: flex; align-items: center; gap: 6px; padding: 6px 8px 6px 8px; padding-inline-start: 26px; border-radius: 7px; color: #344054; }
+  .tree .mdl.on { background: var(--primary-soft); color: var(--primary); font-weight: 600; }
+  .tree .st { width: 7px; height: 7px; border-radius: 50%; margin-inline-start: auto; flex: none; }
+  .vendor { white-space: nowrap; font-size: 12px; display: flex; align-items: center; gap: 8px; background: var(--violet-soft); color: var(--violet); border-radius: 8px; padding: 6px 10px;
+    font-weight: 700; font-size: 12.5px; margin-bottom: 8px; }
+  .mhead { display: flex; gap: 14px; padding: 14px 16px; align-items: center; border-bottom: 1px solid var(--border); }
+  .mimg { width: 76px; height: 62px; border: 1px solid var(--border); border-radius: 8px; display: grid; place-items: center; background: #F7F9FC; }
+  .mhead h2 { margin: 0; font-size: 17px; }
+  .pieces td { padding: 7px 10px; font-size: 12.5px; }
+  .consts { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 16px; border-top: 1px solid var(--border); background: #FBFCFE; }
+  .consts .k { display: inline-flex; gap: 6px; align-items: center; border: 1px solid var(--border); background: #fff; border-radius: 6px;
+    padding: 2px 8px; font-size: 12px; }
+  .consts .k b { color: #0B7A75; font-weight: 600; direction: ltr; }
+  .live .inp { display: grid; grid-template-columns: 1fr 1fr 70px; gap: 8px; padding: 12px 14px; }
+  .res td { padding: 5px 10px; font-size: 12.5px; }
+  .test { display: flex; align-items: center; gap: 8px; padding: 6px 0; font-size: 12.5px; }
+  .ok { color: var(--success); font-weight: 700; }
+  .pieces .code, .pieces .mono, .pieces td { white-space: nowrap; }
+  .pieces .code { font-size: 12px; padding: 1px 6px; }
+  .tabs a { padding: 10px 8px; font-size: 12.5px; }
+  .editing td { background: #FFFBEB; }
+</style></head>
+<body data-page="library" data-title="مكتبة القطاعات" data-crumbs="الإعداد › المكتبة العامة" data-user="MYTech" data-role="مدير المنصة" data-initial="M" data-branch="—">
+
+<div class="layout">
+  <div class="card tree">
+    <div class="vendor">◆ وضع MYTech · المكتبة العامة</div>
+    <div class="search" style="width:auto;margin:0 0 6px;padding:5px 8px;font-size:12.5px">بحث…</div>
+    <div class="sys"><span class="chip blue" style="padding:0 6px">UPVC</span>كومبن جرار</div>
+    <div class="mdl">جرار ضلفتين<span class="st" style="background:#15803D"></span></div>
+    <div class="mdl on">جرار 3 ضلفة<span class="st" style="background:#F59E0B"></span></div>
+    <div class="mdl">جرار 4 ضلفة<span class="st" style="background:#15803D"></span></div>
+    <div class="mdl">جرار بسقاس<span class="st" style="background:#15803D"></span></div>
+    <div class="sys"><span class="chip blue" style="padding:0 6px">UPVC</span>كومبن مفصلي</div>
+    <div class="mdl">ضلفة شباك<span class="st" style="background:#15803D"></span></div>
+    <div class="mdl">ضلفتين باب<span class="st" style="background:#15803D"></span></div>
+    <div class="mdl">قلاب بشفاط<span class="st" style="background:#15803D"></span></div>
+    <div class="sys"><span class="chip blue" style="padding:0 6px">UPVC</span>كرافت لاين</div>
+    <div class="sys"><span class="chip amber" style="padding:0 6px">شاتر</span>شاتر إيطالي</div>
+    <div class="sys"><span class="chip gray" style="padding:0 6px">ألومنيوم</span>(لا يوجد)</div>
+    <div style="padding:10px 8px;display:flex;flex-direction:column;gap:6px">
+      <a class="btn" style="justify-content:center">＋ سيستم جديد</a>
+      <a class="btn" style="justify-content:center">تصدير حزمة للعملاء</a>
+    </div>
+  </div>
+
+  <div class="card" style="min-width:0;display:flex;flex-direction:column">
+    <div class="mhead">
+      <div class="mimg" data-win='{"w":200,"h":130,"leaves":3,"type":"sliding","scale":0.33}'></div>
+      <div>
+        <div class="row"><h2>جرار 3 ضلفة</h2><span class="chip amber">تحت التجربة</span><span class="code">SL3</span></div>
+        <div class="muted">كومبن جرار · المعادلات بالسم · آخر نشر <span class="num">v3</span></div>
+      </div>
+      <span class="grow"></span>
+      <a class="btn">تغيير الصورة</a>
+    </div>
+    <div class="tabs"><a>المتغيرات</a><a>المعادلات</a><a class="on">القطع والتخصيمات <span class="n">8</span></a><a>الزجاج</a><a>الإكسسوار</a><a>التحقق</a><a>الرسمة</a><a>الاختبارات</a></div>
+    <table class="pieces">
+      <tr><th>القطعة</th><th>الخامة</th><th>معادلة الطول</th><th>العدد</th><th>الزاوية</th><th>شرط</th></tr>
+      <tr><td><b>حلق أفقي</b></td><td><span class="code">KP-WG6</span></td>
+        <td><span class="code"><span class="v">width</span> + 2 * <span class="c">weld_allowance</span></span></td><td class="mono">2</td><td class="num">45°/45°</td><td class="muted">—</td></tr>
+      <tr><td><b>حلق رأسي</b></td><td><span class="code">KP-WG6</span></td>
+        <td><span class="code"><span class="v">height</span> + 2 * <span class="c">weld_allowance</span></span></td><td class="mono">2</td><td class="num">45°/45°</td><td class="muted">—</td></tr>
+      <tr class="editing"><td><b>ضلفة أفقي</b></td><td><span class="code">KP-WG7</span></td>
+        <td><div class="input focus" style="min-height:30px;padding:3px 8px"><span class="mono" style="font-size:12px"><span style="color:#6D4AFF">sash_w</span> + 2 * <span style="color:#0B7A75">weld_allowance</span>|</span></div></td>
+        <td class="mono">2 * <span style="color:#6D4AFF">leaf_count</span></td><td class="num">45°/45°</td><td class="muted">—</td></tr>
+      <tr><td><b>ضلفة رأسي</b></td><td><span class="code">KP-WG7</span></td>
+        <td><span class="code"><span class="v">sash_h</span> + 2 * <span class="c">weld_allowance</span></span></td><td class="mono">2 * leaf_count</td><td class="num">45°/45°</td><td class="muted">—</td></tr>
+      <tr><td><b>طبة وسكينة</b></td><td><span class="code">KP-WG14</span></td>
+        <td><span class="code"><span class="v">sash_h</span> - <span class="c">interlock_ded</span></span></td><td class="mono">leaf_count - 1</td><td class="num">90°/90°</td><td class="muted">—</td></tr>
+      <tr><td><b>باكتة</b></td><td><span class="code">KP-WG12</span></td>
+        <td><span class="code"><span class="v">glass_w</span> + <span class="n">0.2</span></span></td><td class="mono">2 * leaf_count</td><td class="num">45°/45°</td><td class="muted">—</td></tr>
+      <tr><td><b>ضلفة سلك</b></td><td><span class="code">KP-WG16</span></td>
+        <td><span class="code"><span class="v">screen_w</span></span></td><td class="mono">2</td><td class="num">45°/45°</td><td><span class="code">with_screen</span></td></tr>
+      <tr><td><b>حديد تدعيم</b></td><td><span class="code">KP-IR1</span></td>
+        <td><span class="code"><span class="v">width</span> - <span class="n">10</span></span></td><td class="mono">2</td><td class="num">90°/90°</td><td><span class="code">width &gt; 100</span></td></tr>
+      <tr><td colspan="6" style="color:var(--primary);font-weight:600">＋ قطعة جديدة</td></tr>
+    </table>
+    <div class="consts" style="margin-top:auto">
+      <span class="muted" style="font-size:12px;font-weight:600">ثوابت السيستم:</span>
+      <span class="k">سماحية اللحام <b>weld_allowance = 0.3</b></span>
+      <span class="k">ركوب الضلف <b>sash_overlap_total = 8.2</b></span>
+      <span class="k">خصم ارتفاع الضلفة <b>sash_height_deduction = 7.5</b></span>
+      <span class="k">خصم الزجاج <b>glass_deduction = 13</b></span>
+      <span class="k">خلوص التركيب <b>install_clearance_width = 1</b></span>
+      <span class="k" style="color:var(--primary)">＋ ثابت</span>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:14px;min-height:0">
+    <div class="card live">
+      <div class="card-h"><h3>تجربة فورية</h3><span class="grow"></span><span class="chip green">✓ المعادلات سليمة</span></div>
+      <div class="inp">
+        <div class="field"><label>عرض الفتحة مم</label><div class="input num">2400</div></div>
+        <div class="field"><label>الارتفاع مم</label><div class="input num">1500</div></div>
+        <div class="field"><label>الضلف</label><div class="input num">3</div></div>
+      </div>
+      <div style="display:grid;place-items:center;padding-bottom:6px" data-win='{"w":240,"h":150,"leaves":3,"type":"sliding","scale":0.85}'></div>
+      <table class="res">
+        <tr><th>القطعة</th><th>الطول</th><th>العدد</th></tr>
+        <tr><td>حلق أفقي</td><td class="num">2396</td><td class="num">2</td></tr>
+        <tr><td>حلق رأسي</td><td class="num">1496</td><td class="num">2</td></tr>
+        <tr style="background:#FFFBEB"><td>ضلفة أفقي</td><td class="num"><b>828.5</b></td><td class="num">6</td></tr>
+        <tr><td>ضلفة رأسي</td><td class="num">1421</td><td class="num">6</td></tr>
+        <tr><td>زجاج (×3)</td><td class="num">692.5 × 1285</td><td class="muted">م²<span class="num"> 2.67</span></td></tr>
+      </table>
+    </div>
+    <div class="card card-b">
+      <div class="row" style="margin-bottom:4px"><b>الاختبارات المرجعية</b><span class="grow"></span><span class="ok">3 / 3 ✓</span></div>
+      <div class="test"><span class="ok">✓</span>1800×1200 · 3 ضلف<span class="muted" style="margin-inline-start:auto">فرق 0.0 مم</span></div>
+      <div class="test"><span class="ok">✓</span>3000×2000 · 3 ضلف<span class="muted" style="margin-inline-start:auto">فرق 0.0 مم</span></div>
+      <div class="test"><span class="ok">✓</span>1200×1000 · 3 ضلف<span class="muted" style="margin-inline-start:auto">فرق 0.0 مم</span></div>
+      <a class="btn success" style="width:100%;justify-content:center;margin-top:10px">نشر نسخة <span class="num">v4</span> للعملاء</a>
+      <div class="muted" style="font-size:11.5px;margin-top:6px;text-align:center">الأوامر القديمة هتفضل محسوبة بنسختها</div>
+    </div>
+  </div>
+</div>
+<script src="shell.js"></script><script src="draw.js"></script>
+</body></html>

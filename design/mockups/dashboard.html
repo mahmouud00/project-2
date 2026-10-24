@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>لوحة التحكم</title><link rel="stylesheet" href="style.css">
+<style>
+  .grid4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  .grid-main { display: grid; grid-template-columns: 1fr 340px; gap: 14px; margin-top: 14px; }
+  .pipeline { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
+  .stage { border: 1px solid var(--border); border-radius: 10px; padding: 10px; background: #FBFCFE; }
+  .stage .t { font-size: 12px; color: var(--muted); font-weight: 600; }
+  .stage .c { font-size: 22px; font-weight: 800; }
+  .stage .bar { height: 5px; border-radius: 4px; background: #E7ECF3; margin-top: 6px; overflow: hidden; }
+  .stage .bar i { display: block; height: 100%; border-radius: 4px; }
+  .alert { display: flex; gap: 10px; padding: 10px 0; border-bottom: 1px solid #EEF1F5; }
+  .alert:last-child { border: 0; }
+  .alert .ai { width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; flex: none; }
+  .alert .ai svg { width: 16px; height: 16px; fill: none; stroke-width: 2; }
+  .act { display: flex; gap: 10px; padding: 7px 0; font-size: 12.5px; }
+  .act .when { color: var(--muted); margin-inline-start: auto; white-space: nowrap; }
+  td.num { white-space: nowrap; font-size: 12.5px; }
+  td { padding: 7px 12px; }
+  .progress { height: 6px; background: #EEF1F5; border-radius: 4px; width: 90px; overflow: hidden; }
+  .progress i { display: block; height: 100%; background: var(--primary); }
+</style></head>
+<body data-page="dashboard" data-title="لوحة التحكم" data-crumbs="الأحد 25 أكتوبر 2026">
+
+<div class="grid4">
+  <div class="card kpi row"><div class="grow"><div class="label">أوامر تحت التصنيع</div><div class="value num">12</div>
+    <div class="delta" style="color:var(--success)">3 تسليمات هذا الأسبوع</div></div>
+    <div class="ic" style="background:var(--primary-soft)"><svg viewBox="0 0 24 24" stroke="#1663D6"><path d="M3 21V10l6 4V10l6 4V6h6v15z"/></svg></div></div>
+  <div class="card kpi row"><div class="grow"><div class="label">عروض أسعار مفتوحة</div><div class="value num">7</div>
+    <div class="delta muted">بقيمة <span class="num">186,400</span> ج.م</div></div>
+    <div class="ic" style="background:var(--violet-soft)"><svg viewBox="0 0 24 24" stroke="#6D4AFF"><path d="M6 3h9l4 4v14H6z"/><path d="M9 12h7M9 16h7"/></svg></div></div>
+  <div class="card kpi row"><div class="grow"><div class="label">تحصيلات اليوم</div><div class="value num">24,750</div>
+    <div class="delta" style="color:var(--success)">▲ <span class="num">18%</span> عن أمس</div></div>
+    <div class="ic" style="background:var(--success-soft)"><svg viewBox="0 0 24 24" stroke="#15803D"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/></svg></div></div>
+  <div class="card kpi row"><div class="grow"><div class="label">نسبة الهالك (الشهر)</div><div class="value num">2.8%</div>
+    <div class="delta" style="color:var(--success)">أقل من المستهدف <span class="num">4%</span></div></div>
+    <div class="ic" style="background:var(--warning-soft)"><svg viewBox="0 0 24 24" stroke="#B45309"><path d="M3 17L17 3l4 4L7 21z"/></svg></div></div>
+</div>
+
+<div class="grid-main">
+  <div style="display:flex;flex-direction:column;gap:14px">
+    <div class="card">
+      <div class="card-h"><h3>أوامر التصنيع حسب المرحلة</h3><span class="grow"></span><span class="chip gray">كل الفروع</span></div>
+      <div class="card-b pipeline">
+        <div class="stage"><div class="t">معاينة</div><div class="c num">5</div><div class="bar"><i style="width:40%;background:#94A3B8"></i></div></div>
+        <div class="stage"><div class="t">عرض سعر</div><div class="c num">7</div><div class="bar"><i style="width:55%;background:#8B5CF6"></i></div></div>
+        <div class="stage"><div class="t">موافقة وعربون</div><div class="c num">4</div><div class="bar"><i style="width:30%;background:#0EA5E9"></i></div></div>
+        <div class="stage" style="border-color:#BFD5F7;background:#F4F8FF"><div class="t" style="color:var(--primary)">تصنيع</div><div class="c num" style="color:var(--primary)">8</div><div class="bar"><i style="width:65%;background:#1663D6"></i></div></div>
+        <div class="stage"><div class="t">تجميع</div><div class="c num">3</div><div class="bar"><i style="width:25%;background:#F59E0B"></i></div></div>
+        <div class="stage"><div class="t">جودة</div><div class="c num">1</div><div class="bar"><i style="width:10%;background:#EA580C"></i></div></div>
+        <div class="stage"><div class="t">تسليم</div><div class="c num">2</div><div class="bar"><i style="width:15%;background:#16A34A"></i></div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-h"><h3>أوامر قرب ميعاد تسليمها</h3><span class="grow"></span><a class="btn ghost">عرض الكل</a></div>
+      <table>
+        <tr><th>رقم الأمر</th><th>العميل</th><th>الأصناف</th><th>المرحلة</th><th>التقدم</th><th>التسليم</th><th>المتبقي</th></tr>
+        <tr><td class="num">WO-MAIN-2026-00118</td><td>م. خالد عبد الله</td><td>6 جرار + باب مفصلي</td><td><span class="chip blue">تصنيع</span></td><td><div class="progress"><i style="width:60%"></i></div></td><td>الثلاثاء 27/10</td><td class="num">12,400</td></tr>
+        <tr><td class="num">WO-MAIN-2026-00115</td><td>شركة النور للمقاولات</td><td>24 شباك + 4 شاتر</td><td><span class="chip amber">تجميع</span></td><td><div class="progress"><i style="width:80%;background:#F59E0B"></i></div></td><td>الأربعاء 28/10</td><td class="num">48,000</td></tr>
+        <tr><td class="num">WO-MAIN-2026-00112</td><td>أ. منى حسن</td><td>3 شبابيك مفصلي قلاب</td><td><span class="chip red">جودة</span></td><td><div class="progress"><i style="width:92%;background:#EA580C"></i></div></td><td><b style="color:var(--danger)">النهارده</b></td><td class="num">0</td></tr>
+        <tr><td class="num">WO-SHOW-2026-00031</td><td>معرض الهرم</td><td>شاتر إيطالي بموتور ×2</td><td><span class="chip blue">تصنيع</span></td><td><div class="progress"><i style="width:35%"></i></div></td><td>السبت 31/10</td><td class="num">6,200</td></tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-h"><h3>التحصيلات آخر 7 أيام</h3><span class="grow"></span><span class="muted">ج.م</span></div>
+      <div class="card-b">
+        <svg viewBox="0 0 700 120" width="100%" height="70" preserveAspectRatio="none">
+          <g fill="#D7E5FB">
+            <rect x="620" y="58" width="60" height="52" rx="5"/><rect x="520" y="40" width="60" height="70" rx="5"/>
+            <rect x="420" y="70" width="60" height="40" rx="5"/><rect x="320" y="30" width="60" height="80" rx="5"/>
+            <rect x="220" y="50" width="60" height="60" rx="5"/><rect x="120" y="62" width="60" height="48" rx="5"/></g>
+          <rect x="20" y="16" width="60" height="94" rx="5" fill="#1663D6"/>
+          <line x1="0" y1="110.5" x2="700" y2="110.5" stroke="#E2E7EE"/>
+        </svg>
+        <div class="row muted" style="justify-content:space-between;font-size:12px;padding:0 20px">
+          <span>الأحد</span><span>الاثنين</span><span>الثلاثاء</span><span>الأربعاء</span><span>الخميس</span><span>السبت</span><b style="color:var(--primary)">النهارده</b></div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:14px">
+    <div class="card">
+      <div class="card-h"><h3>تنبيهات</h3><span class="chip red num">3</span></div>
+      <div class="card-b" style="padding-top:4px;padding-bottom:4px">
+        <div class="alert"><div class="ai" style="background:var(--danger-soft)"><svg viewBox="0 0 24 24" stroke="#C62828"><path d="M12 8v5M12 16.5v.5"/><circle cx="12" cy="12" r="9"/></svg></div>
+          <div><b>رصيد قليل</b><div class="muted">ضلفة جرار كومبن أبيض: <span class="num">14</span> متر بس</div></div></div>
+        <div class="alert"><div class="ai" style="background:var(--warning-soft)"><svg viewBox="0 0 24 24" stroke="#B45309"><path d="M6 3h9l4 4v14H6z"/></svg></div>
+          <div><b>عرض سعر هيخلص</b><div class="muted">QT-MAIN-2026-00093 صالح لحد بكرة</div></div></div>
+        <div class="alert"><div class="ai" style="background:var(--violet-soft)"><svg viewBox="0 0 24 24" stroke="#6D4AFF"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/></svg></div>
+          <div><b>تحديث مكتبة متاح</b><div class="muted">MYTech: سيستم كرافت لاين جديد (3 نماذج)</div></div></div>
+        <div class="alert"><div class="ai" style="background:var(--success-soft)"><svg viewBox="0 0 24 24" stroke="#15803D"><path d="M5 12l5 5 9-10"/></svg></div>
+          <div><b>نسخة احتياطية ناجحة</b><div class="muted">النهارده الساعة <span class="num">2:00</span> ص · <span class="num">14</span> نسخة محفوظة</div></div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-h"><h3>آخر النشاط</h3><span class="grow"></span><span class="row muted" style="font-size:12px;gap:6px"><span class="dot"></span>مباشر</span></div>
+      <div class="card-b" style="padding-top:6px">
+        <div class="act"><b>محمود</b><span>نقل WO-00118 لـ <b>تصنيع</b></span><span class="when">دقيقتين</span></div>
+        <div class="act"><b>سارة</b><span>قبضت عربون <span class="num">15,000</span> ج.م</span><span class="when">12 د</span></div>
+        <div class="act"><b>كريم</b><span>معاينة جديدة: 5 فتحات</span><span class="when">40 د</span></div>
+        <div class="act"><b>المخزن</b><span>استلام أمر شراء PO-00045</span><span class="when">1 س</span></div>
+        <div class="act"><b>سارة</b><span>أرسلت عرض QT-00102 للعميل</span><span class="when">2 س</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="shell.js"></script>
+</body></html>

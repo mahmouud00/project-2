@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>عرض سعر</title><link rel="stylesheet" href="style.css">
+<style>
+  .layout { display: grid; grid-template-columns: 1fr 360px; gap: 14px; height: 100%; }
+  .head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+  .head h2 { margin: 0; font-size: 18px; }
+  .meta { display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: 12px; padding: 14px 16px; }
+  .meta .v { font-weight: 700; }
+  .thumb { width: 54px; height: 44px; display: grid; place-items: center; background: #F7F9FC; border: 1px solid var(--border); border-radius: 6px; }
+  .thumb svg { max-width: 48px; max-height: 38px; }
+  .size { line-height: 1.25; }
+  .size small { color: var(--muted); display: block; font-size: 11px; }
+  .sw { width: 14px; height: 14px; border-radius: 4px; border: 1px solid #C9D2DE; display: inline-block; vertical-align: -2px; }
+  .totals { display: grid; grid-template-columns: 1fr 300px; gap: 14px; margin-top: 12px; }
+  .tot { padding: 12px 16px; }
+  .tot .r { display: flex; justify-content: space-between; padding: 4px 0; }
+  .tot .grand { border-top: 1px dashed var(--border); margin-top: 6px; padding-top: 8px; font-size: 18px; font-weight: 800; }
+  .side .drawing { display: grid; place-items: center; padding: 10px 0 2px; }
+  .pieces td { padding: 5px 10px; font-size: 12.5px; }
+  .note { display: flex; gap: 8px; padding: 8px 10px; border-radius: 8px; font-size: 12.5px; }
+  .actions { display: flex; gap: 8px; margin-inline-start: auto; }
+  td { white-space: nowrap; }
+  td:nth-child(3) { white-space: normal; }
+  .add-row td { color: var(--primary); font-weight: 600; background: #FBFCFE; }
+</style></head>
+<body data-page="quotes" data-title="عرض سعر جديد" data-crumbs="المبيعات › عروض الأسعار" data-user="سارة محمود" data-role="مبيعات" data-initial="س">
+
+<div class="layout">
+  <div style="min-width:0">
+    <div class="head">
+      <h2 class="num">QT-MAIN-2026-00104</h2><span class="chip gray">مسودة</span>
+      <span class="muted">من معاينة SV-MAIN-2026-00087</span>
+      <div class="actions">
+        <a class="btn">حفظ</a>
+        <a class="btn"><svg viewBox="0 0 24 24"><path d="M6 9V3h12v6M6 18H4v-7h16v7h-2M7 14h10v7H7z"/></svg>طباعة PDF</a>
+        <a class="btn primary"><svg viewBox="0 0 24 24"><path d="M3 12l18-9-6 18-3-8z"/></svg>إرسال للعميل</a>
+      </div>
+    </div>
+
+    <div class="card meta">
+      <div><div class="muted">العميل</div><div class="v">م. خالد عبد الله</div><div class="muted num" style="font-size:12px">0100 ••• 4521 · التجمع الخامس</div></div>
+      <div><div class="muted">قائمة الأسعار</div><div class="select" style="display:inline-flex;margin-top:2px">عميل نهائي <span class="num">(+30%)</span></div></div>
+      <div><div class="muted">صالح لحد</div><div class="v">9 نوفمبر 2026</div></div>
+      <div><div class="muted">الفرع</div><div class="v">المصنع الرئيسي</div></div>
+    </div>
+
+    <div class="card" style="margin-top:12px">
+      <table>
+        <tr><th></th><th>المكان</th><th>النموذج</th><th>مقاس الفتحة / التصنيع</th><th>اللون</th><th>الزجاج</th><th>الكمية</th><th>سعر الوحدة</th><th>الإجمالي</th></tr>
+        <tr class="sel">
+          <td><div class="thumb" data-win='{"w":180,"h":140,"leaves":2,"type":"sliding","scale":0.25}'></div></td>
+          <td><b>صالة</b></td><td>جرار كومبن ضلفتين<br><span class="muted" style="font-size:12px">بسلك · بار 3.8</span></td>
+          <td class="size num">1800 × 1400<small>1780 × 1380 مم</small></td>
+          <td><span class="sw" style="background:#fff"></span> أبيض</td><td>شفاف 6 مم</td><td class="num">2</td><td class="num">4,860</td><td class="num"><b>9,720</b></td></tr>
+        <tr>
+          <td><div class="thumb" data-win='{"w":120,"h":100,"leaves":2,"type":"sliding","scale":0.3}'></div></td>
+          <td><b>مطبخ</b></td><td>جرار كومبن ضلفتين</td>
+          <td class="size num">1200 × 1000<small>1180 × 980 مم</small></td>
+          <td><span class="sw" style="background:#E8DCC0"></span> بيج</td><td>شفاف 6 مم</td><td class="num">1</td><td class="num">2,940</td><td class="num"><b>2,940</b></td></tr>
+        <tr>
+          <td><div class="thumb" data-win='{"w":90,"h":130,"leaves":1,"type":"casement","scale":0.27}'></div></td>
+          <td><b>حمام</b></td><td>مفصلي ضلفة شباك</td>
+          <td class="size num">600 × 900<small>580 × 880 مم</small></td>
+          <td><span class="sw" style="background:#fff"></span> أبيض</td><td>مصنفر 4 مم</td><td class="num">1</td><td class="num">1,780</td><td class="num"><b>1,780</b></td></tr>
+        <tr>
+          <td><div class="thumb" data-win='{"w":200,"h":170,"type":"shutter","scale":0.2}'></div></td>
+          <td><b>غرفة نوم</b></td><td>شاتر إيطالي 5.5 بموتور</td>
+          <td class="size num">2000 × 1700<small>بوكس 20 سم · موتور 20</small></td>
+          <td><span class="sw" style="background:#9AA3AE"></span> جراي</td><td class="muted">—</td><td class="num">1</td><td class="num">7,350</td><td class="num"><b>7,350</b></td></tr>
+        <tr class="add-row"><td colspan="9">＋ إضافة شباك أو باب &nbsp;<span class="muted" style="font-weight:400">(اختار النموذج واكتب مقاس الفتحة؛ الحساب والسعر بيطلعوا فورًا)</span></td></tr>
+      </table>
+    </div>
+
+    <div class="totals">
+      <div class="card card-b">
+        <div class="muted" style="font-weight:600;margin-bottom:6px">شروط العرض</div>
+        <div>الأسعار سارية 15 يوم. التسليم خلال 21 يوم من دفع العربون (<span class="num">30%</span>). التركيب شامل داخل القاهرة الكبرى.</div>
+      </div>
+      <div class="card tot">
+        <div class="r"><span class="muted">الإجمالي قبل الخصم</span><span class="num">21,790.00</span></div>
+        <div class="r"><span class="muted">خصم</span><span class="num">− 790.00</span></div>
+        <div class="r"><span class="muted">ضريبة القيمة المضافة <span class="num">14%</span></span><span class="num">2,940.00</span></div>
+        <div class="r grand"><span>الإجمالي</span><span class="num">23,940.00 ج.م</span></div>
+        <div class="r" style="font-size:12px"><span class="muted">العربون المطلوب <span class="num">(30%)</span></span><span class="num">7,182.00</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card side" style="display:flex;flex-direction:column;min-height:0">
+    <div class="card-h"><h3>صالة · جرار ضلفتين</h3><span class="grow"></span><span class="chip green">✓ صالح للتصنيع</span></div>
+    <div class="drawing" data-win='{"w":180,"h":140,"leaves":2,"type":"sliding","scale":1.35,"dims":{"w":"1780","h":"1380"}}'></div>
+    <div class="row" style="justify-content:center;gap:14px;font-size:12px" class="muted">
+      <span class="muted">الفتحة <b class="num" style="color:var(--text)">1800×1400</b></span>
+      <span class="muted">خلوص التركيب <b class="num" style="color:var(--text)">10</b> مم</span>
+      <span class="muted">نسخة المعادلات <b class="num" style="color:var(--text)">v3</b></span></div>
+    <div class="tabs" style="margin-top:10px"><a class="on">القطع</a><a>الزجاج</a><a>الإكسسوار</a><a>التكلفة</a></div>
+    <table class="pieces">
+      <tr><th>القطعة</th><th>الطول مم</th><th>العدد</th><th>الزاوية</th></tr>
+      <tr><td>حلق أفقي</td><td class="num">1786</td><td class="num">2</td><td class="num">45°/45°</td></tr>
+      <tr><td>حلق رأسي</td><td class="num">1386</td><td class="num">2</td><td class="num">45°/45°</td></tr>
+      <tr><td>ضلفة أفقي</td><td class="num">937.5</td><td class="num">4</td><td class="num">45°/45°</td></tr>
+      <tr><td>ضلفة رأسي</td><td class="num">1311</td><td class="num">4</td><td class="num">45°/45°</td></tr>
+      <tr><td>حديد تدعيم</td><td class="num">1770</td><td class="num">2</td><td class="num">90°/90°</td></tr>
+      <tr><td>ضلفة سلك</td><td class="num">931.5</td><td class="num">2</td><td class="num">45°/45°</td></tr>
+    </table>
+    <div style="padding:10px 14px;margin-top:auto;display:flex;flex-direction:column;gap:8px">
+      <div class="note" style="background:var(--warning-soft);color:var(--warning)">⚠ ارتفاع الضلفة أكبر من 1300 مم: يُفضّل حديد تدعيم مزدوج.</div>
+      <div class="row" style="font-size:12.5px"><span class="muted">تكلفة الخامات للوحدة</span><b class="num" style="margin-inline-start:auto">3,215.40</b><span class="muted">· هامش</span><b class="num" style="color:var(--success)">33.8%</b></div>
+    </div>
+  </div>
+</div>
+<script src="shell.js"></script><script src="draw.js"></script>
+</body></html>
