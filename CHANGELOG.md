@@ -10,4 +10,5 @@ All notable changes are listed here. Versions follow Semantic Versioning (MAJOR.
 - JWT login with rotating refresh tokens (reuse detection), account lockout, change password.
 - Optimistic locking (`version`) with `409 VERSION_CONFLICT`.
 - Client/server version headers; `426 CLIENT_UPDATE_REQUIRED` for outdated devices.
-- Licensing interface with offline signed-file and online subscription providers.
+- Licensing interface with offline signed-file (Ed25519, machine-bound, grace then read-only) and online subscription providers; device/user/branch limits; module gates; licence upload endpoint.
+- `tools/vendor_admin`: key generation, licence issuing/inspection, company and subscription management.
