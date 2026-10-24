@@ -73,6 +73,12 @@ jobs:
           path: ~\AppData\Local\Nuitka\Nuitka\Cache
           key: nuitka-server-${{ runner.os }}-${{ env.NUITKA_VERSION }}-${{ github.run_id }}
           restore-keys: nuitka-server-${{ runner.os }}-${{ env.NUITKA_VERSION }}-
+      - name: PowerShell scripts parse (PowerShell 7 and Windows PowerShell 5.1)
+        shell: pwsh
+        run: |
+          $check = '$bad = 0; foreach ($f in Get-ChildItem deploy/windows/*.ps1) { $e = $null; [void][System.Management.Automation.Language.Parser]::ParseFile($f.FullName, [ref]$null, [ref]$e); foreach ($x in $e) { Write-Host "$($f.Name):$($x.Extent.StartLineNumber) $($x.Message)"; $bad++ } }; exit $bad'
+          pwsh -NoProfile -Command $check; if ($LASTEXITCODE -ne 0) { throw "PowerShell 7 parse errors" }
+          powershell -NoProfile -Command $check; if ($LASTEXITCODE -ne 0) { throw "Windows PowerShell 5.1 parse errors" }
       - name: Python packages
         run: |
           python -m pip install --upgrade pip

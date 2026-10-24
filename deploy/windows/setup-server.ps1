@@ -72,7 +72,8 @@ try {
     & (Join-Path $pgBin "pg_ctl.exe") register -N MYTechPostgreSQL -D $pgData -S auto -U "NT AUTHORITY\NetworkService" | Out-Null
   }
   Start-Service MYTechPostgreSQL
-  Wait-Until { (& (Join-Path $pgBin "pg_isready.exe") -h localhost -p $PgPort -q; $LASTEXITCODE -eq 0) } 60 "PostgreSQL"
+  $isReady = Join-Path $pgBin "pg_isready.exe"
+  Wait-Until { & $isReady -h localhost -p $PgPort -q; $LASTEXITCODE -eq 0 } 60 "PostgreSQL"
   Log "PostgreSQL running on localhost:$PgPort"
 
   # ---------------------------------------------------------------- settings
