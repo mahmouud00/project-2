@@ -1,74 +1,78 @@
-# تسطيب سيرفر الأوفلاين وربط الأجهزة
+# تسطيب سيرفر الأوفلاين وبرنامج الأجهزة
 
-## المطلوب
-- **جهاز السيرفر:** Windows 10/11 أو Windows Server، رام 8GB أو أكتر، SSD، وIP ثابت على الشبكة الداخلية (يتظبط من الراوتر بـ DHCP reservation أو يدوي). يفضل يبقى عليه UPS.
-- **PostgreSQL 16 for Windows** (من postgresql.org): وانت بتسطّبه احفظ باسورد `postgres`، وسيب الخدمة `postgresql-x64-16` تشتغل أوتوماتيك.
-- **فولدر التسطيب من MYTech** (مثلًا `MYTech-0.1.0.zip`)، وجواه:
-  `python\` (Python 3.12 embeddable) · `app\0.1.0\` (السيرفر + site-packages) · `service\` (`launcher.py` و`MYTechServer.xml` و`MYTechServer.exe` = WinSW) · `current.json` · `install.ps1` · `update.ps1`
+فيه 3 برامج (بيتبنوا أوتوماتيك على جهاز ويندوز في GitHub Actions، workflow اسمه `windows-release`، وبيتحطوا في Releases):
 
-## تجهيز فولدر التسطيب (عند MYTech، مرة لكل إصدار)
-> مفيش سكريبت بيعمل الفولدر ده أوتوماتيك لسه، وماتجربش على ويندوز حقيقي. ده أول حاجة لازم تتعمل وتتجرب قبل أول تسطيب عند عميل.
-1. `python\`: نزّل **Python 3.12 embeddable (Windows x86-64)** من python.org، وفي ملف `python312._pth` ضيف سطر `import site`.
-2. `app\<version>\`: نفس محتوى الـ payload اللي `tools/release/build_update.py` بيعمله: `app\` و`migrations\` و`alembic.ini` و`VERSION` و`site-packages\`.
-3. `service\`: انسخ `deploy\windows\launcher.py` و`MYTechServer.xml`، وحط WinSW-x64.exe (من github.com/winsw/winsw) باسم `MYTechServer.exe`.
-4. `current.json`: `{"version": "<version>", "path": "app/<version>"}`.
-5. `install.ps1` و`update.ps1` من `deploy\windows\`.
+| الملف | لمين | فيه إيه |
+|---|---|---|
+| `MYTech-Server-Setup-<v>.exe` | جهاز السيرفر في المصنع (مرة واحدة) | السيرفر متجمّع native (Nuitka)، وPostgreSQL 16، وخدمتين ويندوز، وVC++ runtime |
+| `MYTech-Desktop-Setup-<v>.exe` | كل جهاز في المصنع (والسيرفر نفسه لو هيستخدم البرنامج) | برنامج الديسكتوب (Tauri)، عربي، فاتح وغامق، ومعاه WebView2 أوفلاين |
+| `MYTech-License-Tool-<v>.exe` | **MYTech بس** (ممنوع يتدي لعميل) | إصدار التراخيص وتوقيع حزم المكتبة |
 
-## الخطوات
-1. فك الملف في `C:\MYTech`.
-2. افتح PowerShell **كمسؤول (Run as Administrator)**:
-   ```powershell
-   cd C:\MYTech
-   powershell -ExecutionPolicy Bypass -File install.ps1 -CompanyCode ACME -CompanyName "مصنع أكمي"
-   ```
-   السكريبت هيعمل الآتي:
-   - يعمل `config\.env` بباسوردات عشوائية قوية لأدوار الداتابيز التلاتة وسر الـ JWT، ويقفل الملف على Administrators وSYSTEM بس.
-   - يسألك عن باسورد `postgres`، ويعمل الأدوار والداتابيز `mytech`، ويطبق الـ migrations.
-   - يعمل الشركة والفرع الرئيسي والمستخدم `admin`، ويسألك على باسورده (وهيتطلب تغييره أول دخول).
-   - يسطّب خدمة **MYTechServer**: بتبدأ أوتوماتيك مع الجهاز وبعد PostgreSQL، وبتعيد التشغيل لوحدها لو وقعت.
-   - يفتح الفايروول للشبكة الداخلية بس (Private/Domain): TCP 8000 للـ API وUDP 47800 للاكتشاف.
-   - في الآخر يطبع **بصمة الجهاز**.
-3. **الترخيص:**
-   - ابعت البصمة لـ MYTech.
-   - MYTech تصدر الملف:
-     ```
-     python -m tools.vendor_admin issue-license --company-code ACME --company-name "..." --fingerprint <البصمة> --modules core,manufacturing,mfg.upvc,mfg.shutter --max-devices 10 --expires 2027-12-31 --out acme.json
-     ```
-   - المدير يرفع الملف من الواجهة (`POST /api/v1/system/license`). قبل ما الترخيص يترفع، الدخول بيتمنع.
-4. **المكتبة:** استورد حزمة المكتبة الموقّعة اللي MYTech بعتتها (`/library/packages/preview` ← `/apply`). التفاصيل في `docs/LIBRARY.md` §8.
-5. **الإعدادات الأولى من حساب admin:**
-   - إعدادات الشركة: الضريبة، والعربون، وسلاح المنشار، وأطراف العود، وأقل باقي يرجع المخزن.
-   - الفروع، والمخازن، والخزن، وقوائم الأسعار.
-   - المستخدمين وأدوارهم لكل فرع.
-   - الأرصدة الافتتاحية للمخزن (`/inventory/adjustments`).
+## المطلوب في جهاز السيرفر
+- Windows 10/11 أو Windows Server (64-bit)، رام 8GB أو أكتر، SSD.
+- IP ثابت على الشبكة الداخلية (DHCP reservation من الراوتر أو يدوي). يفضل يبقى عليه UPS.
+- مش محتاج إنترنت ولا تسطيب PostgreSQL منفصل: الـ installer فيه كل حاجة.
+
+## تسطيب السيرفر
+1. شغّل `MYTech-Server-Setup-<v>.exe` (هيطلب صلاحية المسؤول).
+2. اختار الفولدر (الافتراضي `C:\MYTech`).
+3. اكتب **كود الشركة** (حروف إنجليزي وأرقام)، و**اسم الشركة**، و**باسورد المستخدم admin** (8 حروف على الأقل، وهيتطلب تغييره أول دخول).
+4. الـ installer بيعمل لوحده:
+   - PostgreSQL خاص بالبرنامج في `C:\MYTech\pgdata`، شغال كخدمة `MYTechPostgreSQL` على `localhost:5433` بس (مش مفتوح على الشبكة).
+   - `config\.env` بباسوردات عشوائية قوية (أدوار الداتابيز التلاتة وسر الـ JWT)، مقفول على Administrators وSYSTEM. باسورد مدير PostgreSQL بيتستخدم مرة وبيتنسي، ومافيش أي باسورد بيتكتب في اللوج.
+   - الداتابيز والأدوار والـ migrations، والشركة والفرع الرئيسي والمستخدم admin.
+   - خدمة **MYTechServer**: بتبدأ مع الجهاز بعد PostgreSQL، وبتعيد التشغيل لوحدها لو وقعت.
+   - الفايروول للشبكة الداخلية بس (Private/Domain): TCP 8000 للبرنامج وUDP 47800 للاكتشاف.
+   - في الآخر بيعرض **بصمة الجهاز** وبيحفظها في `C:\MYTech\license\fingerprint.txt`.
+5. لو حاجة فشلت: التفاصيل في `C:\MYTech\logs\install.log`، ومفيش حاجة بتتمسح؛ صلّح السبب وشغّل الـ installer تاني.
+
+## الترخيص
+1. ابعت البصمة لـ MYTech.
+2. MYTech تفتح **MYTech-License-Tool.exe** ← Load private key ← Issue licence: كود الشركة، الاسم، البصمة، الأجزاء (UPVC / شاتر / ألومنيوم)، عدد الأجهزة والمستخدمين والفروع، وتاريخ الانتهاء ← تحفظ `license-<CODE>.json`.
+3. المدير يفتح البرنامج ← **الترخيص والنسخ** ← تركيب ملف الترخيص. (أو ينسخ الملف لـ `C:\MYTech\license\license.json`.) قبل الترخيص الدخول بيتمنع.
+
+الترخيص مربوط ببصمة الجهاز (MachineGuid بتاع ويندوز + بيانات اللوحة الأم من الريجستري) وموقّع بمفتاح MYTech (Ed25519). المفتاح العام متجمّع جوه السيرفر نفسه، فمينفعش حد يبدّله أو يعمل ترخيص لنفسه. لو اتنقل السيرفر لجهاز تاني أو اتسطّب ويندوز من جديد، البصمة بتتغير ومحتاج ترخيص جديد.
+
+## برنامج الأجهزة
+1. شغّل `MYTech-Desktop-Setup-<v>.exe` على كل جهاز.
+2. أول مرة: البرنامج بيدوّر على السيرفر في الشبكة لوحده (UDP broadcast)، أو اكتب IP السيرفر يدوي (مثلًا `192.168.1.10`).
+3. ادخل بـ admin وغيّر الباسورد، وبعدين:
+   - **بيانات الشركة:** الاسم المعروض واللوجو (بيظهر في كل صفحة وفي الفواتير والعروض وكشوف التقطيع)، التليفونات، العنوان، الرقم الضريبي، السجل التجاري، تذييل الفاتورة، ووحدة المقاسات (سم افتراضي).
+   - الإعدادات الافتراضية: الضريبة، العربون، سلاح المنشار، أطراف العود، أقل باقي يرجع المخزن.
+   - الفروع والمخازن والخزن وقوائم الأسعار، والمستخدمين وأدوارهم لكل فرع.
+   - **المكتبة:** استورد حزمة المكتبة الموقّعة من MYTech (مكتبة القطاعات ← حزم التحديث). التفاصيل في `docs/LIBRARY.md`.
+   - الأرصدة الافتتاحية للمخزن (المخازن ← تسوية / رصيد افتتاحي).
+
+- كل جهاز بيتسجل أول ما يدخل وبيتعد في الترخيص. المدير يقدر يوقف أي جهاز (الترخيص والنسخ ← الأجهزة).
+- **لو الشبكة قطعت:** البرنامج بيعيد الاتصال ويجدد الدخول لوحده. ولو جهاز اتقفل، مالوش أي تأثير على السيرفر ولا على باقي الأجهزة.
+- **لو الاكتشاف ماشتغلش** (الراوتر بيمنع الـ broadcast أو الجهاز على شبكة فرعية تانية): اكتب العنوان يدوي.
 
 ## HTTPS (اختياري في الأوفلاين)
-حط مسار الشهادة والمفتاح في `config\.env`:
+حط مسار الشهادة والمفتاح في `C:\MYTech\config\.env`، وبعدين أعد تشغيل خدمة MYTechServer:
 ```
 SSL_CERTFILE=C:\MYTech\config\server.crt
 SSL_KEYFILE=C:\MYTech\config\server.key
 ```
-وبعدين اعمل restart للخدمة. الشهادة ممكن تكون من CA داخلية، أو self-signed وتتسطّب في الأجهزة.
+والأجهزة تكتب `https://<IP>:8000`. الشهادة ممكن تكون من CA داخلية، أو self-signed وتتسطّب في الأجهزة.
 
-## ربط الأجهزة
-- الأجهزة على نفس الشبكة (واي فاي أو كابل).
-- **أوتوماتيك:** برنامج الجهاز بيبعت UDP broadcast على بورت 47800 (`MYTECH_DISCOVER`)، والسيرفر بيرد بعنوانه وبورته وإصداره. وكمان السيرفر بيعلن عن نفسه بـ mDNS باسم `_mytech._tcp.local`. للتجربة: `python tools/find_server.py`.
-- **يدوي (بديل):** لو الاكتشاف ماشتغلش (مثلًا الراوتر بيمنع الـ broadcast أو الجهاز على شبكة فرعية تانية)، اكتب في برنامج الديسكتوب `http://<IP السيرفر>:8000`.
-- كل جهاز بيتسجل أول ما يدخل وبيتعد في الترخيص. المدير يقدر يعطّل أي جهاز من `/devices`.
-- **لو الشبكة قطعت:** الجهاز بيعيد الاتصال لوحده، وبيجدد التوكن بالـ refresh، وبيرجع يفتح قناة التحديث اللحظي. ولو جهاز فرعي اتقفل، مالوش أي تأثير على السيرفر ولا على باقي الأجهزة.
-
-## النسخ الاحتياطي
-- **أوتوماتيك:** كل يوم الساعة 2 بالليل في `C:\MYTech\backups`، ويحتفظ بآخر 14 نسخة. التغيير من `BACKUP_DIR` و`BACKUP_HOUR` و`BACKUP_KEEP`. يُفضّل يكون `BACKUP_DIR` على هارد تاني أو مسار شبكة.
-- **نسخة فورية:** `POST /api/v1/system/backups`. وآخر حالة بتبان في `GET /api/v1/system/backups`.
-- **الاسترجاع** (بيوقف الخدمة ويعمل نسخة من الوضع الحالي الأول):
+## النسخ الاحتياطي والاسترجاع
+- **أوتوماتيك:** كل يوم الساعة 2 بالليل في `C:\MYTech\backups`، ويحتفظ بآخر 14 نسخة. التغيير من `BACKUP_DIR` و`BACKUP_HOUR` و`BACKUP_KEEP` في `.env`. يُفضّل `BACKUP_DIR` على هارد تاني أو مسار شبكة.
+- **نسخة فورية:** من البرنامج (الترخيص والنسخ ← النسخ الاحتياطي ← نسخة دلوقتي).
+- **الاسترجاع** (PowerShell كمسؤول؛ بيعمل نسخة من الوضع الحالي الأول):
   ```powershell
-  C:\MYTech\service\MYTechServer.exe stop
-  $env:PYTHONPATH="C:\MYTech\app\<الإصدار>;C:\MYTech\app\<الإصدار>\site-packages"; cd C:\MYTech\config
-  C:\MYTech\python\python.exe -c "from app.ops.backup import restore; restore(r'C:\MYTech\backups\<الملف>.dump')"
-  C:\MYTech\service\MYTechServer.exe start
+  Stop-Service MYTechServer
+  cd C:\MYTech\config
+  $v = (Get-Content C:\MYTech\current.json | ConvertFrom-Json).path
+  & "C:\MYTech\$v\mytech-server.exe" restore C:\MYTech\backups\<الملف>.dump
+  Start-Service MYTechServer
   ```
 
+## أوامر السيرفر (للدعم الفني)
+من `C:\MYTech\config` (عشان يقرا `.env`): `mytech-server.exe <أمر>`
+`version` · `fingerprint` · `migrate` · `backup` · `restore <ملف>` · `update <ملف.mtu>` · `create-company`.
+
 ## لو حاجة مش شغالة
-- **اللوجات:** `C:\MYTech\logs` (خدمة WinSW)، و`logs\updates.log` للتحديثات. اللوجات مافيهاش أي بيانات شخصية.
-- **السيرفر شغال؟** افتح `http://localhost:8000/api/v1/system/health`.
-- **حالة الترخيص:** `GET /api/v1/system/license`.
+- **اللوجات:** `C:\MYTech\logs` (الخدمة)، و`install.log` للتسطيب، و`updates.log` للتحديثات. اللوجات مافيهاش أي بيانات شخصية ولا باسوردات.
+- **السيرفر شغال؟** افتح `http://localhost:8000/api/v1/system/health` على جهاز السيرفر.
+- **الخدمات:** `services.msc` ← MYTech Solutions Server وMYTechPostgreSQL.
+- **إلغاء التسطيب:** من Apps & features. بيشيل الخدمات والفايروول، و**بيسيب البيانات** (pgdata، backups، media، license، config). امسح الفولدر بإيدك بعد ما تاخد نسخة من backups.

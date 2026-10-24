@@ -5,6 +5,10 @@
 
 Reads the version from VERSION. Python dependencies are downloaded as Windows
 wheels (cp312, win_amd64) into site-packages so the server needs no internet.
+
+Compiled servers (the normal Windows install): sign the compiled folder from the release build instead,
+    python tools/release/build_update.py --from-build build/stage/app/<version> --key ... --out dist/
+or use the licence tool ("Sign server update") with MYTech-Server-Update-Payload-<version>.zip.
 """
 from __future__ import annotations
 
@@ -34,15 +38,22 @@ def main() -> int:
     p.add_argument("--min-client", default="0.0.0")
     p.add_argument("--notes", default="")
     p.add_argument("--no-deps", action="store_true", help="code only (dependencies unchanged)")
+    p.add_argument("--from-build", help="compiled server folder (contains mytech-server.exe and VERSION)")
     a = p.parse_args()
     version = (ROOT / "VERSION").read_text().strip()
+    if a.from_build:
+        version = (Path(a.from_build) / "VERSION").read_text().strip()
     with tempfile.TemporaryDirectory() as tmp:
         src = Path(tmp) / version
+        if a.from_build:
+            shutil.copytree(a.from_build, src)
+            a.no_deps = True
         ignore = shutil.ignore_patterns("__pycache__", "*.pyc", ".env")
-        shutil.copytree(ROOT / "backend" / "app", src / "app", ignore=ignore)
-        shutil.copytree(ROOT / "backend" / "migrations", src / "migrations", ignore=ignore)
-        shutil.copy(ROOT / "backend" / "alembic.ini", src / "alembic.ini")
-        shutil.copy(ROOT / "VERSION", src / "VERSION")
+        if not a.from_build:
+            shutil.copytree(ROOT / "backend" / "app", src / "app", ignore=ignore)
+            shutil.copytree(ROOT / "backend" / "migrations", src / "migrations", ignore=ignore)
+            shutil.copy(ROOT / "backend" / "alembic.ini", src / "alembic.ini")
+            shutil.copy(ROOT / "VERSION", src / "VERSION")
         if not a.no_deps:
             subprocess.check_call([sys.executable, "-m", "pip", "install", "--target", str(src / "site-packages"),
                                    "--platform", "win_amd64", "--python-version", "3.12", "--only-binary=:all:",

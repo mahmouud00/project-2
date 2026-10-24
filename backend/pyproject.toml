@@ -34,7 +34,6 @@ include = ["app*"]
 
 [tool.setuptools.package-data]
 "app.modules.documents" = ["templates/*.html", "fonts/*.woff2"]
-"app.licensing" = ["*.pem"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

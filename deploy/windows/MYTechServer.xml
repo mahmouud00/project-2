@@ -1,16 +1,16 @@
-<!-- WinSW service definition. Install: MYTechServer.exe install  (WinSW binary renamed to MYTechServer.exe) -->
+<!-- WinSW service definition. The installer copies WinSW as service\MYTechServer.exe next to this file
+     and runs "MYTechServer.exe install". mytech-service.exe starts the version in current.json. -->
 <service>
   <id>MYTechServer</id>
   <name>MYTech Solutions Server</name>
   <description>MYTech Solutions API server (offline edition)</description>
-  <executable>%BASE%\..\python\python.exe</executable>
-  <arguments>"%BASE%\launcher.py"</arguments>
+  <executable>%BASE%\mytech-service.exe</executable>
   <workingdirectory>%BASE%\..\config</workingdirectory>
   <env name="MYTECH_ROOT" value="%BASE%\.."/>
   <env name="PYTHONUTF8" value="1"/>
   <startmode>Automatic</startmode>
   <delayedAutoStart>true</delayedAutoStart>
-  <depend>postgresql-x64-16</depend>
+  <depend>MYTechPostgreSQL</depend>
   <onfailure action="restart" delay="10 sec"/>
   <onfailure action="restart" delay="30 sec"/>
   <resetfailure>1 hour</resetfailure>

@@ -19,23 +19,27 @@ Semantic Versioning في ملف `VERSION`:
 3. لو الإصدار مش متوافق مع الأجهزة القديمة، ارفع `MIN_CLIENT_VERSION` في الإعدادات الافتراضية.
 
 ## بناء ملف التحديث
+**الطريقة العادية (السيرفر المتجمّع):**
+1. ارفع الكود على GitHub. workflow اسمه `windows-release` بيبني على جهاز ويندوز ويطلع Release فيه `MYTech-Server-Update-Payload-<version>.zip` (السيرفر متجمّع native).
+2. افتح **MYTech-License-Tool** ← Load private key ← **Sign server update** ← اختار ملف الـ payload، واكتب أقل إصدار عند العميل وأقل إصدار لبرنامج الأجهزة والملاحظات ← احفظ `mytech-<version>.mtu`.
+
+**من المصدر (للتطوير):**
 ```bash
 python tools/release/build_update.py --key ~/.mytech/vendor_private.pem --out dist/ \
-    --min-from 1.0.0 --min-client 1.2.0 --notes "..."
+    --min-from 1.0.0 --min-client 1.2.0 --notes "..."            # كود Python + Windows wheels
+python tools/release/build_update.py --from-build build/stage/app/<v> --key ... --out dist/   # فولدر متجمّع
 ```
-- بيطلع `dist/mytech-<version>.mtu`: الكود + الـ migrations + المكتبات (Windows wheels) + manifest موقّع بمفتاحك.
-- `--no-deps` لو المكتبات ماتغيرتش، والملف هيبقى أصغر.
-- المفتاح الخاص لو عليه باسورد، حطه في المتغير `MYTECH_KEY_PASSWORD`.
+المفتاح الخاص لو عليه باسورد، حطه في المتغير `MYTECH_KEY_PASSWORD` أو هيتسأل عليه.
 
 ## التطبيق عند العميل (أوفلاين)
 ```powershell
-powershell -ExecutionPolicy Bypass -File C:\MYTech\update.ps1 -Package D:\mytech-1.3.0.mtu
+powershell -ExecutionPolicy Bypass -File C:\MYTech\scripts\update.ps1 -Package D:\mytech-1.3.0.mtu
 ```
 الـ updater بيعمل الخطوات دي بالترتيب:
 1. **يتحقق** من توقيع الملف وسلامة كل ملف فيه، وإن الإصدار أحدث من الحالي، وإن الحالي مش أقدم من `min_from_version`.
 2. **نسخة احتياطية إجبارية** (`backups\..._pre-update-<version>.dump`). لو فشلت، التحديث مابيبدأش.
 3. يوقف الخدمة، ويفك الإصدار الجديد في `app\<version>` (القديم بيفضل زي ما هو).
-4. يشغّل الـ migrations **بالكود الجديد**.
+4. يشغّل الـ migrations **بالكود الجديد** (`app\<version>\mytech-server.exe migrate`).
 5. يحوّل `current.json` للإصدار الجديد، ويشغّل الخدمة، ويتأكد إن `/system/info` بيرجّع الإصدار الجديد وإن `/system/health` سليم.
 6. **لو أي خطوة فشلت:** يوقف الخدمة، ويسترجع النسخة الاحتياطية، ويرجّع `current.json` للإصدار القديم، ويشغّل الخدمة. كل ده بيتسجل في `logs\updates.log`.
 
@@ -48,4 +52,7 @@ powershell -ExecutionPolicy Bypass -File C:\MYTech\update.ps1 -Package D:\mytech
 دي **منفصلة** عن تحديث البرنامج: انشر من حساب MYTech، وصدّر حزمة ووقّعها وابعتها. التفاصيل في `docs/LIBRARY.md` §8.
 
 ## المفاتيح
-`python -m tools.vendor_admin keygen` بيعمل المفتاح الخاص (احتفظ بيه وخد منه نسخة؛ **عمره ما يدخل الريبو**) ويحط المفتاح العام في `backend/app/licensing/vendor_public_key.pem`. اعمل commit للمفتاح العام **قبل أول إصدار**. المفتاح العام اللي في الريبو دلوقتي **مفتاح تطوير**، والمفتاح الخاص بتاعه اتمسح.
+- **المفتاح الخاص** (Ed25519، متشفّر بباسورد): مع MYTech بس، في مكان آمن ومعاه نسخة احتياطية. **عمره ما يدخل الريبو** (`*.pem` في `.gitignore`).
+- **المفتاح العام** في `backend/app/licensing/vendor_key.py` كـ constant، فبيتجمّع جوه السيرفر نفسه (مش ملف جنب البرنامج يتبدّل).
+- تغيير باسورد المفتاح: الأداة ← Keys ← Change passphrase.
+- مفتاح جديد خالص (لو القديم اتسرّب): الأداة ← Keys ← Generate new key pair، أو `python -m tools.vendor_admin keygen`. بيطلع `vendor_key.py` جديد: حطه في `backend/app/licensing/` واعمل commit وابني نسخة جديدة. التراخيص القديمة مش هتشتغل مع السيرفرات الجديدة، فلازم تصدر تراخيص جديدة.

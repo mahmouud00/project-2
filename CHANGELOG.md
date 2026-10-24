@@ -4,6 +4,10 @@ All notable changes are listed here. Versions follow Semantic Versioning (MAJOR.
 
 ## [Unreleased]
 ### Added
+- Desktop program (`desktop/`, Tauri + React + TypeScript): Arabic RTL, light / dark / follow Windows, the company's logo and name on every page, LAN server discovery or manual address, every screen of the system (sales, production, inventory, purchasing, treasury, invoices with printing, library editor with element width/height pieces, reference tests and publishing, users and roles per branch, company branding, licence, backups, devices, audit and PII logs, price lists). Sizes in cm, width first, exact decimal conversion.
+- Windows release build (`.github/workflows/windows-release.yml`): desktop installer (NSIS, offline WebView2), server installer (server compiled to native code with Nuitka, bundled PostgreSQL 16 as a local-only service, WinSW service, firewall rules, generated secrets, smoke-tested on the build machine), and the MYTech Licence Tool (compiled GUI: issue/verify licences, sign library packages and server updates, key management). Published as a GitHub pre-release.
+- Server CLI: `version`, `fingerprint`, `backup`, `restore`, `update`; `init-db` and `create-company` read secrets from the environment (never the command line).
+- `GET /purchase-orders/{id}`.
 - Company branding: display name, phones, e-mail, website, address, tax number, commercial register, invoice footer, accent colour and logo (`POST/GET /company/logo`); public `GET /system/branding` for the login screen.
 - Customer invoices (`/invoices`): created from a work order, a quotation or manual lines; model, image, drawing, sizes, colour, glass, price and discounts per line; invoice discount and tax; gap-free number on issue; cancel with a reason; cash receipts linked to invoices (migration 0004).
 - Printable A4 documents (self-contained HTML, company logo and details on every page, sizes in cm, width first): invoice, quotation, cut list.
@@ -12,6 +16,14 @@ All notable changes are listed here. Versions follow Semantic Versioning (MAJOR.
 - UI mockups updated with the MYTech logo and colours, cm everywhere, width always before height.
 - Trial environment: `docker compose up --build` (PostgreSQL + API + demo data: MYTech and DEMO accounts, an example library system clearly marked as not real, price lists, stock, customer, survey and quotation); `python -m app.cli demo` / `serve`; guide `docs/TRY.md`.
 - "Authorize" button on `/api/docs` (OAuth2 password form, `POST /auth/token`, client_id = company code).
+
+### Changed
+- The vendor public key is a compiled-in constant (`app/licensing/vendor_key.py`) instead of a `.pem` file next to the program; a real key pair replaced the development key; private keys are stored encrypted.
+- Windows machine fingerprint uses registry values only (no subprocess), so it is identical for the installer and the service and never depends on a timeout. Licences for the old formula must be reissued (none were issued).
+- Customer statement bills issued invoices (with their services and discounts) instead of the work order amount.
+- Survey opening sizes use `Decimal` instead of `float`.
+- CORS allows the desktop program's origins by default.
+- Compiled server layout: `app\<version>\mytech-server.exe`; the service launcher and the updater run the version in `current.json`.
 
 ## [0.1.0] - 2026-10-24
 ### Added

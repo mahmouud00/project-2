@@ -2,7 +2,7 @@
 
 ## وصف المشروع
 سيستم لإدارة مصانع الشبابيك والأبواب (UPVC، شاتر، ألومنيوم)، بيتباع تحت اسم **MYTech Solutions**.
-المرحلة الحالية: **Backend بس** (مفيش Frontend ولا موبايل). الواجهة هتبقى **برنامج ديسكتوب** (مستنية الديزاين). الـ API لازم يفضل صالح لتطبيق موبايل بعدين من غير تعديل.
+فيه Backend وبرنامج ديسكتوب (`desktop/`، Tauri + React، عربي، فاتح وغامق). مفيش موبايل لسه، والـ API لازم يفضل صالح لتطبيق موبايل بعدين من غير تعديل.
 
 كود واحد بوضعين حسب `APP_MODE`:
 - `offline`: شركة واحدة، جهاز سيرفر في المصنع (PostgreSQL + API كـ Windows Service)، الأجهزة على الشبكة الداخلية، من غير إنترنت.
@@ -30,7 +30,8 @@ Python 3.12 · FastAPI · SQLAlchemy 2.0 + psycopg 3 · Alembic · PostgreSQL 16
 backend/app/{core,db,tenancy,auth,licensing,modules/*}   # الـ API والمنطق
 backend/migrations/                                      # Alembic
 backend/tests/ (golden/ للاختبارات المرجعية)
-tools/{vendor_admin,bom_import,updater,backup,golden_gen}
+desktop/ (src/ الواجهة، src-tauri/ غلاف ويندوز)
+tools/{vendor_admin,release}
 deploy/windows/
 data/bom.xlsx                                            # ملف القطاعات المرجعي (ماتعدلوش)
 docs/
@@ -50,6 +51,7 @@ uvicorn app.main:app --port 8000                   # التوثيق: /api/docs
 python -m pytest                                   # لازم كله يعدّي (بيعمل داتابيز mytech_test بأدوار mytech_test_*)
 ```
 الاختبارات محتاجة PostgreSQL شغالة و`pg_dump`/`pg_restore` و`TEST_ADMIN_URL` (افتراضي `postgresql+psycopg://postgres:postgres@localhost:5432/postgres`).
+الواجهة: `cd desktop && npm ci && npm run dev` (المتصفح على `http://localhost:5173`؛ حط `CORS_ORIGINS` للعنوان ده في `.env`)، و`npm test` و`npm run typecheck`. لو الـ API اتغير: `npm run gen:api` بعد تحديث `src/api/openapi.json`.
 فعّل الـ hook مرة واحدة: `git config core.hooksPath .githooks` (بيشغّل كل الاختبارات قبل أي commit). وGitHub Actions بيشغّلها مع كل push.
 
 ## خريطة الكود
@@ -62,9 +64,12 @@ python -m pytest                                   # لازم كله يعدّي 
 - `app/modules/{crm,sales,production,inventory,purchasing,treasury,privacy}` النواة الإدارية
 - `app/engine/cutting.py` تحسين التقطيع · `app/modules/production/manufacturing.py` مخرجات التصنيع
 - `app/ops` النسخ الاحتياطي، الأحداث اللحظية، الاكتشاف، الجدولة، التحديثات (`updater.py`)
-- `deploy/windows` خدمة ويندوز وسكريبتات التسطيب والتحديث · `tools/release` بناء ملفات التحديث
+- `deploy/windows` خدمة ويندوز، `setup-server.ps1` (التسطيب)، `MYTechServer.iss` (Inno Setup)، `update.ps1`
+- `tools/release` بناء السيرفر native (`build_server.py`، Nuitka)، وأداة التراخيص (`build_license_tool.py`)، وملفات التحديث
+- `tools/vendor_admin` أداة MYTech: `gui.py` (MYTech-License-Tool.exe) و`__main__.py` (CLI)
+- `desktop/src` الواجهة: `api/client.ts` (التوكنز والأخطاء)، `api/schema.d.ts` (متولّد من OpenAPI: `npm run gen:api`)، `state/` (الجلسة والثيم)، `components/`، `pages/`
+- `.github/workflows/windows-release.yml` بيبني الـ 3 exe وينشرهم Release
 - `migrations/versions` — كل migration بيفعّل RLS على جداوله الجديدة (`rls.enable`)
-- `tools/vendor_admin` أداة MYTech: مفاتيح، تراخيص، اشتراكات، توقيع الحزم
 
 ## قواعد ممنوع تتكسر
 1. **ممنوع أي معادلة أو ثابت تخصيم جوه الكود.** كل المعادلات والثوابت بيانات في الداتابيز. الكود فيه الـ parser والـ evaluator والقواعد العامة بس.
@@ -79,7 +84,7 @@ python -m pytest                                   # لازم كله يعدّي 
 10. تعديلات الشركة ومعايرتها منفصلة عن صفوف المكتبة، وتحديث المكتبة عمره ما يمسحها أو يغيرها.
 11. **ممنوع تطبع بيانات شخصية** (أسماء، تليفونات، عناوين، رقم قومي) أو توكنز أو باسوردات في اللوجات. أي وصول لبيانات شخصية يتسجل في `pii_access_log`.
 12. الأسرار في `.env` بس. `.env` عمره ما يترفع على GitHub (موجود في `.gitignore`)، وأي إعداد جديد يتضاف لـ `.env.example`.
-13. المفتاح الخاص بتوقيع التراخيص والحزم عمره ما يدخل الريبو.
+13. المفتاح الخاص بتوقيع التراخيص والحزم عمره ما يدخل الريبو. المفتاح العام constant في `app/licensing/vendor_key.py` (بيتجمّع جوه السيرفر).
 14. الفرق بين الأوفلاين والأونلاين يفضل ورا واجهات (`LicenseProvider`، مصدر المكتبة). باقي الكود مايسألش "أنا في أنهي وضع".
 15. أي جدول جديد فيه `company_id` لازم يتفعّل عليه RLS في نفس الـ migration (`rls.enable(op, table)` أو `rls.enable(op, table, "library")`).
 16. الحركات المالية والمخزنية مابتتعدلش ولا بتتمسح؛ التصحيح بحركة عكسية.

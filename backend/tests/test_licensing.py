@@ -142,19 +142,32 @@ def test_online_subscription(tenant_a, client):
     assert client.get("/api/v1/system/license", headers=h).json()["modules"] == ["core"]
 
 
-def test_vendor_cli_keygen_issue_show(tmp_path, capsys):
+def test_vendor_cli_keygen_issue_show(tmp_path, capsys, monkeypatch):
+    import ast
+
     from tools.vendor_admin.__main__ import main
 
-    priv, pub = tmp_path / "priv.pem", tmp_path / "pub.pem"
+    monkeypatch.setenv("MYTECH_KEY_PASSWORD", "test passphrase")
+    priv, pub = tmp_path / "priv.pem", tmp_path / "vendor_key.py"
     main(["keygen", "--out", str(priv), "--install-public", str(pub)])
+    assert b"ENCRYPTED" in priv.read_bytes()            # the private key is never stored in clear
     out = tmp_path / "lic.json"
     main(["issue-license", "--key", str(priv), "--company-code", "ACME", "--company-name", "Acme",
           "--fingerprint", FP, "--modules", "mfg.upvc", "--max-devices", "3", "--expires", "2030-01-01",
           "--out", str(out)])
     doc = json.loads(out.read_text())
     assert doc["payload"]["modules"] == ["core", "mfg.upvc", "manufacturing"]
-    set_vendor_public_key(load_public_key(pub.read_bytes()))
+    module = ast.parse(pub.read_text(encoding="utf-8"))
+    pem = next(n.value.value for n in module.body if isinstance(n, ast.Assign) and n.targets[0].id == "PUBLIC_KEY_PEM")
+    set_vendor_public_key(load_public_key(pem))
     try:
         assert prov.evaluate_license_document(doc, FP).status == "valid"
     finally:
         set_vendor_public_key(None)
+
+
+def test_shipped_vendor_public_key_is_compiled_in():
+    from app.licensing import vendor_key
+
+    assert isinstance(vendor_key.PUBLIC_KEY_PEM, bytes) and b"BEGIN PUBLIC KEY" in vendor_key.PUBLIC_KEY_PEM
+    load_public_key()  # the default key used by every installed server

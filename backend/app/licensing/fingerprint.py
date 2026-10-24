@@ -3,27 +3,27 @@ from __future__ import annotations
 
 import hashlib
 import platform
-import subprocess
 from pathlib import Path
 
 
 def _windows_parts() -> list[str]:
+    """Registry values only (no subprocess, no WMI): identical for the installer (Administrator) and the
+    service (LocalSystem), and never slow at service start, so a valid licence can't be lost to a timeout.
+    MachineGuid is unique per Windows installation; the BIOS values tie it to the board model."""
+    import winreg  # type: ignore
+
     parts = []
-    try:
-        import winreg  # type: ignore
-        with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Microsoft\Cryptography") as key:
-            parts.append(winreg.QueryValueEx(key, "MachineGuid")[0])
-    except Exception:
-        pass
-    try:
-        out = subprocess.run(["powershell", "-NoProfile", "-Command",
-                              "(Get-CimInstance Win32_BaseBoard).SerialNumber"],
-                             capture_output=True, text=True, timeout=10)
-        if out.stdout.strip():
-            parts.append(out.stdout.strip())
-    except Exception:
-        pass
-    return parts
+    values = [(r"SOFTWARE\Microsoft\Cryptography", "MachineGuid")] + [
+        (r"HARDWARE\DESCRIPTION\System\BIOS", name)
+        for name in ("SystemManufacturer", "SystemProductName", "BaseBoardManufacturer", "BaseBoardProduct")]
+    for path, name in values:
+        try:
+            with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, path, 0, winreg.KEY_READ | winreg.KEY_WOW64_64KEY) as key:
+                value = str(winreg.QueryValueEx(key, name)[0]).strip()
+        except OSError:
+            value = ""
+        parts.append(value)
+    return parts if parts[0] else []
 
 
 def _linux_parts() -> list[str]:

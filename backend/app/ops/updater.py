@@ -140,12 +140,20 @@ def write_current(root: Path, state: dict) -> None:
     tmp.replace(root / "current.json")
 
 
+SERVER_EXE = "mytech-server.exe"
+
+
 def run_migrations(version_dir: Path, config_dir: Path, python: str = sys.executable) -> None:
+    """Migrate with the NEW version's code: its compiled server if it has one, else its Python sources."""
     env = dict(os.environ)
-    paths = [str(version_dir), str(version_dir / "site-packages")]
-    env["PYTHONPATH"] = os.pathsep.join(paths + ([env["PYTHONPATH"]] if env.get("PYTHONPATH") else []))
-    proc = subprocess.run([python, "-m", "app.cli", "migrate"], cwd=str(config_dir), env=env,
-                          capture_output=True, text=True)
+    exe = version_dir / SERVER_EXE
+    if exe.exists():
+        cmd = [str(exe), "migrate"]
+    else:
+        paths = [str(version_dir), str(version_dir / "site-packages")]
+        env["PYTHONPATH"] = os.pathsep.join(paths + ([env["PYTHONPATH"]] if env.get("PYTHONPATH") else []))
+        cmd = [python, "-m", "app.cli", "migrate"]
+    proc = subprocess.run(cmd, cwd=str(config_dir), env=env, capture_output=True, text=True)
     if proc.returncode != 0:
         raise UpdateError(f"migration failed: {proc.stderr.strip()[-1500:]}")
 

@@ -16,10 +16,13 @@ ROOT_DIR = Path(__file__).resolve().parents[3]
 
 
 def read_version() -> str:
-    try:
-        return (ROOT_DIR / "VERSION").read_text(encoding="utf-8").strip()
-    except OSError:
-        return "0.0.0"
+    # repository: <root>/VERSION; installed build: VERSION next to the server executable
+    for folder in (ROOT_DIR, Path(__file__).resolve().parents[2]):
+        try:
+            return (folder / "VERSION").read_text(encoding="utf-8").strip()
+        except OSError:
+            continue
+    return "0.0.0"
 
 
 class AppMode(str, Enum):
@@ -69,7 +72,8 @@ class Settings(BaseSettings):
     http_port: int = 8000
     ssl_certfile: str = ""
     ssl_keyfile: str = ""
-    cors_origins: list[str] = []
+    # the desktop program's own origins (Tauri/WebView2); auth is a bearer token, never cookies
+    cors_origins: list[str] = ["http://tauri.localhost", "https://tauri.localhost", "tauri://localhost"]
 
     # Oldest client version allowed to talk to this server.
     min_client_version: str = "0.1.0"

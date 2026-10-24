@@ -20,7 +20,6 @@ import getpass
 import json
 import os
 import sys
-import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -28,8 +27,12 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "backend"))
 
 from app.licensing.provider import MODULES  # noqa: E402
-from app.licensing.signing import (PUBLIC_KEY_FILE, generate_keypair, load_private_key,  # noqa: E402
+from app.licensing.signing import (generate_keypair, load_private_key, public_key_module,  # noqa: E402
                                    sign_document, verify_document, load_public_key)
+
+from tools.vendor_admin.licenses import build_license  # noqa: E402
+
+PUBLIC_KEY_MODULE = ROOT / "backend" / "app" / "licensing" / "vendor_key.py"
 
 
 def _modules(value: str) -> list[str]:
@@ -53,6 +56,8 @@ def _date(value: str | None) -> str | None:
 def _private_key(path: str):
     pem = Path(os.path.expanduser(path)).read_bytes()
     password = os.environ.get("MYTECH_KEY_PASSWORD")
+    if password is None and b"ENCRYPTED" in pem:
+        password = getpass.getpass("Private key passphrase: ")
     return load_private_key(pem, password.encode() if password else None)
 
 
@@ -60,36 +65,18 @@ def cmd_keygen(a) -> None:
     out = Path(os.path.expanduser(a.out))
     if out.exists() and not a.force:
         raise SystemExit(f"{out} exists (use --force to overwrite; old licences would stop verifying)")
-    priv, pub = generate_keypair()
+    password = os.environ.get("MYTECH_KEY_PASSWORD") or getpass.getpass("New passphrase for the private key: ")
+    priv, pub = generate_keypair(password.encode() if password else None)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_bytes(priv)
     try:
         os.chmod(out, 0o600)
     except OSError:
         pass
-    target = Path(a.install_public) if a.install_public else PUBLIC_KEY_FILE
-    target.write_bytes(pub)
+    target = Path(a.install_public) if a.install_public else PUBLIC_KEY_MODULE
+    target.write_text(public_key_module(pub), encoding="utf-8")
     print(f"private key: {out}  (KEEP SECRET, BACK IT UP, NEVER COMMIT)")
-    print(f"public key installed in: {target}  (commit this one and ship it)")
-
-
-def build_license(*, company_code, company_name, fingerprint, modules, max_devices, max_users=None,
-                  max_branches=None, expires=None, grace_days=14, notes="") -> dict:
-    return {
-        "format": 1,
-        "license_id": str(uuid.uuid4()),
-        "issued_at": datetime.now(timezone.utc).isoformat(),
-        "company_code": company_code,
-        "company_name": company_name,
-        "machine_fingerprint": fingerprint,
-        "modules": modules,
-        "max_devices": max_devices,
-        "max_users": max_users,
-        "max_branches": max_branches,
-        "expires_at": expires,
-        "grace_days": grace_days,
-        "notes": notes,
-    }
+    print(f"public key written to: {target}  (commit this one; it is compiled into the server)")
 
 
 def cmd_issue(a) -> None:

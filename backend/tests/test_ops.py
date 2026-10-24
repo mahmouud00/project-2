@@ -117,3 +117,23 @@ def test_udp_discovery():
     finally:
         responder.stop()
     assert found and found[0]["product"] == "MYTech Solutions" and found[0]["api"] == "/api/v1"
+
+
+def test_cli_version_fingerprint_and_admin_url(capsys, monkeypatch):
+    from app.cli import main
+    from app.core.config import read_version
+
+    main(["version"])
+    assert capsys.readouterr().out.strip() == read_version() != "0.0.0"
+    main(["fingerprint"])
+    assert len(capsys.readouterr().out.strip()) >= 32
+    monkeypatch.delenv("MYTECH_ADMIN_URL", raising=False)
+    with pytest.raises(SystemExit):           # the superuser URL is required (flag or environment)
+        main(["init-db"])
+
+
+def test_desktop_program_origin_allowed_by_cors(client):
+    ok = client.options("/api/v1/system/info", headers={"Origin": "http://tauri.localhost", "Access-Control-Request-Method": "GET"})
+    assert ok.headers.get("access-control-allow-origin") == "http://tauri.localhost"
+    bad = client.options("/api/v1/system/info", headers={"Origin": "http://evil.example", "Access-Control-Request-Method": "GET"})
+    assert "access-control-allow-origin" not in bad.headers

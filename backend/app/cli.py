@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import argparse
 import getpass
+import json
+import os
 import sys
 
 from sqlalchemy import create_engine, text
@@ -77,7 +79,8 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="mytech")
     sub = parser.add_subparsers(dest="cmd", required=True)
     p = sub.add_parser("init-db")
-    p.add_argument("--admin-url", required=True)
+    p.add_argument("--admin-url", default=os.environ.get("MYTECH_ADMIN_URL"),
+                   help="superuser URL (or env MYTECH_ADMIN_URL, so it never shows on a command line)")
     sub.add_parser("migrate")
     p = sub.add_parser("create-company")
     p.add_argument("--code", required=True)
@@ -89,9 +92,22 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--password")
     sub.add_parser("demo", help="create the demo companies and example data (APP_MODE=online)")
     sub.add_parser("serve", help="run the API server")
+    sub.add_parser("version", help="print the server version")
+    sub.add_parser("fingerprint", help="print this machine's fingerprint (offline licence request)")
+    p = sub.add_parser("backup", help="back up the database now")
+    p.add_argument("--label", default="manual")
+    p = sub.add_parser("restore", help="restore a backup file (stops nothing: stop the service first)")
+    p.add_argument("file")
+    p = sub.add_parser("update", help="apply a signed update file (*.mtu)")
+    p.add_argument("package")
+    p.add_argument("--root", default=os.environ.get("MYTECH_ROOT", "C:\\MYTech"))
+    p.add_argument("--service", default="MYTechServer")
+    p.add_argument("--port", type=int, default=8000)
     args = parser.parse_args(argv)
 
     if args.cmd == "init-db":
+        if not args.admin_url:
+            parser.error("init-db needs --admin-url or MYTECH_ADMIN_URL")
         init_db(args.admin_url)
     elif args.cmd == "migrate":
         migrate()
@@ -101,12 +117,29 @@ def main(argv: list[str] | None = None) -> int:
     elif args.cmd == "serve":
         from app.server import serve
         serve()
+    elif args.cmd == "version":
+        from app.core.config import read_version
+        print(read_version())
+    elif args.cmd == "fingerprint":
+        from app.licensing.fingerprint import machine_fingerprint
+        print(machine_fingerprint())
+    elif args.cmd == "backup":
+        from app.ops.backup import run_backup, verify
+        print(json.dumps(verify(run_backup(args.label)), ensure_ascii=False))
+    elif args.cmd == "restore":
+        from pathlib import Path
+        from app.ops.backup import restore
+        print(json.dumps(restore(Path(args.file)), ensure_ascii=False, default=str))
+    elif args.cmd == "update":
+        from app.ops.updater import main as update_main
+        return update_main([args.package, "--root", args.root, "--service", args.service, "--port", str(args.port)])
     elif args.cmd in ("create-company", "create-platform-admin"):
         from app.db import models  # noqa: F401
         from app.db.session import system_session
         from app.modules.org.service import create_company, create_platform_admin
 
-        password = args.password or getpass.getpass("Password: ")
+        # unattended installs pass the password in the environment, never on the command line
+        password = args.password or os.environ.get("MYTECH_NEW_PASSWORD") or getpass.getpass("Password: ")
         with system_session() as db:
             if args.cmd == "create-company":
                 company, _ = create_company(db, code=args.code, name=args.name, admin_username=args.admin,
