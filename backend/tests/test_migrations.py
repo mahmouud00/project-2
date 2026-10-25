@@ -63,12 +63,46 @@ def test_upgrade_from_old_revision_keeps_data():
     before3 = _dump(engine)
     engine.dispose()
 
+    migrate(url=url, revision="0004")
+    engine = create_engine(url)
+    with engine.begin() as c:
+        ids = {k: uuid.uuid4() for k in ("model", "fsv", "cust", "pl", "sv", "op", "q", "ql")}
+        p = {**{k: v for k, v in ids.items()}, "c": cid, "s": sid, "b": bid}
+        c.execute(text("INSERT INTO product_models (id, company_id, system_id, code, name, category, description, "
+                       "status, is_active, sort, definition, version) VALUES (:model, :c, :s, 'M1', 'Model', 'window', "
+                       "'', 'approved', true, 0, '{}', 1)"), p)
+        c.execute(text("INSERT INTO formula_set_versions (id, company_id, system_id, version_no, snapshot, sha256, notes, "
+                       "published_at, version) VALUES (:fsv, :c, :s, 1, '{}', 'x', '', now(), 1)"), p)
+        c.execute(text("INSERT INTO customers (id, company_id, code, name, customer_type, anonymized, version) "
+                       "VALUES (:cust, :c, 'CU-1', 'Old customer', 'end', false, 1)"), p)
+        c.execute(text("INSERT INTO price_lists (id, company_id, code, name, margin_pct, labor_cost_per_m2, "
+                       "min_unit_price, is_active, version) VALUES (:pl, :c, 'PL', 'List', 20, 0, 0, true, 1)"), p)
+        c.execute(text("INSERT INTO site_surveys (id, company_id, number, customer_id, branch_id, status, notes, version) "
+                       "VALUES (:sv, :c, 'SV-1', :cust, :b, 'open', 'old survey', 1)"), p)
+        c.execute(text("INSERT INTO survey_openings (id, company_id, survey_id, position, location, opening_width_mm, "
+                       "opening_height_mm, qty, params, notes, version) VALUES (:op, :c, :sv, 1, 'kitchen', 800, 600, "
+                       "2, '{}', '', 1)"), p)
+        c.execute(text("INSERT INTO quotations (id, company_id, number, customer_id, branch_id, price_list_id, status, "
+                       "discount_amount, tax_pct, subtotal, tax_amount, total, total_cost, notes, terms, version) VALUES "
+                       "(:q, :c, 'QT-1', :cust, :b, :pl, 'draft', 0, 0, 300, 0, 300, 200, '', '', 1)"), p)
+        c.execute(text("INSERT INTO quotation_lines (id, company_id, quotation_id, position, location, model_id, "
+                       "formula_set_version_id, opening_width_mm, opening_height_mm, params, qty, area_m2, unit_cost, "
+                       "unit_price, line_total, calc, cost_breakdown, notes, version) VALUES (:ql, :c, :q, 1, 'kitchen', "
+                       ":model, :fsv, 800, 600, '{}', 2, 0.48, 100, 150, 300, '{}', '{}', '', 1)"), p)
+    before4 = _dump(engine)
+    engine.dispose()
+
     migrate(url=url)  # head
     engine = create_engine(url)
     after = _dump(engine)
     engine.dispose()
     assert after["cash_transactions"][str(tx)]["invoice_id"] is None
-    for table, rows in {**before, **before2, **before3}.items():
+    # 0005: old surveys are window surveys, old lines keep their price and bill their real area
+    assert after["site_surveys"][str(ids["sv"])]["kind"] == "window"
+    assert after["survey_openings"][str(ids["op"])]["application"] == ""
+    line = after["quotation_lines"][str(ids["ql"])]
+    assert line["price_per_m2"] is None and float(line["billed_area_m2"]) == 0.48 and float(line["line_total"]) == 300
+    for table, rows in {**before, **before2, **before3, **before4}.items():
         assert set(after[table]) == set(rows), f"rows lost or added in {table}"
         for row_id, old in rows.items():
             new = after[table][row_id]

@@ -31,6 +31,10 @@ def _fonts_css() -> str:
     return "\n".join(faces)
 
 
+def _area(x) -> str:
+    return format(Decimal(str(x)).quantize(Decimal("0.01")), "f")
+
+
 def _num(x) -> str:
     d = Decimal(str(x)).normalize()
     return format(d, "f")
@@ -120,11 +124,16 @@ def print_quotation(quote_id: uuid.UUID, dc=Depends(require("quotes.read"))):
     q = get_or_404(db, Quotation, quote_id)
     ctx.require("quotes.read", q.branch_id)
     look = _Lookups(db)
-    lines = []
+    lines, total_area = [], Decimal(0)
     for l in db.scalars(select(QuotationLine).where(QuotationLine.quotation_id == q.id).order_by(QuotationLine.position)):
         model = db.get(ProductModel, l.model_id)
         inputs = (l.calc or {}).get("inputs", {})
-        lines.append({"model_name": model.name if model else "", "location": l.location,
+        billed = l.billed_area_m2 or l.area_m2
+        ppm = l.price_per_m2 if l.price_per_m2 is not None else (money(l.unit_price / billed) if billed else None)
+        total_area += billed * l.qty
+        lines.append({"model_name": model.name if model else "", "model_code": model.code if model else "",
+                      "area": _area(l.area_m2), "billed_area": _area(billed), "total_area": _area(billed * l.qty),
+                      "price_per_m2": ppm, "location": l.location,
                       "opening_width_mm": l.opening_width_mm, "opening_height_mm": l.opening_height_mm,
                       "width_mm": inputs.get("width_mm"), "height_mm": inputs.get("height_mm"),
                       "drawing": (l.calc or {}).get("drawing", []), "qty": l.qty, "unit_price": l.unit_price,
@@ -136,7 +145,33 @@ def print_quotation(quote_id: uuid.UUID, dc=Depends(require("quotes.read"))):
     db.commit()
     deposit = money(q.total * get_company_settings(db, ctx.company_id).deposit_pct / 100)
     return _page("quotation.html", db, ctx, title="عرض سعر", doc=q, lines=lines, customer=customer,
-                 deposit=deposit if deposit else None, tax_pct_text=_num(q.tax_pct))
+                 deposit=deposit if deposit else None, tax_pct_text=_num(q.tax_pct), total_area=_area(total_area))
+
+
+@router.get("/surveys/{survey_id}/print", response_class=HTMLResponse)
+def print_survey(survey_id: uuid.UUID, dc=Depends(require("surveys.read"))):
+    """The survey sheet (landscape), the same columns as the paper form; at least 10 rows so an empty
+    survey prints as a blank form for the technician."""
+    from app.modules.crm.models import SiteSurvey, SurveyOpening
+
+    db, ctx = dc
+    survey = get_or_404(db, SiteSurvey, survey_id)
+    ctx.require("surveys.read", survey.branch_id)
+    look = _Lookups(db)
+    rows = []
+    for o in db.scalars(select(SurveyOpening).where(SurveyOpening.survey_id == survey.id).order_by(SurveyOpening.position)):
+        model = db.get(ProductModel, o.model_id) if o.model_id else None
+        rows.append({c: getattr(o, c) for c in ("position", "location", "opening_width_mm", "opening_height_mm",
+                                                 "total_height_mm", "unit_kind", "glass_layers", "glass_color",
+                                                 "screen_type", "application", "installation_method", "motor_type")}
+                    | {"model_code": model.code if model else "",
+                       "color": o.color_text or look.colors.get(o.color_code or "", o.color_code)})
+    rows += [{}] * max(0, 10 - len(rows))
+    customer = db.get(Customer, survey.customer_id)
+    log_pii(db, ctx, "customer", [customer.id], "export", ["name", "phone", "address"])
+    db.commit()
+    title = "معاينة شيش" if survey.kind == "shutter" else "معاينة"
+    return _page("survey.html", db, ctx, title=title, doc=survey, rows=rows, customer=customer, landscape=True)
 
 
 @router.get("/work-orders/{wo_id}/print/cut-list", response_class=HTMLResponse)

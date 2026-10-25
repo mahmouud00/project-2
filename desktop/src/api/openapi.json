@@ -4444,6 +4444,131 @@
     }
    }
   },
+  "/api/v1/quotations/{quote_id}/price-per-m2": {
+   "post": {
+    "tags": [
+     "sales"
+    ],
+    "summary": "Set Price Per M2",
+    "description": "One price per m² for every line (empty = back to each line's own price).",
+    "operationId": "set_price_per_m2_api_v1_quotations__quote_id__price_per_m2_post",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "quote_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Quote Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/PricePerM2In"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/QuotationOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/surveys/{survey_id}/pricing": {
+   "get": {
+    "tags": [
+     "sales"
+    ],
+    "summary": "Survey Pricing",
+    "description": "Suggested price per m² for a survey, from the real cost of each opening at its sizes (openings with\na model only). Each unit bills at least the company's minimum area.",
+    "operationId": "survey_pricing_api_v1_surveys__survey_id__pricing_get",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "survey_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Survey Id"
+      }
+     },
+     {
+      "name": "price_list_id",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string",
+         "format": "uuid"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Price List Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/SurveyPricing"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/v1/work-orders": {
    "get": {
     "tags": [
@@ -7175,6 +7300,55 @@
     }
    }
   },
+  "/api/v1/surveys/{survey_id}/print": {
+   "get": {
+    "tags": [
+     "documents"
+    ],
+    "summary": "Print Survey",
+    "description": "The survey sheet (landscape), the same columns as the paper form; at least 10 rows so an empty\nsurvey prints as a blank form for the technician.",
+    "operationId": "print_survey_api_v1_surveys__survey_id__print_get",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "survey_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Survey Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "text/html": {
+        "schema": {
+         "type": "string"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/v1/work-orders/{wo_id}/print/cut-list": {
    "get": {
     "tags": [
@@ -8400,6 +8574,20 @@
       ],
       "title": "Deposit Pct",
       "default": "0"
+     },
+     "min_billed_area_m2": {
+      "anyOf": [
+       {
+        "type": "number",
+        "minimum": 0.0
+       },
+       {
+        "type": "string"
+       }
+      ],
+      "title": "Min Billed Area M2",
+      "description": "price per m² bills at least this area per unit",
+      "default": "1"
      },
      "saw_kerf_mm": {
       "anyOf": [
@@ -11106,6 +11294,110 @@
       "type": "string",
       "title": "Notes",
       "default": ""
+     },
+     "total_height_mm": {
+      "anyOf": [
+       {
+        "type": "number",
+        "exclusiveMinimum": 0.0
+       },
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Total Height Mm"
+     },
+     "unit_kind": {
+      "anyOf": [
+       {
+        "type": "string",
+        "pattern": "^(sliding|hinged)$"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Unit Kind"
+     },
+     "color_text": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 80
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Color Text"
+     },
+     "glass_layers": {
+      "anyOf": [
+       {
+        "type": "string",
+        "pattern": "^(single|double)$"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Glass Layers"
+     },
+     "glass_color": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 80
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Glass Color"
+     },
+     "screen_type": {
+      "anyOf": [
+       {
+        "type": "string",
+        "pattern": "^(sliding|pleated|hinged|fixed)$"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Screen Type"
+     },
+     "application": {
+      "type": "string",
+      "title": "Application",
+      "default": ""
+     },
+     "installation_method": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 120
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Installation Method"
+     },
+     "motor_type": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 120
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Motor Type"
      }
     },
     "type": "object",
@@ -11196,6 +11488,98 @@
      "notes": {
       "type": "string",
       "title": "Notes"
+     },
+     "total_height_mm": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Total Height Mm"
+     },
+     "unit_kind": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Unit Kind"
+     },
+     "color_text": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Color Text"
+     },
+     "glass_layers": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Glass Layers"
+     },
+     "glass_color": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Glass Color"
+     },
+     "screen_type": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Screen Type"
+     },
+     "application": {
+      "type": "string",
+      "title": "Application"
+     },
+     "installation_method": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Installation Method"
+     },
+     "motor_type": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Motor Type"
      }
     },
     "type": "object",
@@ -11211,9 +11595,96 @@
      "color_code",
      "glass_material_code",
      "photo_id",
-     "notes"
+     "notes",
+     "total_height_mm",
+     "unit_kind",
+     "color_text",
+     "glass_layers",
+     "glass_color",
+     "screen_type",
+     "application",
+     "installation_method",
+     "motor_type"
     ],
     "title": "OpeningOut"
+   },
+   "OpeningPrice": {
+    "properties": {
+     "position": {
+      "type": "integer",
+      "title": "Position"
+     },
+     "location": {
+      "type": "string",
+      "title": "Location"
+     },
+     "qty": {
+      "type": "integer",
+      "title": "Qty"
+     },
+     "area_m2": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Area M2"
+     },
+     "billed_area_m2": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Billed Area M2"
+     },
+     "suggested_unit_price": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Suggested Unit Price"
+     },
+     "suggested_price_per_m2": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Suggested Price Per M2"
+     },
+     "error": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Error"
+     }
+    },
+    "type": "object",
+    "required": [
+     "position",
+     "location",
+     "qty"
+    ],
+    "title": "OpeningPrice"
    },
    "OverrideItem-Input": {
     "properties": {
@@ -12536,6 +13007,34 @@
     ],
     "title": "PriceListUpdate"
    },
+   "PricePerM2In": {
+    "properties": {
+     "version": {
+      "type": "integer",
+      "title": "Version"
+     },
+     "price_per_m2": {
+      "anyOf": [
+       {
+        "type": "number",
+        "minimum": 0.0
+       },
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Price Per M2"
+     }
+    },
+    "type": "object",
+    "required": [
+     "version"
+    ],
+    "title": "PricePerM2In"
+   },
    "PublishIn": {
     "properties": {
      "notes": {
@@ -13582,6 +14081,36 @@
       "title": "Notes",
       "default": ""
      },
+     "kind": {
+      "type": "string",
+      "pattern": "^(window|shutter)$",
+      "title": "Kind",
+      "default": "window"
+     },
+     "floor": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 40
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Floor"
+     },
+     "technician": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 120
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Technician"
+     },
      "openings": {
       "items": {
        "$ref": "#/components/schemas/OpeningIn"
@@ -13690,6 +14219,32 @@
       "type": "string",
       "title": "Notes"
      },
+     "kind": {
+      "type": "string",
+      "title": "Kind"
+     },
+     "floor": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Floor"
+     },
+     "technician": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Technician"
+     },
      "openings": {
       "items": {
        "$ref": "#/components/schemas/OpeningOut"
@@ -13710,9 +14265,77 @@
      "surveyor_id",
      "address",
      "status",
-     "notes"
+     "notes",
+     "kind",
+     "floor",
+     "technician"
     ],
     "title": "SurveyOut"
+   },
+   "SurveyPricing": {
+    "properties": {
+     "survey_id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Survey Id"
+     },
+     "price_list_id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Price List Id"
+     },
+     "price_per_m2": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Price Per M2"
+     },
+     "suggested_total": {
+      "type": "string",
+      "title": "Suggested Total"
+     },
+     "area_m2": {
+      "type": "string",
+      "title": "Area M2"
+     },
+     "billed_area_m2": {
+      "type": "string",
+      "title": "Billed Area M2"
+     },
+     "priced": {
+      "type": "integer",
+      "title": "Priced"
+     },
+     "unpriced": {
+      "type": "integer",
+      "title": "Unpriced"
+     },
+     "openings": {
+      "items": {
+       "$ref": "#/components/schemas/OpeningPrice"
+      },
+      "type": "array",
+      "title": "Openings"
+     }
+    },
+    "type": "object",
+    "required": [
+     "survey_id",
+     "price_list_id",
+     "price_per_m2",
+     "suggested_total",
+     "area_m2",
+     "billed_area_m2",
+     "priced",
+     "unpriced",
+     "openings"
+    ],
+    "title": "SurveyPricing"
    },
    "SurveyUpdate": {
     "properties": {
@@ -13777,6 +14400,42 @@
        }
       ],
       "title": "Notes"
+     },
+     "kind": {
+      "anyOf": [
+       {
+        "type": "string",
+        "pattern": "^(window|shutter)$"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Kind"
+     },
+     "floor": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 40
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Floor"
+     },
+     "technician": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 120
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Technician"
      },
      "openings": {
       "anyOf": [
@@ -16015,6 +16674,21 @@
       ],
       "title": "Manual Unit Price"
      },
+     "price_per_m2": {
+      "anyOf": [
+       {
+        "type": "number",
+        "minimum": 0.0
+       },
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Price Per M2"
+     },
      "notes": {
       "type": "string",
       "title": "Notes",
@@ -16144,6 +16818,21 @@
       ],
       "title": "Manual Unit Price"
      },
+     "price_per_m2": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Price Per M2"
+     },
+     "billed_area_m2": {
+      "type": "string",
+      "title": "Billed Area M2"
+     },
      "line_total": {
       "type": "string",
       "title": "Line Total"
@@ -16167,6 +16856,11 @@
       "title": "Model Name",
       "default": ""
      },
+     "model_code": {
+      "type": "string",
+      "title": "Model Code",
+      "default": ""
+     },
      "model_image_id": {
       "anyOf": [
        {
@@ -16178,6 +16872,28 @@
        }
       ],
       "title": "Model Image Id"
+     },
+     "suggested_unit_price": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Suggested Unit Price"
+     },
+     "suggested_price_per_m2": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Suggested Price Per M2"
      }
     },
     "type": "object",
@@ -16198,6 +16914,8 @@
      "unit_cost",
      "unit_price",
      "manual_unit_price",
+     "price_per_m2",
+     "billed_area_m2",
      "line_total",
      "cost_breakdown",
      "calc",
@@ -16312,6 +17030,21 @@
        }
       ],
       "title": "Manual Unit Price"
+     },
+     "price_per_m2": {
+      "anyOf": [
+       {
+        "type": "number",
+        "minimum": 0.0
+       },
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Price Per M2"
      },
      "notes": {
       "anyOf": [

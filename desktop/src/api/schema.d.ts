@@ -1168,6 +1168,47 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/quotations/{quote_id}/price-per-m2": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Set Price Per M2
+         * @description One price per m² for every line (empty = back to each line's own price).
+         */
+        post: operations["set_price_per_m2_api_v1_quotations__quote_id__price_per_m2_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/surveys/{survey_id}/pricing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Survey Pricing
+         * @description Suggested price per m² for a survey, from the real cost of each opening at its sizes (openings with
+         *     a model only). Each unit bills at least the company's minimum area.
+         */
+        get: operations["survey_pricing_api_v1_surveys__survey_id__pricing_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/work-orders": {
         parameters: {
             query?: never;
@@ -1827,6 +1868,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/surveys/{survey_id}/print": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Print Survey
+         * @description The survey sheet (landscape), the same columns as the paper form; at least 10 rows so an empty
+         *     survey prints as a blank form for the technician.
+         */
+        get: operations["print_survey_api_v1_surveys__survey_id__print_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/work-orders/{wo_id}/print/cut-list": {
         parameters: {
             query?: never;
@@ -2311,6 +2373,12 @@ export interface components {
              * @default 0
              */
             deposit_pct: number | string;
+            /**
+             * Min Billed Area M2
+             * @description price per m² bills at least this area per unit
+             * @default 1
+             */
+            min_billed_area_m2: number | string;
             /**
              * Saw Kerf Mm
              * @default 0
@@ -3221,6 +3289,27 @@ export interface components {
              * @default
              */
             notes: string;
+            /** Total Height Mm */
+            total_height_mm?: number | string | null;
+            /** Unit Kind */
+            unit_kind?: string | null;
+            /** Color Text */
+            color_text?: string | null;
+            /** Glass Layers */
+            glass_layers?: string | null;
+            /** Glass Color */
+            glass_color?: string | null;
+            /** Screen Type */
+            screen_type?: string | null;
+            /**
+             * Application
+             * @default
+             */
+            application: string;
+            /** Installation Method */
+            installation_method?: string | null;
+            /** Motor Type */
+            motor_type?: string | null;
         };
         /** OpeningOut */
         OpeningOut: {
@@ -3253,6 +3342,43 @@ export interface components {
             photo_id: string | null;
             /** Notes */
             notes: string;
+            /** Total Height Mm */
+            total_height_mm: string | null;
+            /** Unit Kind */
+            unit_kind: string | null;
+            /** Color Text */
+            color_text: string | null;
+            /** Glass Layers */
+            glass_layers: string | null;
+            /** Glass Color */
+            glass_color: string | null;
+            /** Screen Type */
+            screen_type: string | null;
+            /** Application */
+            application: string;
+            /** Installation Method */
+            installation_method: string | null;
+            /** Motor Type */
+            motor_type: string | null;
+        };
+        /** OpeningPrice */
+        OpeningPrice: {
+            /** Position */
+            position: number;
+            /** Location */
+            location: string;
+            /** Qty */
+            qty: number;
+            /** Area M2 */
+            area_m2?: string | null;
+            /** Billed Area M2 */
+            billed_area_m2?: string | null;
+            /** Suggested Unit Price */
+            suggested_unit_price?: string | null;
+            /** Suggested Price Per M2 */
+            suggested_price_per_m2?: string | null;
+            /** Error */
+            error?: string | null;
         };
         /** OverrideItem */
         "OverrideItem-Input": {
@@ -3716,6 +3842,13 @@ export interface components {
             /** Items */
             items?: components["schemas"]["PriceListItemIn"][] | null;
         };
+        /** PricePerM2In */
+        PricePerM2In: {
+            /** Version */
+            version: number;
+            /** Price Per M2 */
+            price_per_m2?: number | string | null;
+        };
         /** PublishIn */
         PublishIn: {
             /**
@@ -4059,6 +4192,15 @@ export interface components {
              */
             notes: string;
             /**
+             * Kind
+             * @default window
+             */
+            kind: string;
+            /** Floor */
+            floor?: string | null;
+            /** Technician */
+            technician?: string | null;
+            /**
              * Openings
              * @default []
              */
@@ -4099,11 +4241,44 @@ export interface components {
             status: string;
             /** Notes */
             notes: string;
+            /** Kind */
+            kind: string;
+            /** Floor */
+            floor: string | null;
+            /** Technician */
+            technician: string | null;
             /**
              * Openings
              * @default []
              */
             openings: components["schemas"]["OpeningOut"][];
+        };
+        /** SurveyPricing */
+        SurveyPricing: {
+            /**
+             * Survey Id
+             * Format: uuid
+             */
+            survey_id: string;
+            /**
+             * Price List Id
+             * Format: uuid
+             */
+            price_list_id: string;
+            /** Price Per M2 */
+            price_per_m2: string | null;
+            /** Suggested Total */
+            suggested_total: string;
+            /** Area M2 */
+            area_m2: string;
+            /** Billed Area M2 */
+            billed_area_m2: string;
+            /** Priced */
+            priced: number;
+            /** Unpriced */
+            unpriced: number;
+            /** Openings */
+            openings: components["schemas"]["OpeningPrice"][];
         };
         /** SurveyUpdate */
         SurveyUpdate: {
@@ -4119,6 +4294,12 @@ export interface components {
             status?: string | null;
             /** Notes */
             notes?: string | null;
+            /** Kind */
+            kind?: string | null;
+            /** Floor */
+            floor?: string | null;
+            /** Technician */
+            technician?: string | null;
             /** Openings */
             openings?: components["schemas"]["OpeningIn"][] | null;
         };
@@ -4896,6 +5077,8 @@ export interface components {
             qty: number;
             /** Manual Unit Price */
             manual_unit_price?: number | string | null;
+            /** Price Per M2 */
+            price_per_m2?: number | string | null;
             /**
              * Notes
              * @default
@@ -4951,6 +5134,10 @@ export interface components {
             unit_price: string;
             /** Manual Unit Price */
             manual_unit_price: string | null;
+            /** Price Per M2 */
+            price_per_m2: string | null;
+            /** Billed Area M2 */
+            billed_area_m2: string;
             /** Line Total */
             line_total: string;
             /** Cost Breakdown */
@@ -4968,8 +5155,17 @@ export interface components {
              * @default
              */
             model_name: string;
+            /**
+             * Model Code
+             * @default
+             */
+            model_code: string;
             /** Model Image Id */
             model_image_id?: string | null;
+            /** Suggested Unit Price */
+            suggested_unit_price?: string | null;
+            /** Suggested Price Per M2 */
+            suggested_price_per_m2?: string | null;
         };
         /** LineUpdate */
         app__modules__sales__router__LineUpdate: {
@@ -4993,6 +5189,8 @@ export interface components {
             qty?: number | null;
             /** Manual Unit Price */
             manual_unit_price?: number | string | null;
+            /** Price Per M2 */
+            price_per_m2?: number | string | null;
             /** Notes */
             notes?: string | null;
         };
@@ -7846,6 +8044,74 @@ export interface operations {
             };
         };
     };
+    set_price_per_m2_api_v1_quotations__quote_id__price_per_m2_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                quote_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PricePerM2In"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuotationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    survey_pricing_api_v1_surveys__survey_id__pricing_get: {
+        parameters: {
+            query?: {
+                price_list_id?: string | null;
+            };
+            header?: never;
+            path: {
+                survey_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SurveyPricing"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_work_orders_api_v1_work_orders_get: {
         parameters: {
             query?: {
@@ -9391,6 +9657,37 @@ export interface operations {
             header?: never;
             path: {
                 quote_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/html": string;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    print_survey_api_v1_surveys__survey_id__print_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                survey_id: string;
             };
             cookie?: never;
         };

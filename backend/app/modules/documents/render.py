@@ -12,7 +12,7 @@ import uuid
 from decimal import Decimal
 from pathlib import Path
 
-from jinja2 import Environment, FileSystemLoader, select_autoescape
+from jinja2 import Environment, FileSystemLoader, Undefined, select_autoescape
 from markupsafe import Markup
 
 from app.modules.library.models import MediaFile
@@ -22,7 +22,7 @@ env = Environment(loader=FileSystemLoader(str(TEMPLATES)), autoescape=select_aut
 
 
 def cm(mm) -> str:
-    if mm is None or mm == "":
+    if mm is None or mm == "" or isinstance(mm, Undefined):
         return ""
     value = (Decimal(str(mm)) / 10).quantize(Decimal("0.01")).normalize()
     return format(value, "f")

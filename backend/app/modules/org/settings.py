@@ -37,6 +37,7 @@ class CompanySettings(BaseModel):
     quote_validity_days: int = Field(15, ge=1)
     quote_waste_pct: Decimal = Field(Decimal(0), ge=0, le=100, description="waste added to profile cost in quotes")
     deposit_pct: Decimal = Field(Decimal(0), ge=0, le=100)
+    min_billed_area_m2: Decimal = Field(Decimal(1), ge=0, description="price per m² bills at least this area per unit")
     saw_kerf_mm: Decimal = Field(Decimal(0), ge=0)
     bar_trim_mm: Decimal = Field(Decimal(0), ge=0, description="trimmed at each end of a bar")
     min_reusable_offcut_mm: Decimal = Field(Decimal(0), ge=0)

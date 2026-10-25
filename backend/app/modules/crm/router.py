@@ -163,6 +163,15 @@ class OpeningIn(BaseModel):
     glass_material_code: str | None = None
     photo_id: uuid.UUID | None = None
     notes: str = ""
+    total_height_mm: Decimal | None = Field(None, gt=0, max_digits=12, decimal_places=2)
+    unit_kind: str | None = Field(None, pattern="^(sliding|hinged)$")
+    color_text: str | None = Field(None, max_length=80)
+    glass_layers: str | None = Field(None, pattern="^(single|double)$")
+    glass_color: str | None = Field(None, max_length=80)
+    screen_type: str | None = Field(None, pattern="^(sliding|pleated|hinged|fixed)$")
+    application: str = ""
+    installation_method: str | None = Field(None, max_length=120)
+    motor_type: str | None = Field(None, max_length=120)
 
 
 class OpeningOut(ORMModel):
@@ -178,6 +187,18 @@ class OpeningOut(ORMModel):
     glass_material_code: str | None
     photo_id: uuid.UUID | None
     notes: str
+    total_height_mm: Decimal | None
+    unit_kind: str | None
+    color_text: str | None
+    glass_layers: str | None
+    glass_color: str | None
+    screen_type: str | None
+    application: str
+    installation_method: str | None
+    motor_type: str | None
+
+
+SURVEY_KIND = "^(window|shutter)$"
 
 
 class SurveyIn(BaseModel):
@@ -187,6 +208,9 @@ class SurveyIn(BaseModel):
     surveyor_id: uuid.UUID | None = None
     address: str | None = None
     notes: str = ""
+    kind: str = Field("window", pattern=SURVEY_KIND)
+    floor: str | None = Field(None, max_length=40)
+    technician: str | None = Field(None, max_length=120)
     openings: list[OpeningIn] = []
 
 
@@ -196,6 +220,9 @@ class SurveyUpdate(VersionedUpdate):
     address: str | None = None
     status: str | None = Field(None, pattern="^(open|done|cancelled)$")
     notes: str | None = None
+    kind: str | None = Field(None, pattern=SURVEY_KIND)
+    floor: str | None = Field(None, max_length=40)
+    technician: str | None = Field(None, max_length=120)
     openings: list[OpeningIn] | None = None
 
 
@@ -208,6 +235,9 @@ class SurveyOut(Record):
     address: str | None
     status: str
     notes: str
+    kind: str
+    floor: str | None
+    technician: str | None
     openings: list[OpeningOut] = []
 
 
@@ -236,7 +266,15 @@ def list_surveys(customer_id: uuid.UUID | None = None, status: str | None = None
         stmt = stmt.where(SiteSurvey.customer_id == customer_id)
     if status:
         stmt = stmt.where(SiteSurvey.status == status)
-    return paginate(db, stmt, params, SurveyOut)
+    page = paginate(db, stmt, params, SurveyOut)
+    by_survey: dict = {}
+    if page["items"]:
+        for o in db.scalars(select(SurveyOpening).where(SurveyOpening.survey_id.in_([s.id for s in page["items"]]))
+                            .order_by(SurveyOpening.position)):
+            by_survey.setdefault(o.survey_id, []).append(OpeningOut.model_validate(o))
+    for item in page["items"]:
+        item.openings = by_survey.get(item.id, [])
+    return page
 
 
 @router.post("/surveys", response_model=SurveyOut, status_code=201)
@@ -273,7 +311,10 @@ def update_survey(survey_id: uuid.UUID, body: SurveyUpdate, dc=Depends(require("
     ctx.require("surveys.write", survey.branch_id)
     check_version(survey, body.version)
     before = snapshot(survey)
-    apply_changes(survey, body.model_dump(exclude_unset=True, exclude={"version", "openings"}))
+    data = body.model_dump(exclude_unset=True, exclude={"version", "openings"})
+    if data.get("kind", "") is None:
+        del data["kind"]
+    apply_changes(survey, data)
     if body.openings is not None:
         _set_openings(db, survey, body.openings)
         survey.updated_at = utcnow()  # bump version when only the openings change

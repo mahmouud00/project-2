@@ -88,6 +88,9 @@ class QuotationLine(Base, Entity):
     unit_cost: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal(0))
     unit_price: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal(0))
     manual_unit_price: Mapped[Decimal | None] = mapped_column(Numeric(14, 2), nullable=True)
+    price_per_m2: Mapped[Decimal | None] = mapped_column(Numeric(14, 2), nullable=True)    # typed by the user
+    # area of one unit used for the price per m², after the company's minimum (e.g. 1 m²)
+    billed_area_m2: Mapped[Decimal] = mapped_column(Numeric(12, 4), default=Decimal(0), server_default="0")
     line_total: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal(0))
     calc: Mapped[dict] = mapped_column(JSONB, default=dict)      # frozen engine result + calibration used
     cost_breakdown: Mapped[dict] = mapped_column(JSONB, default=dict)

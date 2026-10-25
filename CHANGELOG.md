@@ -4,6 +4,9 @@ All notable changes are listed here. Versions follow Semantic Versioning (MAJOR.
 
 ## [Unreleased]
 ### Added
+- Survey sheet like the factory's paper form (migration 0005): survey `kind` (windows/doors or shutters), floor, technician; per unit: total height, sliding/hinged, colour as written, single/double glass and its colour, insect screen type, application; shutters: installation method and motor type. Edited as a table in the desktop app and printed in the same layout (`GET /surveys/{id}/print`, landscape).
+- Suggested price per m² of a survey (`GET /surveys/{id}/pricing`): average of the survey from the real cost of each unit at its sizes and the price list; shown next to every survey on the customer page.
+- Price per m² typed per quotation line (`price_per_m2`) or for all lines (`POST /quotations/{id}/price-per-m2`); each unit bills at least `min_billed_area_m2` (company setting, default 1 m²). Quotation screen and print columns: model number, width, height, qty, opening area, total area, model type and drawing, price per m², cost.
 - Licence activation from the login screen (offline): public `GET/POST /system/activation` shows why the licence is not usable and the server fingerprint, and installs a signed licence while none is active (an active one is only replaced after login).
 - Desktop program (`desktop/`, Tauri + React + TypeScript): Arabic RTL, light / dark / follow Windows, the company's logo and name on every page, LAN server discovery or manual address, every screen of the system (sales, production, inventory, purchasing, treasury, invoices with printing, library editor with element width/height pieces, reference tests and publishing, users and roles per branch, company branding, licence, backups, devices, audit and PII logs, price lists). Sizes in cm, width first, exact decimal conversion.
 - Windows release build (`.github/workflows/windows-release.yml`): desktop installer (NSIS, offline WebView2), server installer (server compiled to native code with Nuitka, bundled PostgreSQL 16 as a local-only service, WinSW service, firewall rules, generated secrets, smoke-tested on the build machine), and the MYTech Licence Tool (compiled GUI: issue/verify licences, sign library packages and server updates, key management). Published as a GitHub pre-release.
@@ -19,6 +22,7 @@ All notable changes are listed here. Versions follow Semantic Versioning (MAJOR.
 - "Authorize" button on `/api/docs` (OAuth2 password form, `POST /auth/token`, client_id = company code).
 
 ### Changed
+- `GET /surveys` returns each survey's openings (the list showed 0 units).
 - Server installer: stops the MYTech and PostgreSQL services before replacing files (upgrade over a running install failed with "Access is denied").
 - Licence files saved with a UTF-8 BOM (e.g. by Notepad) are accepted.
 - Windows: the server exe is a console program (setup scripts wait for it); stopping the service also stops the server process (job object); the server installer turns off Inno RedirectionGuard (error 448).

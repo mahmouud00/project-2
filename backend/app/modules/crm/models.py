@@ -47,6 +47,9 @@ class SiteSurvey(Base, Entity, SoftDeleteMixin):
     address: Mapped[str | None] = mapped_column(Text, nullable=True)
     status: Mapped[str] = mapped_column(String(20), default="open")  # open | done | cancelled
     notes: Mapped[str] = mapped_column(Text, default="")
+    kind: Mapped[str] = mapped_column(String(20), default="window", server_default="window")  # window | shutter
+    floor: Mapped[str | None] = mapped_column(String(40), nullable=True)                     # الدور
+    technician: Mapped[str | None] = mapped_column(String(120), nullable=True)               # الفني
 
 
 class SurveyOpening(Base, Entity):
@@ -67,3 +70,14 @@ class SurveyOpening(Base, Entity):
     glass_material_code: Mapped[str | None] = mapped_column(String(60), nullable=True)
     photo_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("media_files.id"), nullable=True)
     notes: Mapped[str] = mapped_column(Text, default="")
+    # survey sheet columns (windows/doors): total height, sliding/hinged, glass, insect screen, application
+    total_height_mm: Mapped[Decimal | None] = mapped_column(Numeric(12, 2), nullable=True)   # ارتفاع كلي
+    unit_kind: Mapped[str | None] = mapped_column(String(20), nullable=True)                 # sliding | hinged
+    color_text: Mapped[str | None] = mapped_column(String(80), nullable=True)                # colour as written on site
+    glass_layers: Mapped[str | None] = mapped_column(String(10), nullable=True)              # single | double
+    glass_color: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    screen_type: Mapped[str | None] = mapped_column(String(20), nullable=True)               # sliding | pleated | hinged | fixed
+    application: Mapped[str] = mapped_column(Text, default="", server_default="")           # التطبيق
+    # shutters
+    installation_method: Mapped[str | None] = mapped_column(String(120), nullable=True)      # طريقة التركيب
+    motor_type: Mapped[str | None] = mapped_column(String(120), nullable=True)               # نوع الموتور

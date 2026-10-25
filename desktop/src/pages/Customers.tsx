@@ -5,11 +5,12 @@ import { useAction, useDebounced, useLoad, when } from "../lib/hooks";
 import { useSession } from "../state/session";
 import { useToast } from "../state/toast";
 import { Btn, Card, Chip, Confirm, Field, KV, Loading, ErrorBox, Modal, Money, PageHead, Pager, SearchBox, Select, Table, Tabs, TextArea, TextIn } from "../components/ui";
-import { CUSTOMER_TYPES, INVOICE_STATUS, QUOTE_STATUS, STAGE_COLOR, STAGE_NAMES } from "../lib/lookups";
+import { CUSTOMER_TYPES, INVOICE_STATUS, QUOTE_STATUS, STAGE_COLOR, STAGE_NAMES, SURVEY_KIND, SURVEY_STATUS } from "../lib/lookups";
 import { invalidate } from "../lib/lookups";
 import { go, setQuery } from "../lib/router";
 import { date } from "../lib/format";
 import { BranchSelect } from "../components/pickers";
+import { SuggestedPrice } from "../components/surveysheet";
 
 export default function Customers({ route }: PageProps) {
   const id = route.path[1];
@@ -103,7 +104,7 @@ type Statement = { billed: string; paid: string; balance: string;
   orders: { id: string; number: string; stage: string; total: string; paid: string; invoiced?: boolean }[];
   invoices?: { id: string; number: string; issue_date: string | null; total: string }[] };
 
-function CustomerDetail({ id, tab = "quotes" }: { id: string; tab?: string }) {
+function CustomerDetail({ id, tab: tabQuery }: { id: string; tab?: string }) {
   const s = useSession();
   const toast = useToast();
   const c = useLoad(() => api.get<S<"CustomerOut">>(`/customers/${id}`), [id]);
@@ -112,6 +113,8 @@ function CustomerDetail({ id, tab = "quotes" }: { id: string; tab?: string }) {
   const [erase, setErase] = useState(false);
   const [reason, setReason] = useState("");
   const { busy, run } = useAction(toast.err);
+  const tab = tabQuery ?? (s.can("surveys.read") ? "surveys" : "quotes");
+  const surveys = useLoad(() => when(s.can("surveys.read"), () => api.get<S<"Page_SurveyOut_">>("/surveys", { customer_id: id, limit: 100 })), [id]);
   const quotes = useLoad(() => when(s.can("quotes.read"), () => api.get<S<"Page_QuotationOut_">>("/quotations", { customer_id: id, limit: 100 })), [id]);
   const invoices = useLoad(() => when(s.can("treasury.read"), () => api.get<S<"Page_InvoiceOut_">>("/invoices", { customer_id: id, limit: 100 })), [id]);
   const wos = useLoad(() => when(s.can("workorders.read"), () => api.get<S<"Page_WorkOrderOut_">>("/work-orders", { customer_id: id, limit: 100 })), [id]);
@@ -157,11 +160,21 @@ function CustomerDetail({ id, tab = "quotes" }: { id: string; tab?: string }) {
 
       <Card flush>
         <Tabs value={tab} onChange={(t) => setQuery({ tab: t })} tabs={[
+          { id: "surveys", label: "المعاينات", count: surveys.data?.total, hidden: !s.can("surveys.read") },
           { id: "quotes", label: "عروض الأسعار", count: quotes.data?.total, hidden: !s.can("quotes.read") },
           { id: "orders", label: "أوامر التصنيع", count: wos.data?.total, hidden: !s.can("workorders.read") },
           { id: "invoices", label: "الفواتير", count: invoices.data?.total, hidden: !s.can("treasury.read") },
           { id: "privacy", label: "البيانات الشخصية", hidden: !s.can("privacy.manage") },
         ]} />
+        {tab === "surveys" && <Table rows={surveys.data?.items} loading={surveys.loading} onRow={(x) => go(`surveys/${x.id}`)} empty="مفيش معاينات" columns={[
+          { key: "n", label: "الرقم", render: (x) => <span className="num">{x.number}</span> },
+          { key: "k", label: "النوع", render: (x) => <Chip color={x.kind === "shutter" ? "amber" : "violet"}>{SURVEY_KIND[x.kind] ?? x.kind}</Chip> },
+          { key: "d", label: "التاريخ", render: (x) => <span className="num">{date(x.survey_date ?? x.created_at)}</span> },
+          { key: "o", label: "الوحدات", num: true, render: (x) => <span className="num">{x.openings?.length ?? 0}</span> },
+          { key: "s", label: "الحالة", render: (x) => <Chip color={SURVEY_STATUS[x.status]?.[1]}>{SURVEY_STATUS[x.status]?.[0] ?? x.status}</Chip> },
+          ...(s.can("quotes.read") ? [{ key: "p", label: "سعر المتر المقترح", num: true,
+            render: (x: S<"SurveyOut">) => <SuggestedPrice surveyId={x.id} version={x.version} compact /> }] : []),
+        ]} />}
         {tab === "quotes" && <Table rows={quotes.data?.items} loading={quotes.loading} onRow={(q) => go(`quotations/${q.id}`)} columns={[
           { key: "n", label: "الرقم", render: (q) => <span className="num">{q.number}</span> },
           { key: "d", label: "التاريخ", render: (q) => <span className="num">{date(q.issue_date ?? q.created_at)}</span> },

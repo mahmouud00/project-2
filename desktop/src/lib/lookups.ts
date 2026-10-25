@@ -61,6 +61,7 @@ export const PO_STATUS: Record<string, [string, "blue" | "green" | "amber" | "re
 export const SURVEY_STATUS: Record<string, [string, "blue" | "green" | "amber" | "red" | "gray" | "violet"]> = {
   open: ["مفتوحة", "blue"], done: ["خلصت", "green"], cancelled: ["ملغية", "red"],
 };
+export const SURVEY_KIND: Record<string, string> = { window: "شبابيك وأبواب", shutter: "شيش" };
 export const CUSTOMER_TYPES: Record<string, string> = { end: "عميل نهائي", dealer: "موزّع", contractor: "مقاول" };
 export const MATERIAL_TYPES: Record<string, string> = { upvc: "UPVC", shutter: "شاتر", aluminum: "ألومنيوم" };
 export const MATERIAL_KINDS: Record<string, string> = {

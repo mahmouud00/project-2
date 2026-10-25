@@ -9,22 +9,29 @@
   <div class="box"><h4>السادة</h4><b>{{ customer.name }}</b><div>{% if customer.phone %}<span class="num">{{ customer.phone }}</span>{% endif %}</div><div>{{ customer.address or "" }}</div></div>
   <div class="box"><h4>بيانات</h4><div>المقاسات بالسنتيمتر (العرض × الارتفاع)</div><div>العملة: {{ company.currency }}</div></div>
 </div>
-<table>
-  <tr><th>#</th><th class="draw">الشكل</th><th>الصنف</th><th>المقاس سم<br><span class="small">(عرض × ارتفاع)</span></th><th>الكمية</th><th>سعر الوحدة</th><th>الإجمالي</th></tr>
+<table class="qt">
+  <tr><th>رقم النموذج</th><th>العرض<br><span class="small">سم</span></th><th>الارتفاع<br><span class="small">سم</span></th>
+    <th>العدد</th><th>مساحة الفتحة<br><span class="small">م²</span></th><th>المساحة الكلية<br><span class="small">م²</span></th>
+    <th class="draw">نوع وشكل النموذج</th><th>سعر المتر</th><th>التكلفة</th></tr>
   {% for l in lines %}
   <tr>
-    <td class="num">{{ loop.index }}</td>
-    <td class="draw">{% if l.image %}<img src="{{ l.image }}" alt=""><br>{% endif %}{{ drawing(l.drawing, l.width_mm, l.height_mm, 110, 80) }}</td>
-    <td><b>{{ l.model_name }}</b>{% if l.location %}<div class="small">{{ l.location }}</div>{% endif %}
+    <td class="num"><b>{{ l.model_code }}</b></td>
+    <td class="num">{{ l.opening_width_mm | cm }}</td>
+    <td class="num">{{ l.opening_height_mm | cm }}</td>
+    <td class="num">{{ l.qty }}</td>
+    <td class="num">{{ l.billed_area }}{% if l.area != l.billed_area %}<div class="small">الفعلية {{ l.area }}</div>{% endif %}</td>
+    <td class="num">{{ l.total_area }}</td>
+    <td class="draw">{% if l.image %}<img src="{{ l.image }}" alt=""><br>{% endif %}{{ drawing(l.drawing, l.width_mm, l.height_mm, 110, 80) }}
+      <div><b>{{ l.model_name }}</b>{% if l.location %} · {{ l.location }}{% endif %}</div>
       {% if l.color_name or l.glass_name %}<div class="small">{% if l.color_name %}اللون: {{ l.color_name }}{% endif %}{% if l.glass_name %} · الزجاج: {{ l.glass_name }}{% endif %}</div>{% endif %}
       {% for p in l.param_labels %}<div class="small">{{ p }}</div>{% endfor %}</td>
-    <td>{{ size(l.opening_width_mm, l.opening_height_mm) }}</td>
-    <td class="num">{{ l.qty }}</td>
-    <td class="num">{{ l.unit_price | money }}</td>
+    <td class="num">{{ l.price_per_m2 | money if l.price_per_m2 is not none else "" }}</td>
     <td class="num"><b>{{ l.line_total | money }}</b></td>
   </tr>
   {% endfor %}
+  <tr class="sum"><td colspan="5">إجمالي المساحة</td><td class="num"><b>{{ total_area }}</b></td><td colspan="3"></td></tr>
 </table>
+<style>.qt th, .qt td { text-align: center; } .qt .sum td { border-top: 1.5px solid #1B2533; font-weight: 700; }</style>
 <table class="totals">
   <tr><td>الإجمالي</td><td class="num">{{ doc.subtotal | money }}</td></tr>
   {% if doc.discount_amount and doc.discount_amount != 0 %}<tr><td>خصم</td><td class="num">− {{ doc.discount_amount | money }}</td></tr>{% endif %}

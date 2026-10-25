@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block docmeta %}
+  <div>رقم: <b class="num">{{ doc.number }}</b></div>
+  <div>التاريخ: <span class="num">{{ doc.survey_date or "" }}</span></div>
+{% endblock %}
+{% block content %}
+<style>
+  .sheet-head { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 6px 18px; margin: 12px 0 10px; font-size: 12px; }
+  .sheet-head b { margin-inline-start: 4px; }
+  table.sheet { border: 1.5px solid #1B2533; }
+  table.sheet th, table.sheet td { border: 1px solid #1B2533; text-align: center; padding: 4px 3px; }
+  table.sheet th { background: #F1F4F8; color: #1B2533; font-size: 10.5px; }
+  table.sheet td { height: 30px; font-size: 11px; }
+  table.sheet .mark { font-weight: 800; color: {{ company.accent_color or '#5048E5' }}; }
+  table.sheet td.text { text-align: start; }
+</style>
+<div class="sheet-head">
+  <div>اسم العميل:<b>{{ customer.name }}</b></div>
+  <div>الدور:<b>{{ doc.floor or "" }}</b></div>
+  <div>الموبايل:<b class="num">{{ customer.phone or "" }}</b></div>
+  <div>العنوان:<b>{{ doc.address or customer.address or "" }}</b></div>
+  <div></div>
+  <div>الفني:<b>{{ doc.technician or "" }}</b></div>
+</div>
+{% set ok = '<span class="mark">✓</span>' | safe %}
+{% if doc.kind == "shutter" %}
+<table class="sheet">
+  <tr><th colspan="2">رقم الوحدة</th><th>العرض</th><th>الارتفاع</th><th>طريقة التركيب</th><th>نوع الموتور</th><th>اللون</th><th>مكان الوحدة</th></tr>
+  {% for o in rows %}
+  <tr>
+    <td class="num">{{ o.position or "" }}</td><td>{{ o.model_code or "" }}</td>
+    <td class="num">{{ o.opening_width_mm | cm }}</td><td class="num">{{ o.opening_height_mm | cm }}</td>
+    <td>{{ o.installation_method or "" }}</td><td>{{ o.motor_type or "" }}</td><td>{{ o.color or "" }}</td>
+    <td>{{ o.location or "" }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% else %}
+<table class="sheet">
+  <tr>
+    <th colspan="2" rowspan="2">رقم الوحدة</th><th colspan="3">المساحة</th><th colspan="2">نوع الوحدة</th>
+    <th rowspan="2">اللون</th><th colspan="2">الزجاج</th><th rowspan="2">اللون</th><th colspan="4">السلك</th>
+    <th rowspan="2">نوع الغرفة</th><th rowspan="2">التطبيق</th>
+  </tr>
+  <tr>
+    <th>عرض</th><th>ارتفاع</th><th>ارتفاع كلي</th><th>جرار</th><th>مفصلي</th><th>سنجل</th><th>دبل</th>
+    <th>جرار</th><th>بليسيه</th><th>ض.ض</th><th>ثابت</th>
+  </tr>
+  {% for o in rows %}
+  <tr>
+    <td class="num">{{ o.position or "" }}</td><td>{{ o.model_code or "" }}</td>
+    <td class="num">{{ o.opening_width_mm | cm }}</td><td class="num">{{ o.opening_height_mm | cm }}</td>
+    <td class="num">{{ o.total_height_mm | cm }}</td>
+    <td>{{ ok if o.unit_kind == "sliding" }}</td><td>{{ ok if o.unit_kind == "hinged" }}</td>
+    <td>{{ o.color or "" }}</td>
+    <td>{{ ok if o.glass_layers == "single" }}</td><td>{{ ok if o.glass_layers == "double" }}</td>
+    <td>{{ o.glass_color or "" }}</td>
+    <td>{{ ok if o.screen_type == "sliding" }}</td><td>{{ ok if o.screen_type == "pleated" }}</td>
+    <td>{{ ok if o.screen_type == "hinged" }}</td><td>{{ ok if o.screen_type == "fixed" }}</td>
+    <td>{{ o.location or "" }}</td><td class="text">{{ o.application or "" }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% endif %}
+{% if doc.notes %}<div class="terms"><b>ملاحظات:</b> {{ doc.notes }}</div>{% endif %}
+<div class="small" style="margin-top:6px">المقاسات بالسنتيمتر · العرض قبل الارتفاع</div>
+{% endblock %}

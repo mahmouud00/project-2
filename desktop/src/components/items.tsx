@@ -108,7 +108,7 @@ export function ElementPieces({ pieces }: { pieces?: Piece[] }) {
 export type ItemDraft = {
   model_id?: string | null; location?: string; opening_width_mm?: string | null; opening_height_mm?: string | null;
   params?: Record<string, any>; color_code?: string | null; glass_material_code?: string | null; qty?: number | string;
-  manual_unit_price?: string | null; notes?: string;
+  manual_unit_price?: string | null; price_per_m2?: string | null; notes?: string;
 };
 
 export function ItemForm({ title, initial, onClose, onSave, withPrice, requireModel = true, extra }:
@@ -172,7 +172,12 @@ export function ItemForm({ title, initial, onClose, onSave, withPrice, requireMo
           <Field label="المكان"><TextIn value={d.location} onChange={(v) => setD((x) => ({ ...x, location: v }))} placeholder="صالة، مطبخ…" /></Field>
           <Field label="العدد"><NumIn value={String(d.qty ?? "")} onChange={(v) => setD((x) => ({ ...x, qty: v.replace(/\D/g, "") }))} /></Field>
           {withPrice && (
-            <Field label="سعر يدوي للوحدة" hint="سيبه فاضي عشان السعر يتحسب من قائمة الأسعار">
+            <Field label="سعر المتر" hint="المساحة (بحد أدنى) × سعر المتر. فاضي = حسب قائمة الأسعار">
+              <NumIn value={d.price_per_m2 ?? ""} onChange={(v) => setD((x) => ({ ...x, price_per_m2: v || null }))} />
+            </Field>
+          )}
+          {withPrice && !d.price_per_m2 && (
+            <Field label="أو سعر يدوي للوحدة" hint="سيبه فاضي عشان السعر يتحسب من قائمة الأسعار">
               <NumIn value={d.manual_unit_price ?? ""} onChange={(v) => setD((x) => ({ ...x, manual_unit_price: v || null }))} />
             </Field>
           )}

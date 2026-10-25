@@ -1,16 +1,16 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { api, type S } from "../api/client";
 import { useTitle, type PageProps } from "../lib/title";
 import { useAction, useLoad } from "../lib/hooks";
 import { useDefaultBranch, useSession } from "../state/session";
 import { useToast } from "../state/toast";
-import { Btn, Card, Chip, Confirm, Dim, ErrorBox, Field, Loading, Modal, Money, NumIn, PageHead, Pager, Select, Table, TextArea } from "../components/ui";
+import { Btn, Card, Chip, Confirm, ErrorBox, Field, Len, Loading, Modal, Money, NumIn, PageHead, Pager, Select, Table, TextArea } from "../components/ui";
 import { BranchName, BranchSelect, ColorName, CustomerName, CustomerPicker } from "../components/pickers";
 import { ItemForm, ParamLabels, type ItemDraft } from "../components/items";
 import { Drawing, MediaImg, PrintPreview } from "../components/media";
 import { QUOTE_STATUS, lookups } from "../lib/lookups";
 import { go } from "../lib/router";
-import { date, sumMoney } from "../lib/format";
+import { date, mulMoney, sumMoney } from "../lib/format";
 
 type Quote = S<"QuotationOut">;
 type Line = S<"app__modules__sales__router__LineOut">;
@@ -100,6 +100,7 @@ function QuotationDetail({ id }: { id: string }) {
   const q = useLoad(() => api.get<Quote>(`/quotations/${id}`), [id]);
   useTitle(q.data ? `عرض سعر ${q.data.number}` : "…", <a onClick={() => go("quotations")} style={{ cursor: "pointer" }}>عروض الأسعار</a>, [q.data?.number]);
   const [lineEdit, setLineEdit] = useState<Line | "new" | null>(null);
+  const [allPpm, setAllPpm] = useState(false);
   const [del, setDel] = useState<Line | null>(null);
   const [printing, setPrinting] = useState(false);
   const [toWo, setToWo] = useState(false);
@@ -113,7 +114,7 @@ function QuotationDetail({ id }: { id: string }) {
   const saveLine = (line: Line | null) => async (d: ItemDraft) => {
     const body = { location: d.location ?? "", model_id: d.model_id, opening_width_mm: d.opening_width_mm, opening_height_mm: d.opening_height_mm,
       params: d.params ?? {}, color_code: d.color_code || null, glass_material_code: d.glass_material_code || null,
-      qty: Number(d.qty), manual_unit_price: d.manual_unit_price || null, notes: d.notes ?? "" };
+      qty: Number(d.qty), manual_unit_price: d.manual_unit_price || null, price_per_m2: d.price_per_m2 || null, notes: d.notes ?? "" };
     const out = line
       ? await api.patch<Quote>(`/quotation-lines/${line.id}`, { ...body, version: line.version })
       : await api.post<Quote>(`/quotations/${id}/lines`, body);
@@ -128,6 +129,10 @@ function QuotationDetail({ id }: { id: string }) {
     q.set(await api.post<Quote>(`/quotations/${id}/recalculate`, { version: quote.version }));
     toast.ok("اتحسب العرض من جديد بآخر أسعار ومعادلات منشورة.");
   });
+  const setPpm = (line: Line, value: string | null) => run(async () => {
+    q.set(await api.patch<Quote>(`/quotation-lines/${line.id}`, { version: line.version, price_per_m2: value }));
+  });
+  const totalArea = sumMoney(lines.map((l) => mulMoney(l.billed_area_m2, l.qty)));
   const makeInvoice = () => run(async () => {
     const inv = await api.post<S<"InvoiceOut">>("/invoices", { quotation_id: id });
     go(`invoices/${inv.id}`);
@@ -157,26 +162,31 @@ function QuotationDetail({ id }: { id: string }) {
         </div>
       </Card>
 
-      <Card title={`البنود (${lines.length})`} flush actions={editable && <Btn kind="primary" small icon="plus" onClick={() => setLineEdit("new")}>إضافة بند</Btn>}>
+      <Card title={`البنود (${lines.length})`} flush actions={editable && <>
+        {lines.length > 0 && <Btn small icon="calc" onClick={() => setAllPpm(true)}>سعر متر لكل البنود</Btn>}
+        <Btn kind="primary" small icon="plus" onClick={() => setLineEdit("new")}>إضافة بند</Btn></>}>
         <Table rows={lines} empty="مفيش بنود. ضيف شباك أو باب." columns={[
-          { key: "p", label: "#", width: 36, render: (l) => <span className="num muted">{l.position}</span> },
-          { key: "img", label: "الشكل", width: 160, render: (l) => (
-            <div className="row" style={{ gap: 6 }}>
-              <MediaImg id={l.model_image_id} />
-              <Drawing elements={(l.calc as any)?.drawing} w={(l.calc as any)?.inputs?.width_mm} h={(l.calc as any)?.inputs?.height_mm} maxW={80} maxH={56} />
-            </div>) },
-          { key: "m", label: "الصنف", render: (l) => (
-            <div><b>{l.model_name}</b>{l.location && <span className="muted"> · {l.location}</span>}
-              <div className="small"><ColorName code={l.color_code} /> {l.glass_material_code && <span className="muted">· {l.glass_material_code}</span>}</div>
-              <ParamLabels modelId={l.model_id} values={l.params} />
-            </div>) },
-          { key: "s", label: "المقاس (عرض × ارتفاع)", render: (l) => (
-            <div><Dim w={l.opening_width_mm} h={l.opening_height_mm} />
-              <div className="muted small">تصنيع <Dim w={(l.calc as any)?.inputs?.width_mm} h={(l.calc as any)?.inputs?.height_mm} strong={false} /></div></div>) },
+          { key: "c", label: "رقم النموذج", render: (l) => <span className="code bold">{l.model_code}</span> },
+          { key: "w", label: "العرض", num: true, render: (l) => <Len mm={l.opening_width_mm} /> },
+          { key: "h", label: "الارتفاع", num: true, render: (l) => <Len mm={l.opening_height_mm} /> },
           { key: "q", label: "العدد", num: true, render: (l) => <span className="num">{l.qty}</span> },
-          { key: "u", label: "سعر الوحدة", num: true, render: (l) => <div><Money v={l.unit_price} />{l.manual_unit_price && <div className="small"><Chip color="amber">يدوي</Chip></div>}</div> },
-          { key: "t", label: "الإجمالي", num: true, render: (l) => <b><Money v={l.line_total} /></b> },
-          ...(editable ? [{ key: "a", label: "", width: 80, render: (l: Line) => (
+          { key: "a", label: "مساحة الفتحة", num: true, render: (l) => (
+            <div><span className="num">{mulMoney(l.billed_area_m2, "1")}</span>
+              {l.area_m2 !== l.billed_area_m2 && Number(l.area_m2) < Number(l.billed_area_m2) &&
+                <div className="faint small" title="أقل من الحد الأدنى للمساحة، فبتتحسب بالحد الأدنى">الفعلية <span className="num">{mulMoney(l.area_m2, "1")}</span></div>}</div>) },
+          { key: "ta", label: "المساحة الكلية", num: true, render: (l) => <b className="num">{mulMoney(l.billed_area_m2, l.qty)}</b> },
+          { key: "m", label: "نوع وشكل النموذج", render: (l) => (
+            <div className="row" style={{ gap: 8 }}>
+              <MediaImg id={l.model_image_id} />
+              <Drawing elements={(l.calc as any)?.drawing} w={(l.calc as any)?.inputs?.width_mm} h={(l.calc as any)?.inputs?.height_mm} maxW={70} maxH={52} />
+              <div><b>{l.model_name}</b>{l.location && <span className="muted"> · {l.location}</span>}
+                <div className="small"><ColorName code={l.color_code} /> {l.glass_material_code && <span className="muted">· {l.glass_material_code}</span>}</div>
+                <ParamLabels modelId={l.model_id} values={l.params} /></div>
+            </div>) },
+          { key: "p", label: "سعر المتر", width: 150, render: (l) => (
+            <PpmCell line={l} editable={editable} busy={busy} onSave={(v) => setPpm(l, v)} />) },
+          { key: "t", label: "التكلفة", num: true, render: (l) => <b><Money v={l.line_total} /></b> },
+          ...(editable ? [{ key: "x", label: "", width: 80, render: (l: Line) => (
             <div className="row" style={{ gap: 4 }}>
               <Btn small icon="edit" onClick={() => setLineEdit(l)} />
               <Btn small icon="trash" kind="danger" onClick={() => setDel(l)} />
@@ -191,6 +201,7 @@ function QuotationDetail({ id }: { id: string }) {
         </Card>
         <Card title="الإجمالي">
           <div className="totals" style={{ width: "100%" }}>
+            <div className="r"><span>إجمالي المساحة</span><span className="num">{totalArea} م²</span></div>
             <div className="r"><span>المجموع</span><Money v={sumMoney(lines.map((l) => l.line_total))} /></div>
             <div className="r"><span>الخصم</span><Money v={quote.discount_amount} /></div>
             <div className="r"><span>قبل الضريبة</span><Money v={quote.subtotal} /></div>
@@ -202,14 +213,64 @@ function QuotationDetail({ id }: { id: string }) {
       </div>
 
       {lineEdit && <ItemForm title={lineEdit === "new" ? "بند جديد" : "تعديل البند"} withPrice onClose={() => setLineEdit(null)}
-        initial={lineEdit === "new" ? undefined : { ...lineEdit, manual_unit_price: lineEdit.manual_unit_price }}
+        initial={lineEdit === "new" ? undefined : { ...lineEdit, manual_unit_price: lineEdit.manual_unit_price, price_per_m2: lineEdit.price_per_m2 }}
         onSave={saveLine(lineEdit === "new" ? null : lineEdit)} />}
       {del && <Confirm title="حذف البند" danger yes="حذف" busy={busy} onClose={() => setDel(null)} text={`هتحذف ${del.model_name} (${del.location || "بدون مكان"}).`}
         onYes={() => run(async () => { q.set(await api.del<Quote>(`/quotation-lines/${del.id}`)); setDel(null); })} />}
       {printing && <PrintPreview path={`/quotations/${id}/print`} title={`عرض سعر ${quote.number}`} onClose={() => setPrinting(false)} />}
+      {allPpm && <AllPricePerM2 quote={quote} onClose={() => setAllPpm(false)} onSaved={(x) => q.set(x)} />}
       {toWo && <ToWorkOrder quote={quote} onClose={() => setToWo(false)} />}
       {header && <QuoteHeader quote={quote} onClose={() => setHeader(false)} onSaved={(x) => q.set(x)} />}
     </div>
+  );
+}
+
+/** Price per m² typed for one line; the suggestion (cost + margin from the price list) under it. */
+function PpmCell({ line, editable, busy, onSave }: { line: Line; editable: boolean; busy: boolean; onSave: (v: string | null) => void }) {
+  const [v, setV] = useState(line.price_per_m2 ?? "");
+  useEffect(() => { setV(line.price_per_m2 ?? ""); }, [line.version, line.price_per_m2]);
+  const commit = () => {
+    const next = v.trim() === "" ? null : v.trim();
+    if ((next ?? "") !== (line.price_per_m2 ?? "")) onSave(next);
+  };
+  return (
+    <div className="col" style={{ gap: 2 }}>
+      {editable
+        ? <NumIn value={v} onChange={setV} onBlur={commit} onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+            placeholder={line.suggested_price_per_m2 ?? ""} disabled={busy} />
+        : line.price_per_m2 ? <Money v={line.price_per_m2} /> : <span className="faint">—</span>}
+      {line.suggested_price_per_m2 && (
+        <span className="small muted">مقترح <a style={{ cursor: editable ? "pointer" : "default" }} onClick={() => editable && onSave(line.suggested_price_per_m2!)}>
+          <Money v={line.suggested_price_per_m2} /></a></span>
+      )}
+      {line.price_per_m2 === null && line.manual_unit_price && <span className="small"><Chip color="amber">سعر وحدة يدوي</Chip></span>}
+    </div>
+  );
+}
+
+function AllPricePerM2({ quote, onClose, onSaved }: { quote: Quote; onClose: () => void; onSaved: (q: Quote) => void }) {
+  const toast = useToast();
+  const { busy, run } = useAction(toast.err);
+  const pricing = useLoad(() => quote.survey_id ? api.get<S<"SurveyPricing">>(`/surveys/${quote.survey_id}/pricing`, { price_list_id: quote.price_list_id }).catch(() => null)
+    : Promise.resolve(null), [quote.survey_id]);
+  const [v, setV] = useState("");
+  useEffect(() => { if (!v && pricing.data?.price_per_m2) setV(pricing.data.price_per_m2); }, [pricing.data]); // eslint-disable-line react-hooks/exhaustive-deps
+  const apply = (value: string | null) => run(async () => {
+    onSaved(await api.post<Quote>(`/quotations/${quote.id}/price-per-m2`, { version: quote.version, price_per_m2: value }));
+    toast.ok(value ? "اتطبق سعر المتر على كل البنود." : "رجعت أسعار البنود لقائمة الأسعار.");
+    onClose();
+  });
+  return (
+    <Modal title="سعر متر لكل البنود" onClose={onClose} footer={<>
+      <Btn kind="primary" busy={busy} disabled={!v.trim()} onClick={() => apply(v.trim())}>تطبيق على كل البنود</Btn>
+      <Btn busy={busy} onClick={() => apply(null)}>مسح سعر المتر من البنود</Btn>
+      <Btn onClick={onClose}>رجوع</Btn></>}>
+      <div className="col">
+        <Field label="سعر المتر" hint="كل بند = مساحة الفتحة (بحد أدنى المساحة المحددة في الإعدادات) × سعر المتر × العدد">
+          <NumIn value={v} onChange={setV} autoFocus /></Field>
+        {pricing.data?.price_per_m2 && <div className="notice info small">سعر المتر المقترح للمعاينة: <b><Money v={pricing.data.price_per_m2} /></b></div>}
+      </div>
+    </Modal>
   );
 }
 
