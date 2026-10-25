@@ -45,6 +45,14 @@ for cmd in commands:
     r = subprocess.run([exe, *cmd], cwd=cfg, env=env, capture_output=True, text=True, encoding="utf-8", errors="replace")
     assert r.returncode == 0, (cmd, r.stdout[-2000:], r.stderr[-3000:])
     print(cmd[0], "ok")
+import socket
+for _ in range(60):   # a stopped service must have released the port (never test an older server)
+    with socket.socket() as sock:
+        if sock.connect_ex(("127.0.0.1", a.port)) != 0:
+            break
+    time.sleep(1)
+else:
+    raise SystemExit(f"port {a.port} is still in use by another server")
 srv = subprocess.Popen([exe, "serve"], cwd=cfg, env=env, stdout=open(Path(cfg) / "smoke-serve.log", "w"), stderr=subprocess.STDOUT)
 B = f"http://127.0.0.1:{a.port}/api/v1"
 def call(method, path, body=None, token=None, raw=False):
@@ -57,6 +65,7 @@ try:
     for _ in range(60):
         try: call("GET", "/system/health"); break
         except Exception: time.sleep(1)
+    assert srv.poll() is None, f"serve exited with {srv.returncode}"
     tok = call("POST", "/auth/login", {"company_code": "DEMO", "username": "admin", "password": "Admin@12345", "device_key": "full-test"})["access_token"]
     checks = []
     def ok(name, fn):
