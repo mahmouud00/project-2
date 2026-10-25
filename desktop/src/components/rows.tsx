@@ -62,6 +62,8 @@ function Cell<T>({ col, value, onChange, readOnly }: { col: RowCol<T>; value: an
   const cls = "input" + (col.kind === "code" || col.kind === "expr" ? " code-in" : col.kind === "number" ? " num" : "");
   // names and formulas can be written in English or Arabic: the direction follows what is typed
   const dir = col.kind === "code" || col.kind === "expr" ? "auto" : col.kind === "number" ? "ltr" : undefined;
+  // a name is one word: a space typed in a name becomes "_" (عرض الضلفة -> عرض_الضلفة)
+  const clean = (v: string) => col.kind === "code" ? v.replace(/[\s\u00A0]+/g, "_") : v;
   return <input className={cls} dir={dir} value={value ?? ""} placeholder={col.placeholder}
-    readOnly={readOnly} onChange={(e) => onChange(e.target.value)} />;
+    readOnly={readOnly} onChange={(e) => onChange(clean(e.target.value))} />;
 }

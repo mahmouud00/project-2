@@ -214,9 +214,37 @@ export function errorText(e: unknown): string {
   const m = MESSAGES[e.code];
   if (m) return m;
   if (e.code === "VALIDATION_FAILED" && Array.isArray(e.details)) {
-    return "بيانات غير صحيحة: " + (e.details as any[]).map((d) => (d.loc ?? []).slice(1).join(".") + " " + (d.msg ?? "")).join("، ");
+    return "بيانات غير صحيحة: " + (e.details as any[]).map((d) => fieldName(d.loc ?? []) + ": " + validationText(d.msg ?? "")).join("، ");
   }
   return e.message || e.code;
+}
+
+const SECTIONS: Record<string, string> = {
+  params: "المتغيرات", formulas: "المعادلات", pieces: "القطع", glass: "الزجاج", accessories: "الإكسسوار",
+  validations: "التحقق", drawing: "الرسمة", constants: "الثوابت",
+};
+const FIELDS: Record<string, string> = {
+  key: "الاسم", name: "الاسم", label: "الوصف", expr: "المعادلة", length_expr: "معادلة الطول", qty_expr: "العدد",
+  width_expr: "معادلة العرض", height_expr: "معادلة الارتفاع", area_expr: "المساحة", condition: "الشرط",
+  material_code: "الخامة", code: "الكود", message: "الرسالة",
+};
+
+/** ["body", "definition", "formulas", 0, "key"] -> "المعادلات، سطر 1، الاسم" */
+function fieldName(loc: (string | number)[]): string {
+  const parts: string[] = [];
+  for (const p of loc.slice(1)) {
+    if (p === "definition") continue;
+    if (typeof p === "number") parts.push(`سطر ${p + 1}`);
+    else parts.push(SECTIONS[p] ?? FIELDS[p] ?? p);
+  }
+  return parts.join("، ");
+}
+
+function validationText(msg: string): string {
+  if (msg.includes("must be an identifier"))
+    return "الاسم لازم يبقى كلمة واحدة: حروف (عربي أو إنجليزي) وأرقام و _ من غير مسافات، ومايبدأش برقم (مثلًا عرض_الضلفة)";
+  if (msg.includes("Field required")) return "مطلوب";
+  return msg;
 }
 
 const MESSAGES: Record<string, string> = {
