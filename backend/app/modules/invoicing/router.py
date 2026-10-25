@@ -17,6 +17,7 @@ from app.modules.crm.models import Customer
 from app.modules.crm.router import branch_scope, get_or_404
 from app.modules.invoicing.models import Invoice, InvoiceLine
 from app.modules.library.models import ProductModel
+from app.modules.library.service import model_image
 from app.modules.org.models import Branch
 from app.modules.org.settings import get_company_settings
 from app.modules.production.models import WorkOrder, WorkOrderItem
@@ -162,7 +163,7 @@ def _line_from_calc(position, *, location, model_id, opening_w, opening_h, color
     model = db.get(ProductModel, model_id)
     inputs = (calc or {}).get("inputs", {})
     line = InvoiceLine(position=position, kind="product", location=location, model_id=model_id,
-                       model_name=model.name if model else "", model_image_id=model.image_id if model else None,
+                       model_name=model.name if model else "", model_image_id=model_image(model, color),
                        description=model.name if model else "", opening_width_mm=opening_w,
                        opening_height_mm=opening_h,
                        width_mm=Decimal(inputs["width_mm"]) if inputs.get("width_mm") else None,
@@ -267,7 +268,7 @@ def _manual_line(db, inv, l: LineIn, position: int) -> InvoiceLine:
     model = db.get(ProductModel, l.model_id) if l.model_id else None
     line = InvoiceLine(invoice_id=inv.id, position=position, kind=l.kind, description=l.description or
                        (model.name if model else ""), location=l.location, model_id=l.model_id,
-                       model_name=model.name if model else "", model_image_id=model.image_id if model else None,
+                       model_name=model.name if model else "", model_image_id=model_image(model, l.color_code),
                        opening_width_mm=l.opening_width_mm, opening_height_mm=l.opening_height_mm,
                        color_code=l.color_code, glass_material_code=l.glass_material_code, qty=l.qty,
                        unit_price=l.unit_price, discount_pct=l.discount_pct)

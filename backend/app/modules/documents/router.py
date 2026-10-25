@@ -16,7 +16,7 @@ from app.modules.crm.models import Customer
 from app.modules.crm.router import get_or_404
 from app.modules.documents.render import company_context, data_uri, render
 from app.modules.library.models import Color, ProductModel
-from app.modules.library.service import find_material
+from app.modules.library.service import find_material, model_image
 from app.tenancy.context import require
 
 router = APIRouter(tags=["documents"])
@@ -143,7 +143,7 @@ def print_quotation(quote_id: uuid.UUID, dc=Depends(require("quotes.read"))):
                       "opening_width_mm": l.opening_width_mm, "opening_height_mm": l.opening_height_mm,
                       "total_height_mm": l.total_height_mm, "width_mm": inputs.get("width_mm"), "height_mm": inputs.get("height_mm"),
                       "drawing": (l.calc or {}).get("drawing", []), "qty": l.qty, "unit_price": l.unit_price,
-                      "line_total": l.line_total, "image": look.image(model.image_id if model else None),
+                      "line_total": l.line_total, "image": look.image(model_image(model, l.color_code)),
                       "color_name": look.colors.get(l.color_code or "", l.color_code),
                       "glass_name": look.glass(l.glass_material_code), "param_labels": look.params(l.model_id, l.params)})
     customer = db.get(Customer, q.customer_id)

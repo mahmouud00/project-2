@@ -240,3 +240,12 @@ def calculate_model(db: Session, ctx: RequestContext, model_id: uuid.UUID, *, op
         "overrides": {k: str(v) for k, v in overrides.items()},
     }
     return out
+
+
+def model_image(model, color_code: str | None):
+    """The model's picture in this colour when there is one, else its main picture."""
+    if model is None:
+        return None
+    by_color = model.color_images or {}
+    chosen = by_color.get(color_code) if color_code else None
+    return uuid.UUID(chosen) if chosen else model.image_id

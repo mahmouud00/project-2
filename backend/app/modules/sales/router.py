@@ -16,7 +16,7 @@ from app.db.base import utcnow
 from app.modules.crm.models import Customer, SiteSurvey, SurveyOpening
 from app.modules.crm.router import branch_scope, get_or_404
 from app.modules.library.models import ProductModel
-from app.modules.library.service import calculate_model
+from app.modules.library.service import calculate_model, model_image
 from app.modules.org.models import Branch
 from app.modules.org.settings import get_company_settings
 from app.modules.sales.models import PriceList, PriceListItem, Quotation, QuotationLine
@@ -242,7 +242,8 @@ def _quote_out(db, q: Quotation, with_calc: bool = True) -> QuotationOut:
     for line in db.scalars(select(QuotationLine).where(QuotationLine.quotation_id == q.id).order_by(*LINE_ORDER)):
         lo = LineOut.model_validate(line)
         model = db.get(ProductModel, line.model_id)
-        lo.model_name, lo.model_code, lo.model_image_id = (model.name, model.code, model.image_id) if model else ("", "", None)
+        lo.model_name, lo.model_code = (model.name, model.code) if model else ("", "")
+        lo.model_image_id = model_image(model, line.color_code)
         suggested = (line.cost_breakdown or {}).get("suggested_unit_price")
         if suggested is not None:
             lo.suggested_unit_price = Decimal(suggested)

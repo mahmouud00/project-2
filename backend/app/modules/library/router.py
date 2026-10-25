@@ -353,7 +353,8 @@ def create_model(body: S.ModelIn, dc=Depends(get_db_and_ctx)):
     if db.scalar(select(ProductModel).where(ProductModel.system_id == system.id, ProductModel.code == body.code)):
         raise Conflict("Model code exists", code="DUPLICATE_CODE")
     _check_materials_exist(db, body.definition)
-    model = ProductModel(**body.model_dump(exclude={"definition"}),
+    model = ProductModel(**body.model_dump(exclude={"definition", "color_images"}),
+                         color_images=body.model_dump(mode="json")["color_images"],
                          definition=body.definition.model_dump(mode="json", exclude_none=True))
     db.add(model)
     db.flush()
@@ -379,6 +380,10 @@ def update_model(model_id: uuid.UUID, body: S.ModelUpdate, dc=Depends(get_db_and
     check_version(model, body.version)
     before = snapshot(model)
     data = body.model_dump(exclude_unset=True, exclude={"version", "definition"})
+    if data.get("color_images") is not None:
+        data["color_images"] = {k: str(v) for k, v in data["color_images"].items()}
+    elif "color_images" in data:
+        data["color_images"] = {}
     apply_changes(model, data)
     if body.definition is not None:
         _check_materials_exist(db, body.definition)

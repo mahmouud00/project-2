@@ -12,7 +12,7 @@ import { ElementPieces, Issues, ParamFields, cleanParams, type Calc } from "../c
 import { useAuthor } from "./Library";
 import { go, setQuery } from "../lib/router";
 import { clean } from "../lib/format";
-import { invalidate } from "../lib/lookups";
+import { invalidate, lookups } from "../lib/lookups";
 
 type Model = S<"ModelOut">;
 type Def = Required<S<"Definition">>;
@@ -44,14 +44,15 @@ export default function ModelEditor({ systemId, modelId, tab }: { systemId: stri
   const editable = canEdit(m);
   const unit = system.data.unit === "cm" ? "سم" : "مم";
   const dirty = JSON.stringify(def) !== JSON.stringify(normalize(m.definition)) ||
-    ["name", "category", "description", "image_id", "status", "sort", "is_active"].some((k) => (info as any)[k] !== (m as any)[k]);
+    ["name", "category", "description", "image_id", "status", "sort", "is_active"].some((k) => (info as any)[k] !== (m as any)[k]) ||
+    JSON.stringify(info.color_images ?? {}) !== JSON.stringify(m.color_images ?? {});
   const matOptions = [...(materials.data ?? []), ...(allMaterials.data ?? []).filter((x) => x.system_id !== systemId)]
     .map((x) => ({ value: x.code, label: `${x.code} · ${x.name}` }));
   const names = [...(constants.data ?? []).map((c) => c.name), ...def.params.map((p) => p.name), ...def.formulas.map((f) => f.key)];
 
   const save = () => run(async () => {
     const out = await api.patch<Model>(`/library/models/${modelId}`, { version: m.version, name: info.name, category: info.category,
-      description: info.description, image_id: info.image_id, status: info.status, sort: Number(info.sort ?? 0), is_active: info.is_active, definition: def });
+      description: info.description, image_id: info.image_id, color_images: info.color_images ?? {}, status: info.status, sort: Number(info.sort ?? 0), is_active: info.is_active, definition: def });
     model.set(out);
     invalidate("models");
     const chk = await api.post<{ errors: any[] }>(`/library/models/${modelId}/check`);
@@ -212,6 +213,37 @@ function InfoTab({ info, setInfo, editable }: { info: Partial<Model>; setInfo: (
         <Field label="نشط"><Select value={info.is_active ? "1" : "0"} onChange={(v) => set("is_active")(v === "1")} disabled={!editable}
           options={[{ value: "1", label: "نشط" }, { value: "0", label: "متوقف" }]} /></Field>
         <Field label="وصف" className="span-all"><TextArea value={info.description} onChange={set("description")} disabled={!editable} /></Field>
+        <div className="span-all"><ColorImages value={(info.color_images ?? {}) as Record<string, string>} onChange={set("color_images")} editable={editable} /></div>
+      </div>
+    </div>
+  );
+}
+
+/** The model's picture in each colour: the quotation, invoice and work order show the picture of the chosen colour. */
+function ColorImages({ value, onChange, editable }: { value: Record<string, string>; onChange: (v: Record<string, string>) => void; editable: boolean }) {
+  const toast = useToast();
+  const { busy, run } = useAction(toast.err);
+  const colors = useLoad(() => lookups.colors(), []);
+  const active = (colors.data ?? []).filter((c) => c.is_active);
+  return (
+    <div className="card" style={{ padding: 12 }}>
+      <b>صورة لكل لون</b>
+      <p className="muted small" style={{ margin: "4px 0 10px" }}>لما البياع يختار لون، الصورة بتاعته هي اللي تظهر في العرض والفاتورة وأمر التصنيع. اللون اللي ملوش صورة بياخد صورة النموذج الأساسية.</p>
+      {!active.length && <div className="faint small">مفيش ألوان. ضيف الألوان من مكتبة القطاعات ← الألوان.</div>}
+      <div className="row wrap" style={{ gap: 12 }}>
+        {active.map((c) => (
+          <div key={c.code} className="col" style={{ width: 120, gap: 6, alignItems: "center" }}>
+            <MediaImg id={value[c.code] ?? null} className="thumb" />
+            <span className="row small" style={{ gap: 5 }}>{c.hex && <span className="swatch" style={{ background: c.hex }} />}{c.name}</span>
+            {editable && (
+              <div className="row" style={{ gap: 4 }}>
+                <FilePick accept="image/png,image/jpeg,image/webp" busy={busy} icon="upload"
+                  onFile={(f) => run(async () => onChange({ ...value, [c.code]: (await api.upload<S<"MediaOut">>("/library/media", f)).id }))}>صورة</FilePick>
+                {value[c.code] && <Btn small icon="trash" kind="danger" onClick={() => { const v = { ...value }; delete v[c.code]; onChange(v); }} />}
+              </div>
+            )}
+          </div>
+        ))}
       </div>
     </div>
   );

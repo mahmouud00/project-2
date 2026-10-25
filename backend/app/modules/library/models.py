@@ -128,6 +128,8 @@ class ProductModel(Base, LibraryEntity):
     category: Mapped[str] = mapped_column(String(30), default="window")
     description: Mapped[str] = mapped_column(Text, default="")
     image_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("media_files.id"), nullable=True)
+    # the model's picture in each colour {colour code: media id}; image_id is used for other colours
+    color_images: Mapped[dict] = mapped_column(JSONB, default=dict, server_default="{}")
     status: Mapped[str] = mapped_column(String(10), default="trial")
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     sort: Mapped[int] = mapped_column(Integer, default=0)

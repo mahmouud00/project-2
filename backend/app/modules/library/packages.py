@@ -103,6 +103,7 @@ def export_package(db: Session, system_codes: list[str] | None = None, notes: st
         for m in models:
             if m.image_id:
                 media_ids.add(m.image_id)
+            media_ids |= {uuid.UUID(v) for v in (m.color_images or {}).values()}
             mods.append({"row": _row(m), "tests": [_row(t) for t in db.scalars(
                 select(ModelTestCase).where(ModelTestCase.model_id == m.id))]})
         out_systems.append({

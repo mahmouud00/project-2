@@ -203,7 +203,7 @@ export function ItemForm({ title, initial, onClose, onSave, withPrice, requireMo
         <div className="col">
           <div className="card" style={{ padding: 14 }}>
             <div className="row top">
-              <MediaImg id={model?.image_id} className="thumb lg" />
+              <MediaImg id={(model?.color_images as Record<string, string> | undefined)?.[d.color_code ?? ""] ?? model?.image_id} className="thumb lg" />
               <div className="grow">
                 <b>{model?.name ?? "اختار النموذج"}</b>
                 <div className="muted small">{model?.system.name}</div>

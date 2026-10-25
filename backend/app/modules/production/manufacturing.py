@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from app.engine.compute import _jsonify
 from app.engine.cutting import optimise
 from app.modules.library.models import FormulaSetVersion, ProductModel
+from app.modules.library.service import model_image
 from app.modules.org.settings import get_company_settings
 from app.modules.production.models import WorkOrder, WorkOrderItem
 from app.modules.sales.pricing import CostResolver, money
@@ -68,7 +69,7 @@ def generate_outputs(db: Session, wo: WorkOrder) -> dict:
         model = db.get(ProductModel, item.model_id)
         drawings.append({"item": item.position, "location": item.location, "qty": item.qty,
                          "model_code": model.code if model else None, "model_name": model.name if model else None,
-                         "model_image_id": str(model.image_id) if model and model.image_id else None,
+                         "model_image_id": str(img) if (img := model_image(model, item.color_code)) else None,
                          "opening_width_mm": str(item.opening_width_mm), "opening_height_mm": str(item.opening_height_mm),
                          "width_mm": calc.get("inputs", {}).get("width_mm"),
                          "height_mm": calc.get("inputs", {}).get("height_mm"),

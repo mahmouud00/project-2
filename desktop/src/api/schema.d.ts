@@ -3138,6 +3138,13 @@ export interface components {
             /** Image Id */
             image_id?: string | null;
             /**
+             * Color Images
+             * @default {}
+             */
+            color_images: {
+                [key: string]: string;
+            };
+            /**
              * Status
              * @default trial
              * @enum {string}
@@ -3192,6 +3199,13 @@ export interface components {
             description: string;
             /** Image Id */
             image_id: string | null;
+            /**
+             * Color Images
+             * @default {}
+             */
+            color_images: {
+                [key: string]: unknown;
+            };
             /** Status */
             status: string;
             /** Sort */
@@ -3215,6 +3229,10 @@ export interface components {
             description?: string | null;
             /** Image Id */
             image_id?: string | null;
+            /** Color Images */
+            color_images?: {
+                [key: string]: string;
+            } | null;
             /** Status */
             status?: ("approved" | "trial") | null;
             /** Sort */

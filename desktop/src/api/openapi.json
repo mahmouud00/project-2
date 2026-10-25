@@ -10886,6 +10886,15 @@
       ],
       "title": "Image Id"
      },
+     "color_images": {
+      "additionalProperties": {
+       "type": "string",
+       "format": "uuid"
+      },
+      "type": "object",
+      "title": "Color Images",
+      "default": {}
+     },
      "status": {
       "type": "string",
       "enum": [
@@ -10994,6 +11003,12 @@
       ],
       "title": "Image Id"
      },
+     "color_images": {
+      "additionalProperties": true,
+      "type": "object",
+      "title": "Color Images",
+      "default": {}
+     },
      "status": {
       "type": "string",
       "title": "Status"
@@ -11080,6 +11095,21 @@
        }
       ],
       "title": "Image Id"
+     },
+     "color_images": {
+      "anyOf": [
+       {
+        "additionalProperties": {
+         "type": "string",
+         "format": "uuid"
+        },
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Color Images"
      },
      "status": {
       "anyOf": [

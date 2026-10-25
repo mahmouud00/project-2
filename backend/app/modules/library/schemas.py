@@ -288,6 +288,7 @@ class ModelIn(BaseModel):
     category: str = "window"
     description: str = ""
     image_id: uuid.UUID | None = None
+    color_images: dict[str, uuid.UUID] = {}      # colour code -> picture of the model in that colour
     status: Status = "trial"
     sort: int = 0
     definition: Definition = Definition()
@@ -298,6 +299,7 @@ class ModelUpdate(VersionedUpdate):
     category: str | None = None
     description: str | None = None
     image_id: uuid.UUID | None = None
+    color_images: dict[str, uuid.UUID] | None = None
     status: Status | None = None
     sort: int | None = None
     is_active: bool | None = None
@@ -312,6 +314,7 @@ class ModelOut(Record):
     category: str
     description: str
     image_id: uuid.UUID | None
+    color_images: dict = {}
     status: str
     sort: int
     is_active: bool
