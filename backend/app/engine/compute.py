@@ -24,10 +24,11 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from decimal import ROUND_CEILING, ROUND_FLOOR, ROUND_HALF_UP, Decimal
 
-from app.engine.expr import Expression, ExprError, compile_expr, to_decimal
+from app.engine.expr import NAME_ALIASES, Expression, ExprError, compile_expr, to_decimal
 
 UNIT_FACTOR = {"mm": Decimal(1), "cm": Decimal(10), "m": Decimal(1000)}
-RESERVED = {"opening_width", "opening_height", "width", "height"}
+# the Arabic spellings (العرض، الارتفاع، ...) are reserved too, so no parameter or formula can shadow them
+RESERVED = {"opening_width", "opening_height", "width", "height"} | set(NAME_ALIASES)
 REQUIRED_CONSTANTS = ("install_clearance_width", "install_clearance_height")
 ROUNDING = {"half_up": ROUND_HALF_UP, "up": ROUND_CEILING, "down": ROUND_FLOOR}
 LENGTH_UNITS = {"length"}

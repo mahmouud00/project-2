@@ -60,6 +60,8 @@ function Cell<T>({ col, value, onChange, readOnly }: { col: RowCol<T>; value: an
     );
   }
   const cls = "input" + (col.kind === "code" || col.kind === "expr" ? " code-in" : col.kind === "number" ? " num" : "");
-  return <input className={cls} dir={col.kind === "text" || !col.kind ? undefined : "ltr"} value={value ?? ""} placeholder={col.placeholder}
+  // names and formulas can be written in English or Arabic: the direction follows what is typed
+  const dir = col.kind === "code" || col.kind === "expr" ? "auto" : col.kind === "number" ? "ltr" : undefined;
+  return <input className={cls} dir={dir} value={value ?? ""} placeholder={col.placeholder}
     readOnly={readOnly} onChange={(e) => onChange(e.target.value)} />;
 }

@@ -95,7 +95,7 @@ export default function ModelEditor({ systemId, modelId, tab }: { systemId: stri
         <div className="card-b">
           {tab === "info" && <InfoTab info={info} setInfo={setInfo} editable={editable} />}
           {tab === "params" && <>
-            <p className="def-help">المتغيرات اللي البياع بيختارها مع المقاس (عدد الضلف، بسلك، نوع الزجاج…). الاسم بيتكتب في المعادلات.</p>
+            <p className="def-help">المتغيرات اللي البياع بيختارها مع المقاس (عدد الضلف، بسلك، نوع الزجاج…). الاسم بيتكتب في المعادلات، بالعربي أو بالإنجليزي، كلمة واحدة من غير مسافات (استخدم <code>_</code>)، مثلًا <code>عدد_الضلف</code>.</p>
             <RowsEditor rows={def.params} onChange={set("params")} readOnly={!editable} addLabel="متغير"
               blank={() => ({ name: "", label: "", type: "number" as const, default: null, min: null, max: null, choices: [] })} columns={[
                 { key: "name", label: "الاسم", kind: "code", width: 140 },
@@ -115,7 +115,7 @@ export default function ModelEditor({ systemId, modelId, tab }: { systemId: stri
               ]} />
           </>}
           {tab === "formulas" && <>
-            <p className="def-help">قيم وسيطة بتتحسب بالترتيب حسب الاعتماد، وتتكتب باسمها في القطع (زي <code>sash_w = (width + overlap) / leaf_count</code>). الدوال المتاحة: <code>min max abs round ceil floor round_to ceil_to floor_to clamp lookup if</code>، وللأقواس والأرج: <code>pi sqrt sin cos tan asin acos atan rad deg arc_length segment_area arc_radius arc_angle</code>.</p>
+            <p className="def-help">قيم وسيطة بتتحسب بالترتيب حسب الاعتماد، وتتكتب باسمها في القطع (زي <code>sash_w = (width + overlap) / leaf_count</code>). تقدر تكتبها <b>بالعربي</b>: <code>عرض_الضلفة = (العرض + ركوب_الضلف) ÷ عدد_الضلف</code>. الأسامي الجاهزة: <code>العرض</code> و<code>الارتفاع</code> (مقاس التصنيع) و<code>عرض_الفتحة</code> و<code>ارتفاع_الفتحة</code> و<code>خلوص_العرض</code> و<code>خلوص_الارتفاع</code>. الكلمات: <code>و</code> <code>أو</code> <code>مش</code> <code>صح</code> <code>خطأ</code>. الدوال: <code>لو(شرط، لو صح، لو غلط)</code> <code>أصغر</code> <code>أكبر</code> <code>مطلق</code> <code>تقريب</code> <code>تقريب_لأعلى</code> <code>تقريب_لأسفل</code> <code>تقريب_لخطوة</code> <code>لأعلى_لخطوة</code> <code>لأسفل_لخطوة</code> <code>حصر</code> <code>جدول</code> <code>جدول_أقل</code>، وللأرج <code>طول_القوس(العرض، الارتفاع)</code> <code>مساحة_القطعة</code> <code>باي()</code> <code>جذر</code>. ينفع كمان الإنجليزي (<code>width</code>، <code>min</code>، <code>if</code>…) والأرقام العربي و<code>×</code> و<code>÷</code>.</p>
             <RowsEditor rows={def.formulas} onChange={set("formulas")} readOnly={!editable} addLabel="معادلة" blank={() => ({ key: "", label: "", expr: "", unit: "length" as const })} columns={[
               { key: "key", label: "الاسم", kind: "code", width: 150 },
               { key: "label", label: "الوصف", width: 200 },

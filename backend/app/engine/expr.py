@@ -43,6 +43,25 @@ _TOKEN = re.compile(r"""
 
 KEYWORDS = {"and", "or", "not", "true", "false"}
 
+# ---- Arabic spelling: the same language can be written in Arabic (digits, operators, words, functions,
+# built-in names). Each one maps to its English form, so both spellings give exactly the same result.
+_ARABIC_CHARS = str.maketrans("٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹٫،×÷٪", "01234567890123456789.,*/%")   # one char -> one char
+KEYWORD_ALIASES = {"و": "and", "أو": "or", "او": "or", "ليس": "not", "مش": "not", "صح": "true", "خطأ": "false",
+                   "خطا": "false"}
+FUNCTION_ALIASES = {
+    "لو": "if", "اذا": "if", "إذا": "if",
+    "أصغر": "min", "اصغر": "min", "أكبر": "max", "اكبر": "max", "مطلق": "abs",
+    "تقريب": "round", "تقريب_لأعلى": "ceil", "تقريب_لاعلى": "ceil", "تقريب_لأسفل": "floor", "تقريب_لاسفل": "floor",
+    "تقريب_لخطوة": "round_to", "لأعلى_لخطوة": "ceil_to", "لاعلى_لخطوة": "ceil_to", "لأسفل_لخطوة": "floor_to",
+    "لاسفل_لخطوة": "floor_to", "جدول": "lookup", "جدول_أقل": "lookup_lt", "جدول_اقل": "lookup_lt", "حصر": "clamp",
+    "ط": "pi", "باي": "pi", "جذر": "sqrt", "جا": "sin", "جتا": "cos", "ظا": "tan", "جا_عكسي": "asin",
+    "جتا_عكسي": "acos", "ظا_عكسي": "atan", "راديان": "rad", "درجات": "deg", "طول_القوس": "arc_length",
+    "مساحة_القطعة": "segment_area", "نصف_قطر_القوس": "arc_radius", "زاوية_القوس": "arc_angle",
+}
+NAME_ALIASES = {"العرض": "width", "الارتفاع": "height", "عرض_الفتحة": "opening_width",
+                "ارتفاع_الفتحة": "opening_height", "خلوص_العرض": "install_clearance_width",
+                "خلوص_الارتفاع": "install_clearance_height"}
+
 
 @dataclass(frozen=True)
 class Token:
@@ -56,6 +75,7 @@ def tokenize(text: str) -> list[Token]:
         raise ExprError("Expression must be text")
     if len(text) > MAX_LENGTH:
         raise ExprError("Expression too long", code="EXPR_TOO_LONG")
+    text = text.translate(_ARABIC_CHARS)
     tokens, pos = [], 0
     while pos < len(text):
         m = _TOKEN.match(text, pos)
@@ -64,6 +84,8 @@ def tokenize(text: str) -> list[Token]:
         kind = m.lastgroup
         if kind != "ws":
             value = m.group(kind)
+            if kind == "name" and value in KEYWORD_ALIASES:
+                value = KEYWORD_ALIASES[value]
             if kind == "name" and value in KEYWORDS:
                 kind = "kw"
             tokens.append(Token(kind, value, pos))
@@ -307,6 +329,7 @@ class _Parser:
             return self.node("bool", tok.value == "true", depth=d)
         if tok.kind == "name":
             if self.peek().value == "(":
+                tok = Token(tok.kind, FUNCTION_ALIASES.get(tok.value, tok.value), tok.pos)
                 self.take()
                 args = []
                 if self.peek().value != ")":
@@ -317,7 +340,7 @@ class _Parser:
                 self.expect(")")
                 self._check_call(tok, len(args))
                 return self.node("call", tok.value, tuple(args), depth=d)
-            return self.node("name", tok.value, depth=d)
+            return self.node("name", NAME_ALIASES.get(tok.value, tok.value), depth=d)
         if tok.value == "(":
             inner = self.or_(d + 1)
             self.expect(")")
