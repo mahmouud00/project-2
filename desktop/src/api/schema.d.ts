@@ -5059,6 +5059,8 @@ export interface components {
             opening_width_mm: number | string;
             /** Opening Height Mm */
             opening_height_mm: number | string;
+            /** Total Height Mm */
+            total_height_mm?: number | string | null;
             /**
              * Params
              * @default {}
@@ -5116,6 +5118,8 @@ export interface components {
             opening_width_mm: string;
             /** Opening Height Mm */
             opening_height_mm: string;
+            /** Total Height Mm */
+            total_height_mm: string | null;
             /** Params */
             params: {
                 [key: string]: unknown;
@@ -5177,6 +5181,8 @@ export interface components {
             opening_width_mm?: number | string | null;
             /** Opening Height Mm */
             opening_height_mm?: number | string | null;
+            /** Total Height Mm */
+            total_height_mm?: number | string | null;
             /** Params */
             params?: {
                 [key: string]: unknown;

@@ -130,6 +130,7 @@ class LineIn(BaseModel):
     model_id: uuid.UUID
     opening_width_mm: Decimal = Field(gt=0)
     opening_height_mm: Decimal = Field(gt=0)
+    total_height_mm: Decimal | None = Field(None, gt=0, max_digits=12, decimal_places=2)
     params: dict = {}
     color_code: str | None = None
     glass_material_code: str | None = None
@@ -143,6 +144,7 @@ class LineUpdate(VersionedUpdate):
     location: str | None = None
     opening_width_mm: Decimal | None = Field(None, gt=0)
     opening_height_mm: Decimal | None = Field(None, gt=0)
+    total_height_mm: Decimal | None = Field(None, gt=0, max_digits=12, decimal_places=2)
     params: dict | None = None
     color_code: str | None = None
     glass_material_code: str | None = None
@@ -159,6 +161,7 @@ class LineOut(Record):
     formula_set_version_id: uuid.UUID
     opening_width_mm: Decimal
     opening_height_mm: Decimal
+    total_height_mm: Decimal | None
     params: dict
     color_code: str | None
     glass_material_code: str | None
@@ -260,7 +263,7 @@ class Pricer:
         return max(area, self.settings.min_billed_area_m2)
 
     def price(self, model_id, width_mm: Decimal, height_mm: Decimal, params: dict, color: str | None,
-              glass: str | None, location: str = "") -> dict:
+              glass: str | None, location: str = "", total_height_mm: Decimal | None = None) -> dict:
         calc = calculate_model(self.db, self.ctx, model_id, opening_width_mm=width_mm, opening_height_mm=height_mm,
                                params=params)
         errors = [i for i in calc["issues"] if i["level"] == "error"]
@@ -269,14 +272,15 @@ class Pricer:
                                    details={"location": location, "issues": errors})
         breakdown = cost_of_calc(self.resolver, calc, color, glass, self.settings.quote_waste_pct)
         model = self.db.get(ProductModel, model_id)
-        area = (width_mm * height_mm / Decimal(1_000_000)).quantize(Decimal("0.0001"))
+        # the unit is made at the opening size; its area for the price uses the total height when given
+        area = (width_mm * (total_height_mm or height_mm) / Decimal(1_000_000)).quantize(Decimal("0.0001"))
         return {"calc": calc, "breakdown": breakdown, "area": area, "billed_area": self.billed_area(area),
                 "suggested": unit_price(self.pl, self.items, model.id, model.system_id, area, breakdown["total"])}
 
 
 def _price_line(db, ctx, q: Quotation, line: QuotationLine, pricer: Pricer) -> None:
     r = pricer.price(line.model_id, line.opening_width_mm, line.opening_height_mm, line.params, line.color_code,
-                     line.glass_material_code, line.location)
+                     line.glass_material_code, line.location, line.total_height_mm)
     calc, breakdown = r["calc"], r["breakdown"]
     line.formula_set_version_id = uuid.UUID(calc["meta"]["formula_set_version_id"])
     line.calc = calc
@@ -352,6 +356,7 @@ def create_quotation(body: QuotationIn, dc=Depends(require("quotes.write"))):
                 if o.model_id is None:
                     raise ValidationFailed(f"Opening '{o.location}' has no model", code="OPENING_WITHOUT_MODEL")
                 lines.append(LineIn(location=o.location, model_id=o.model_id, opening_width_mm=o.opening_width_mm,
+                                    total_height_mm=o.total_height_mm,
                                     opening_height_mm=o.opening_height_mm, params=o.params, color_code=o.color_code,
                                     glass_material_code=o.glass_material_code, qty=o.qty, notes=o.notes))
     q = Quotation(number=next_number(db, "quote", "QT", branch.code), customer_id=customer.id, branch_id=branch.id,
@@ -552,7 +557,7 @@ def survey_pricing(survey_id: uuid.UUID, price_list_id: uuid.UUID | None = None,
         else:
             try:
                 r = pricer.price(o.model_id, o.opening_width_mm, o.opening_height_mm, o.params, o.color_code,
-                                 o.glass_material_code, o.location)
+                                 o.glass_material_code, o.location, o.total_height_mm)
             except AppError as e:
                 row.error = e.code
             else:

@@ -101,7 +101,7 @@ def test_upgrade_from_old_revision_keeps_data():
     assert after["site_surveys"][str(ids["sv"])]["kind"] == "window"
     assert after["survey_openings"][str(ids["op"])]["application"] == ""
     line = after["quotation_lines"][str(ids["ql"])]
-    assert line["price_per_m2"] is None and float(line["billed_area_m2"]) == 0.48 and float(line["line_total"]) == 300
+    assert line["price_per_m2"] is None and line["total_height_mm"] is None and float(line["billed_area_m2"]) == 0.48 and float(line["line_total"]) == 300
     for table, rows in {**before, **before2, **before3, **before4}.items():
         assert set(after[table]) == set(rows), f"rows lost or added in {table}"
         for row_id, old in rows.items():

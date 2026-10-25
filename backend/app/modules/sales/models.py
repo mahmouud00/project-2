@@ -80,6 +80,8 @@ class QuotationLine(Base, Entity):
     formula_set_version_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("formula_set_versions.id"))
     opening_width_mm: Mapped[Decimal] = mapped_column(Numeric(12, 2))
     opening_height_mm: Mapped[Decimal] = mapped_column(Numeric(12, 2))
+    # ارتفاع كلي (from the survey): when set, the area for the price is width × total height
+    total_height_mm: Mapped[Decimal | None] = mapped_column(Numeric(12, 2), nullable=True)
     params: Mapped[dict] = mapped_column(JSONB, default=dict)
     color_code: Mapped[str | None] = mapped_column(String(20), nullable=True)
     glass_material_code: Mapped[str | None] = mapped_column(String(60), nullable=True)

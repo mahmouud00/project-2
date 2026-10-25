@@ -4,7 +4,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { api, errorText, type S } from "../api/client";
 import { lookups } from "../lib/lookups";
 import { useDebounced, useLoad } from "../lib/hooks";
-import { Btn, Check, Dim, Field, Len, Modal, NumIn, Select, SizeIn, TextIn, Chip } from "./ui";
+import { Btn, Check, Dim, Field, Len, LenIn, Modal, NumIn, Select, SizeIn, TextIn, Chip } from "./ui";
 import { ColorSelect, GlassSelect, ModelSelect } from "./pickers";
 import { Drawing, MediaImg } from "./media";
 
@@ -107,6 +107,7 @@ export function ElementPieces({ pieces }: { pieces?: Piece[] }) {
 
 export type ItemDraft = {
   model_id?: string | null; location?: string; opening_width_mm?: string | null; opening_height_mm?: string | null;
+  total_height_mm?: string | null;
   params?: Record<string, any>; color_code?: string | null; glass_material_code?: string | null; qty?: number | string;
   manual_unit_price?: string | null; price_per_m2?: string | null; notes?: string;
 };
@@ -165,6 +166,9 @@ export function ItemForm({ title, initial, onClose, onSave, withPrice, requireMo
           <Field label="النموذج" className="span-all"><ModelSelect value={d.model_id} onChange={(id) => setD((x) => ({ ...x, model_id: id || null }))} /></Field>
           <Field label="مقاس الفتحة (العرض × الارتفاع)" className="span-all">
             <SizeIn w={d.opening_width_mm} h={d.opening_height_mm} onChange={(w, h) => setD((x) => ({ ...x, opening_width_mm: w, opening_height_mm: h }))} autoFocus />
+          </Field>
+          <Field label="الارتفاع الكلي" hint="لو مكتوب، المساحة بتتحسب من العرض × الارتفاع الكلي">
+            <LenIn mm={d.total_height_mm ?? null} onChange={(v) => setD((x) => ({ ...x, total_height_mm: v }))} />
           </Field>
           <ParamFields params={params} values={d.params ?? {}} onChange={(p) => setD((x) => ({ ...x, params: p }))} unit={model?.system.unit ?? "mm"} />
           <Field label="اللون"><ColorSelect value={d.color_code} onChange={(v) => setD((x) => ({ ...x, color_code: v }))} /></Field>

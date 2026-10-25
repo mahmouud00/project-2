@@ -16625,6 +16625,21 @@
       ],
       "title": "Opening Height Mm"
      },
+     "total_height_mm": {
+      "anyOf": [
+       {
+        "type": "number",
+        "exclusiveMinimum": 0.0
+       },
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Total Height Mm"
+     },
      "params": {
       "additionalProperties": true,
       "type": "object",
@@ -16763,6 +16778,17 @@
      "opening_height_mm": {
       "type": "string",
       "title": "Opening Height Mm"
+     },
+     "total_height_mm": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Total Height Mm"
      },
      "params": {
       "additionalProperties": true,
@@ -16906,6 +16932,7 @@
      "formula_set_version_id",
      "opening_width_mm",
      "opening_height_mm",
+     "total_height_mm",
      "params",
      "color_code",
      "glass_material_code",
@@ -16969,6 +16996,21 @@
        }
       ],
       "title": "Opening Height Mm"
+     },
+     "total_height_mm": {
+      "anyOf": [
+       {
+        "type": "number",
+        "exclusiveMinimum": 0.0
+       },
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Total Height Mm"
      },
      "params": {
       "anyOf": [

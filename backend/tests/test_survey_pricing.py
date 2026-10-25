@@ -34,11 +34,21 @@ def test_survey_sheet_and_price_per_m2(platform, tenant_a, client):
     p = client.get(f"/api/v1/surveys/{sv['id']}/pricing", headers=h).json()
     assert p["priced"] == 2 and p["unpriced"] == 1 and p["openings"][2]["error"] == "OPENING_WITHOUT_MODEL"
     big, small = p["openings"][0], p["openings"][1]
-    assert D(big["area_m2"]) == D("1.8") and D(big["billed_area_m2"]) == D("1.8")
+    # width × total height (1.5 × 1.8) when the total height is written, else width × height
+    assert D(big["area_m2"]) == D("2.7") and D(big["billed_area_m2"]) == D("2.7")
     assert D(small["area_m2"]) == D("0.72") and D(small["billed_area_m2"]) == 1          # minimum 1 m²
     total = D(big["suggested_unit_price"]) * 2 + D(small["suggested_unit_price"])
-    assert D(p["suggested_total"]) == total and D(p["billed_area_m2"]) == D("4.6")
-    assert D(p["price_per_m2"]) == (total / D("4.6")).quantize(D("0.01"))
+    assert D(p["suggested_total"]) == total and D(p["billed_area_m2"]) == D("6.4")
+    assert D(p["price_per_m2"]) == (total / D("6.4")).quantize(D("0.01"))
+    q = client.post("/api/v1/quotations", headers=h, json={"customer_id": customer["id"], "branch_id": branch["id"],
+                                                         "survey_id": sv["id"]})
+    assert q.status_code == 422 and q.json()["error"]["code"] == "OPENING_WITHOUT_MODEL"
+    sv = client.patch(f"/api/v1/surveys/{sv['id']}", headers=h, json={"version": sv["version"], "openings": [
+        {k: v for k, v in o.items() if k not in ("id", "position")} for o in sv["openings"][:2]]}).json()
+    q = client.post("/api/v1/quotations", headers=h, json={"customer_id": customer["id"], "branch_id": branch["id"],
+                                                         "survey_id": sv["id"]}).json()
+    assert D(q["lines"][0]["total_height_mm"]) == 1800 and D(q["lines"][0]["billed_area_m2"]) == D("2.7")
+    assert D(q["lines"][0]["opening_height_mm"]) == 1200          # the unit is still made at the opening size
 
     # quotation: price per m² typed by the user wins; the suggestion stays visible
     q = client.post("/api/v1/quotations", headers=h, json={"customer_id": customer["id"], "branch_id": branch["id"],

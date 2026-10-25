@@ -186,7 +186,8 @@ function SurveyDetail({ id }: { id: string }) {
         onClose={() => setDetails(null)} onSave={async (d) => {
           const i = details!;
           setRows((list) => withBlank(list.map((r, k) => k !== i ? r : { ...r, model_id: d.model_id ?? null, location: d.location ?? "",
-            opening_width_mm: d.opening_width_mm ?? null, opening_height_mm: d.opening_height_mm ?? null, params: d.params ?? {},
+            opening_width_mm: d.opening_width_mm ?? null, opening_height_mm: d.opening_height_mm ?? null,
+            total_height_mm: d.total_height_mm ?? null, params: d.params ?? {},
             color_code: d.color_code ?? null, color_text: d.color_code ? null : r.color_text, glass_material_code: d.glass_material_code ?? null,
             qty: Number(d.qty) || 1, notes: d.notes ?? "" })));
         }} />}

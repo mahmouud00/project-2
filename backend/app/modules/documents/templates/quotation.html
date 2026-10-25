@@ -17,7 +17,7 @@
   <tr>
     <td class="num"><b>{{ l.model_code }}</b></td>
     <td class="num">{{ l.opening_width_mm | cm }}</td>
-    <td class="num">{{ l.opening_height_mm | cm }}</td>
+    <td class="num">{{ l.opening_height_mm | cm }}{% if l.total_height_mm %}<div class="small">كلي {{ l.total_height_mm | cm }}</div>{% endif %}</td>
     <td class="num">{{ l.qty }}</td>
     <td class="num">{{ l.billed_area }}{% if l.area != l.billed_area %}<div class="small">الفعلية {{ l.area }}</div>{% endif %}</td>
     <td class="num">{{ l.total_area }}</td>

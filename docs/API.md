@@ -122,7 +122,7 @@ WS /api/v1/system/events?token=<access_token>
 |---|---|---|
 | GET / POST / GET / PATCH | `/customers` | العملاء (end/dealer/contractor). أي عرض أو تعديل للبيانات الشخصية بيتسجل |
 | GET / POST / GET / PATCH | `/surveys` | المعاينات (`kind`: `window` شبابيك وأبواب أو `shutter` شيش، و`floor` الدور، و`technician` الفني) و`openings`: مقاس الفتحة كما اتقاس، و`total_height_mm` الارتفاع الكلي، والنموذج (رقم الوحدة) ومتغيراته، واللون (`color_code` من المكتبة أو `color_text` زي ما اتكتب)، و`unit_kind` (`sliding` جرار / `hinged` مفصلي)، و`glass_layers` (`single` / `double`) و`glass_color`، و`screen_type` السلك (`sliding` / `pleated` بليسيه / `hinged` ض.ض / `fixed`)، و`location` نوع الغرفة أو مكان الوحدة، و`application` التطبيق؛ وللشيش `installation_method` و`motor_type` |
-| GET | `/surveys/{id}/pricing` | سعر المتر المقترح للمعاينة كلها (متوسط) = إجمالي السعر المقترح ÷ المساحة المحسوبة. كل فتحة ليها نموذج بتتحسب بتكلفتها الحقيقية بالتخصيمات + قائمة الأسعار، وأي وحدة أقل من `min_billed_area_m2` (افتراضي 1 م²) بتتحسب بيه |
+| GET | `/surveys/{id}/pricing` | سعر المتر المقترح للمعاينة كلها (متوسط) = إجمالي السعر المقترح ÷ المساحة المحسوبة. كل فتحة ليها نموذج بتتحسب بتكلفتها الحقيقية بالتخصيمات + قائمة الأسعار، والمساحة = العرض × الارتفاع الكلي لو مكتوب، وإلا العرض × الارتفاع، وأي وحدة أقل من `min_billed_area_m2` (افتراضي 1 م²) بتتحسب بيه |
 | GET | `/surveys/{id}/print` | ورقة المعاينة (A4 بالعرض) بنفس أعمدة الورقة، وأقل حاجة 10 صفوف عشان المعاينة الفاضية تتطبع فورمة للفني |
 
 ### sales: قوائم الأسعار وعروض الأسعار
@@ -130,7 +130,7 @@ WS /api/v1/system/events?token=<access_token>
 |---|---|---|
 | GET / POST / PATCH | `/price-lists` | الهامش، والعمالة لكل م²، وأقل سعر، و`items` (هامش أو سعر للمتر لنموذج أو لسيستم) |
 | GET / POST / GET / PATCH | `/quotations` | لو بعت `survey_id` من غير سطور، العرض بيتعمل أوتوماتيك من المعاينة. كل سطر بيتحسب ويتسعّر |
-| POST | `/quotations/{id}/lines` | إضافة سطر. `price_per_m2` (سعر المتر اللي بيكتبه المستخدم) ليه الأولوية: سعر الوحدة = `billed_area_m2` (المساحة بحد أدنى) × سعر المتر؛ وبعده `manual_unit_price`، وبعده قائمة الأسعار. كل سطر بيرجّع `suggested_unit_price` و`suggested_price_per_m2` و`model_code` |
+| POST | `/quotations/{id}/lines` | إضافة سطر. `price_per_m2` (سعر المتر اللي بيكتبه المستخدم) ليه الأولوية: سعر الوحدة = `billed_area_m2` (المساحة بحد أدنى؛ العرض × `total_height_mm` لو مكتوب) × سعر المتر؛ وبعده `manual_unit_price`، وبعده قائمة الأسعار. كل سطر بيرجّع `suggested_unit_price` و`suggested_price_per_m2` و`model_code` |
 | POST | `/quotations/{id}/price-per-m2` | سعر متر واحد لكل السطور (`null` = يرجع لسعر كل سطر) |
 | PATCH / DELETE | `/quotation-lines/{id}` | |
 | POST | `/quotations/{id}/status` | draft ← sent ← accepted/rejected/expired |

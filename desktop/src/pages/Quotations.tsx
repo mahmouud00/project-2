@@ -113,6 +113,7 @@ function QuotationDetail({ id }: { id: string }) {
 
   const saveLine = (line: Line | null) => async (d: ItemDraft) => {
     const body = { location: d.location ?? "", model_id: d.model_id, opening_width_mm: d.opening_width_mm, opening_height_mm: d.opening_height_mm,
+      total_height_mm: d.total_height_mm || null,
       params: d.params ?? {}, color_code: d.color_code || null, glass_material_code: d.glass_material_code || null,
       qty: Number(d.qty), manual_unit_price: d.manual_unit_price || null, price_per_m2: d.price_per_m2 || null, notes: d.notes ?? "" };
     const out = line
@@ -168,7 +169,8 @@ function QuotationDetail({ id }: { id: string }) {
         <Table rows={lines} empty="مفيش بنود. ضيف شباك أو باب." columns={[
           { key: "c", label: "رقم النموذج", render: (l) => <span className="code bold">{l.model_code}</span> },
           { key: "w", label: "العرض", num: true, render: (l) => <Len mm={l.opening_width_mm} /> },
-          { key: "h", label: "الارتفاع", num: true, render: (l) => <Len mm={l.opening_height_mm} /> },
+          { key: "h", label: "الارتفاع", num: true, render: (l) => (
+            <div><Len mm={l.opening_height_mm} />{l.total_height_mm && <div className="muted small">كلي <Len mm={l.total_height_mm} /></div>}</div>) },
           { key: "q", label: "العدد", num: true, render: (l) => <span className="num">{l.qty}</span> },
           { key: "a", label: "مساحة الفتحة", num: true, render: (l) => (
             <div><span className="num">{mulMoney(l.billed_area_m2, "1")}</span>
@@ -213,7 +215,8 @@ function QuotationDetail({ id }: { id: string }) {
       </div>
 
       {lineEdit && <ItemForm title={lineEdit === "new" ? "بند جديد" : "تعديل البند"} withPrice onClose={() => setLineEdit(null)}
-        initial={lineEdit === "new" ? undefined : { ...lineEdit, manual_unit_price: lineEdit.manual_unit_price, price_per_m2: lineEdit.price_per_m2 }}
+        initial={lineEdit === "new" ? undefined : { ...lineEdit, manual_unit_price: lineEdit.manual_unit_price, price_per_m2: lineEdit.price_per_m2,
+          total_height_mm: lineEdit.total_height_mm }}
         onSave={saveLine(lineEdit === "new" ? null : lineEdit)} />}
       {del && <Confirm title="حذف البند" danger yes="حذف" busy={busy} onClose={() => setDel(null)} text={`هتحذف ${del.model_name} (${del.location || "بدون مكان"}).`}
         onYes={() => run(async () => { q.set(await api.del<Quote>(`/quotation-lines/${del.id}`)); setDel(null); })} />}

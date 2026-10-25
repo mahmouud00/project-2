@@ -135,7 +135,7 @@ def print_quotation(quote_id: uuid.UUID, dc=Depends(require("quotes.read"))):
                       "area": _area(l.area_m2), "billed_area": _area(billed), "total_area": _area(billed * l.qty),
                       "price_per_m2": ppm, "location": l.location,
                       "opening_width_mm": l.opening_width_mm, "opening_height_mm": l.opening_height_mm,
-                      "width_mm": inputs.get("width_mm"), "height_mm": inputs.get("height_mm"),
+                      "total_height_mm": l.total_height_mm, "width_mm": inputs.get("width_mm"), "height_mm": inputs.get("height_mm"),
                       "drawing": (l.calc or {}).get("drawing", []), "qty": l.qty, "unit_price": l.unit_price,
                       "line_total": l.line_total, "image": look.image(model.image_id if model else None),
                       "color_name": look.colors.get(l.color_code or "", l.color_code),
