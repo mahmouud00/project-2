@@ -40,7 +40,9 @@ def nuitka_args(out: Path, version: str, icon: Path | None, jobs: int | None) ->
         "--copyright=MYTech Solutions",
     ]
     if win:
-        args += ["--mingw64", "--windows-console-mode=attach"]
+        # a real console program: PowerShell (setup/update scripts) waits for it and gets its exit
+        # code; with "attach" it is a GUI-subsystem exe that `& $exe` starts without waiting
+        args += ["--mingw64", "--windows-console-mode=force"]
         if icon:
             args.append(f"--windows-icon-from-ico={icon}")
     if jobs:
