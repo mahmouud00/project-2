@@ -238,6 +238,7 @@ class Glass(BaseModel):
     material_code: str | None = None
     width_expr: str
     height_expr: str
+    area_expr: str | None = None     # shaped pane (e.g. a half-circle arch): area of one pane, system unit²
     qty_expr: str = "1"
     condition: str | None = None
     _n = field_validator("key")(_ident)

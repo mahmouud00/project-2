@@ -234,7 +234,7 @@ def create_invoice(body: InvoiceIn, dc=Depends(require(EDIT_PERM))):
         tax = tax if tax is not None else q.tax_pct
         discount = discount or q.discount_amount
         for l in db.scalars(select(QuotationLine).where(QuotationLine.quotation_id == q.id)
-                            .order_by(QuotationLine.position)):
+                            .order_by(QuotationLine.position, QuotationLine.parent_line_id.is_not(None))):
             new_lines.append(_line_from_calc(l.position, location=l.location, model_id=l.model_id,
                                              opening_w=l.opening_width_mm, opening_h=l.opening_height_mm,
                                              color=l.color_code, glass=l.glass_material_code, params=l.params,

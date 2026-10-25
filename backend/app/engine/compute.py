@@ -168,6 +168,8 @@ def check_definition(snapshot: dict) -> list[str]:
             for k in exprs:
                 chk(item.get(k, "0" if k.startswith("angle") else None), f"{where}.{k}")
             chk(item.get("condition"), f"{where}.condition", required=False)
+            if section == "glass":
+                chk(item.get("area_expr"), f"{where}.area_expr", required=False)
             code = item.get("material_code")
             if section != "glass" and code not in materials:
                 errors.append(f"{where}: material {code!r} not in library")
@@ -348,9 +350,16 @@ def calculate(snapshot: dict, *, opening_width_mm, opening_height_mm, params: di
         if w > inputs["opening_width_mm"] or h > inputs["opening_height_mm"]:
             issues.append(Issue("error", "GLASS_LARGER_THAN_OPENING",
                                 f"{item.get('label', item['key'])}: {w}×{h} mm larger than opening", where))
+        # width × height is the sheet the pane is cut from; a shaped pane gives its real area (area_expr)
+        area_mm2 = w * h
+        if item.get("area_expr"):
+            area_mm2 = to_decimal(_eval(_compile(item["area_expr"], where + ".area_expr"), env, where)) * factor * factor
+            if area_mm2 <= 0 or area_mm2 > w * h:
+                issues.append(Issue("error", "GLASS_AREA_INVALID",
+                                    f"{item.get('label', item['key'])}: area outside 0..width×height", where))
         result.glass.append({"key": item["key"], "label": item.get("label", item["key"]),
                              "material_code": item.get("material_code"), "width_mm": w, "height_mm": h, "qty": qty,
-                             "area_m2": (w * h * qty / Decimal(1_000_000))})
+                             "area_m2": (area_mm2 * qty / Decimal(1_000_000)), "shaped": bool(item.get("area_expr"))})
 
     for item in model.get("accessories", []):
         where = f"accessory {item['key']}"

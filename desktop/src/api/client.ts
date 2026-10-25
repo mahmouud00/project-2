@@ -238,6 +238,8 @@ const MESSAGES: Record<string, string> = {
   LICENSE_BRANCH_LIMIT: "عدد الفروع وصل للحد المسموح في الترخيص.",
   LICENSE_REJECTED: "ملف الترخيص مرفوض (مش لنفس الجهاز أو التوقيع غلط أو منتهي).",
   LICENSE_FILE_INVALID: "ده مش ملف ترخيص.",
+  ARCH_MODEL_REQUIRED: "الوحدة ليها ارتفاع كلي (أرج): اختار نموذج الأرج، أو حدد نموذج أرج افتراضي في الإعدادات.",
+  ARCH_LINE_MANAGED: "سطر الأرج بيتعدل من البند بتاعه.",
   LICENSE_ACTIVE: "فيه ترخيص شغال. التغيير من صفحة الترخيص والنسخ بعد الدخول.",
   MODULE_NOT_LICENSED: "الجزء ده مش ضمن الترخيص.",
   CLIENT_UPDATE_REQUIRED: "لازم تحدّث البرنامج عشان يشتغل مع السيرفر.",

@@ -6,6 +6,8 @@ import { lookups } from "../lib/lookups";
 import { useDebounced, useLoad } from "../lib/hooks";
 import { Btn, Check, Dim, Field, Len, LenIn, Modal, NumIn, Select, SizeIn, TextIn, Chip } from "./ui";
 import { ColorSelect, GlassSelect, ModelSelect } from "./pickers";
+import { useSession } from "../state/session";
+import { subDec } from "../lib/format";
 import { Drawing, MediaImg } from "./media";
 
 type Param = S<"Param">;
@@ -54,6 +56,7 @@ const ISSUE_TEXT: Record<string, string> = {
   PIECE_NOT_POSITIVE: "فيه قطعة طولها صفر أو بالسالب",
   PIECE_TOO_SHORT: "فيه قطعة أقصر من أقل طول مسموح",
   PIECE_TOO_LONG: "فيه قطعة أطول من طول العود",
+  GLASS_AREA_INVALID: "مساحة الزجاج المشكّل (زي الأرج) أكبر من مقاسه أو بالسالب",
 };
 
 export function Issues({ issues }: { issues?: Issue[] }) {
@@ -107,7 +110,7 @@ export function ElementPieces({ pieces }: { pieces?: Piece[] }) {
 
 export type ItemDraft = {
   model_id?: string | null; location?: string; opening_width_mm?: string | null; opening_height_mm?: string | null;
-  total_height_mm?: string | null;
+  total_height_mm?: string | null; top_model_id?: string | null;
   params?: Record<string, any>; color_code?: string | null; glass_material_code?: string | null; qty?: number | string;
   manual_unit_price?: string | null; price_per_m2?: string | null; notes?: string;
 };
@@ -115,6 +118,7 @@ export type ItemDraft = {
 export function ItemForm({ title, initial, onClose, onSave, withPrice, requireModel = true, extra }:
   { title: string; initial?: ItemDraft; onClose: () => void; onSave: (d: ItemDraft) => Promise<void>; withPrice?: boolean;
     requireModel?: boolean; extra?: ReactNode }) {
+  const s = useSession();
   const [d, setD] = useState<ItemDraft>(() => ({ qty: 1, params: {}, location: "", ...initial }));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -154,6 +158,9 @@ export function ItemForm({ title, initial, onClose, onSave, withPrice, requireMo
       setBusy(false);
     }
   };
+  const hasArch = !!d.total_height_mm && !!d.opening_height_mm && Number(d.total_height_mm) > Number(d.opening_height_mm);
+  const archHeight = hasArch ? s.len(subDec(d.total_height_mm!, d.opening_height_mm!)) : "";
+  const unitLabel = s.unit === "cm" ? " سم" : " مم";
   const valid = (!requireModel || d.model_id) && d.opening_width_mm && d.opening_height_mm && Number(d.qty) > 0;
 
   return (
@@ -167,9 +174,14 @@ export function ItemForm({ title, initial, onClose, onSave, withPrice, requireMo
           <Field label="مقاس الفتحة (العرض × الارتفاع)" className="span-all">
             <SizeIn w={d.opening_width_mm} h={d.opening_height_mm} onChange={(w, h) => setD((x) => ({ ...x, opening_width_mm: w, opening_height_mm: h }))} autoFocus />
           </Field>
-          <Field label="الارتفاع الكلي" hint="لو مكتوب، المساحة بتتحسب من العرض × الارتفاع الكلي">
+          <Field label="الارتفاع الكلي (بالأرج)" hint="لو أكبر من الارتفاع: فيه أرج نص دايرة فوق الوحدة بحلق لوحده، والمساحة = العرض × الارتفاع الكلي">
             <LenIn mm={d.total_height_mm ?? null} onChange={(v) => setD((x) => ({ ...x, total_height_mm: v }))} />
           </Field>
+          {hasArch && (
+            <Field label="نموذج الأرج" hint={`ارتفاع الأرج ${archHeight ? archHeight + (unitLabel) : ""} · فاضي = النموذج الافتراضي من الإعدادات`}>
+              <ModelSelect value={d.top_model_id} onChange={(id) => setD((x) => ({ ...x, top_model_id: id || null }))} />
+            </Field>
+          )}
           <ParamFields params={params} values={d.params ?? {}} onChange={(p) => setD((x) => ({ ...x, params: p }))} unit={model?.system.unit ?? "mm"} />
           <Field label="اللون"><ColorSelect value={d.color_code} onChange={(v) => setD((x) => ({ ...x, color_code: v }))} /></Field>
           <Field label="الزجاج"><GlassSelect value={d.glass_material_code} onChange={(v) => setD((x) => ({ ...x, glass_material_code: v }))} /></Field>

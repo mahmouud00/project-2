@@ -131,6 +131,7 @@ WS /api/v1/system/events?token=<access_token>
 | GET / POST / PATCH | `/price-lists` | الهامش، والعمالة لكل م²، وأقل سعر، و`items` (هامش أو سعر للمتر لنموذج أو لسيستم) |
 | GET / POST / GET / PATCH | `/quotations` | لو بعت `survey_id` من غير سطور، العرض بيتعمل أوتوماتيك من المعاينة. كل سطر بيتحسب ويتسعّر |
 | POST | `/quotations/{id}/lines` | إضافة سطر. `price_per_m2` (سعر المتر اللي بيكتبه المستخدم) ليه الأولوية: سعر الوحدة = `billed_area_m2` (المساحة بحد أدنى؛ العرض × `total_height_mm` لو مكتوب) × سعر المتر؛ وبعده `manual_unit_price`، وبعده قائمة الأسعار. كل سطر بيرجّع `suggested_unit_price` و`suggested_price_per_m2` و`model_code` |
+| | أرج | لو `total_height_mm` أكبر من `opening_height_mm`: فيه أرج نص دايرة فوق الوحدة، وحدة لوحدها بحلقها. بيتحسب بنموذج `top_model_id` (أو `default_arch_model_id` في إعدادات الشركة)، عرضه عرض الوحدة وارتفاعه = الكلي − الارتفاع. بيطلع سطر تابع (`parent_line_id`) سعره صفر، لأن تكلفته داخلة في الوحدة. بيتعدل ويتمسح مع وحدته بس (`ARCH_LINE_MANAGED`)، وبيتنقل لأمر التصنيع كوحدة. لو مفيش نموذج أرج: `ARCH_MODEL_REQUIRED` |
 | POST | `/quotations/{id}/price-per-m2` | سعر متر واحد لكل السطور (`null` = يرجع لسعر كل سطر) |
 | PATCH / DELETE | `/quotation-lines/{id}` | |
 | POST | `/quotations/{id}/status` | draft ← sent ← accepted/rejected/expired |

@@ -172,8 +172,9 @@ def from_quotation(body: FromQuotationIn, dc=Depends(require("workorders.write")
     wo.due_date = body.due_date or wo.due_date
     wo.deposit_required = body.deposit_required if body.deposit_required is not None else \
         money(q.total * settings.deposit_pct / 100)
+    # every line is a unit to make, an arch (أرج) line included (its price is inside its unit)
     for line in db.scalars(select(QuotationLine).where(QuotationLine.quotation_id == q.id)
-                           .order_by(QuotationLine.position)):
+                           .order_by(QuotationLine.position, QuotationLine.parent_line_id.is_not(None))):
         db.add(WorkOrderItem(work_order_id=wo.id, position=line.position, location=line.location,
                              model_id=line.model_id, formula_set_version_id=line.formula_set_version_id,
                              opening_width_mm=line.opening_width_mm, opening_height_mm=line.opening_height_mm,

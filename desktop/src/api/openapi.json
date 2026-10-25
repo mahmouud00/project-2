@@ -8575,6 +8575,17 @@
       "title": "Deposit Pct",
       "default": "0"
      },
+     "default_arch_model_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Default Arch Model Id"
+     },
      "min_billed_area_m2": {
       "anyOf": [
        {
@@ -9678,6 +9689,17 @@
      "height_expr": {
       "type": "string",
       "title": "Height Expr"
+     },
+     "area_expr": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Area Expr"
      },
      "qty_expr": {
       "type": "string",
@@ -11310,6 +11332,18 @@
       ],
       "title": "Total Height Mm"
      },
+     "top_model_id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "uuid"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Top Model Id"
+     },
      "unit_kind": {
       "anyOf": [
        {
@@ -11500,6 +11534,18 @@
       ],
       "title": "Total Height Mm"
      },
+     "top_model_id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "uuid"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Top Model Id"
+     },
      "unit_kind": {
       "anyOf": [
        {
@@ -11597,6 +11643,7 @@
      "photo_id",
      "notes",
      "total_height_mm",
+     "top_model_id",
      "unit_kind",
      "color_text",
      "glass_layers",
@@ -16640,6 +16687,18 @@
       ],
       "title": "Total Height Mm"
      },
+     "top_model_id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "uuid"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Top Model Id"
+     },
      "params": {
       "additionalProperties": true,
       "type": "object",
@@ -16790,6 +16849,30 @@
       ],
       "title": "Total Height Mm"
      },
+     "top_model_id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "uuid"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Top Model Id"
+     },
+     "parent_line_id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "uuid"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Parent Line Id"
+     },
      "params": {
       "additionalProperties": true,
       "type": "object",
@@ -16933,6 +17016,8 @@
      "opening_width_mm",
      "opening_height_mm",
      "total_height_mm",
+     "top_model_id",
+     "parent_line_id",
      "params",
      "color_code",
      "glass_material_code",
@@ -17011,6 +17096,18 @@
        }
       ],
       "title": "Total Height Mm"
+     },
+     "top_model_id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "uuid"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Top Model Id"
      },
      "params": {
       "anyOf": [

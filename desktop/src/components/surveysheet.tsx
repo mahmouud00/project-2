@@ -15,6 +15,7 @@ export type SheetRow = {
   opening_width_mm: string | null;
   opening_height_mm: string | null;
   total_height_mm: string | null;
+  top_model_id: string | null;
   qty: number;
   model_id: string | null;
   params: Record<string, any>;
@@ -34,7 +35,7 @@ export type SheetRow = {
 
 let seq = 0;
 export function blankRow(): SheetRow {
-  return { key: "n" + ++seq, location: "", opening_width_mm: null, opening_height_mm: null, total_height_mm: null, qty: 1,
+  return { key: "n" + ++seq, location: "", opening_width_mm: null, opening_height_mm: null, total_height_mm: null, top_model_id: null, qty: 1,
     model_id: null, params: {}, color_code: null, color_text: null, glass_material_code: null, glass_layers: null,
     glass_color: null, screen_type: null, unit_kind: null, application: "", installation_method: null, motor_type: null,
     photo_id: null, notes: "" };
@@ -49,7 +50,7 @@ export function rowFromApi(o: S<"OpeningOut">): SheetRow {
 export function rowToApi(r: SheetRow) {
   const t = (v: string | null) => (v && v.trim() ? v.trim() : null);
   return { location: r.location.trim(), opening_width_mm: r.opening_width_mm, opening_height_mm: r.opening_height_mm,
-    total_height_mm: r.total_height_mm || null, qty: r.qty || 1, model_id: r.model_id || null, params: r.params ?? {},
+    total_height_mm: r.total_height_mm || null, top_model_id: r.top_model_id || null, qty: r.qty || 1, model_id: r.model_id || null, params: r.params ?? {},
     color_code: r.color_code || null, color_text: t(r.color_text), glass_material_code: r.glass_material_code || null,
     glass_layers: r.glass_layers || null, glass_color: t(r.glass_color), screen_type: r.screen_type || null,
     unit_kind: r.unit_kind || null, application: r.application.trim(), installation_method: t(r.installation_method),
@@ -241,7 +242,7 @@ export function SuggestedPrice({ surveyId, version, compact }: { surveyId: strin
       <div className="r"><span>المساحة المحسوبة</span><span className="num">{Number(d.billed_area_m2).toFixed(2)} م²</span></div>
       <div className="r"><span>الإجمالي المقترح</span><Money v={d.suggested_total} /></div>
       <div className="r small muted"><span>محسوب من تكلفة الخامات بالتخصيمات + المصنعية والربح من قائمة الأسعار، وأي فتحة أقل من الحد الأدنى بتتحسب بيه.</span></div>
-      {d.unpriced > 0 && <div className="notice warn small" style={{ marginTop: 6 }}>{d.unpriced} فتحة مش داخلة في الحساب (من غير نموذج أو النموذج مش منشور).</div>}
+      {d.unpriced > 0 && <div className="notice warn small" style={{ marginTop: 6 }}>{d.unpriced} فتحة مش داخلة في الحساب (من غير نموذج، أو النموذج مش منشور، أو ليها أرج ومفيش نموذج أرج متحدد).</div>}
     </div>
   );
 }

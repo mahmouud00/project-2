@@ -6,7 +6,7 @@ from decimal import Decimal
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from app.api.common import ORMModel, Page, PageParams, Record, VersionedUpdate, paginate
 from app.core.audit import apply_changes, audit, check_version, snapshot
@@ -131,6 +131,7 @@ class LineIn(BaseModel):
     opening_width_mm: Decimal = Field(gt=0)
     opening_height_mm: Decimal = Field(gt=0)
     total_height_mm: Decimal | None = Field(None, gt=0, max_digits=12, decimal_places=2)
+    top_model_id: uuid.UUID | None = None      # arch model (default: company setting)
     params: dict = {}
     color_code: str | None = None
     glass_material_code: str | None = None
@@ -145,6 +146,7 @@ class LineUpdate(VersionedUpdate):
     opening_width_mm: Decimal | None = Field(None, gt=0)
     opening_height_mm: Decimal | None = Field(None, gt=0)
     total_height_mm: Decimal | None = Field(None, gt=0, max_digits=12, decimal_places=2)
+    top_model_id: uuid.UUID | None = None
     params: dict | None = None
     color_code: str | None = None
     glass_material_code: str | None = None
@@ -162,6 +164,8 @@ class LineOut(Record):
     opening_width_mm: Decimal
     opening_height_mm: Decimal
     total_height_mm: Decimal | None
+    top_model_id: uuid.UUID | None
+    parent_line_id: uuid.UUID | None
     params: dict
     color_code: str | None
     glass_material_code: str | None
@@ -226,6 +230,8 @@ class QuotationOut(Record):
 
 
 EDITABLE = ("draft", "sent")
+LINE_ORDER = (QuotationLine.position, QuotationLine.parent_line_id.is_not(None))   # a unit, then its arch
+UNITS = QuotationLine.parent_line_id.is_(None)
 TRANSITIONS = {"draft": {"sent", "accepted", "rejected"}, "sent": {"accepted", "rejected", "expired", "draft"},
                "rejected": {"draft"}, "expired": {"draft"}, "accepted": set()}
 
@@ -233,8 +239,7 @@ TRANSITIONS = {"draft": {"sent", "accepted", "rejected"}, "sent": {"accepted", "
 def _quote_out(db, q: Quotation, with_calc: bool = True) -> QuotationOut:
     out = QuotationOut.model_validate(q)
     lines = []
-    for line in db.scalars(select(QuotationLine).where(QuotationLine.quotation_id == q.id)
-                           .order_by(QuotationLine.position)):
+    for line in db.scalars(select(QuotationLine).where(QuotationLine.quotation_id == q.id).order_by(*LINE_ORDER)):
         lo = LineOut.model_validate(line)
         model = db.get(ProductModel, line.model_id)
         lo.model_name, lo.model_code, lo.model_image_id = (model.name, model.code, model.image_id) if model else ("", "", None)
@@ -258,36 +263,64 @@ class Pricer:
         self.items = list(db.scalars(select(PriceListItem).where(PriceListItem.price_list_id == price_list.id)))
         self.settings = get_company_settings(db, ctx.company_id)
         self.resolver = CostResolver(db)
+        default_arch = self.settings.default_arch_model_id
+        self.default_arch = uuid.UUID(default_arch) if default_arch else None
 
     def billed_area(self, area: Decimal) -> Decimal:
         return max(area, self.settings.min_billed_area_m2)
 
-    def price(self, model_id, width_mm: Decimal, height_mm: Decimal, params: dict, color: str | None,
-              glass: str | None, location: str = "", total_height_mm: Decimal | None = None) -> dict:
+    def _calc(self, model_id, width_mm, height_mm, params, location, part):
         calc = calculate_model(self.db, self.ctx, model_id, opening_width_mm=width_mm, opening_height_mm=height_mm,
                                params=params)
         errors = [i for i in calc["issues"] if i["level"] == "error"]
         if errors:
             raise ValidationFailed("Opening cannot be manufactured with this model", code="CALC_INVALID",
-                                   details={"location": location, "issues": errors})
+                                   details={"location": location, "part": part, "issues": errors})
+        return calc
+
+    def price(self, model_id, width_mm: Decimal, height_mm: Decimal, params: dict, color: str | None,
+              glass: str | None, location: str = "", total_height_mm: Decimal | None = None,
+              top_model_id=None) -> dict:
+        """A total height above the opening height is a half-circle arch (أرج) on top: a separate fixed unit
+        with its own frame, calculated with the arch model at width × (total − height). Its cost is part of
+        this unit, and the area for the price is width × total height."""
+        calc = self._calc(model_id, width_mm, height_mm, params, location, "unit")
         breakdown = cost_of_calc(self.resolver, calc, color, glass, self.settings.quote_waste_pct)
+        unit_cost = breakdown["total"]
+        arch = None
+        price_height = height_mm
+        if total_height_mm is not None and total_height_mm > height_mm:
+            price_height = total_height_mm
+            arch_model = top_model_id or self.default_arch
+            if arch_model is None:
+                raise ValidationFailed("Choose the arch model", code="ARCH_MODEL_REQUIRED", details={"location": location})
+            arch_h = total_height_mm - height_mm
+            arch_calc = self._calc(arch_model, width_mm, arch_h, {}, location, "arch")
+            arch_cost = cost_of_calc(self.resolver, arch_calc, color, glass, self.settings.quote_waste_pct)
+            unit_cost += arch_cost["total"]
+            arch = {"model_id": arch_model, "height_mm": arch_h, "calc": arch_calc, "breakdown": arch_cost}
         model = self.db.get(ProductModel, model_id)
-        # the unit is made at the opening size; its area for the price uses the total height when given
-        area = (width_mm * (total_height_mm or height_mm) / Decimal(1_000_000)).quantize(Decimal("0.0001"))
-        return {"calc": calc, "breakdown": breakdown, "area": area, "billed_area": self.billed_area(area),
-                "suggested": unit_price(self.pl, self.items, model.id, model.system_id, area, breakdown["total"])}
+        area = (width_mm * price_height / Decimal(1_000_000)).quantize(Decimal("0.0001"))
+        return {"calc": calc, "breakdown": breakdown, "arch": arch, "unit_cost": unit_cost, "area": area,
+                "billed_area": self.billed_area(area),
+                "suggested": unit_price(self.pl, self.items, model.id, model.system_id, area, unit_cost)}
 
 
 def _price_line(db, ctx, q: Quotation, line: QuotationLine, pricer: Pricer) -> None:
+    if line.parent_line_id is not None:
+        raise Conflict("The arch line follows its unit", code="ARCH_LINE_MANAGED")
     r = pricer.price(line.model_id, line.opening_width_mm, line.opening_height_mm, line.params, line.color_code,
-                     line.glass_material_code, line.location, line.total_height_mm)
-    calc, breakdown = r["calc"], r["breakdown"]
+                     line.glass_material_code, line.location, line.total_height_mm, line.top_model_id)
+    calc, breakdown, arch = r["calc"], r["breakdown"], r["arch"]
     line.formula_set_version_id = uuid.UUID(calc["meta"]["formula_set_version_id"])
     line.calc = calc
     line.area_m2 = r["area"]
     line.billed_area_m2 = r["billed_area"]
-    line.unit_cost = breakdown["total"]
-    line.cost_breakdown = {**breakdown, "total": str(breakdown["total"]), "suggested_unit_price": str(r["suggested"])}
+    line.unit_cost = r["unit_cost"]
+    cost_lines = breakdown["lines"] + ([{**l, "part": "arch"} for l in arch["breakdown"]["lines"]] if arch else [])
+    missing = sorted(set(breakdown["missing_costs"]) | set(arch["breakdown"]["missing_costs"] if arch else []))
+    line.cost_breakdown = {"total": str(r["unit_cost"]), "lines": cost_lines, "missing_costs": missing,
+                           "suggested_unit_price": str(r["suggested"])}
     # the user's price per m² wins, then a typed unit price, then the price list
     if line.price_per_m2 is not None:
         line.unit_price = money(r["billed_area"] * line.price_per_m2)
@@ -296,6 +329,38 @@ def _price_line(db, ctx, q: Quotation, line: QuotationLine, pricer: Pricer) -> N
     else:
         line.unit_price = r["suggested"]
     line.line_total = money(line.unit_price * line.qty)
+    _sync_arch_line(db, q, line, arch)
+
+
+def _sync_arch_line(db, q: Quotation, line: QuotationLine, arch: dict | None) -> None:
+    """Keep the unit's arch line (own frame, made with the arch model) in step with the unit."""
+    if line not in db:
+        db.add(line)
+    db.flush()
+    child = db.scalar(select(QuotationLine).where(QuotationLine.parent_line_id == line.id))
+    if arch is None:
+        if child is not None:
+            db.delete(child)
+            db.flush()
+        return
+    if child is None:
+        child = QuotationLine(quotation_id=q.id, parent_line_id=line.id)
+        db.add(child)
+    child.position = line.position
+    child.location = ("أرج " + line.location).strip()
+    child.model_id = arch["model_id"]
+    child.formula_set_version_id = uuid.UUID(arch["calc"]["meta"]["formula_set_version_id"])
+    child.opening_width_mm = line.opening_width_mm
+    child.opening_height_mm = arch["height_mm"]
+    child.params, child.color_code, child.glass_material_code = {}, line.color_code, line.glass_material_code
+    child.qty = line.qty
+    child.area_m2 = (line.opening_width_mm * arch["height_mm"] / Decimal(1_000_000)).quantize(Decimal("0.0001"))
+    child.billed_area_m2 = Decimal(0)
+    child.calc = arch["calc"]
+    child.cost_breakdown = {**arch["breakdown"], "total": str(arch["breakdown"]["total"]), "in_parent": True}
+    child.unit_cost = child.unit_price = child.line_total = Decimal(0)   # costed and priced in the unit
+    child.notes = ""
+    db.flush()
 
 
 def _totals(db, q: Quotation) -> None:
@@ -356,7 +421,7 @@ def create_quotation(body: QuotationIn, dc=Depends(require("quotes.write"))):
                 if o.model_id is None:
                     raise ValidationFailed(f"Opening '{o.location}' has no model", code="OPENING_WITHOUT_MODEL")
                 lines.append(LineIn(location=o.location, model_id=o.model_id, opening_width_mm=o.opening_width_mm,
-                                    total_height_mm=o.total_height_mm,
+                                    total_height_mm=o.total_height_mm, top_model_id=o.top_model_id,
                                     opening_height_mm=o.opening_height_mm, params=o.params, color_code=o.color_code,
                                     glass_material_code=o.glass_material_code, qty=o.qty, notes=o.notes))
     q = Quotation(number=next_number(db, "quote", "QT", branch.code), customer_id=customer.id, branch_id=branch.id,
@@ -370,9 +435,7 @@ def create_quotation(body: QuotationIn, dc=Depends(require("quotes.write"))):
     pricer = Pricer(db, ctx, pl)
     for i, l in enumerate(lines, 1):
         line = QuotationLine(quotation_id=q.id, position=i, **l.model_dump())
-        _price_line(db, ctx, q, line, pricer)
-        db.add(line)
-        db.flush()
+        _price_line(db, ctx, q, line, pricer)       # adds the line (and its arch line)
     _totals(db, q)
     audit(db, q, "create")
     db.commit()
@@ -397,7 +460,7 @@ def update_quotation(quote_id: uuid.UUID, body: QuotationUpdate, dc=Depends(requ
     apply_changes(q, data)
     if "price_list_id" in data:
         pricer = Pricer(db, ctx, get_or_404(db, PriceList, q.price_list_id))
-        for line in db.scalars(select(QuotationLine).where(QuotationLine.quotation_id == q.id)):
+        for line in db.scalars(select(QuotationLine).where(QuotationLine.quotation_id == q.id, UNITS)):
             _price_line(db, ctx, q, line, pricer)
     _totals(db, q)
     audit(db, q, "update", before)
@@ -411,11 +474,9 @@ def add_line(quote_id: uuid.UUID, body: LineIn, dc=Depends(require("quotes.write
     q = _get_quote(db, ctx, quote_id, "quotes.write")
     if q.status not in EDITABLE:
         raise Conflict("Quotation is locked", code="QUOTE_LOCKED")
-    count = len(list(db.scalars(select(QuotationLine.id).where(QuotationLine.quotation_id == q.id))))
-    line = QuotationLine(quotation_id=q.id, position=count + 1, **body.model_dump())
+    last = db.scalar(select(func.max(QuotationLine.position)).where(QuotationLine.quotation_id == q.id)) or 0
+    line = QuotationLine(quotation_id=q.id, position=last + 1, **body.model_dump())
     _price_line(db, ctx, q, line, Pricer(db, ctx, db.get(PriceList, q.price_list_id)))
-    db.add(line)
-    db.flush()
     _totals(db, q)
     db.commit()
     return _quote_out(db, q)
@@ -445,7 +506,11 @@ def delete_line(line_id: uuid.UUID, dc=Depends(require("quotes.write"))):
     q = _get_quote(db, ctx, line.quotation_id, "quotes.write")
     if q.status not in EDITABLE:
         raise Conflict("Quotation is locked", code="QUOTE_LOCKED")
+    if line.parent_line_id is not None:
+        raise Conflict("The arch line follows its unit", code="ARCH_LINE_MANAGED")
     before = snapshot(line)
+    for child in db.scalars(select(QuotationLine).where(QuotationLine.parent_line_id == line.id)):
+        db.delete(child)
     db.delete(line)
     db.flush()
     audit(db, line, "delete", before)
@@ -481,7 +546,7 @@ def recalculate(quote_id: uuid.UUID, dc=Depends(require("quotes.write"))):
     if q.status not in EDITABLE:
         raise Conflict("Quotation is locked", code="QUOTE_LOCKED")
     pricer = Pricer(db, ctx, db.get(PriceList, q.price_list_id))
-    for line in db.scalars(select(QuotationLine).where(QuotationLine.quotation_id == q.id)):
+    for line in db.scalars(select(QuotationLine).where(QuotationLine.quotation_id == q.id, UNITS)):
         _price_line(db, ctx, q, line, pricer)
     _totals(db, q)
     db.commit()
@@ -503,7 +568,7 @@ def set_price_per_m2(quote_id: uuid.UUID, body: PricePerM2In, dc=Depends(require
         raise Conflict("Quotation is locked", code="QUOTE_LOCKED")
     before = snapshot(q)
     pricer = Pricer(db, ctx, db.get(PriceList, q.price_list_id))
-    for line in db.scalars(select(QuotationLine).where(QuotationLine.quotation_id == q.id)):
+    for line in db.scalars(select(QuotationLine).where(QuotationLine.quotation_id == q.id, UNITS)):
         line.price_per_m2 = body.price_per_m2
         _price_line(db, ctx, q, line, pricer)
     _totals(db, q)
@@ -557,7 +622,7 @@ def survey_pricing(survey_id: uuid.UUID, price_list_id: uuid.UUID | None = None,
         else:
             try:
                 r = pricer.price(o.model_id, o.opening_width_mm, o.opening_height_mm, o.params, o.color_code,
-                                 o.glass_material_code, o.location, o.total_height_mm)
+                                 o.glass_material_code, o.location, o.total_height_mm, o.top_model_id)
             except AppError as e:
                 row.error = e.code
             else:

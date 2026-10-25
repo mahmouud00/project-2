@@ -72,6 +72,9 @@ class SurveyOpening(Base, Entity):
     notes: Mapped[str] = mapped_column(Text, default="")
     # survey sheet columns (windows/doors): total height, sliding/hinged, glass, insect screen, application
     total_height_mm: Mapped[Decimal | None] = mapped_column(Numeric(12, 2), nullable=True)   # ارتفاع كلي
+    # the half-circle arch (أرج) above the unit: its own frame, made with this library model
+    top_model_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("product_models.id"),
+                                                           nullable=True)
     unit_kind: Mapped[str | None] = mapped_column(String(20), nullable=True)                 # sliding | hinged
     color_text: Mapped[str | None] = mapped_column(String(80), nullable=True)                # colour as written on site
     glass_layers: Mapped[str | None] = mapped_column(String(10), nullable=True)              # single | double

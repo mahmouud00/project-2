@@ -87,6 +87,24 @@ DEFINITION = {
 }
 
 
+# EXAMPLE half-circle arch (أرج) above a unit: its own frame. Width = the unit's width, height = total − height.
+ARCH_DEFINITION = {
+    "params": [],
+    "formulas": [{"key": "curve", "label": "طول القوس", "expr": "arc_length(width, height)"}],
+    "pieces": [
+        {"key": "arch_curve", "element": "حلق الأرج", "label": "حلق مقوس", "role": "frame", "material_code": "DEMO-FRAME",
+         "length_expr": "curve + 2 * weld_allowance", "qty_expr": "1", "angle_left": "90", "angle_right": "90"},
+        {"key": "arch_base", "element": "حلق الأرج", "side": "width", "label": "قاعدة الأرج", "role": "frame",
+         "material_code": "DEMO-FRAME", "length_expr": "width + 2 * weld_allowance", "qty_expr": "1",
+         "angle_left": "45", "angle_right": "45"},
+    ],
+    "glass": [{"key": "arch_glass", "label": "زجاج الأرج", "width_expr": "width - glass_deduction",
+               "height_expr": "height - glass_deduction / 2",
+               "area_expr": "segment_area(width - glass_deduction, height - glass_deduction / 2)", "qty_expr": "1"}],
+    "accessories": [], "validations": [], "drawing": [{"type": "frame", "x": "0", "y": "0", "w": "width", "h": "height"}],
+}
+
+
 def _ok(r, expected=(200, 201)):
     if r.status_code not in expected:
         raise RuntimeError(f"{r.request.method} {r.request.url.path}: {r.status_code} {r.text}")
@@ -169,6 +187,9 @@ def setup_demo() -> bool:
         "name": "مثال 150×120 ضلفتين", "opening_width_mm": "1500", "opening_height_mm": "1200",
         "params": {"leaf_count": 2},
         "expected": {"pieces": {p["key"]: p["length_mm"] for p in preview["pieces"]}}}))
+    arch = _ok(client.post("/api/v1/library/models", headers=v, json={
+        "system_id": sid, "code": "AR1", "name": "أرج نص دايرة (مثال)", "category": "window", "status": "trial",
+        "definition": ARCH_DEFINITION}))
     _ok(client.post(f"/api/v1/library/systems/{sid}/publish", headers=v, json={"notes": "نسخة تجريبية"}))
 
     # ---------------- the factory sets itself up
@@ -180,7 +201,8 @@ def setup_demo() -> bool:
         "invoice_footer": "شكرًا لثقتكم · الضمان 5 سنوات على القطاعات", "accent_color": "#5048E5",
         "default_tax_pct": "14", "deposit_pct": "30", "quote_waste_pct": "10", "saw_kerf_mm": "4",
         "bar_trim_mm": "10", "min_reusable_offcut_mm": "500", "quote_validity_days": 15,
-        "quote_terms": "الأسعار سارية 15 يوم. التسليم خلال 21 يوم من دفع العربون."}}))
+        "quote_terms": "الأسعار سارية 15 يوم. التسليم خلال 21 يوم من دفع العربون.",
+        "default_arch_model_id": arch["id"]}}))
     _ok(client.post("/api/v1/company/logo", headers=a, files={"file": ("logo.png", _png(240, 160), "image/png")}))
     branch = _ok(client.get("/api/v1/branches", headers=a))["items"][0]
     for code, name, ctype, margin in (("END", "عميل نهائي", "end", "30"), ("DEALER", "تاجر", "dealer", "15"),

@@ -24,7 +24,8 @@
     <td class="draw">{% if l.image %}<img src="{{ l.image }}" alt=""><br>{% endif %}{{ drawing(l.drawing, l.width_mm, l.height_mm, 110, 80) }}
       <div><b>{{ l.model_name }}</b>{% if l.location %} · {{ l.location }}{% endif %}</div>
       {% if l.color_name or l.glass_name %}<div class="small">{% if l.color_name %}اللون: {{ l.color_name }}{% endif %}{% if l.glass_name %} · الزجاج: {{ l.glass_name }}{% endif %}</div>{% endif %}
-      {% for p in l.param_labels %}<div class="small">{{ p }}</div>{% endfor %}</td>
+      {% for p in l.param_labels %}<div class="small">{{ p }}</div>{% endfor %}
+      {% if l.arch %}<div class="small" style="margin-top:4px">+ أرج نصف دائري: <b>{{ l.arch.model_code }}</b> {{ l.arch.model_name }} · {{ size(l.arch.width_mm, l.arch.height_mm) }}</div>{% endif %}</td>
     <td class="num">{{ l.price_per_m2 | money if l.price_per_m2 is not none else "" }}</td>
     <td class="num"><b>{{ l.line_total | money }}</b></td>
   </tr>

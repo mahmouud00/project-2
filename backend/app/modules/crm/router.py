@@ -164,6 +164,7 @@ class OpeningIn(BaseModel):
     photo_id: uuid.UUID | None = None
     notes: str = ""
     total_height_mm: Decimal | None = Field(None, gt=0, max_digits=12, decimal_places=2)
+    top_model_id: uuid.UUID | None = None      # arch (أرج) model; default: company setting
     unit_kind: str | None = Field(None, pattern="^(sliding|hinged)$")
     color_text: str | None = Field(None, max_length=80)
     glass_layers: str | None = Field(None, pattern="^(single|double)$")
@@ -188,6 +189,7 @@ class OpeningOut(ORMModel):
     photo_id: uuid.UUID | None
     notes: str
     total_height_mm: Decimal | None
+    top_model_id: uuid.UUID | None
     unit_kind: str | None
     color_text: str | None
     glass_layers: str | None

@@ -126,14 +126,15 @@ export default function ModelEditor({ systemId, modelId, tab }: { systemId: stri
           </>}
           {tab === "pieces" && <PiecesTab def={def} setPieces={set("pieces")} editable={editable} matOptions={matOptions} unit={unit} />}
           {tab === "glass" && <>
-            <p className="def-help">مقاس كل لوح زجاج: معادلة العرض ومعادلة الارتفاع والعدد.</p>
+            <p className="def-help">مقاس كل لوح زجاج: معادلة العرض ومعادلة الارتفاع والعدد. لو اللوح مش مستطيل (زي زجاج الأرج نص الدايرة) اكتب معادلة مساحته، مثلًا <code>segment_area(width, height)</code>.</p>
             <RowsEditor rows={def.glass} onChange={set("glass")} readOnly={!editable} addLabel="زجاج"
-              blank={() => ({ key: "", label: "", material_code: null, width_expr: "", height_expr: "", qty_expr: "1", condition: null })} columns={[
+              blank={() => ({ key: "", label: "", material_code: null, width_expr: "", height_expr: "", area_expr: null, qty_expr: "1", condition: null })} columns={[
                 { key: "key", label: "الاسم", kind: "code", width: 110 },
                 { key: "label", label: "الوصف", width: 140 },
                 { key: "material_code", label: "الخامة (فاضي = اختيار البياع)", kind: "select", placeholder: "اختيار البياع", options: matOptions, width: 200 },
                 { key: "width_expr", label: <span className="side-w">معادلة العرض</span>, kind: "expr" },
                 { key: "height_expr", label: <span className="side-h">معادلة الارتفاع</span>, kind: "expr" },
+                { key: "area_expr", label: "المساحة (لو مش مستطيل)", kind: "expr", width: 170 },
                 { key: "qty_expr", label: "العدد", kind: "expr", width: 100 },
                 { key: "condition", label: "شرط", kind: "expr", width: 120 },
               ]} />

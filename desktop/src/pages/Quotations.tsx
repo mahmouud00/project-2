@@ -4,7 +4,7 @@ import { useTitle, type PageProps } from "../lib/title";
 import { useAction, useLoad } from "../lib/hooks";
 import { useDefaultBranch, useSession } from "../state/session";
 import { useToast } from "../state/toast";
-import { Btn, Card, Chip, Confirm, ErrorBox, Field, Len, Loading, Modal, Money, NumIn, PageHead, Pager, Select, Table, TextArea } from "../components/ui";
+import { Btn, Card, Chip, Confirm, Dim, ErrorBox, Field, Len, Loading, Modal, Money, NumIn, PageHead, Pager, Select, Table, TextArea } from "../components/ui";
 import { BranchName, BranchSelect, ColorName, CustomerName, CustomerPicker } from "../components/pickers";
 import { ItemForm, ParamLabels, type ItemDraft } from "../components/items";
 import { Drawing, MediaImg, PrintPreview } from "../components/media";
@@ -109,11 +109,14 @@ function QuotationDetail({ id }: { id: string }) {
   if (!q.data) return <Loading />;
   const quote = q.data;
   const editable = ["draft", "sent"].includes(quote.status) && s.can("quotes.write", quote.branch_id);
-  const lines = quote.lines ?? [];
+  const allLines = quote.lines ?? [];
+  // an arch (أرج) line is a unit of its own for manufacturing, shown and priced inside its unit
+  const lines = allLines.filter((l) => !l.parent_line_id);
+  const archOf = (l: Line) => allLines.find((x) => x.parent_line_id === l.id);
 
   const saveLine = (line: Line | null) => async (d: ItemDraft) => {
     const body = { location: d.location ?? "", model_id: d.model_id, opening_width_mm: d.opening_width_mm, opening_height_mm: d.opening_height_mm,
-      total_height_mm: d.total_height_mm || null,
+      total_height_mm: d.total_height_mm || null, top_model_id: d.top_model_id || null,
       params: d.params ?? {}, color_code: d.color_code || null, glass_material_code: d.glass_material_code || null,
       qty: Number(d.qty), manual_unit_price: d.manual_unit_price || null, price_per_m2: d.price_per_m2 || null, notes: d.notes ?? "" };
     const out = line
@@ -183,7 +186,8 @@ function QuotationDetail({ id }: { id: string }) {
               <Drawing elements={(l.calc as any)?.drawing} w={(l.calc as any)?.inputs?.width_mm} h={(l.calc as any)?.inputs?.height_mm} maxW={70} maxH={52} />
               <div><b>{l.model_name}</b>{l.location && <span className="muted"> · {l.location}</span>}
                 <div className="small"><ColorName code={l.color_code} /> {l.glass_material_code && <span className="muted">· {l.glass_material_code}</span>}</div>
-                <ParamLabels modelId={l.model_id} values={l.params} /></div>
+                <ParamLabels modelId={l.model_id} values={l.params} />
+                {archOf(l) && <ArchNote arch={archOf(l)!} />}</div>
             </div>) },
           { key: "p", label: "سعر المتر", width: 150, render: (l) => (
             <PpmCell line={l} editable={editable} busy={busy} onSave={(v) => setPpm(l, v)} />) },
@@ -216,7 +220,7 @@ function QuotationDetail({ id }: { id: string }) {
 
       {lineEdit && <ItemForm title={lineEdit === "new" ? "بند جديد" : "تعديل البند"} withPrice onClose={() => setLineEdit(null)}
         initial={lineEdit === "new" ? undefined : { ...lineEdit, manual_unit_price: lineEdit.manual_unit_price, price_per_m2: lineEdit.price_per_m2,
-          total_height_mm: lineEdit.total_height_mm }}
+          total_height_mm: lineEdit.total_height_mm, top_model_id: lineEdit.top_model_id }}
         onSave={saveLine(lineEdit === "new" ? null : lineEdit)} />}
       {del && <Confirm title="حذف البند" danger yes="حذف" busy={busy} onClose={() => setDel(null)} text={`هتحذف ${del.model_name} (${del.location || "بدون مكان"}).`}
         onYes={() => run(async () => { q.set(await api.del<Quote>(`/quotation-lines/${del.id}`)); setDel(null); })} />}
@@ -224,6 +228,17 @@ function QuotationDetail({ id }: { id: string }) {
       {allPpm && <AllPricePerM2 quote={quote} onClose={() => setAllPpm(false)} onSaved={(x) => q.set(x)} />}
       {toWo && <ToWorkOrder quote={quote} onClose={() => setToWo(false)} />}
       {header && <QuoteHeader quote={quote} onClose={() => setHeader(false)} onSaved={(x) => q.set(x)} />}
+    </div>
+  );
+}
+
+function ArchNote({ arch }: { arch: Line }) {
+  return (
+    <div className="row small" style={{ gap: 6, marginTop: 4 }}>
+      <Chip color="violet">+ أرج</Chip>
+      <span className="code">{arch.model_code}</span><span className="muted">{arch.model_name}</span>
+      <Dim w={arch.opening_width_mm} h={arch.opening_height_mm} strong={false} />
+      {(arch.calc as any)?.issues?.some((i: any) => i.level === "error") && <Chip color="red">فيه أخطاء</Chip>}
     </div>
   );
 }

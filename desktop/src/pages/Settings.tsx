@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ModelSelect } from "../components/pickers";
 import { api, type S } from "../api/client";
 import { useTitle, type PageProps } from "../lib/title";
 import { useAction, useLoad } from "../lib/hooks";
@@ -82,7 +83,8 @@ function Defaults() {
   const st = s.company.settings;
   const [d, setD] = useState<Partial<Settings>>({ currency: st.currency, default_tax_pct: st.default_tax_pct, quote_validity_days: st.quote_validity_days,
     quote_waste_pct: st.quote_waste_pct, deposit_pct: st.deposit_pct, saw_kerf_mm: st.saw_kerf_mm, bar_trim_mm: st.bar_trim_mm,
-    min_reusable_offcut_mm: st.min_reusable_offcut_mm, quote_terms: st.quote_terms, length_unit: st.length_unit ?? "cm" });
+    min_reusable_offcut_mm: st.min_reusable_offcut_mm, quote_terms: st.quote_terms, length_unit: st.length_unit ?? "cm",
+    min_billed_area_m2: st.min_billed_area_m2, default_arch_model_id: st.default_arch_model_id ?? null });
   const set = (k: keyof Settings) => (v: any) => setD((x) => ({ ...x, [k]: v }));
   return (
     <div className="grid g4" style={{ maxWidth: 1000 }}>
@@ -96,6 +98,9 @@ function Defaults() {
       <Field label="سُمك سلاح المنشار"><NumIn value={d.saw_kerf_mm as string} onChange={set("saw_kerf_mm")} unit="مم" /></Field>
       <Field label="تشذيب طرف العود"><NumIn value={d.bar_trim_mm as string} onChange={set("bar_trim_mm")} unit="مم" /></Field>
       <Field label="أقل باقي يرجع المخزن"><NumIn value={d.min_reusable_offcut_mm as string} onChange={set("min_reusable_offcut_mm")} unit="مم" /></Field>
+      <Field label="أقل مساحة بتتحسب للوحدة" hint="أي وحدة أصغر بتتحسب بالمساحة دي في سعر المتر"><NumIn value={d.min_billed_area_m2 as string} onChange={set("min_billed_area_m2")} unit="م²" /></Field>
+      <Field label="نموذج الأرج الافتراضي" hint="بيتستخدم لما الوحدة يكون ليها ارتفاع كلي (أرج نص دايرة بحلق لوحده)" className="span-3">
+        <ModelSelect value={d.default_arch_model_id} onChange={(id) => set("default_arch_model_id")(id || null)} /></Field>
       <Field label="شروط عرض السعر الافتراضية" className="span-all"><TextArea value={d.quote_terms} onChange={set("quote_terms")} /></Field>
       <div className="span-all"><Btn kind="primary" busy={busy} onClick={() => save(d)}>حفظ</Btn></div>
     </div>

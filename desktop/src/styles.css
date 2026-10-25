@@ -114,6 +114,7 @@ a { color: var(--primary); }
 .span2 { grid-column: span 2; }
 .span3 { grid-column: span 3; }
 .span-all { grid-column: 1 / -1; }
+.span-3 { grid-column: span 3; }
 .mt { margin-top: 14px; }
 .mb { margin-bottom: 14px; }
 .nowrap { white-space: nowrap; }

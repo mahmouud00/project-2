@@ -82,6 +82,18 @@ export function initials(name: string): string {
   return (name || "?").trim().slice(0, 1);
 }
 
+/** Exact a − b on decimal strings (lengths): no floating point. */
+export function subDec(a: string, b: string): string {
+  const pa = scaled(a), pb = scaled(b);
+  if (!pa || !pb) return "";
+  const scale = Math.max(pa.scale, pb.scale);
+  const n = pa.n * 10n ** BigInt(scale - pa.scale) - pb.n * 10n ** BigInt(scale - pb.scale);
+  const neg = n < 0n;
+  const digits = (neg ? -n : n).toString().padStart(scale + 1, "0");
+  const out = scale ? digits.slice(0, -scale) + "." + digits.slice(-scale) : digits;
+  return clean((neg ? "-" : "") + out);
+}
+
 /** Exact sum of money strings (2 decimals) using integer cents. */
 export function sumMoney(values: (string | number | null | undefined)[]): string {
   let cents = 0n;

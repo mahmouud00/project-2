@@ -95,6 +95,95 @@ def _lookup(inclusive: bool):
     return fn
 
 
+# ---- geometry (arches): Decimal only, series evaluated with extra digits, no float anywhere
+_PI = Decimal("3.14159265358979323846264338327950288419716939937510")
+
+
+def _domain(ok: bool, message: str) -> None:
+    if not ok:
+        raise ExprError(message, code="EXPR_DOMAIN")
+
+
+def _sqrt(x):
+    _domain(x >= 0, "sqrt of a negative number")
+    return x.sqrt()
+
+
+def _sin(x):
+    """sin(x), x in radians."""
+    with localcontext() as c:
+        c.prec += 8
+        two_pi = 2 * _PI
+        x = x % two_pi
+        if x > _PI:
+            x -= two_pi
+        elif x < -_PI:
+            x += two_pi
+        total, term, n, x2 = x, x, 1, x * x
+        while True:
+            term = -term * x2 / ((2 * n) * (2 * n + 1))
+            n += 1
+            nxt = total + term
+            if nxt == total:
+                break
+            total = nxt
+    return +total
+
+
+def _atan(x):
+    with localcontext() as c:
+        c.prec += 8
+        sign = -1 if x < 0 else 1
+        x = abs(x)
+        invert = x > 1
+        if invert:
+            x = 1 / x
+        halvings = 0
+        while x > Decimal("0.1"):          # atan(x) = 2·atan(x / (1 + √(1 + x²)))
+            x = x / (1 + (1 + x * x).sqrt())
+            halvings += 1
+        total, term, n, x2 = x, x, 1, x * x
+        while True:
+            term = -term * x2
+            nxt = total + term / (2 * n + 1)
+            n += 1
+            if nxt == total:
+                break
+            total = nxt
+        total *= 2 ** halvings
+        if invert:
+            total = _PI / 2 - total
+    return +(sign * total)
+
+
+def _asin(x):
+    _domain(-1 <= x <= 1, "asin needs a value between -1 and 1")
+    if abs(x) == 1:
+        return +(x * _PI / 2)
+    return _atan(x / (1 - x * x).sqrt())
+
+
+def _arc(chord, rise):
+    """Circle through both ends of `chord` and the top point `rise` above its middle -> (radius, angle)."""
+    _domain(chord > 0 and rise > 0, "chord and rise must be positive")
+    half = chord / 2
+    radius = (rise * rise + half * half) / (2 * rise)
+    angle = 2 * _asin(half / radius)
+    if rise > half:                       # more than half a circle
+        angle = 2 * _PI - angle
+    return radius, angle
+
+
+def _arc_length(chord, rise):
+    radius, angle = _arc(chord, rise)
+    return radius * angle
+
+
+def _segment_area(chord, rise):
+    radius, angle = _arc(chord, rise)
+    return radius * radius / 2 * (angle - _sin(angle))
+
+
 FUNCTIONS = {
     "min": (lambda *a: min(a), 1, None),
     "max": (lambda *a: max(a), 1, None),
@@ -108,6 +197,20 @@ FUNCTIONS = {
     "lookup": (_lookup(True), 4, None),      # x <= threshold
     "lookup_lt": (_lookup(False), 4, None),  # x <  threshold
     "clamp": (lambda x, lo, hi: max(lo, min(hi, x)), 3, 3),
+    "pi": (lambda: +_PI, 0, 0),
+    "sqrt": (_sqrt, 1, 1),
+    "sin": (_sin, 1, 1),                              # radians
+    "cos": (lambda x: _sin(x + _PI / 2), 1, 1),
+    "tan": (lambda x: _sin(x) / _sin(x + _PI / 2), 1, 1),
+    "atan": (_atan, 1, 1),
+    "asin": (_asin, 1, 1),
+    "acos": (lambda x: _PI / 2 - _asin(x), 1, 1),
+    "rad": (lambda d: d * _PI / 180, 1, 1),           # degrees -> radians
+    "deg": (lambda r: r * 180 / _PI, 1, 1),           # radians -> degrees
+    "arc_radius": (lambda c, r: _arc(c, r)[0], 2, 2),  # arch: chord (width) and rise (height)
+    "arc_angle": (lambda c, r: _arc(c, r)[1], 2, 2),   # radians
+    "arc_length": (_arc_length, 2, 2),
+    "segment_area": (_segment_area, 2, 2),
 }
 LAZY_FUNCTIONS = {"if": 3}
 

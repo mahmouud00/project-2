@@ -2373,6 +2373,8 @@ export interface components {
              * @default 0
              */
             deposit_pct: number | string;
+            /** Default Arch Model Id */
+            default_arch_model_id?: string | null;
             /**
              * Min Billed Area M2
              * @description price per m² bills at least this area per unit
@@ -2751,6 +2753,8 @@ export interface components {
             width_expr: string;
             /** Height Expr */
             height_expr: string;
+            /** Area Expr */
+            area_expr?: string | null;
             /**
              * Qty Expr
              * @default 1
@@ -3291,6 +3295,8 @@ export interface components {
             notes: string;
             /** Total Height Mm */
             total_height_mm?: number | string | null;
+            /** Top Model Id */
+            top_model_id?: string | null;
             /** Unit Kind */
             unit_kind?: string | null;
             /** Color Text */
@@ -3344,6 +3350,8 @@ export interface components {
             notes: string;
             /** Total Height Mm */
             total_height_mm: string | null;
+            /** Top Model Id */
+            top_model_id: string | null;
             /** Unit Kind */
             unit_kind: string | null;
             /** Color Text */
@@ -5061,6 +5069,8 @@ export interface components {
             opening_height_mm: number | string;
             /** Total Height Mm */
             total_height_mm?: number | string | null;
+            /** Top Model Id */
+            top_model_id?: string | null;
             /**
              * Params
              * @default {}
@@ -5120,6 +5130,10 @@ export interface components {
             opening_height_mm: string;
             /** Total Height Mm */
             total_height_mm: string | null;
+            /** Top Model Id */
+            top_model_id: string | null;
+            /** Parent Line Id */
+            parent_line_id: string | null;
             /** Params */
             params: {
                 [key: string]: unknown;
@@ -5183,6 +5197,8 @@ export interface components {
             opening_height_mm?: number | string | null;
             /** Total Height Mm */
             total_height_mm?: number | string | null;
+            /** Top Model Id */
+            top_model_id?: string | null;
             /** Params */
             params?: {
                 [key: string]: unknown;

@@ -1,6 +1,7 @@
 """Survey sheet columns, suggested price per m² of a survey, and the price per m² typed in a quotation."""
 from decimal import Decimal as D
 
+from tests.test_arch import _arch_model
 from tests.test_business_flow import _setup
 
 
@@ -10,12 +11,13 @@ def test_survey_sheet_and_price_per_m2(platform, tenant_a, client):
     h = tenant_a.h
     model_id = lib["model"]["id"]
     glass = f"{code}-GLASS6"
+    arch = _arch_model(client, platform, lib, f"{code}-")
 
     sv = client.post("/api/v1/surveys", headers=h, json={
         "customer_id": customer["id"], "branch_id": branch["id"], "floor": "الثالث", "technician": "عم سيد",
         "openings": [
             {"location": "صالة", "opening_width_mm": 1500, "opening_height_mm": 1200, "total_height_mm": 1800,
-             "model_id": model_id, "color_code": "W", "glass_material_code": glass, "qty": 2, "unit_kind": "sliding",
+             "top_model_id": arch["id"], "model_id": model_id, "color_code": "W", "glass_material_code": glass, "qty": 2, "unit_kind": "sliding",
              "glass_layers": "double", "glass_color": "فيميه", "screen_type": "pleated", "application": "على الحلق القديم"},
             {"location": "حمام", "opening_width_mm": 800, "opening_height_mm": 900, "model_id": model_id,
              "color_code": "W", "glass_material_code": glass, "unit_kind": "hinged", "glass_layers": "single"},

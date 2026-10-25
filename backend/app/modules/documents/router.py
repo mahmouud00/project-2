@@ -125,9 +125,15 @@ def print_quotation(quote_id: uuid.UUID, dc=Depends(require("quotes.read"))):
     ctx.require("quotes.read", q.branch_id)
     look = _Lookups(db)
     lines, total_area = [], Decimal(0)
-    for l in db.scalars(select(QuotationLine).where(QuotationLine.quotation_id == q.id).order_by(QuotationLine.position)):
+    for l in db.scalars(select(QuotationLine).where(QuotationLine.quotation_id == q.id)
+                        .order_by(QuotationLine.position, QuotationLine.parent_line_id.is_not(None))):
         model = db.get(ProductModel, l.model_id)
         inputs = (l.calc or {}).get("inputs", {})
+        if l.parent_line_id is not None and lines:      # the unit's arch: shown with its unit, priced in it
+            lines[-1]["arch"] = {"model_code": model.code if model else "", "model_name": model.name if model else "",
+                                 "width_mm": l.opening_width_mm, "height_mm": l.opening_height_mm,
+                                 "drawing": (l.calc or {}).get("drawing", [])}
+            continue
         billed = l.billed_area_m2 or l.area_m2
         ppm = l.price_per_m2 if l.price_per_m2 is not None else (money(l.unit_price / billed) if billed else None)
         total_area += billed * l.qty

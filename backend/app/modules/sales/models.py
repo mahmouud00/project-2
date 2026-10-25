@@ -82,6 +82,12 @@ class QuotationLine(Base, Entity):
     opening_height_mm: Mapped[Decimal] = mapped_column(Numeric(12, 2))
     # ارتفاع كلي (from the survey): when set, the area for the price is width × total height
     total_height_mm: Mapped[Decimal | None] = mapped_column(Numeric(12, 2), nullable=True)
+    top_model_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("product_models.id"),
+                                                           nullable=True)   # model of the arch (أرج)
+    # the arch is a separate unit (own frame): a line of its own, made and costed with its model, priced
+    # inside its parent line (price 0 here); managed through the parent only
+    parent_line_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("quotation_lines.id",
+                                                             ondelete="CASCADE"), nullable=True, index=True)
     params: Mapped[dict] = mapped_column(JSONB, default=dict)
     color_code: Mapped[str | None] = mapped_column(String(20), nullable=True)
     glass_material_code: Mapped[str | None] = mapped_column(String(60), nullable=True)
