@@ -115,7 +115,7 @@ export default function ModelEditor({ systemId, modelId, tab }: { systemId: stri
               ]} />
           </>}
           {tab === "formulas" && <>
-            <p className="def-help">قيم وسيطة بتتحسب بالترتيب حسب الاعتماد، وتتكتب باسمها في القطع (زي <code>sash_w = (width + overlap) / leaf_count</code>). الدوال المتاحة: <code>min max abs round ceil floor round_to ceil_to floor_to clamp lookup if</code>.</p>
+            <p className="def-help">قيم وسيطة بتتحسب بالترتيب حسب الاعتماد، وتتكتب باسمها في القطع (زي <code>sash_w = (width + overlap) / leaf_count</code>). الدوال المتاحة: <code>min max abs round ceil floor round_to ceil_to floor_to clamp lookup if</code>، وللأقواس والأرج: <code>pi sqrt sin cos tan asin acos atan rad deg arc_length segment_area arc_radius arc_angle</code>.</p>
             <RowsEditor rows={def.formulas} onChange={set("formulas")} readOnly={!editable} addLabel="معادلة" blank={() => ({ key: "", label: "", expr: "", unit: "length" as const })} columns={[
               { key: "key", label: "الاسم", kind: "code", width: 150 },
               { key: "label", label: "الوصف", width: 200 },
