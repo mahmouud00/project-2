@@ -88,7 +88,7 @@ export default function ModelEditor({ systemId, modelId, tab }: { systemId: stri
       <Card flush>
         <Tabs value={tab} onChange={(t) => setQuery({ tab: t })} tabs={[
           { id: "info", label: "البيانات والصورة" }, { id: "params", label: "المتغيرات", count: def.params.length },
-          { id: "formulas", label: "المعادلات", count: def.formulas.length }, { id: "pieces", label: "القطع والتخصيمات", count: def.pieces.length },
+          { id: "pieces", label: "القطع والتخصيمات", count: def.pieces.length },
           { id: "glass", label: "الزجاج", count: def.glass.length }, { id: "accessories", label: "الإكسسوار", count: def.accessories.length },
           { id: "validations", label: "التحقق", count: def.validations.length }, { id: "drawing", label: "الرسمة", count: def.drawing.length },
           { id: "try", label: "تجربة الحساب" }, { id: "tests", label: "الاختبارات المرجعية" },
@@ -115,8 +115,12 @@ export default function ModelEditor({ systemId, modelId, tab }: { systemId: stri
                   <ChoicesIn value={r.choices ?? []} onChange={(choices) => setR({ choices })} readOnly={!editable} /> },
               ]} />
           </>}
-          {tab === "formulas" && <>
-            <p className="def-help">قيم وسيطة بتتحسب بالترتيب حسب الاعتماد، وتتكتب باسمها في القطع (زي <code>sash_w = (width + overlap) / leaf_count</code>). تقدر تكتبها <b>بالعربي</b>: <code>عرض_الضلفة = (العرض + ركوب_الضلف) ÷ عدد_الضلف</code>. الأسامي الجاهزة: <code>العرض</code> و<code>الارتفاع</code> (مقاس التصنيع) و<code>عرض_الفتحة</code> و<code>ارتفاع_الفتحة</code> و<code>خلوص_العرض</code> و<code>خلوص_الارتفاع</code>. الكلمات: <code>و</code> <code>أو</code> <code>مش</code> <code>صح</code> <code>خطأ</code>. الدوال: <code>لو(شرط، لو صح، لو غلط)</code> <code>أصغر</code> <code>أكبر</code> <code>مطلق</code> <code>تقريب</code> <code>تقريب_لأعلى</code> <code>تقريب_لأسفل</code> <code>تقريب_لخطوة</code> <code>لأعلى_لخطوة</code> <code>لأسفل_لخطوة</code> <code>حصر</code> <code>جدول</code> <code>جدول_أقل</code>، وللأرج <code>طول_القوس(العرض، الارتفاع)</code> <code>مساحة_القطعة</code> <code>باي()</code> <code>جذر</code>. ينفع كمان الإنجليزي (<code>width</code>، <code>min</code>، <code>if</code>…) والأرقام العربي و<code>×</code> و<code>÷</code>.</p>
+          {(tab === "pieces" || tab === "formulas") && <>
+            {editable && <CopyDeductions systemId={systemId} modelId={modelId} def={def} onCopy={(d) => setDef(d)} />}
+            <PiecesTab def={def} setPieces={set("pieces")} editable={editable} matOptions={matOptions} unit={unit} />
+            <details className="helper-values" open={def.formulas.length > 0}>
+              <summary>قيم مساعدة (اختياري) <span className="muted small">· {def.formulas.length}</span></summary>
+            <p className="def-help">مش لازمة: تقدر تكتب التخصيم كله في معادلة طول القطعة. بس لو فيه قيمة بتتكرر في كذا قطعة (زي عرض الضلفة) اكتبها هنا مرة واحدة باسم، واستخدم الاسم في القطع. بتتحسب بالترتيب حسب الاعتماد (زي <code>sash_w = (width + overlap) / leaf_count</code>). تقدر تكتبها <b>بالعربي</b>: <code>عرض_الضلفة = (العرض + ركوب_الضلف) ÷ عدد_الضلف</code>. الأسامي الجاهزة: <code>العرض</code> و<code>الارتفاع</code> (مقاس التصنيع) و<code>عرض_الفتحة</code> و<code>ارتفاع_الفتحة</code> و<code>خلوص_العرض</code> و<code>خلوص_الارتفاع</code>. الكلمات: <code>و</code> <code>أو</code> <code>مش</code> <code>صح</code> <code>خطأ</code>. الدوال: <code>لو(شرط، لو صح، لو غلط)</code> <code>أصغر</code> <code>أكبر</code> <code>مطلق</code> <code>تقريب</code> <code>تقريب_لأعلى</code> <code>تقريب_لأسفل</code> <code>تقريب_لخطوة</code> <code>لأعلى_لخطوة</code> <code>لأسفل_لخطوة</code> <code>حصر</code> <code>جدول</code> <code>جدول_أقل</code>، وللأرج <code>طول_القوس(العرض، الارتفاع)</code> <code>مساحة_القطعة</code> <code>باي()</code> <code>جذر</code>. ينفع كمان الإنجليزي (<code>width</code>، <code>min</code>، <code>if</code>…) والأرقام العربي و<code>×</code> و<code>÷</code>.</p>
             <RowsEditor rows={def.formulas} onChange={set("formulas")} readOnly={!editable} addLabel="معادلة" blank={() => ({ key: "", label: "", expr: "", unit: "length" as const })} columns={[
               { key: "key", label: "الاسم", kind: "code", width: 150 },
               { key: "label", label: "الوصف", width: 200 },
@@ -124,8 +128,8 @@ export default function ModelEditor({ systemId, modelId, tab }: { systemId: stri
               { key: "unit", label: "النوع", kind: "select", width: 120, options: [{ value: "length", label: `طول (${unit})` }, { value: "count", label: "عدد" },
                 { value: "area_m2", label: "مساحة م²" }, { value: "number", label: "رقم" }] },
             ]} />
+            </details>
           </>}
-          {tab === "pieces" && <PiecesTab def={def} setPieces={set("pieces")} editable={editable} matOptions={matOptions} unit={unit} />}
           {tab === "glass" && <>
             <p className="def-help">مقاس كل لوح زجاج: معادلة العرض ومعادلة الارتفاع والعدد. لو اللوح مش مستطيل (زي زجاج الأرج نص الدايرة) اكتب معادلة مساحته، مثلًا <code>segment_area(width, height)</code>.</p>
             <RowsEditor rows={def.glass} onChange={set("glass")} readOnly={!editable} addLabel="زجاج"
@@ -177,6 +181,56 @@ export default function ModelEditor({ systemId, modelId, tab }: { systemId: stri
         </Card>
       )}
     </div>
+  );
+}
+
+type CopyParts = { pieces: boolean; glass: boolean; accessories: boolean; validations: boolean; drawing: boolean };
+
+/** Take the deductions of another model of the same system (a copy: later edits of either model stay separate). */
+function CopyDeductions({ systemId, modelId, def, onCopy }: { systemId: string; modelId: string; def: Def; onCopy: (d: Def) => void }) {
+  const toast = useToast();
+  const [open, setOpen] = useState(false);
+  const [source, setSource] = useState("");
+  const [parts, setParts] = useState<CopyParts>({ pieces: true, glass: true, accessories: false, validations: true, drawing: false });
+  const models = useLoad(() => lookups.models(systemId), [systemId]);
+  const others = (models.data ?? []).filter((m) => m.id !== modelId);
+  const apply = () => {
+    const src = normalize(others.find((m) => m.id === source)?.definition);
+    const next: Def = { ...def };
+    if (parts.pieces) {
+      // the pieces come with the helper values and parameters they are written with
+      next.pieces = src.pieces;
+      next.formulas = src.formulas;
+      const have = new Set(def.params.map((p) => p.name));
+      next.params = [...def.params, ...src.params.filter((p) => !have.has(p.name))];
+    }
+    for (const k of ["glass", "accessories", "validations", "drawing"] as const) if (parts[k]) (next as any)[k] = src[k];
+    onCopy(next);
+    setOpen(false);
+    toast.ok("اتنسخت التخصيمات. راجعها واحفظ النموذج.");
+  };
+  const label: Record<keyof CopyParts, string> = { pieces: "القطع والتخصيمات (ومعاها القيم المساعدة والمتغيرات)", glass: "الزجاج",
+    accessories: "الإكسسوار", validations: "التحقق", drawing: "الرسمة" };
+  return (
+    <>
+      <div className="row mb"><Btn small icon="copy" onClick={() => setOpen(true)} disabled={!others.length}>نسخ التخصيمات من نموذج تاني</Btn>
+        {!others.length && <span className="faint small">مفيش نماذج تانية في السيستم ده</span>}</div>
+      {open && (
+        <Modal title="نسخ التخصيمات من نموذج تاني" onClose={() => setOpen(false)} footer={<>
+          <Btn kind="primary" disabled={!source} onClick={apply}>نسخ</Btn><Btn onClick={() => setOpen(false)}>رجوع</Btn></>}>
+          <div className="col">
+            <Field label="النموذج"><Select value={source} onChange={setSource} placeholder="اختار النموذج…"
+              options={others.map((m) => ({ value: m.id, label: `${m.code} · ${m.name}` }))} /></Field>
+            <div className="col" style={{ gap: 6 }}>
+              {(Object.keys(label) as (keyof CopyParts)[]).map((k) => (
+                <label key={k} className="check"><input type="checkbox" checked={parts[k]} onChange={(e) => setParts((x) => ({ ...x, [k]: e.target.checked }))} />{label[k]}</label>
+              ))}
+            </div>
+            <div className="notice info small">اللي هتختاره بيتنسخ مكان اللي في النموذج ده. ده نسخة: لو عدلت تخصيم النموذج التاني بعدين، النموذج ده مش هيتغير. والاختبارات المرجعية مش بتتنسخ، اعمل له اختباراته.</div>
+          </div>
+        </Modal>
+      )}
+    </>
   );
 }
 

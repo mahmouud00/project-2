@@ -4,6 +4,7 @@ All notable changes are listed here. Versions follow Semantic Versioning (MAJOR.
 
 ## [Unreleased]
 ### Added
+- Model editor: "copy the deductions of another model" (same system): pieces with their helper values and parameters, optionally glass, accessories, validations and drawing. Helper values (formulas) are now an optional section of the pieces tab instead of a tab of their own. Arabic inside code/formula text is shown joined.
 - A picture of each model per colour (`color_images`, migration 0008): quotations, invoices, work orders and printed documents show the picture of the line's colour, else the main picture; exported in library packages. Model editor: "صورة لكل لون".
 - Formulas in Arabic: Arabic digits, `٫` `،` `×` `÷`, the words و / أو / مش / صح / خطأ, Arabic function names (لو، أصغر، أكبر، تقريب، جدول، طول_القوس، ...) and built-in names (العرض، الارتفاع، عرض_الفتحة، ...). Each maps to the English form, so results are identical; names you define could already be Arabic. The model editor shows formulas right-to-left when they are Arabic.
 - Half-circle arch (أرج) above a unit: when the total height is above the opening height, the arch is a separate fixed unit with its own frame, calculated with its library model (per unit or the company's `default_arch_model_id`) at width × (total − height). Its cost is part of the unit, it is a linked quotation line (`parent_line_id`, price inside the unit) and a work order item of its own (migration 0007).

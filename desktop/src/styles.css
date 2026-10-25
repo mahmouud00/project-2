@@ -222,7 +222,7 @@ textarea.input { min-height: 70px; resize: vertical; }
 .input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 18%, transparent); }
 .input:disabled { opacity: .65; }
 .input.num { text-align: left; }
-.input.code-in { font-family: ui-monospace, "Cairo", monospace; unicode-bidi: plaintext; text-align: start; }
+.input.code-in { font-family: "Cairo", ui-monospace, monospace; unicode-bidi: plaintext; text-align: start; }
 .check { display: inline-flex; align-items: center; gap: 7px; cursor: pointer; user-select: none; }
 .check input { width: 16px; height: 16px; accent-color: var(--primary); }
 .unit-in { position: relative; }
@@ -253,7 +253,7 @@ textarea.input { min-height: 70px; resize: vertical; }
 .tabs .n { background: var(--gray-soft); color: var(--gray-text); border-radius: 10px; font-size: 11px; padding: 0 6px;
   margin-inline-start: 4px; }
 
-.code { font-family: ui-monospace, "Cairo", monospace; direction: ltr; unicode-bidi: isolate; background: var(--sunken);
+.code { font-family: "Cairo", ui-monospace, monospace; unicode-bidi: plaintext; background: var(--sunken);
   border: 1px solid var(--border); border-radius: 6px; padding: 1px 7px; font-size: 12px; display: inline-block; }
 
 .stepper { display: flex; gap: 0; align-items: center; overflow-x: auto; padding: 4px 0; }
@@ -343,7 +343,7 @@ textarea.input { min-height: 70px; resize: vertical; }
 .row-h td:first-child { box-shadow: inset -3px 0 0 var(--side-h); }
 .sys-item .meta { font-size: 11.5px; color: var(--muted); }
 .def-help { font-size: 12px; color: var(--muted); margin: 0 0 10px; }
-.def-help code { font-family: ui-monospace, monospace; direction: ltr; unicode-bidi: isolate; background: var(--sunken); padding: 0 4px; border-radius: 4px; }
+.def-help code { font-family: "Cairo", ui-monospace, monospace; unicode-bidi: plaintext; background: var(--sunken); padding: 0 4px; border-radius: 4px; }
 
 /* survey sheet: the paper form as an editable table */
 .sheet-wrap { overflow: auto; }
@@ -370,3 +370,5 @@ select.cell { appearance: none; text-overflow: ellipsis; cursor: pointer; }
 .mark:disabled { cursor: default; }
 .sheet-head { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px 22px; }
 .sheet-head .k { color: var(--muted); font-size: 12px; }
+.helper-values { margin-top: 18px; border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; }
+.helper-values summary { cursor: pointer; font-weight: 700; }
