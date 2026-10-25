@@ -34,6 +34,10 @@ SolidCompression=yes
 WizardStyle=modern
 CloseApplications=no
 UsePreviousAppDir=yes
+; Inno 6.7+ turns RedirectionGuard on by default: reading the setup file through a junction made by a
+; normal user (a moved Downloads folder, OneDrive, a Dev Drive...) then fails with
+; "untrusted mount point" (error 448) on customer PCs. {app} is created by this elevated Setup itself.
+RedirectionGuard=no
 
 [Languages]
 Name: "en"; MessagesFile: "compiler:Default.isl"
