@@ -28,8 +28,10 @@ def main() -> int:
     args = [
         sys.executable, "-m", "nuitka", "--onefile", "--assume-yes-for-downloads", "--enable-plugin=tk-inter",
         f"--output-dir={work}", f"--output-filename={out.name}",
-        "--include-package=tools.vendor_admin", "--include-module=app.licensing.vendor_key",
-        "--nofollow-import-to=pytest,_pytest,tests,uvicorn,apscheduler,zeroconf,openpyxl",
+        "--include-module=tools.vendor_admin.gui", "--include-module=tools.vendor_admin.licenses",
+        "--include-module=app.licensing.vendor_key",
+        "--nofollow-import-to=pytest,_pytest,tests,uvicorn,apscheduler,zeroconf,openpyxl,sqlalchemy,fastapi,starlette,"
+        "pydantic,pydantic_settings,psycopg,psycopg_binary,alembic,jinja2,httpx,argon2,jwt,app.db,app.modules,app.core.config",
         "--python-flag=no_docstrings",
         "--product-name=MYTech Licence Tool", "--company-name=MYTech Solutions", f"--file-version={version}",
         f"--product-version={version}", "--file-description=MYTech Licence Tool", "--copyright=MYTech Solutions",
@@ -37,7 +39,7 @@ def main() -> int:
     ]
     if a.icon:
         args.append(f"--windows-icon-from-ico={Path(a.icon).resolve()}")
-    args.append(str(ROOT / "tools" / "vendor_admin" / "gui.py"))
+    args.append(str(ROOT / "tools" / "vendor_admin" / "launch.py"))
     env = dict(os.environ, PYTHONPATH=os.pathsep.join([str(ROOT), str(ROOT / "backend")]))
     subprocess.run(args, check=True, cwd=str(ROOT), env=env)
     out.parent.mkdir(parents=True, exist_ok=True)

@@ -25,7 +25,7 @@ ROOT = Path(__file__).resolve().parents[2]
 if (ROOT / "backend").exists():
     sys.path.insert(0, str(ROOT / "backend"))
 
-from app.licensing.provider import MODULES  # noqa: E402
+from app.licensing.modules import MODULES  # noqa: E402
 from tools.vendor_admin.licenses import build_license  # noqa: E402
 from app.licensing.signing import (generate_keypair, load_private_key, load_public_key, public_key_module,  # noqa: E402
                                    reencrypt_private_key, sign_document, verify_document)
@@ -240,7 +240,7 @@ class App:
         path = filedialog.askopenfilename(title="Library package", filetypes=[("Package", "*.zip"), ("All files", "*.*")])
         if not path:
             return
-        from app.modules.library.packages import sign_package
+        from app.licensing.packaging import sign_package
         try:
             signed = sign_package(Path(path).read_bytes(), self.key)
         except Exception as e:  # noqa: BLE001 - shown to the vendor

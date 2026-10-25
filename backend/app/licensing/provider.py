@@ -17,15 +17,9 @@ from sqlalchemy.orm import Session
 from app.core.config import get_settings
 from app.db.base import PLATFORM_COMPANY_ID
 from app.licensing.fingerprint import machine_fingerprint
+from app.licensing.modules import MODULES  # noqa: F401 - re-exported
 from app.licensing.signing import verify_document
 
-MODULES = {
-    "core": "النواة الإدارية",
-    "manufacturing": "التصنيع",
-    "mfg.upvc": "تصنيع UPVC",
-    "mfg.shutter": "تصنيع الشاتر",
-    "mfg.aluminum": "تصنيع الألومنيوم",
-}
 
 # status -> can read / can write
 STATUS_VALID, STATUS_GRACE, STATUS_EXPIRED, STATUS_INVALID, STATUS_MISSING = (

@@ -195,7 +195,7 @@ jobs:
         run: |
           $env:PYTHONPATH = "$PWD;$PWD\backend"
           $env:MYTECH_TOOL_LOG = Join-Path $env:RUNNER_TEMP "tool-source.log"
-          python tools/vendor_admin/gui.py --selftest
+          python tools/vendor_admin/launch.py --selftest
           if ($LASTEXITCODE -ne 0) { if (Test-Path $env:MYTECH_TOOL_LOG) { Get-Content $env:MYTECH_TOOL_LOG }; throw "self test from source failed" }
       - name: Compile
         shell: pwsh
@@ -214,9 +214,12 @@ jobs:
         run: |
           $v = (Get-Content VERSION).Trim()
           $env:MYTECH_TOOL_LOG = Join-Path $env:RUNNER_TEMP "tool-selftest.log"
-          $p = Start-Process -FilePath "out/MYTech-License-Tool-$v.exe" -ArgumentList "--selftest" -Wait -PassThru
+          $o = Join-Path $env:RUNNER_TEMP "tool-out.txt"; $e = Join-Path $env:RUNNER_TEMP "tool-err.txt"
+          $p = Start-Process -FilePath "out/MYTech-License-Tool-$v.exe" -ArgumentList "--selftest" -Wait -PassThru `
+            -RedirectStandardOutput $o -RedirectStandardError $e
           if ($p.ExitCode -ne 0) {
             if (Test-Path $env:MYTECH_TOOL_LOG) { Get-Content $env:MYTECH_TOOL_LOG }
+            foreach ($f in $o, $e) { if (Test-Path $f) { Get-Content $f } }
             throw "licence tool self test failed ($($p.ExitCode))"
           }
           Write-Host "self test passed"

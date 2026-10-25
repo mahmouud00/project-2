@@ -28,6 +28,7 @@ from sqlalchemy.orm import Session
 from app.core.config import get_settings
 from app.core.errors import ValidationFailed
 from app.db.base import PLATFORM_COMPANY_ID
+from app.licensing.packaging import sign_package  # noqa: F401 - re-exported
 from app.licensing.signing import verify_document
 from app.modules.library.models import (Color, FormulaSetVersion, Material, MaterialVariant, MediaFile,
                                         ModelTestCase, ProductModel, ProfileSystem, SystemConstant)
@@ -124,21 +125,6 @@ def export_package(db: Session, system_codes: list[str] | None = None, notes: st
         for m in media:
             z.write(media_path(m.sha256), f"media/{m.sha256}")
     return buf.getvalue()
-
-
-def sign_package(data: bytes, private_key) -> bytes:
-    from app.licensing.signing import sign_document
-
-    src = zipfile.ZipFile(io.BytesIO(data))
-    doc = json.loads(src.read("package.json"))
-    signed = sign_document(private_key, doc["payload"])
-    out = io.BytesIO()
-    with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
-        z.writestr("package.json", json.dumps(signed, ensure_ascii=False))
-        for name in src.namelist():
-            if name != "package.json":
-                z.writestr(name, src.read(name))
-    return out.getvalue()
 
 
 # ---------------------------------------------------------------- verify (customer)
