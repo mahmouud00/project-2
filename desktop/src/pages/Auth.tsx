@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { api, errorText, login, normalizeServer, store, CLIENT_VERSION } from "../api/client";
+import { api, ApiError, errorText, login, normalizeServer, store, CLIENT_VERSION } from "../api/client";
 import { discover, inDesktop, serverUrl, type FoundServer } from "../lib/discovery";
-import { Btn, Field, TextIn } from "../components/ui";
+import { Btn, Field, FilePick, TextIn } from "../components/ui";
 import { Icon } from "../components/icons";
 import mytechLogo from "../assets/logo-transparent.png";
 import type { ServerInfo } from "../state/session";
@@ -95,6 +95,57 @@ export function ConnectPage({ onDone }: { onDone: (info: ServerInfo) => void }) 
   );
 }
 
+type Activation = { status: string; reason?: string | null; machine_fingerprint: string };
+
+const LICENSE_REASON: Record<string, string> = {
+  no_license_file: "مفيش ترخيص متركّب على السيرفر لسه.",
+  machine_mismatch: "ملف الترخيص معمول لجهاز تاني: البصمة اللي فيه مش بصمة جهاز السيرفر ده.",
+  bad_signature: "ملف الترخيص متعدّل أو مش موقّع من MYTech.",
+  unreadable: "ملف الترخيص بايظ أو مش مقروء.",
+  expired: "الترخيص منتهي.",
+};
+
+function reasonText(e: unknown): string {
+  const reason = e instanceof ApiError ? (e.details as { reason?: string } | undefined)?.reason : undefined;
+  return (reason && LICENSE_REASON[reason]) || errorText(e);
+}
+
+/** Offline server without a usable licence: nobody can log in yet, so the licence is installed from here. */
+function ActivationCard({ state, onDone }: { state: Activation; onDone: () => void }) {
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
+  const [copied, setCopied] = useState(false);
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(state.machine_fingerprint); setCopied(true); } catch { /* clipboard blocked */ }
+  };
+  const install = async (f: File) => {
+    setBusy(true);
+    setMsg(null);
+    try {
+      await api.publicUpload("/system/activation", f);
+      setMsg({ kind: "ok", text: "اتركب الترخيص. تقدر تدخل دلوقتي." });
+      onDone();
+    } catch (e) {
+      setMsg({ kind: "err", text: e instanceof ApiError && e.code === "LICENSE_REJECTED" ? "الملف اترفض: " + reasonText(e) : errorText(e) });
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="card" style={{ padding: 14 }}>
+      <b>تفعيل البرنامج</b>
+      <div className="notice warn" style={{ margin: "8px 0" }}>{LICENSE_REASON[state.reason ?? ""] ?? "الترخيص غير صالح."}</div>
+      <p className="muted small">ابعت بصمة جهاز السيرفر لـ MYTech، وركّب ملف الترخيص (license.json) اللي هيوصلك.</p>
+      <div className="row" style={{ marginBottom: 8 }}>
+        <span className="code grow num" style={{ wordBreak: "break-all", padding: 8 }}>{state.machine_fingerprint}</span>
+        <Btn small icon="copy" onClick={copy}>{copied ? "اتنسخت" : "نسخ"}</Btn>
+      </div>
+      <FilePick accept=".json" busy={busy} onFile={install}>تركيب ملف الترخيص</FilePick>
+      {msg && <div className={"notice " + msg.kind} style={{ marginTop: 8 }}>{msg.text}</div>}
+    </div>
+  );
+}
+
 type PublicBranding = { company_code: string; name: string; has_logo: boolean; accent_color?: string };
 
 export function LoginPage({ info, onLogin, onChangeServer }:
@@ -107,6 +158,16 @@ export function LoginPage({ info, onLogin, onChangeServer }:
   const [error, setError] = useState<string | null>(null);
   const [brand, setBrand] = useState<PublicBranding | null>(null);
   const [logo, setLogo] = useState<string | null>(null);
+  const [activation, setActivation] = useState<Activation | null>(null);
+
+  const checkActivation = async () => {
+    if (online) return;
+    try {
+      const a = await api.public<Activation>("/system/activation");
+      setActivation(a.status === "valid" || a.status === "grace" ? null : a);
+    } catch { /* older server: no public activation */ }
+  };
+  useEffect(() => { checkActivation(); }, [online]);
 
   useEffect(() => {
     let live = true;
@@ -136,7 +197,11 @@ export function LoginPage({ info, onLogin, onChangeServer }:
       await login(online ? company.trim() : (brand?.company_code ?? ""), username.trim(), password);
       await onLogin();
     } catch (err) {
-      setError(errorText(err));
+      if (err instanceof ApiError && err.code === "LICENSE_INVALID") {
+        const why = reasonText(err);
+        setError(why === errorText(err) ? why : errorText(err) + " " + why);
+        await checkActivation();
+      } else setError(errorText(err));
       setBusy(false);
     }
   };
@@ -154,6 +219,7 @@ export function LoginPage({ info, onLogin, onChangeServer }:
               <div className="muted small">{brand ? "تسجيل الدخول" : online ? "اكتب كود الشركة" : ""}</div>
             </div>
           </div>
+          {activation && <ActivationCard state={activation} onDone={() => { setActivation(null); setError(null); }} />}
           {online && (
             <Field label="كود الشركة"><TextIn value={company} onChange={setCompany} code autoFocus={!company} /></Field>
           )}

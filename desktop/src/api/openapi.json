@@ -1130,6 +1130,64 @@
     ]
    }
   },
+  "/api/v1/system/activation": {
+   "get": {
+    "tags": [
+     "system"
+    ],
+    "summary": "Activation Status",
+    "description": "(Public, offline) licence state for the login screen: nobody can log in before the first licence,\nso the fingerprint and the reason must be readable without a token. No personal data.",
+    "operationId": "activation_status_api_v1_system_activation_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     }
+    }
+   },
+   "post": {
+    "tags": [
+     "system"
+    ],
+    "summary": "Activate",
+    "description": "(Public, offline) install a licence while there is no usable one (first install, wrong machine,\nexpired). A working licence can only be replaced by a logged-in administrator (POST /system/license).\nThe file must be signed by MYTech and issued for this machine, so this cannot unlock anything.",
+    "operationId": "activate_api_v1_system_activation_post",
+    "requestBody": {
+     "content": {
+      "multipart/form-data": {
+       "schema": {
+        "$ref": "#/components/schemas/Body_activate_api_v1_system_activation_post"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/v1/system/backups": {
    "get": {
     "tags": [
@@ -5742,6 +5800,54 @@
     }
    }
   },
+  "/api/v1/purchase-orders/{po_id}": {
+   "get": {
+    "tags": [
+     "purchasing"
+    ],
+    "summary": "Get Po",
+    "operationId": "get_po_api_v1_purchase_orders__po_id__get",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "po_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Po Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/POOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/v1/purchase-orders/{po_id}/status": {
    "post": {
     "tags": [
@@ -7486,6 +7592,20 @@
      "avg_cost"
     ],
     "title": "BalanceOut"
+   },
+   "Body_activate_api_v1_system_activation_post": {
+    "properties": {
+     "file": {
+      "type": "string",
+      "contentMediaType": "application/octet-stream",
+      "title": "File"
+     }
+    },
+    "type": "object",
+    "required": [
+     "file"
+    ],
+    "title": "Body_activate_api_v1_system_activation_post"
    },
    "Body_preview_library_package_api_v1_library_packages_preview_post": {
     "properties": {

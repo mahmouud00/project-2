@@ -118,7 +118,7 @@ class OfflineFileLicenseProvider:
 
     def _load(self, path, mtime) -> Entitlements:
         try:
-            doc = json.loads(path.read_text(encoding="utf-8"))
+            doc = json.loads(path.read_text(encoding="utf-8-sig"))   # Notepad may add a BOM
         except (OSError, ValueError):
             ent = Entitlements(STATUS_INVALID, reason="unreadable")
         else:

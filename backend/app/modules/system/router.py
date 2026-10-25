@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import uuid
 
 from fastapi import APIRouter, Depends, UploadFile, WebSocket, WebSocketDisconnect
 from sqlalchemy import text
@@ -76,16 +77,15 @@ def license_status(dc=Depends(get_db_and_ctx)):
     return out
 
 
-@router.post("/license")
-async def upload_license(file: UploadFile, dc=Depends(require("system.manage"))):
-    """Offline only: install a signed licence file issued by MYTech."""
+def _install_license(raw: bytes) -> dict:
     s = get_settings()
     if s.is_online:
         raise ValidationFailed("Online mode uses subscriptions", code="NOT_OFFLINE")
-    raw = await file.read()
     try:
-        doc = json.loads(raw.decode("utf-8"))
+        doc = json.loads(raw.decode("utf-8-sig"))
     except (UnicodeDecodeError, ValueError):
+        raise ValidationFailed("Not a licence file", code="LICENSE_FILE_INVALID")
+    if not isinstance(doc, dict) or not isinstance(doc.get("payload"), dict):
         raise ValidationFailed("Not a licence file", code="LICENSE_FILE_INVALID")
     ent = evaluate_license_document(doc, machine_fingerprint())
     if ent.status not in ("valid", "grace"):
@@ -98,6 +98,39 @@ async def upload_license(file: UploadFile, dc=Depends(require("system.manage")))
     if isinstance(provider, OfflineFileLicenseProvider):
         provider.invalidate()
     return ent.as_dict()
+
+
+@router.post("/license")
+async def upload_license(file: UploadFile, dc=Depends(require("system.manage"))):
+    """Offline only: install a signed licence file issued by MYTech."""
+    return _install_license(await file.read())
+
+
+def _server_entitlements():
+    """Offline: the server's licence file (the same for its one company)."""
+    if get_settings().is_online:
+        raise ValidationFailed("Online mode uses subscriptions", code="NOT_OFFLINE")
+    return get_license_provider().entitlements(None, uuid.UUID(int=0))
+
+
+@router.get("/activation")
+def activation_status():
+    """(Public, offline) licence state for the login screen: nobody can log in before the first licence,
+    so the fingerprint and the reason must be readable without a token. No personal data."""
+    out = _server_entitlements().as_dict()
+    out["machine_fingerprint"] = machine_fingerprint()
+    return out
+
+
+@router.post("/activation")
+async def activate(file: UploadFile):
+    """(Public, offline) install a licence while there is no usable one (first install, wrong machine,
+    expired). A working licence can only be replaced by a logged-in administrator (POST /system/license).
+    The file must be signed by MYTech and issued for this machine, so this cannot unlock anything."""
+    if _server_entitlements().status in ("valid", "grace"):
+        from app.core.errors import Forbidden
+        raise Forbidden("A licence is already active", code="LICENSE_ACTIVE")
+    return _install_license(await file.read())
 
 
 # ---------------------------------------------------------------- backups

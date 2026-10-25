@@ -158,6 +158,19 @@ export const api = {
     if (!r.ok) throw await parseError(r);
     return r.headers.get("content-type")?.includes("json") ? r.json() : (r.blob() as any);
   },
+  /** Upload without a token (licence activation before anyone can log in). */
+  async publicUpload<T>(path: string, file: File | Blob, name = "file"): Promise<T> {
+    const fd = new FormData();
+    fd.append(name, file, (file as File).name ?? "upload");
+    let r: Response;
+    try {
+      r = await fetch(base() + path, { method: "POST", body: fd, headers: { "X-Client-Version": CLIENT_VERSION } });
+    } catch {
+      throw new ApiError(0, "NETWORK", "تعذّر الاتصال بالسيرفر");
+    }
+    if (!r.ok) throw await parseError(r);
+    return r.json();
+  },
 };
 
 export async function login(company: string, username: string, password: string) {
@@ -225,6 +238,7 @@ const MESSAGES: Record<string, string> = {
   LICENSE_BRANCH_LIMIT: "عدد الفروع وصل للحد المسموح في الترخيص.",
   LICENSE_REJECTED: "ملف الترخيص مرفوض (مش لنفس الجهاز أو التوقيع غلط أو منتهي).",
   LICENSE_FILE_INVALID: "ده مش ملف ترخيص.",
+  LICENSE_ACTIVE: "فيه ترخيص شغال. التغيير من صفحة الترخيص والنسخ بعد الدخول.",
   MODULE_NOT_LICENSED: "الجزء ده مش ضمن الترخيص.",
   CLIENT_UPDATE_REQUIRED: "لازم تحدّث البرنامج عشان يشتغل مع السيرفر.",
   DUPLICATE_CODE: "الكود ده مستخدم قبل كده.",

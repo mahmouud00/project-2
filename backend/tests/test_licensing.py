@@ -171,3 +171,25 @@ def test_shipped_vendor_public_key_is_compiled_in():
 
     assert isinstance(vendor_key.PUBLIC_KEY_PEM, bytes) and b"BEGIN PUBLIC KEY" in vendor_key.PUBLIC_KEY_PEM
     load_public_key()  # the default key used by every installed server
+
+
+def test_public_activation_before_first_login(vendor_key, offline_provider, tenant_a, client):
+    st = client.get("/api/v1/system/activation").json()
+    assert st["status"] == "missing" and st["reason"] == "no_license_file" and st["machine_fingerprint"] == FP
+
+    other = sign_document(vendor_key, build_license(company_code="X", company_name="X", fingerprint="another-pc",
+                                                    modules=["core"], max_devices=3))
+    r = client.post("/api/v1/system/activation", files={"file": ("l.json", json.dumps(other).encode(), "application/json")})
+    assert r.status_code == 422 and r.json()["error"]["details"]["reason"] == "machine_mismatch"
+    r = client.post("/api/v1/system/activation", files={"file": ("l.json", b"not json", "application/json")})
+    assert r.status_code == 422 and r.json()["error"]["code"] == "LICENSE_FILE_INVALID"
+
+    good = sign_document(vendor_key, build_license(company_code="X", company_name="X", fingerprint=FP,
+                                                   modules=["core"], max_devices=3))
+    raw = b"\xef\xbb\xbf" + json.dumps(good).encode()          # saved by Notepad with a BOM
+    r = client.post("/api/v1/system/activation", files={"file": ("l.json", raw, "application/json")})
+    assert r.status_code == 200 and r.json()["status"] == "valid"
+    assert _login(client, tenant_a, "dev-act-0001").status_code == 200
+    # an active licence can't be replaced without logging in
+    r = client.post("/api/v1/system/activation", files={"file": ("l.json", json.dumps(good).encode(), "application/json")})
+    assert r.status_code == 403 and r.json()["error"]["code"] == "LICENSE_ACTIVE"

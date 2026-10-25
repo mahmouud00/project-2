@@ -4,6 +4,7 @@ All notable changes are listed here. Versions follow Semantic Versioning (MAJOR.
 
 ## [Unreleased]
 ### Added
+- Licence activation from the login screen (offline): public `GET/POST /system/activation` shows why the licence is not usable and the server fingerprint, and installs a signed licence while none is active (an active one is only replaced after login).
 - Desktop program (`desktop/`, Tauri + React + TypeScript): Arabic RTL, light / dark / follow Windows, the company's logo and name on every page, LAN server discovery or manual address, every screen of the system (sales, production, inventory, purchasing, treasury, invoices with printing, library editor with element width/height pieces, reference tests and publishing, users and roles per branch, company branding, licence, backups, devices, audit and PII logs, price lists). Sizes in cm, width first, exact decimal conversion.
 - Windows release build (`.github/workflows/windows-release.yml`): desktop installer (NSIS, offline WebView2), server installer (server compiled to native code with Nuitka, bundled PostgreSQL 16 as a local-only service, WinSW service, firewall rules, generated secrets, smoke-tested on the build machine), and the MYTech Licence Tool (compiled GUI: issue/verify licences, sign library packages and server updates, key management). Published as a GitHub pre-release.
 - Server CLI: `version`, `fingerprint`, `backup`, `restore`, `update`; `init-db` and `create-company` read secrets from the environment (never the command line).
@@ -18,6 +19,8 @@ All notable changes are listed here. Versions follow Semantic Versioning (MAJOR.
 - "Authorize" button on `/api/docs` (OAuth2 password form, `POST /auth/token`, client_id = company code).
 
 ### Changed
+- Licence files saved with a UTF-8 BOM (e.g. by Notepad) are accepted.
+- Windows: the server exe is a console program (setup scripts wait for it); stopping the service also stops the server process (job object); the server installer turns off Inno RedirectionGuard (error 448).
 - The vendor public key is a compiled-in constant (`app/licensing/vendor_key.py`) instead of a `.pem` file next to the program; a real key pair replaced the development key; private keys are stored encrypted.
 - Windows machine fingerprint uses registry values only (no subprocess), so it is identical for the installer and the service and never depends on a timeout. Licences for the old formula must be reissued (none were issued).
 - Customer statement bills issued invoices (with their services and discounts) instead of the work order amount.

@@ -379,6 +379,33 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/system/activation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Activation Status
+         * @description (Public, offline) licence state for the login screen: nobody can log in before the first licence,
+         *     so the fingerprint and the reason must be readable without a token. No personal data.
+         */
+        get: operations["activation_status_api_v1_system_activation_get"];
+        put?: never;
+        /**
+         * Activate
+         * @description (Public, offline) install a licence while there is no usable one (first install, wrong machine,
+         *     expired). A working licence can only be replaced by a logged-in administrator (POST /system/license).
+         *     The file must be signed by MYTech and issued for this machine, so this cannot unlock anything.
+         */
+        post: operations["activate_api_v1_system_activation_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/system/backups": {
         parameters: {
             query?: never;
@@ -1469,6 +1496,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/purchase-orders/{po_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Po */
+        get: operations["get_po_api_v1_purchase_orders__po_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/purchase-orders/{po_id}/status": {
         parameters: {
             query?: never;
@@ -1937,6 +1981,11 @@ export interface components {
             qty: string;
             /** Avg Cost */
             avg_cost: string | null;
+        };
+        /** Body_activate_api_v1_system_activation_post */
+        Body_activate_api_v1_system_activation_post: {
+            /** File */
+            file: string;
         };
         /** Body_preview_library_package_api_v1_library_packages_preview_post */
         Body_preview_library_package_api_v1_library_packages_preview_post: {
@@ -5720,6 +5769,59 @@ export interface operations {
             };
         };
     };
+    activation_status_api_v1_system_activation_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    activate_api_v1_system_activation_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_activate_api_v1_system_activation_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     backups_api_v1_system_backups_get: {
         parameters: {
             query?: never;
@@ -8509,6 +8611,37 @@ export interface operations {
         responses: {
             /** @description Successful Response */
             201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["POOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_po_api_v1_purchase_orders__po_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                po_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
