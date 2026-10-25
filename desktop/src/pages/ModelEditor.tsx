@@ -103,7 +103,9 @@ export default function ModelEditor({ systemId, modelId, tab }: { systemId: stri
           { id: "info", label: "البيانات والصورة" }, { id: "params", label: "المتغيرات", count: def.params.length },
           { id: "pieces", label: "القطع والتخصيمات", count: def.pieces.length },
           { id: "glass", label: "الزجاج", count: def.glass.length }, { id: "accessories", label: "الإكسسوار", count: def.accessories.length },
-          { id: "validations", label: "التحقق", count: def.validations.length }, { id: "drawing", label: "الرسمة", count: def.drawing.length },
+          { id: "validations", label: "التحقق", count: def.validations.length },
+          // the uploaded pictures are what documents show; the sketch tab only stays for models that already have one
+          { id: "drawing", label: "الرسمة", count: def.drawing.length, hidden: def.drawing.length === 0 },
           { id: "try", label: "تجربة الحساب" }, { id: "tests", label: "الاختبارات المرجعية" },
         ]} />
         <div className="card-b">
