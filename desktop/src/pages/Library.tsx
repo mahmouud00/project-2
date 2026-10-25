@@ -162,10 +162,10 @@ function Constants({ system, editable }: { system: System; editable: boolean }) 
   const [del, setDel] = useState<S<"ConstantOut"> | null>(null);
   return (
     <div className="col">
-      <p className="def-help">الثوابت بتتكتب في المعادلات باسمها (زي <code>weld_allowance</code>). لازم يكون فيه <code>install_clearance_width</code> و<code>install_clearance_height</code> (خلوص التركيب) عشان مقاس التصنيع = الفتحة − الخلوص. الأرقام بوحدة القطاع ({system.unit === "cm" ? "سم" : "مم"}).</p>
+      <p className="def-help">الثوابت بتتكتب في المعادلات باسمها، بالعربي كلمة واحدة (زي <code>سماحية_اللحام</code>). <code>خلوص_العرض</code> و<code>خلوص_الارتفاع</code> (خلوص التركيب) موجودين دايمًا، عشان مقاس التصنيع = الفتحة − الخلوص. الأرقام بوحدة القطاع ({system.unit === "cm" ? "سم" : "مم"}).</p>
       {editable && <PageHead><Btn kind="primary" small icon="plus" onClick={() => setEdit({ unit: system.unit, sort: 0 })}>ثابت جديد</Btn></PageHead>}
       <Table rows={list.data} loading={list.loading} onRow={editable ? (c) => setEdit(c) : undefined} columns={[
-        { key: "name", label: "الاسم في المعادلات", render: (c) => <span className="code">{c.name}</span> },
+        { key: "name", label: "الاسم في المعادلات", render: (c) => <span className="code">{BUILTIN_CONSTANTS[c.name] ?? c.name}</span> },
         { key: "label", label: "الوصف", render: (c) => c.label },
         { key: "value", label: "القيمة", num: true, render: (c) => <b className="num">{clean(c.value)}</b> },
         { key: "unit", label: "الوحدة", render: (c) => <span className="muted">{c.unit}</span> },
@@ -180,18 +180,22 @@ function Constants({ system, editable }: { system: System; editable: boolean }) 
           setEdit(null); list.reload();
         })}>حفظ</Btn><Btn onClick={() => setEdit(null)}>رجوع</Btn></>}>
         <div className="grid g2">
-          <Field label="الاسم (إنجليزي، من غير مسافات)"><TextIn value={edit.name} onChange={(v) => setEdit({ ...edit, name: v.replace(/[^a-zA-Z0-9_]/g, "") })} code disabled={!!edit.id} autoFocus /></Field>
+          <Field label="الاسم في المعادلات" hint="كلمة واحدة، والمسافة بتبقى _ (مثلًا سماحية_اللحام)"><TextIn value={edit.id ? BUILTIN_CONSTANTS[edit.name ?? ""] ?? edit.name : edit.name}
+            onChange={(v) => setEdit({ ...edit, name: v.replace(/\s+/g, "_").replace(/[^\p{L}\p{N}_]/gu, "") })} code disabled={!!edit.id} autoFocus /></Field>
           <Field label="الوصف"><TextIn value={edit.label} onChange={(v) => setEdit({ ...edit, label: v })} /></Field>
           <Field label="القيمة"><NumIn value={edit.value} onChange={(v) => setEdit({ ...edit, value: v })} /></Field>
           <Field label="الوحدة"><TextIn value={edit.unit} onChange={(v) => setEdit({ ...edit, unit: v })} /></Field>
           <Field label="ملاحظة" className="span-all"><TextIn value={edit.description} onChange={(v) => setEdit({ ...edit, description: v })} /></Field>
         </div>
       </Modal>}
-      {del && <Confirm title="حذف الثابت" danger yes="حذف" busy={busy} onClose={() => setDel(null)} text={`هتحذف ${del.name}. لو مستخدم في معادلة، النموذج هيفشل في الفحص.`}
+      {del && <Confirm title="حذف الثابت" danger yes="حذف" busy={busy} onClose={() => setDel(null)} text={`هتحذف ${BUILTIN_CONSTANTS[del.name] ?? del.name}. لو مستخدم في معادلة، النموذج هيفشل في الفحص.`}
         onYes={() => run(async () => { await api.del(`/library/constants/${del.id}`); setDel(null); list.reload(); })} />}
     </div>
   );
 }
+
+/** the two clearance constants every system has, shown with their Arabic names */
+const BUILTIN_CONSTANTS: Record<string, string> = { install_clearance_width: "خلوص_العرض", install_clearance_height: "خلوص_الارتفاع" };
 
 // ---------------------------------------------------------------- materials
 type Material = S<"MaterialOut">;
@@ -311,7 +315,7 @@ function Models({ system, editable }: { system: System; editable: boolean }) {
           <button key={m.id} className="card" style={{ padding: 12, cursor: "pointer", textAlign: "start" }} onClick={() => go(`library/${system.id}/models/${m.id}`)}>
             <MediaImg id={m.image_id} className="thumb lg" />
             <div className="mt"><b>{m.name}</b></div>
-            <div className="row small muted" style={{ gap: 6 }}><span className="code">{m.code}</span>{m.category}
+            <div className="row small muted" style={{ gap: 6 }}><span className="code">{m.code}</span>{({ window: "شباك", door: "باب", shutter: "شيش" } as Record<string, string>)[m.category] ?? m.category}
               {m.status === "trial" && <Chip color="amber">تجربة</Chip>}{!m.is_active && <Chip color="red">متوقف</Chip>}</div>
             <div className="small muted">{((m.definition as any)?.pieces ?? []).length} قطعة · {((m.definition as any)?.params ?? []).length} متغير</div>
           </button>

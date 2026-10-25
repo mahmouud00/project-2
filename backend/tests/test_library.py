@@ -86,7 +86,7 @@ def test_invalid_definition_rejected(platform, client):
     r = client.patch(f"/api/v1/library/models/{m['id']}", headers=platform.h, json={"version": m["version"],
                                                                                      "definition": bad})
     assert r.status_code == 200
-    assert any("Circular" in e for e in client.post(f"/api/v1/library/models/{m['id']}/check",
+    assert any("دايرة" in e for e in client.post(f"/api/v1/library/models/{m['id']}/check",
                                                     headers=platform.h).json()["errors"])
     r = client.post(f"/api/v1/library/systems/{lib['system']['id']}/publish", headers=platform.h, json={})
     assert r.status_code == 422

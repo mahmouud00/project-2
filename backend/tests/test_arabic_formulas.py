@@ -53,4 +53,4 @@ def test_whole_model_in_arabic():
 def test_arabic_built_in_names_are_reserved():
     s = snap()
     s["model"]["params"] = [{"name": "العرض", "type": "int", "default": 1}]
-    assert any("reserved" in e for e in check_definition(s))
+    assert any("محجوز" in e for e in check_definition(s))

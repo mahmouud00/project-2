@@ -28,6 +28,17 @@ from app.engine.expr import NAME_ALIASES, Expression, ExprError, compile_expr, t
 
 UNIT_FACTOR = {"mm": Decimal(1), "cm": Decimal(10), "m": Decimal(1000)}
 # the Arabic spellings (العرض، الارتفاع، ...) are reserved too, so no parameter or formula can shadow them
+# Arabic names for the places a message points to (the library author reads them)
+SECTION_AR = {"pieces": "القطعة", "glass": "الزجاج", "accessories": "الإكسسوار"}
+FIELD_AR = {"length_expr": "معادلة الطول", "qty_expr": "العدد", "angle_left": "زاوية 1", "angle_right": "زاوية 2",
+            "width_expr": "معادلة العرض", "height_expr": "معادلة الارتفاع"}
+
+
+def _ar(name: str) -> str:
+    """install_clearance_width -> خلوص_العرض (the Arabic spelling of a built-in name)."""
+    return next((a for a, e in NAME_ALIASES.items() if e == name), name)
+
+
 RESERVED = {"opening_width", "opening_height", "width", "height"} | set(NAME_ALIASES)
 REQUIRED_CONSTANTS = ("install_clearance_width", "install_clearance_height")
 ROUNDING = {"half_up": ROUND_HALF_UP, "up": ROUND_CEILING, "down": ROUND_FLOOR}
@@ -111,10 +122,10 @@ def _eval(expr: Expression, env: dict, where: str):
 def _int_qty(value, where: str, issues: list[Issue]) -> int:
     d = to_decimal(value)
     if d != d.to_integral_value():
-        issues.append(Issue("error", "QTY_NOT_INTEGER", f"Quantity {d} is not a whole number", where))
+        issues.append(Issue("error", "QTY_NOT_INTEGER", f"العدد {d} لازم يكون رقم صحيح", where))
         return int(d.to_integral_value(rounding=ROUND_CEILING))
     if d < 0:
-        issues.append(Issue("error", "QTY_NEGATIVE", f"Quantity {d} is negative", where))
+        issues.append(Issue("error", "QTY_NEGATIVE", f"العدد {d} بالسالب", where))
         return 0
     return int(d)
 
@@ -127,19 +138,19 @@ def check_definition(snapshot: dict) -> list[str]:
     constants = snapshot.get("constants", {})
     unit = snapshot.get("system", {}).get("unit", "mm")
     if unit not in UNIT_FACTOR:
-        errors.append(f"system unit {unit!r} not supported")
+        errors.append(f"وحدة السيستم {unit!r} مش مدعومة")
     for name in REQUIRED_CONSTANTS:
         if name not in constants:
-            errors.append(f"system constant {name} is required")
+            errors.append(f"ثابت السيستم {_ar(name)} لازم يكون موجود")
     params = [p["name"] for p in model.get("params", [])]
     formula_keys = [f["key"] for f in model.get("formulas", [])]
     seen: set[str] = set()
     for name in list(constants) + params + formula_keys:
         if name in seen:
-            errors.append(f"name {name} defined twice")
+            errors.append(f"الاسم {name} متعرّف مرتين")
         seen.add(name)
         if name in RESERVED and name not in constants:
-            errors.append(f"name {name} is reserved")
+            errors.append(f"الاسم {name} محجوز (اسم جاهز في البرنامج)")
     known = set(constants) | set(params) | set(formula_keys) | RESERVED
     materials = snapshot.get("materials", {})
 
@@ -153,10 +164,10 @@ def check_definition(snapshot: dict) -> list[str]:
             return
         missing = e.names - known
         if missing:
-            errors.append(f"{where}: unknown names {sorted(missing)}")
+            errors.append(f"{where}: أسامي مش معروفة: {'، '.join(sorted(missing))}")
 
     for f in model.get("formulas", []):
-        chk(f.get("expr"), f"formula {f['key']}")
+        chk(f.get("expr"), f"المعادلة {f['key']}")
     try:
         _formula_order(model.get("formulas", []))
     except CalcError as e:
@@ -165,27 +176,27 @@ def check_definition(snapshot: dict) -> list[str]:
                            ("glass", ("width_expr", "height_expr", "qty_expr")),
                            ("accessories", ("qty_expr",))):
         for item in model.get(section, []):
-            where = f"{section} {item.get('key')}"
+            where = f"{SECTION_AR[section]} {item.get('key')}"
             for k in exprs:
-                chk(item.get(k, "0" if k.startswith("angle") else None), f"{where}.{k}")
-            chk(item.get("condition"), f"{where}.condition", required=False)
+                chk(item.get(k, "0" if k.startswith("angle") else None), f"{where}، {FIELD_AR.get(k, k)}")
+            chk(item.get("condition"), f"{where}، الشرط", required=False)
             if section == "glass":
-                chk(item.get("area_expr"), f"{where}.area_expr", required=False)
+                chk(item.get("area_expr"), f"{where}، المساحة", required=False)
             code = item.get("material_code")
             if section != "glass" and code not in materials:
-                errors.append(f"{where}: material {code!r} not in library")
+                errors.append(f"{where}: الخامة {code} مش موجودة في المكتبة")
             if section == "glass" and code and code not in materials:
-                errors.append(f"{where}: material {code!r} not in library")
+                errors.append(f"{where}: الخامة {code} مش موجودة في المكتبة")
     for i, v in enumerate(model.get("validations", [])):
-        chk(v.get("expr"), f"validation {i + 1}")
+        chk(v.get("expr"), f"التحقق رقم {i + 1}")
     for i, d in enumerate(model.get("drawing", [])):
         for k in ("x", "y", "w", "h"):
-            chk(d.get(k, "0"), f"drawing {i + 1}.{k}")
+            chk(d.get(k, "0"), f"الرسمة رقم {i + 1}، {k}")
     return errors
 
 
 def _formula_order(formulas: list[dict]) -> list[tuple[dict, Expression]]:
-    compiled = {f["key"]: (f, _compile(f["expr"], f"formula {f['key']}")) for f in formulas}
+    compiled = {f["key"]: (f, _compile(f["expr"], f"المعادلة {f['key']}")) for f in formulas}
     order: list[tuple[dict, Expression]] = []
     state: dict[str, int] = {}
 
@@ -193,7 +204,7 @@ def _formula_order(formulas: list[dict]) -> list[tuple[dict, Expression]]:
         if state.get(key) == 2:
             return
         if state.get(key) == 1:
-            raise CalcError("Circular formula: " + " -> ".join(stack + [key]), code="FORMULA_CYCLE")
+            raise CalcError("معادلات بتعتمد على بعض في دايرة: " + " ← ".join(stack + [key]), code="FORMULA_CYCLE")
         state[key] = 1
         for dep in sorted(compiled[key][1].names):
             if dep in compiled:
@@ -212,27 +223,27 @@ def _param_value(p: dict, raw, issues: list[Issue]):
     if raw is None:
         raw = p.get("default")
     if raw is None:
-        raise CalcError(f"Parameter {name} is required", code="PARAM_REQUIRED", where=name)
+        raise CalcError(f"المتغير {name} مطلوب", code="PARAM_REQUIRED", where=name)
     if ptype == "bool":
         if isinstance(raw, bool):
             return raw
         if raw in (0, 1, "0", "1", "true", "false"):
             return raw in (1, "1", "true")
-        raise CalcError(f"Parameter {name} must be true/false", code="PARAM_INVALID", where=name)
+        raise CalcError(f"المتغير {name} لازم يبقى نعم أو لا", code="PARAM_INVALID", where=name)
     try:
         value = to_decimal(raw)
     except Exception:
-        raise CalcError(f"Parameter {name} must be a number", code="PARAM_INVALID", where=name)
+        raise CalcError(f"المتغير {name} لازم يبقى رقم", code="PARAM_INVALID", where=name)
     if ptype in ("int", "count") and value != value.to_integral_value():
-        raise CalcError(f"Parameter {name} must be a whole number", code="PARAM_INVALID", where=name)
+        raise CalcError(f"المتغير {name} لازم يبقى رقم صحيح", code="PARAM_INVALID", where=name)
     if ptype == "choice":
         allowed = [to_decimal(c["value"]) for c in p.get("choices", [])]
         if value not in allowed:
-            raise CalcError(f"Parameter {name} must be one of {allowed}", code="PARAM_INVALID", where=name)
+            raise CalcError(f"المتغير {name} لازم يبقى واحد من {allowed}", code="PARAM_INVALID", where=name)
     if p.get("min") is not None and value < to_decimal(p["min"]):
-        raise CalcError(f"Parameter {name} below minimum {p['min']}", code="PARAM_RANGE", where=name)
+        raise CalcError(f"المتغير {name} أقل من {p['min']}", code="PARAM_RANGE", where=name)
     if p.get("max") is not None and value > to_decimal(p["max"]):
-        raise CalcError(f"Parameter {name} above maximum {p['max']}", code="PARAM_RANGE", where=name)
+        raise CalcError(f"المتغير {name} أكبر من {p['max']}", code="PARAM_RANGE", where=name)
     return value
 
 
@@ -246,7 +257,7 @@ def effective_constants(snapshot: dict, calibration: dict | None = None, overrid
     unknown = set(calibration or {}) | set(overrides or {})
     unknown -= set(out)
     if unknown:
-        raise CalcError(f"Calibration for unknown constants {sorted(unknown)}", code="CALIBRATION_UNKNOWN")
+        raise CalcError(f"معايرة لثوابت مش موجودة: {'، '.join(sorted(unknown))}", code="CALIBRATION_UNKNOWN")
     return out
 
 
@@ -269,23 +280,23 @@ def calculate(snapshot: dict, *, opening_width_mm, opening_height_mm, params: di
 
     unknown_params = set(params) - {p["name"] for p in model.get("params", [])}
     if unknown_params:
-        raise CalcError(f"Unknown parameters {sorted(unknown_params)}", code="PARAM_UNKNOWN")
+        raise CalcError(f"متغيرات مش موجودة في النموذج: {'، '.join(sorted(unknown_params))}", code="PARAM_UNKNOWN")
 
     consts = effective_constants(snapshot, calibration, overrides)
     for name in REQUIRED_CONSTANTS:
         if name not in consts:
-            raise CalcError(f"System constant {name} missing", code="CONSTANT_MISSING", where=name)
+            raise CalcError(f"ثابت السيستم {_ar(name)} مش موجود", code="CONSTANT_MISSING", where=name)
 
     ow, oh = to_decimal(opening_width_mm), to_decimal(opening_height_mm)
     if ow <= 0 or oh <= 0:
-        raise CalcError("Opening size must be positive", code="OPENING_INVALID")
+        raise CalcError("مقاس الفتحة لازم يكون أكبر من صفر", code="OPENING_INVALID")
     env: dict = dict(consts)
     env["opening_width"] = ow / factor
     env["opening_height"] = oh / factor
     env["width"] = env["opening_width"] - consts["install_clearance_width"]
     env["height"] = env["opening_height"] - consts["install_clearance_height"]
     if env["width"] <= 0 or env["height"] <= 0:
-        issues.append(Issue("error", "MANUFACTURING_SIZE_INVALID", "Manufacturing size after clearance is not positive"))
+        issues.append(Issue("error", "MANUFACTURING_SIZE_INVALID", "مقاس التصنيع بعد خلوص التركيب صفر أو بالسالب"))
 
     inputs = {"opening_width_mm": ow, "opening_height_mm": oh,
               "width_mm": env["width"] * factor, "height_mm": env["height"] * factor}
@@ -295,7 +306,7 @@ def calculate(snapshot: dict, *, opening_width_mm, opening_height_mm, params: di
 
     values: dict = {}
     for f, expr in _formula_order(model.get("formulas", [])):
-        val = _eval(expr, env, f"formula {f['key']}")
+        val = _eval(expr, env, f"المعادلة {f['key']}")
         env[f["key"]] = val
         unit = f.get("unit", "number")
         values[f["key"]] = val * factor if unit in LENGTH_UNITS and not isinstance(val, bool) else val
@@ -310,8 +321,8 @@ def calculate(snapshot: dict, *, opening_width_mm, opening_height_mm, params: di
     result = Result(inputs, consts, values, issues=issues)
 
     for item in model.get("pieces", []):
-        where = f"piece {item['key']}"
-        if not cond(item, where + ".condition"):
+        where = f"القطعة {item['key']}"
+        if not cond(item, where + "، الشرط"):
             continue
         exact = to_decimal(_eval(_compile(item["length_expr"], where), env, where)) * factor
         qty = _int_qty(_eval(_compile(item["qty_expr"], where), env, where), where, issues)
@@ -328,18 +339,18 @@ def calculate(snapshot: dict, *, opening_width_mm, opening_height_mm, params: di
             "angle_right": to_decimal(_eval(_compile(item.get("angle_right", "90"), where), env, where)),
         }
         if length <= 0:
-            issues.append(Issue("error", "PIECE_NOT_POSITIVE", f"{piece['label']}: length {length} mm", where))
+            issues.append(Issue("error", "PIECE_NOT_POSITIVE", f"{piece['label']}: الطول {length} مم", where))
         elif mat.get("min_piece_mm") and length < to_decimal(mat["min_piece_mm"]):
             issues.append(Issue("error", "PIECE_TOO_SHORT",
-                                f"{piece['label']}: {length} mm shorter than minimum {mat['min_piece_mm']} mm", where))
+                                f"{piece['label']}: {length} مم أقصر من أقل طول {mat['min_piece_mm']} مم", where))
         if mat.get("bar_length_mm") and length > to_decimal(mat["bar_length_mm"]):
             issues.append(Issue("error", "PIECE_LONGER_THAN_BAR",
-                                f"{piece['label']}: {length} mm longer than bar {mat['bar_length_mm']} mm", where))
+                                f"{piece['label']}: {length} مم أطول من العود {mat['bar_length_mm']} مم", where))
         result.pieces.append(piece)
 
     for item in model.get("glass", []):
-        where = f"glass {item['key']}"
-        if not cond(item, where + ".condition"):
+        where = f"الزجاج {item['key']}"
+        if not cond(item, where + "، الشرط"):
             continue
         w = _round_mm(to_decimal(_eval(_compile(item["width_expr"], where), env, where)) * factor, step, mode)
         h = _round_mm(to_decimal(_eval(_compile(item["height_expr"], where), env, where)) * factor, step, mode)
@@ -347,31 +358,31 @@ def calculate(snapshot: dict, *, opening_width_mm, opening_height_mm, params: di
         if qty == 0:
             continue
         if w <= 0 or h <= 0:
-            issues.append(Issue("error", "GLASS_NOT_POSITIVE", f"{item.get('label', item['key'])}: {w}×{h} mm", where))
+            issues.append(Issue("error", "GLASS_NOT_POSITIVE", f"{item.get('label', item['key'])}: {w}×{h} مم", where))
         if w > inputs["opening_width_mm"] or h > inputs["opening_height_mm"]:
             issues.append(Issue("error", "GLASS_LARGER_THAN_OPENING",
-                                f"{item.get('label', item['key'])}: {w}×{h} mm larger than opening", where))
+                                f"{item.get('label', item['key'])}: {w}×{h} مم أكبر من الفتحة", where))
         # width × height is the sheet the pane is cut from; a shaped pane gives its real area (area_expr)
         area_mm2 = w * h
         if item.get("area_expr"):
-            area_mm2 = to_decimal(_eval(_compile(item["area_expr"], where + ".area_expr"), env, where)) * factor * factor
+            area_mm2 = to_decimal(_eval(_compile(item["area_expr"], where + "، المساحة"), env, where)) * factor * factor
             if area_mm2 <= 0 or area_mm2 > w * h:
                 issues.append(Issue("error", "GLASS_AREA_INVALID",
-                                    f"{item.get('label', item['key'])}: area outside 0..width×height", where))
+                                    f"{item.get('label', item['key'])}: المساحة لازم تبقى أكبر من صفر ومش أكبر من العرض × الارتفاع", where))
         result.glass.append({"key": item["key"], "label": item.get("label", item["key"]),
                              "material_code": item.get("material_code"), "width_mm": w, "height_mm": h, "qty": qty,
                              "area_m2": (area_mm2 * qty / Decimal(1_000_000)), "shaped": bool(item.get("area_expr"))})
 
     for item in model.get("accessories", []):
-        where = f"accessory {item['key']}"
-        if not cond(item, where + ".condition"):
+        where = f"الإكسسوار {item['key']}"
+        if not cond(item, where + "، الشرط"):
             continue
         qty = to_decimal(_eval(_compile(item["qty_expr"], where), env, where))
         unit = materials.get(item["material_code"], {}).get("unit", "pcs")
         if unit in ("pcs", "set") and qty != qty.to_integral_value():
-            issues.append(Issue("error", "QTY_NOT_INTEGER", f"Quantity {qty} is not a whole number", where))
+            issues.append(Issue("error", "QTY_NOT_INTEGER", f"العدد {qty} لازم يكون رقم صحيح", where))
         if qty < 0:
-            issues.append(Issue("error", "QTY_NEGATIVE", f"Quantity {qty} is negative", where))
+            issues.append(Issue("error", "QTY_NEGATIVE", f"العدد {qty} بالسالب", where))
         if qty == 0:
             continue
         result.accessories.append({"key": item["key"], "material_code": item["material_code"],
@@ -379,7 +390,7 @@ def calculate(snapshot: dict, *, opening_width_mm, opening_height_mm, params: di
                                    "unit": unit, "qty": qty})
 
     for i, v in enumerate(model.get("validations", [])):
-        where = f"validation {i + 1}"
+        where = f"التحقق رقم {i + 1}"
         if not _eval(_compile(v["expr"], where), env, where):
             issues.append(Issue(v.get("level", "error"), v.get("code", "RULE_FAILED"), v.get("message", v["expr"]),
                                 where))
@@ -388,11 +399,11 @@ def calculate(snapshot: dict, *, opening_width_mm, opening_height_mm, params: di
     frame_max = max((p["length_mm"] for p in result.pieces if p.get("role") == "frame"), default=None)
     for p in result.pieces:
         if p.get("role") == "sash" and frame_max is not None and p["length_mm"] > frame_max:
-            issues.append(Issue("error", "SASH_LARGER_THAN_FRAME", f"{p['label']}: longer than the frame", p["key"]))
+            issues.append(Issue("error", "SASH_LARGER_THAN_FRAME", f"{p['label']}: أطول من الحلق", p["key"]))
 
     for i, d in enumerate(model.get("drawing", [])):
-        where = f"drawing {i + 1}"
-        if not cond(d, where + ".condition"):
+        where = f"الرسمة رقم {i + 1}"
+        if not cond(d, where + "، الشرط"):
             continue
         el = {"type": d.get("type", "rect"), "label": d.get("label"), "opening": d.get("opening")}
         for k in ("x", "y", "w", "h"):

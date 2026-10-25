@@ -97,7 +97,7 @@ def test_definition_checks():
     s["model"]["glass"][0]["width_expr"] = "missing_name"
     del s["constants"]["install_clearance_width"]
     errors = "\n".join(check_definition(s))
-    assert "Circular" in errors and "NOPE" in errors and "missing_name" in errors and "install_clearance_width" in errors
+    assert "دايرة" in errors and "NOPE" in errors and "missing_name" in errors and "خلوص_العرض" in errors
 
 
 def test_element_and_side_pass_through():

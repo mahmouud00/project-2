@@ -45,63 +45,63 @@ def _png(width: int = 160, height: int = 120) -> bytes:
             + chunk(b"IDAT", raw) + chunk(b"IEND", b""))
 
 
+# EXAMPLE models written in Arabic (as a factory would type them). Numbers are illustrative only.
+SASH_W = "(العرض + ركوب_الضلف) ÷ عدد_الضلف"          # عرض الضلفة
+SASH_H = "(الارتفاع - خصم_ارتفاع_الضلفة)"             # ارتفاع الضلفة
 DEFINITION = {
-    "params": [{"name": "leaf_count", "label": "عدد الضلف", "type": "int", "default": 2, "min": 2, "max": 4},
-               {"name": "with_screen", "label": "بسلك", "type": "bool", "default": True}],
-    "formulas": [
-        {"key": "frame_w", "label": "طول الحلق الأفقي", "expr": "width + 2 * weld_allowance"},
-        {"key": "frame_h", "label": "طول الحلق الرأسي", "expr": "height + 2 * weld_allowance"},
-        {"key": "sash_w", "label": "عرض الضلفة", "expr": "(width + sash_overlap_total) / leaf_count"},
-        {"key": "sash_h", "label": "ارتفاع الضلفة", "expr": "height - sash_height_deduction"},
-        {"key": "area", "label": "المساحة م²", "expr": "width * height / 10000", "unit": "area_m2"},
-    ],
+    "params": [{"name": "عدد_الضلف", "label": "عدد الضلف", "type": "int", "default": 2, "min": 2, "max": 4},
+               {"name": "بسلك", "label": "بسلك", "type": "bool", "default": True}],
+    "formulas": [],
     "pieces": [
-        {"key": "frame_top", "element": "حلق", "side": "width", "label": "حلق عرض", "role": "frame", "material_code": "DEMO-FRAME",
-         "length_expr": "frame_w", "qty_expr": "2", "angle_left": "45", "angle_right": "45"},
-        {"key": "frame_side", "element": "حلق", "side": "height", "label": "حلق ارتفاع", "role": "frame", "material_code": "DEMO-FRAME",
-         "length_expr": "frame_h", "qty_expr": "2", "angle_left": "45", "angle_right": "45"},
-        {"key": "sash_top", "element": "ضلفة", "side": "width", "label": "ضلفة عرض", "role": "sash", "material_code": "DEMO-SASH",
-         "length_expr": "sash_w + 2 * weld_allowance", "qty_expr": "2 * leaf_count", "angle_left": "45",
-         "angle_right": "45"},
-        {"key": "sash_side", "element": "ضلفة", "side": "height", "label": "ضلفة ارتفاع", "role": "sash", "material_code": "DEMO-SASH",
-         "length_expr": "sash_h + 2 * weld_allowance", "qty_expr": "2 * leaf_count", "angle_left": "45",
-         "angle_right": "45"},
-        {"key": "steel", "element": "حديد", "side": "width", "label": "حديد تدعيم الحلق", "role": "reinforcement", "material_code": "DEMO-STEEL",
-         "length_expr": "width - 10", "qty_expr": "2"},
+        {"key": "حلق_عرض", "element": "حلق", "side": "width", "label": "حلق عرض", "role": "frame",
+         "material_code": "DEMO-FRAME", "length_expr": "العرض + 2 × سماحية_اللحام", "qty_expr": "2",
+         "angle_left": "45", "angle_right": "45"},
+        {"key": "حلق_ارتفاع", "element": "حلق", "side": "height", "label": "حلق ارتفاع", "role": "frame",
+         "material_code": "DEMO-FRAME", "length_expr": "الارتفاع + 2 × سماحية_اللحام", "qty_expr": "2",
+         "angle_left": "45", "angle_right": "45"},
+        {"key": "ضلفة_عرض", "element": "ضلفة", "side": "width", "label": "ضلفة عرض", "role": "sash",
+         "material_code": "DEMO-SASH", "length_expr": f"{SASH_W} + 2 × سماحية_اللحام", "qty_expr": "2 × عدد_الضلف",
+         "angle_left": "45", "angle_right": "45"},
+        {"key": "ضلفة_ارتفاع", "element": "ضلفة", "side": "height", "label": "ضلفة ارتفاع", "role": "sash",
+         "material_code": "DEMO-SASH", "length_expr": f"{SASH_H} + 2 × سماحية_اللحام", "qty_expr": "2 × عدد_الضلف",
+         "angle_left": "45", "angle_right": "45"},
+        {"key": "حديد", "element": "حديد", "side": "width", "label": "حديد تدعيم الحلق", "role": "reinforcement",
+         "material_code": "DEMO-STEEL", "length_expr": "العرض - 10", "qty_expr": "2"},
     ],
-    "glass": [{"key": "pane", "label": "زجاج الضلفة", "width_expr": "sash_w - glass_deduction",
-               "height_expr": "sash_h - glass_deduction", "qty_expr": "leaf_count"}],
+    "glass": [{"key": "زجاج_الضلفة", "label": "زجاج الضلفة", "width_expr": f"{SASH_W} - خصم_الزجاج",
+               "height_expr": f"{SASH_H} - خصم_الزجاج", "qty_expr": "عدد_الضلف"}],
     "accessories": [
-        {"key": "handle", "label": "مقبض", "material_code": "DEMO-HANDLE", "qty_expr": "1"},
-        {"key": "wheels", "label": "طقم عجل", "material_code": "DEMO-WHEEL", "qty_expr": "leaf_count"},
-        {"key": "locks", "label": "سكاكة", "material_code": "DEMO-LOCK", "qty_expr": "2 * leaf_count"},
+        {"key": "مقبض", "label": "مقبض", "material_code": "DEMO-HANDLE", "qty_expr": "1"},
+        {"key": "عجل", "label": "طقم عجل", "material_code": "DEMO-WHEEL", "qty_expr": "عدد_الضلف"},
+        {"key": "سكاكة", "label": "سكاكة", "material_code": "DEMO-LOCK", "qty_expr": "2 × عدد_الضلف"},
     ],
     "validations": [
-        {"expr": "sash_w >= 30", "level": "error", "code": "SASH_TOO_NARROW", "message": "الضلفة أضيق من 30 سم"},
-        {"expr": "width <= 400", "level": "warning", "code": "TOO_WIDE", "message": "عرض أكبر من 4 متر"},
+        {"expr": f"{SASH_W} >= 30", "level": "error", "code": "SASH_TOO_NARROW", "message": "الضلفة أضيق من 30 سم"},
+        {"expr": "العرض <= 400", "level": "warning", "code": "TOO_WIDE", "message": "عرض أكبر من 4 متر"},
     ],
-    "drawing": [{"type": "frame", "x": "0", "y": "0", "w": "width", "h": "height"},
-                {"type": "sash", "opening": "sliding_right", "x": "0", "y": "0", "w": "sash_w", "h": "sash_h"},
-                {"type": "sash", "opening": "sliding_left", "x": "width - sash_w", "y": "0", "w": "sash_w",
-                 "h": "sash_h"}],
+    "drawing": [{"type": "frame", "x": "0", "y": "0", "w": "العرض", "h": "الارتفاع"},
+                {"type": "sash", "opening": "sliding_right", "x": "0", "y": "0", "w": SASH_W, "h": SASH_H},
+                {"type": "sash", "opening": "sliding_left", "x": f"العرض - {SASH_W}", "y": "0", "w": SASH_W,
+                 "h": SASH_H}],
 }
 
 
 # EXAMPLE half-circle arch (أرج) above a unit: its own frame. Width = the unit's width, height = total − height.
 ARCH_DEFINITION = {
-    "params": [],
-    "formulas": [{"key": "curve", "label": "طول القوس", "expr": "arc_length(width, height)"}],
+    "params": [], "formulas": [],
     "pieces": [
-        {"key": "arch_curve", "element": "حلق الأرج", "label": "حلق مقوس", "role": "frame", "material_code": "DEMO-FRAME",
-         "length_expr": "curve + 2 * weld_allowance", "qty_expr": "1", "angle_left": "90", "angle_right": "90"},
-        {"key": "arch_base", "element": "حلق الأرج", "side": "width", "label": "قاعدة الأرج", "role": "frame",
-         "material_code": "DEMO-FRAME", "length_expr": "width + 2 * weld_allowance", "qty_expr": "1",
+        {"key": "حلق_مقوس", "element": "حلق الأرج", "label": "حلق مقوس", "role": "frame", "material_code": "DEMO-FRAME",
+         "length_expr": "طول_القوس(العرض، الارتفاع) + 2 × سماحية_اللحام", "qty_expr": "1",
+         "angle_left": "90", "angle_right": "90"},
+        {"key": "قاعدة_الأرج", "element": "حلق الأرج", "side": "width", "label": "قاعدة الأرج", "role": "frame",
+         "material_code": "DEMO-FRAME", "length_expr": "العرض + 2 × سماحية_اللحام", "qty_expr": "1",
          "angle_left": "45", "angle_right": "45"},
     ],
-    "glass": [{"key": "arch_glass", "label": "زجاج الأرج", "width_expr": "width - glass_deduction",
-               "height_expr": "height - glass_deduction / 2",
-               "area_expr": "segment_area(width - glass_deduction, height - glass_deduction / 2)", "qty_expr": "1"}],
-    "accessories": [], "validations": [], "drawing": [{"type": "frame", "x": "0", "y": "0", "w": "width", "h": "height"}],
+    "glass": [{"key": "زجاج_الأرج", "label": "زجاج الأرج", "width_expr": "العرض - خصم_الزجاج",
+               "height_expr": "الارتفاع - خصم_الزجاج ÷ 2",
+               "area_expr": "مساحة_القطعة(العرض - خصم_الزجاج، الارتفاع - خصم_الزجاج ÷ 2)", "qty_expr": "1"}],
+    "accessories": [], "validations": [],
+    "drawing": [{"type": "frame", "x": "0", "y": "0", "w": "العرض", "h": "الارتفاع"}],
 }
 
 
@@ -156,10 +156,10 @@ def setup_demo() -> bool:
     sid = system["id"]
     for c in _ok(client.get(f"/api/v1/library/systems/{sid}/constants", headers=v)):
         _ok(client.patch(f"/api/v1/library/constants/{c['id']}", headers=v, json={"version": c["version"], "value": "1"}))
-    for name, label, value in (("weld_allowance", "سماحية اللحام", "0.3"),
-                               ("sash_overlap_total", "ركوب الضلف (إجمالي)", "8.2"),
-                               ("sash_height_deduction", "خصم ارتفاع الضلفة", "7.5"),
-                               ("glass_deduction", "خصم الزجاج من الضلفة", "13")):
+    for name, label, value in (("سماحية_اللحام", "سماحية اللحام", "0.3"),
+                               ("ركوب_الضلف", "ركوب الضلف (إجمالي)", "8.2"),
+                               ("خصم_ارتفاع_الضلفة", "خصم ارتفاع الضلفة", "7.5"),
+                               ("خصم_الزجاج", "خصم الزجاج من الضلفة", "13")):
         _ok(client.post(f"/api/v1/library/systems/{sid}/constants", headers=v,
                         json={"name": name, "label": label, "value": value, "unit": "cm"}))
     materials = [
@@ -179,16 +179,16 @@ def setup_demo() -> bool:
     _ok(client.post("/api/v1/library/materials", headers=v, json={
         "code": "DEMO-GLASS6", "name": "زجاج شفاف 6 مم (مثال)", "kind": "glass", "unit": "m2", "reference_cost": "350"}))
     model = _ok(client.post("/api/v1/library/models", headers=v, json={
-        "system_id": sid, "code": "SL2", "name": "شباك جرار (مثال)", "category": "window", "status": "trial",
+        "system_id": sid, "code": "SL2", "name": "شباك جرار (مثال)", "category": "شباك", "status": "trial",
         "image_id": img["id"], "definition": DEFINITION}))
     preview = _ok(client.post(f"/api/v1/library/models/{model['id']}/preview", headers=v, json={
-        "model_id": model["id"], "opening_width_mm": 1500, "opening_height_mm": 1200, "params": {"leaf_count": 2}}))
+        "model_id": model["id"], "opening_width_mm": 1500, "opening_height_mm": 1200, "params": {"عدد_الضلف": 2}}))
     _ok(client.post(f"/api/v1/library/models/{model['id']}/tests", headers=v, json={
         "name": "مثال 150×120 ضلفتين", "opening_width_mm": "1500", "opening_height_mm": "1200",
-        "params": {"leaf_count": 2},
+        "params": {"عدد_الضلف": 2},
         "expected": {"pieces": {p["key"]: p["length_mm"] for p in preview["pieces"]}}}))
     arch = _ok(client.post("/api/v1/library/models", headers=v, json={
-        "system_id": sid, "code": "AR1", "name": "أرج نص دايرة (مثال)", "category": "window", "status": "trial",
+        "system_id": sid, "code": "AR1", "name": "أرج نص دايرة (مثال)", "category": "أرج", "status": "trial",
         "definition": ARCH_DEFINITION}))
     _ok(client.post(f"/api/v1/library/systems/{sid}/publish", headers=v, json={"notes": "نسخة تجريبية"}))
 
@@ -224,9 +224,9 @@ def setup_demo() -> bool:
     survey = _ok(client.post("/api/v1/surveys", headers=a, json={
         "customer_id": customer["id"], "branch_id": branch["id"], "address": "عنوان تجريبي", "openings": [
             {"location": "صالة", "opening_width_mm": 1800, "opening_height_mm": 1400, "qty": 2, "model_id": model["id"],
-             "params": {"leaf_count": 2}, "color_code": "W", "glass_material_code": "DEMO-GLASS6"},
+             "params": {"عدد_الضلف": 2}, "color_code": "W", "glass_material_code": "DEMO-GLASS6"},
             {"location": "مطبخ", "opening_width_mm": 1200, "opening_height_mm": 1000, "model_id": model["id"],
-             "params": {"leaf_count": 2}, "color_code": "B", "glass_material_code": "DEMO-GLASS6"}]}))
+             "params": {"عدد_الضلف": 2}, "color_code": "B", "glass_material_code": "DEMO-GLASS6"}]}))
     quote = _ok(client.post("/api/v1/quotations", headers=a, json={
         "customer_id": customer["id"], "branch_id": branch["id"], "survey_id": survey["id"], "discount_amount": "250"}))
     # a second, accepted quotation with its work order, deposit and an issued invoice

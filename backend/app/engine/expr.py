@@ -58,6 +58,12 @@ FUNCTION_ALIASES = {
     "جتا_عكسي": "acos", "ظا_عكسي": "atan", "راديان": "rad", "درجات": "deg", "طول_القوس": "arc_length",
     "مساحة_القطعة": "segment_area", "نصف_قطر_القوس": "arc_radius", "زاوية_القوس": "arc_angle",
 }
+
+
+def _ar_name(name: str) -> str:
+    return next((a for a, e in NAME_ALIASES.items() if e == name), name)
+
+
 NAME_ALIASES = {"العرض": "width", "الارتفاع": "height", "عرض_الفتحة": "opening_width",
                 "ارتفاع_الفتحة": "opening_height", "خلوص_العرض": "install_clearance_width",
                 "خلوص_الارتفاع": "install_clearance_height"}
@@ -72,15 +78,15 @@ class Token:
 
 def tokenize(text: str) -> list[Token]:
     if not isinstance(text, str):
-        raise ExprError("Expression must be text")
+        raise ExprError("المعادلة لازم تبقى نص")
     if len(text) > MAX_LENGTH:
-        raise ExprError("Expression too long", code="EXPR_TOO_LONG")
+        raise ExprError("المعادلة طويلة جدًا", code="EXPR_TOO_LONG")
     text = text.translate(_ARABIC_CHARS)
     tokens, pos = [], 0
     while pos < len(text):
         m = _TOKEN.match(text, pos)
         if not m:
-            raise ExprError(f"Unexpected character {text[pos]!r}", code="EXPR_SYNTAX", position=pos)
+            raise ExprError(f"حرف مش مفهوم {text[pos]!r}", code="EXPR_SYNTAX", position=pos)
         kind = m.lastgroup
         if kind != "ws":
             value = m.group(kind)
@@ -97,7 +103,7 @@ def tokenize(text: str) -> list[Token]:
 # ---------------------------------------------------------------- functions
 def _q(x: Decimal, step: Decimal, rounding) -> Decimal:
     if step <= 0:
-        raise ExprError("Step must be positive", code="EXPR_DOMAIN")
+        raise ExprError("الخطوة لازم تبقى أكبر من صفر", code="EXPR_DOMAIN")
     return (x / step).to_integral_value(rounding=rounding) * step
 
 
@@ -109,7 +115,7 @@ def _lookup(inclusive: bool):
     def fn(x, *pairs):
         """lookup(x, t1, v1, t2, v2, ..., default): first threshold that x is under."""
         if len(pairs) < 3 or len(pairs) % 2 == 0:
-            raise ExprError("lookup needs threshold/value pairs and a default", code="EXPR_ARGS")
+            raise ExprError("جدول() محتاج حد وقيمة وبعدهم قيمة افتراضية", code="EXPR_ARGS")
         for i in range(0, len(pairs) - 1, 2):
             if (x <= pairs[i]) if inclusive else (x < pairs[i]):
                 return pairs[i + 1]
@@ -127,7 +133,7 @@ def _domain(ok: bool, message: str) -> None:
 
 
 def _sqrt(x):
-    _domain(x >= 0, "sqrt of a negative number")
+    _domain(x >= 0, "جذر رقم بالسالب")
     return x.sqrt()
 
 
@@ -179,7 +185,7 @@ def _atan(x):
 
 
 def _asin(x):
-    _domain(-1 <= x <= 1, "asin needs a value between -1 and 1")
+    _domain(-1 <= x <= 1, "جا_عكسي محتاجة قيمة بين -1 و 1")
     if abs(x) == 1:
         return +(x * _PI / 2)
     return _atan(x / (1 - x * x).sqrt())
@@ -187,7 +193,7 @@ def _asin(x):
 
 def _arc(chord, rise):
     """Circle through both ends of `chord` and the top point `rise` above its middle -> (radius, angle)."""
-    _domain(chord > 0 and rise > 0, "chord and rise must be positive")
+    _domain(chord > 0 and rise > 0, "عرض القوس وارتفاعه لازم يكونوا أكبر من صفر")
     half = chord / 2
     radius = (rise * rise + half * half) / (2 * rise)
     angle = 2 * _asin(half / radius)
@@ -255,22 +261,22 @@ class _Parser:
     def expect(self, value: str) -> Token:
         tok = self.take()
         if tok.value != value:
-            raise ExprError(f"Expected {value!r} at {tok.pos}", code="EXPR_SYNTAX", position=tok.pos)
+            raise ExprError(f"ناقص {value!r} عند الحرف {tok.pos + 1}", code="EXPR_SYNTAX", position=tok.pos)
         return tok
 
     def node(self, *parts, depth: int):
         self.nodes += 1
         if self.nodes > MAX_NODES:
-            raise ExprError("Expression too complex", code="EXPR_TOO_COMPLEX")
+            raise ExprError("المعادلة معقدة جدًا", code="EXPR_TOO_COMPLEX")
         if depth > MAX_DEPTH:
-            raise ExprError("Expression nested too deeply", code="EXPR_TOO_COMPLEX")
+            raise ExprError("أقواس جوه أقواس كتير", code="EXPR_TOO_COMPLEX")
         return parts
 
     def parse(self):
         tree = self.or_(0)
         if self.peek().kind != "end":
             tok = self.peek()
-            raise ExprError(f"Unexpected {tok.value!r} at {tok.pos}", code="EXPR_SYNTAX", position=tok.pos)
+            raise ExprError(f"{tok.value!r} في مكان غلط عند الحرف {tok.pos + 1}", code="EXPR_SYNTAX", position=tok.pos)
         return tree
 
     def or_(self, d):
@@ -345,21 +351,21 @@ class _Parser:
             inner = self.or_(d + 1)
             self.expect(")")
             return inner
-        raise ExprError(f"Unexpected {tok.value or 'end of expression'!r} at {tok.pos}", code="EXPR_SYNTAX",
+        raise ExprError(f"{tok.value!r} في مكان غلط عند الحرف {tok.pos + 1}" if tok.value else "المعادلة ناقصة", code="EXPR_SYNTAX",
                         position=tok.pos)
 
     @staticmethod
     def _check_call(tok: Token, argc: int) -> None:
         if tok.value in LAZY_FUNCTIONS:
             if argc != LAZY_FUNCTIONS[tok.value]:
-                raise ExprError(f"{tok.value}() takes {LAZY_FUNCTIONS[tok.value]} arguments", code="EXPR_ARGS",
+                raise ExprError(f"{tok.value}() محتاجة {LAZY_FUNCTIONS[tok.value]} قيم", code="EXPR_ARGS",
                                 position=tok.pos)
             return
         if tok.value not in FUNCTIONS:
-            raise ExprError(f"Unknown function {tok.value}()", code="EXPR_UNKNOWN_FUNCTION", position=tok.pos)
+            raise ExprError(f"دالة مش معروفة {tok.value}()", code="EXPR_UNKNOWN_FUNCTION", position=tok.pos)
         _, lo, hi = FUNCTIONS[tok.value]
         if argc < lo or (hi is not None and argc > hi):
-            raise ExprError(f"Wrong number of arguments for {tok.value}()", code="EXPR_ARGS", position=tok.pos)
+            raise ExprError(f"عدد القيم في {tok.value}() غلط", code="EXPR_ARGS", position=tok.pos)
 
 
 class Expression:
@@ -378,7 +384,7 @@ class Expression:
             try:
                 return _eval(self.tree, env)
             except (DivisionByZero, InvalidOperation, ZeroDivisionError):
-                raise ExprError("Division by zero or invalid arithmetic", code="EXPR_MATH")
+                raise ExprError("قسمة على صفر أو حساب مش صحيح", code="EXPR_MATH")
 
     def __repr__(self) -> str:
         return f"Expression({self.source!r})"
@@ -415,7 +421,7 @@ def _num(value, what: str) -> Decimal:
         return value
     if isinstance(value, int):
         return Decimal(value)
-    raise ExprError(f"{what} is not a number", code="EXPR_TYPE")
+    raise ExprError(f"{what} مش رقم", code="EXPR_TYPE")
 
 
 def _eval(t, env):
@@ -426,7 +432,7 @@ def _eval(t, env):
         return t[1]
     if kind == "name":
         if t[1] not in env:
-            raise ExprError(f"Unknown name {t[1]}", code="EXPR_UNKNOWN_NAME")
+            raise ExprError(f"اسم مش معروف {_ar_name(t[1])}", code="EXPR_UNKNOWN_NAME")
         value = env[t[1]]
         if isinstance(value, (int, float)) and not isinstance(value, bool):
             value = Decimal(str(value))
@@ -442,7 +448,7 @@ def _eval(t, env):
         if op == "*":
             return a * b
         if b == 0:
-            raise ExprError("Division by zero", code="EXPR_MATH")
+            raise ExprError("قسمة على صفر", code="EXPR_MATH")
         return a / b if op == "/" else a % b
     if kind == "cmp":
         op, a, b = t[1], _eval(t[2], env), _eval(t[3], env)
@@ -481,4 +487,4 @@ def to_decimal(value) -> Decimal:
         return Decimal(value)
     if isinstance(value, float):
         return Decimal(str(value))
-    raise ExprError("Not a number", code="EXPR_TYPE")
+    raise ExprError("مش رقم", code="EXPR_TYPE")

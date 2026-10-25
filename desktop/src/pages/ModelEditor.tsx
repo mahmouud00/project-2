@@ -15,6 +15,19 @@ import { clean } from "../lib/format";
 import { invalidate, lookups } from "../lib/lookups";
 
 type Model = S<"ModelOut">;
+
+// stored values stay the engine's words; the screen shows them in Arabic
+const BUILTIN_AR: Record<string, string> = { install_clearance_width: "خلوص_العرض", install_clearance_height: "خلوص_الارتفاع" };
+const DRAW_TYPES: Record<string, string> = { frame: "حلق", sash: "ضلفة", glass: "زجاج", panel: "بانل", mullion: "قاطوع" };
+const OPENINGS: Record<string, string> = { "sliding-right": "جرار يمين", "sliding-left": "جرار شمال", "casement-right": "مفصلي يمين",
+  "casement-left": "مفصلي شمال", "tilt-right": "قلاب يمين", "tilt-left": "قلاب شمال", fixed: "ثابت" };
+const ROLES: [RegExp, string][] = [[/^حلق/, "frame"], [/^ضلف/, "sash"], [/^باكت/, "bead"], [/^قاطوع/, "mullion"], [/^(حديد|تدعيم)/, "reinforcement"],
+  [/^سلك/, "screen"], [/^مجر/, "track"]];
+/** the piece's role for the generic checks (a sash never longer than the frame), from the element's Arabic name */
+function roleOf(element: string | null | undefined): string | undefined {
+  const e = (element ?? "").trim();
+  return ROLES.find(([re]) => re.test(e))?.[1];
+}
 type Def = Required<S<"Definition">>;
 const EMPTY: Def = { params: [], formulas: [], pieces: [], glass: [], accessories: [], validations: [], drawing: [] };
 
@@ -71,8 +84,8 @@ export default function ModelEditor({ systemId, modelId, tab }: { systemId: stri
             <div className="row"><h3 style={{ margin: 0 }}>{m.name}</h3><span className="code">{m.code}</span>
               {m.status === "trial" ? <Chip color="amber">تحت التجربة</Chip> : <Chip color="green">معتمد</Chip>}
               {!editable && <Chip color="blue">قراءة بس</Chip>}</div>
-            <div className="muted small">المعادلات والثوابت بالـ{unit}. المتغيرات المتاحة: <span className="code">width</span> <span className="code">height</span> (مقاس التصنيع)،
-              <span className="code">opening_width</span> <span className="code">opening_height</span> (الفتحة)، والثوابت والمتغيرات والمعادلات بأسمائها.</div>
+            <div className="muted small">المعادلات والثوابت بالـ{unit}. الأسامي الجاهزة: <span className="code">العرض</span> <span className="code">الارتفاع</span> (مقاس التصنيع)،
+              <span className="code">عرض_الفتحة</span> <span className="code">ارتفاع_الفتحة</span> (الفتحة)، والثوابت والمتغيرات بأسمائها.</div>
           </div>
           <div className="row">
             <Btn icon="check" busy={busy} onClick={check}>فحص</Btn>
@@ -118,8 +131,8 @@ export default function ModelEditor({ systemId, modelId, tab }: { systemId: stri
           {(tab === "pieces" || tab === "formulas") && <>
             {editable && <CopyDeductions systemId={systemId} modelId={modelId} def={def} onCopy={(d) => setDef(d)} />}
             <PiecesTab def={def} setPieces={set("pieces")} editable={editable} matOptions={matOptions} unit={unit} />
-            <details className="helper-values" open={def.formulas.length > 0}>
-              <summary>قيم مساعدة (اختياري) <span className="muted small">· {def.formulas.length}</span></summary>
+            {def.formulas.length > 0 && <details className="helper-values" open>
+              <summary>قيم مساعدة (من نموذج قديم) <span className="muted small">· {def.formulas.length}</span></summary>
             <p className="def-help">مش لازمة: تقدر تكتب التخصيم كله في معادلة طول القطعة. بس لو فيه قيمة بتتكرر في كذا قطعة (زي عرض الضلفة) اكتبها هنا مرة واحدة باسم، واستخدم الاسم في القطع. بتتحسب بالترتيب حسب الاعتماد (زي <code>sash_w = (width + overlap) / leaf_count</code>). تقدر تكتبها <b>بالعربي</b>: <code>عرض_الضلفة = (العرض + ركوب_الضلف) ÷ عدد_الضلف</code>. الأسامي الجاهزة: <code>العرض</code> و<code>الارتفاع</code> (مقاس التصنيع) و<code>عرض_الفتحة</code> و<code>ارتفاع_الفتحة</code> و<code>خلوص_العرض</code> و<code>خلوص_الارتفاع</code>. الكلمات: <code>و</code> <code>أو</code> <code>مش</code> <code>صح</code> <code>خطأ</code>. الدوال: <code>لو(شرط، لو صح، لو غلط)</code> <code>أصغر</code> <code>أكبر</code> <code>مطلق</code> <code>تقريب</code> <code>تقريب_لأعلى</code> <code>تقريب_لأسفل</code> <code>تقريب_لخطوة</code> <code>لأعلى_لخطوة</code> <code>لأسفل_لخطوة</code> <code>حصر</code> <code>جدول</code> <code>جدول_أقل</code>، وللأرج <code>طول_القوس(العرض، الارتفاع)</code> <code>مساحة_القطعة</code> <code>باي()</code> <code>جذر</code>. ينفع كمان الإنجليزي (<code>width</code>، <code>min</code>، <code>if</code>…) والأرقام العربي و<code>×</code> و<code>÷</code>.</p>
             <RowsEditor rows={def.formulas} onChange={set("formulas")} readOnly={!editable} addLabel="معادلة" blank={() => ({ key: "", label: "", expr: "", unit: "length" as const })} columns={[
               { key: "key", label: "الاسم", kind: "code", width: 150 },
@@ -128,7 +141,7 @@ export default function ModelEditor({ systemId, modelId, tab }: { systemId: stri
               { key: "unit", label: "النوع", kind: "select", width: 120, options: [{ value: "length", label: `طول (${unit})` }, { value: "count", label: "عدد" },
                 { value: "area_m2", label: "مساحة م²" }, { value: "number", label: "رقم" }] },
             ]} />
-            </details>
+            </details>}
           </>}
           {tab === "glass" && <>
             <p className="def-help">مقاس كل لوح زجاج: معادلة العرض ومعادلة الارتفاع والعدد. لو اللوح مش مستطيل (زي زجاج الأرج نص الدايرة) اكتب معادلة مساحته، مثلًا <code>segment_area(width, height)</code>.</p>
@@ -173,8 +186,8 @@ export default function ModelEditor({ systemId, modelId, tab }: { systemId: stri
       {names.length > 0 && tab !== "info" && tab !== "try" && tab !== "tests" && (
         <Card title="الأسماء المتاحة في المعادلات">
           <div className="row wrap" style={{ gap: 6 }}>
-            {["width", "height", "opening_width", "opening_height"].map((n) => <span key={n} className="code">{n}</span>)}
-            {(constants.data ?? []).map((c) => <span key={c.name} className="code" title={`${c.label} = ${clean(c.value)}`}>{c.name}</span>)}
+            {["العرض", "الارتفاع", "عرض_الفتحة", "ارتفاع_الفتحة"].map((n) => <span key={n} className="code">{n}</span>)}
+            {(constants.data ?? []).map((c) => <span key={c.name} className="code" title={`${c.label} = ${clean(c.value)}`}>{BUILTIN_AR[c.name] ?? c.name}</span>)}
             {def.params.map((p) => <span key={p.name} className="code" style={{ color: "var(--violet)" }} title={p.label}>{p.name}</span>)}
             {def.formulas.map((f) => <span key={f.key} className="code" style={{ color: "var(--success)" }} title={f.label}>{f.key}</span>)}
           </div>
@@ -319,7 +332,8 @@ function PiecesTab({ def, setPieces, editable, matOptions, unit }:
         extraActions={editable && <Btn small kind="primary" icon="plus" onClick={() => setAdding(true)}>عنصر (عرض + ارتفاع)</Btn>}
         columns={[
           { key: "element", label: "العنصر", width: 110, render: (r, set) => <>
-            <input className="input" list="elements" value={r.element ?? ""} readOnly={!editable} onChange={(e) => set({ element: e.target.value || null })} />
+            <input className="input" list="elements" value={r.element ?? ""} readOnly={!editable}
+              onChange={(e) => set({ element: e.target.value || null, role: roleOf(e.target.value) ?? r.role ?? null })} />
             <datalist id="elements">{[...new Set([...elements, "حلق", "ضلفة", "باكتة", "قاطوع", "سلك", "حديد", "بار"])].map((e) => <option key={e} value={e} />)}</datalist></> },
           { key: "side", label: "عرض/ارتفاع", width: 100, render: (r, set) => (
             <select className="input" value={r.side ?? ""} disabled={!editable} onChange={(e) => set({ side: (e.target.value || null) as PieceRow["side"] })}
@@ -340,28 +354,27 @@ function PiecesTab({ def, setPieces, editable, matOptions, unit }:
 }
 
 function AddElement({ onClose, onAdd, matOptions }: { onClose: () => void; onAdd: (p: PieceRow[]) => void; matOptions: { value: string; label: string }[] }) {
-  const [d, setD] = useState({ element: "", prefix: "", material_code: "", w_expr: "", w_qty: "2", h_expr: "", h_qty: "2", angle: "45", role: "" });
+  const [d, setD] = useState({ element: "", material_code: "", w_expr: "", w_qty: "2", h_expr: "", h_qty: "2", angle: "45" });
   const set = (k: keyof typeof d) => (v: string) => setD((x) => ({ ...x, [k]: v }));
-  const ok = d.element && d.prefix && d.material_code && d.w_expr && d.h_expr;
+  const ok = d.element.trim() && d.material_code && d.w_expr && d.h_expr;
+  const name = d.element.trim().replace(/\s+/g, "_");
   return (
     <Modal title="عنصر جديد بعرض وارتفاع" size="wide" onClose={onClose} footer={<><Btn kind="primary" disabled={!ok} onClick={() => {
-      const base = { element: d.element, role: d.role || null, material_code: d.material_code, angle_left: d.angle, angle_right: d.angle, condition: null };
+      const base = { element: d.element.trim(), role: roleOf(d.element) ?? null, material_code: d.material_code, angle_left: d.angle, angle_right: d.angle, condition: null };
       onAdd([
-        { ...base, key: `${d.prefix}_w`, label: `${d.element} عرض`, side: "width", length_expr: d.w_expr, qty_expr: d.w_qty },
-        { ...base, key: `${d.prefix}_h`, label: `${d.element} ارتفاع`, side: "height", length_expr: d.h_expr, qty_expr: d.h_qty },
+        { ...base, key: `${name}_عرض`, label: `${d.element.trim()} عرض`, side: "width", length_expr: d.w_expr, qty_expr: d.w_qty },
+        { ...base, key: `${name}_ارتفاع`, label: `${d.element.trim()} ارتفاع`, side: "height", length_expr: d.h_expr, qty_expr: d.h_qty },
       ]);
       onClose();
     }}>إضافة</Btn><Btn onClick={onClose}>رجوع</Btn></>}>
       <div className="grid g3">
         <Field label="العنصر"><TextIn value={d.element} onChange={set("element")} placeholder="حلق، ضلفة، باكتة…" autoFocus /></Field>
-        <Field label="اسم مختصر (إنجليزي)" hint="مثال: frame → frame_w و frame_h"><TextIn value={d.prefix} onChange={(v) => set("prefix")(v.replace(/[^a-zA-Z0-9_]/g, ""))} code /></Field>
         <Field label="الخامة"><Select value={d.material_code} onChange={set("material_code")} placeholder="اختار…" options={matOptions} /></Field>
-        <Field label={<span className="side-w">معادلة طول العرض</span>} className="span2"><TextIn value={d.w_expr} onChange={set("w_expr")} code placeholder="width + 2 * weld_allowance" /></Field>
+        <Field label={<span className="side-w">معادلة طول العرض</span>} className="span2"><TextIn value={d.w_expr} onChange={set("w_expr")} code placeholder="العرض + 2 × سماحية_اللحام" /></Field>
         <Field label="عدد قطع العرض"><TextIn value={d.w_qty} onChange={set("w_qty")} code /></Field>
-        <Field label={<span className="side-h">معادلة طول الارتفاع</span>} className="span2"><TextIn value={d.h_expr} onChange={set("h_expr")} code placeholder="height + 2 * weld_allowance" /></Field>
+        <Field label={<span className="side-h">معادلة طول الارتفاع</span>} className="span2"><TextIn value={d.h_expr} onChange={set("h_expr")} code placeholder="الارتفاع + 2 × سماحية_اللحام" /></Field>
         <Field label="عدد قطع الارتفاع"><TextIn value={d.h_qty} onChange={set("h_qty")} code /></Field>
         <Field label="زاوية القص"><TextIn value={d.angle} onChange={set("angle")} code /></Field>
-        <Field label="الدور (اختياري)" hint="frame / sash / bead…"><TextIn value={d.role} onChange={set("role")} code /></Field>
       </div>
     </Modal>
   );
@@ -370,13 +383,18 @@ function AddElement({ onClose, onAdd, matOptions }: { onClose: () => void; onAdd
 function DrawingTab({ def, setDrawing, editable }: { def: Def; setDrawing: (d: S<"DrawingElement">[]) => void; editable: boolean }) {
   return (
     <>
-      <p className="def-help">الرسمة اللي بتظهر في العرض والفاتورة: مستطيلات بمعادلات (x, y, العرض, الارتفاع) بنفس أسماء المعادلات. النوع: frame / sash / glass / panel / mullion، وفتح الضلفة: sliding-left/right، casement-left/right، tilt-left/right.</p>
+      <p className="def-help">الرسمة اللي بتظهر في العرض والفاتورة: مستطيلات، لكل واحد مكانه من الشمال ومن فوق وعرضه وارتفاعه بمعادلات (زي <code>العرض</code> أو <code>العرض ÷ عدد_الضلف</code>). النوع: حلق، ضلفة، زجاج، بانل، قاطوع. والفتح للضلفة: جرار أو مفصلي أو قلاب.</p>
       <RowsEditor rows={def.drawing} onChange={setDrawing} readOnly={!editable} addLabel="عنصر رسمة"
         blank={() => ({ type: "sash", label: null, opening: null, x: "0", y: "0", w: "", h: "", condition: null })} columns={[
-          { key: "type", label: "النوع", kind: "select", width: 110, options: ["frame", "sash", "glass", "panel", "mullion"].map((v) => ({ value: v, label: v })) },
-          { key: "opening", label: "الفتح", kind: "select", width: 140, placeholder: "—",
-            options: ["sliding-left", "sliding-right", "casement-left", "casement-right", "tilt-left", "tilt-right", "fixed"].map((v) => ({ value: v, label: v })) },
-          { key: "x", label: "x", kind: "expr" }, { key: "y", label: "y", kind: "expr" },
+          { key: "type", label: "النوع", kind: "select", width: 110, options: Object.entries(DRAW_TYPES).map(([value, label]) => ({ value, label })) },
+          // sliding_right and sliding-right are the same opening (older models use "_")
+          { key: "opening", label: "الفتح", width: 150, render: (r, set) => (
+            <select className="input" value={(r.opening ?? "").replace(/_/g, "-")} disabled={!editable}
+              onChange={(e) => set({ opening: e.target.value || null })}>
+              <option value="">—</option>
+              {Object.entries(OPENINGS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+            </select>) },
+          { key: "x", label: "من الشمال", kind: "expr" }, { key: "y", label: "من فوق", kind: "expr" },
           { key: "w", label: "العرض", kind: "expr" }, { key: "h", label: "الارتفاع", kind: "expr" },
           { key: "condition", label: "شرط", kind: "expr", width: 110 },
           { key: "label", label: "اسم" },
