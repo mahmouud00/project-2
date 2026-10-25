@@ -19,6 +19,7 @@ All notable changes are listed here. Versions follow Semantic Versioning (MAJOR.
 - "Authorize" button on `/api/docs` (OAuth2 password form, `POST /auth/token`, client_id = company code).
 
 ### Changed
+- Server installer: stops the MYTech and PostgreSQL services before replacing files (upgrade over a running install failed with "Access is denied").
 - Licence files saved with a UTF-8 BOM (e.g. by Notepad) are accepted.
 - Windows: the server exe is a console program (setup scripts wait for it); stopping the service also stops the server process (job object); the server installer turns off Inno RedirectionGuard (error 448).
 - The vendor public key is a compiled-in constant (`app/licensing/vendor_key.py`) instead of a `.pem` file next to the program; a real key pair replaced the development key; private keys are stored encrypted.

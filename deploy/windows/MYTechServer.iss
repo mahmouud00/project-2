@@ -122,6 +122,48 @@ begin
   end;
 end;
 
+// Upgrade over a running install: the server and PostgreSQL keep their exe/DLL files open, so stop
+// both services before files are replaced (setup-server.ps1 starts them again afterwards).
+procedure StopService(const Name: String);
+var
+  ResultCode: Integer;
+begin
+  Exec(ExpandConstant('{sys}\sc.exe'), 'stop ' + Name, '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+end;
+
+function ServiceStopped(const Name: String): Boolean;
+var
+  ResultCode: Integer;
+begin
+  // "sc query" output is not parsed: a stopped (or missing) service makes this PowerShell test exit 0
+  Result := Exec('powershell.exe', '-NoProfile -Command "$s = Get-Service ' + Name +
+    ' -ErrorAction SilentlyContinue; if ($s -and $s.Status -ne ''Stopped'') { exit 1 }"',
+    '', SW_HIDE, ewWaitUntilTerminated, ResultCode) and (ResultCode = 0);
+end;
+
+function PrepareToInstall(var NeedsRestart: Boolean): String;
+var
+  ResultCode, I: Integer;
+begin
+  Result := '';
+  StopService('MYTechServer');
+  for I := 1 to 30 do
+  begin
+    if ServiceStopped('MYTechServer') then Break;
+    Sleep(1000);
+  end;
+  // a server left behind by an older launcher would still hold the files
+  Exec(ExpandConstant('{sys}\taskkill.exe'), '/F /IM mytech-server.exe', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  StopService('MYTechPostgreSQL');
+  for I := 1 to 60 do
+  begin
+    if ServiceStopped('MYTechPostgreSQL') then Break;
+    Sleep(1000);
+  end;
+  if not ServiceStopped('MYTechPostgreSQL') then
+    Result := 'The MYTechPostgreSQL service did not stop. Stop it from services.msc and run the installer again.';
+end;
+
 procedure CurStepChanged(CurStep: TSetupStep);
 var
   ResultCode: Integer;
