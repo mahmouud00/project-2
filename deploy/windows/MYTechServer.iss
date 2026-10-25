@@ -47,6 +47,7 @@ Source: "{#Stage}\app\{#MyVersion}\*"; DestDir: "{app}\app\{#MyVersion}"; Flags:
 Source: "{#Stage}\pgsql\*"; DestDir: "{app}\pgsql"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "{#Stage}\service\*"; DestDir: "{app}\service"; Flags: ignoreversion recursesubdirs
 Source: "{#Stage}\scripts\*"; DestDir: "{app}\scripts"; Flags: ignoreversion
+Source: "{#Stage}\scripts\stop-services.ps1"; Flags: dontcopy
 Source: "{#Stage}\redist\vc_redist.x64.exe"; DestDir: "{tmp}"; Flags: deleteafterinstall
 
 [Dirs]
@@ -67,6 +68,14 @@ Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -Fil
 var
   CompanyPage: TInputQueryWizardPage;
   Fresh: Boolean;
+
+function ServiceExists(): Boolean;
+var
+  ResultCode: Integer;
+begin
+  Result := Exec(ExpandConstant('{sys}\sc.exe'), 'query MYTechPostgreSQL', '', SW_HIDE, ewWaitUntilTerminated, ResultCode)
+            and (ResultCode = 0);
+end;
 
 function IsFreshInstall(): Boolean;
 begin
@@ -122,46 +131,22 @@ begin
   end;
 end;
 
-// Upgrade over a running install: the server and PostgreSQL keep their exe/DLL files open, so stop
-// both services before files are replaced (setup-server.ps1 starts them again afterwards).
-procedure StopService(const Name: String);
-var
-  ResultCode: Integer;
-begin
-  Exec(ExpandConstant('{sys}\sc.exe'), 'stop ' + Name, '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
-end;
-
-function ServiceStopped(const Name: String): Boolean;
-var
-  ResultCode: Integer;
-begin
-  // "sc query" output is not parsed: a stopped (or missing) service makes this PowerShell test exit 0
-  Result := Exec('powershell.exe', '-NoProfile -Command "$s = Get-Service ' + Name +
-    ' -ErrorAction SilentlyContinue; if ($s -and $s.Status -ne ''Stopped'') { exit 1 }"',
-    '', SW_HIDE, ewWaitUntilTerminated, ResultCode) and (ResultCode = 0);
-end;
-
+// Upgrade over a running install: the server and PostgreSQL keep their exe/DLL files open, so both
+// services are stopped before files are replaced (setup-server.ps1 starts them again afterwards).
+// stop-services.ps1 waits, falls back to pg_ctl and to ending the processes, and logs to logs\install.log.
 function PrepareToInstall(var NeedsRestart: Boolean): String;
 var
-  ResultCode, I: Integer;
+  ResultCode: Integer;
+  Script: String;
 begin
   Result := '';
-  StopService('MYTechServer');
-  for I := 1 to 30 do
-  begin
-    if ServiceStopped('MYTechServer') then Break;
-    Sleep(1000);
-  end;
-  // a server left behind by an older launcher would still hold the files
-  Exec(ExpandConstant('{sys}\taskkill.exe'), '/F /IM mytech-server.exe', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
-  StopService('MYTechPostgreSQL');
-  for I := 1 to 60 do
-  begin
-    if ServiceStopped('MYTechPostgreSQL') then Break;
-    Sleep(1000);
-  end;
-  if not ServiceStopped('MYTechPostgreSQL') then
-    Result := 'The MYTechPostgreSQL service did not stop. Stop it from services.msc and run the installer again.';
+  if not FileExists(WizardDirValue() + '\pgdata\PG_VERSION') and not ServiceExists() then Exit;
+  ExtractTemporaryFile('stop-services.ps1');
+  Script := ExpandConstant('{tmp}\stop-services.ps1');
+  if not Exec('powershell.exe', '-NoProfile -ExecutionPolicy Bypass -File "' + Script + '" -Root "' + WizardDirValue() + '"',
+              '', SW_HIDE, ewWaitUntilTerminated, ResultCode) or (ResultCode <> 0) then
+    Result := 'The MYTech services could not be stopped. Details: ' + WizardDirValue() + '\logs\install.log' + #13#10 +
+              'Restart the computer and run the installer again.';
 end;
 
 procedure CurStepChanged(CurStep: TSetupStep);

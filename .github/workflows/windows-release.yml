@@ -97,7 +97,7 @@ jobs:
           New-Item -ItemType Directory -Force build/stage/service, build/stage/scripts, build/stage/redist | Out-Null
           Copy-Item build/launcher/mytech-service.exe build/stage/service/
           Copy-Item deploy/windows/MYTechServer.xml build/stage/service/
-          Copy-Item deploy/windows/setup-server.ps1, deploy/windows/uninstall-server.ps1, deploy/windows/update.ps1 build/stage/scripts/
+          Copy-Item deploy/windows/setup-server.ps1, deploy/windows/uninstall-server.ps1, deploy/windows/update.ps1, deploy/windows/stop-services.ps1 build/stage/scripts/
           Copy-Item desktop/src-tauri/icons/icon.ico build/stage/icon.ico
       - name: Save compile cache (also after a failure)
         if: always()
@@ -154,6 +154,14 @@ jobs:
           [IO.File]::WriteAllText($envf, ((Get-Content -Raw $envf) -replace 'APP_MODE=offline', 'APP_MODE=online'))
           python tools/release/smoke_test.py --exe "$root\app\$v\mytech-server.exe" --config "$root\config" --port 8000
           if ($LASTEXITCODE -ne 0) { Get-Content "$root\config\smoke-serve.log" -Tail 80; throw "compiled server smoke test failed" }
+          # what the installer does before an upgrade: stop the running server and PostgreSQL
+          Start-Service MYTechServer
+          $deadline = (Get-Date).AddSeconds(90)
+          while ((Get-Date) -lt $deadline) { try { if ((Invoke-WebRequest -UseBasicParsing http://localhost:8000/api/v1/system/health -TimeoutSec 3).StatusCode -eq 200) { break } } catch { Start-Sleep 2 } }
+          powershell -NoProfile -ExecutionPolicy Bypass -File "$root\scripts\stop-services.ps1" -Root $root
+          if ($LASTEXITCODE -ne 0) { Get-Content "$root\logs\install.log" -Tail 30; throw "stop-services failed" }
+          foreach ($n in "MYTechServer", "MYTechPostgreSQL") { if ((Get-Service $n).Status -ne "Stopped") { throw "$n not stopped" } }
+          if (Get-Process mytech-server, postgres -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "$root*" }) { throw "processes left running" }
           powershell -NoProfile -ExecutionPolicy Bypass -File "$root\scripts\uninstall-server.ps1" -Root $root
       - name: Installer (Inno Setup)
         shell: pwsh
