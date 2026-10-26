@@ -6,9 +6,9 @@ from decimal import Decimal
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
-from sqlalchemy import select
+from sqlalchemy import or_, select
 
-from app.api.common import ORMModel, Page, PageParams, Record, VersionedUpdate, paginate
+from app.api.common import DeleteResult, ORMModel, Page, PageParams, Record, VersionedUpdate, paginate
 from app.core.audit import apply_changes, audit, check_version, snapshot
 from app.core.errors import Conflict, ValidationFailed
 from app.core.numbering import next_number
@@ -48,7 +48,7 @@ def list_warehouses(dc=Depends(require("inventory.read"))):
 
 
 @router.post("/warehouses", response_model=WarehouseOut, status_code=201)
-def create_warehouse(body: WarehouseIn, dc=Depends(require("org.manage"))):
+def create_warehouse(body: WarehouseIn, dc=Depends(require("inventory.create"))):
     db, _ = dc
     get_or_404(db, Branch, body.branch_id)
     if db.scalar(select(Warehouse).where(Warehouse.code == body.code)):
@@ -133,10 +133,10 @@ class AdjustIn(BaseModel):
 
 
 @router.post("/inventory/adjustments", status_code=201)
-def adjust(body: AdjustIn, dc=Depends(require("inventory.write"))):
+def adjust(body: AdjustIn, dc=Depends(require("inventory.create"))):
     """Opening balance / stock count corrections."""
     db, ctx = dc
-    get_warehouse(db, ctx, body.warehouse_id, "inventory.write")
+    get_warehouse(db, ctx, body.warehouse_id, "inventory.create")
     ref = uuid.uuid4()
     for line in body.lines:
         move(db, ctx, warehouse_id=body.warehouse_id, sku=line.sku, qty=line.qty, kind="adjustment",
@@ -170,11 +170,11 @@ class TransferOut(Record):
 
 
 @router.post("/inventory/transfers", response_model=TransferOut, status_code=201)
-def create_transfer(body: TransferIn, dc=Depends(require("inventory.write"))):
+def create_transfer(body: TransferIn, dc=Depends(require("inventory.create"))):
     db, ctx = dc
     if body.from_warehouse_id == body.to_warehouse_id:
         raise ValidationFailed("Same warehouse", code="SAME_WAREHOUSE")
-    get_warehouse(db, ctx, body.from_warehouse_id, "inventory.write")
+    get_warehouse(db, ctx, body.from_warehouse_id, "inventory.create")
     get_or_404(db, Warehouse, body.to_warehouse_id)
     t = StockTransfer(number=next_number(db, "transfer", "TR"), from_warehouse_id=body.from_warehouse_id,
                       to_warehouse_id=body.to_warehouse_id, lines=[l.model_dump(mode="json") for l in body.lines],
@@ -247,3 +247,43 @@ def issue_materials(wo_id: uuid.UUID, dc=Depends(require("workorders.stage"))):
     issue_for_work_order(db, ctx, wo)
     db.commit()
     return {"status": "issued"}
+
+
+@router.delete("/warehouses/{wh_id}", response_model=DeleteResult)
+def delete_warehouse(wh_id: uuid.UUID, dc=Depends(require("inventory.delete"))):
+    """Deleted when it never had a movement; otherwise deactivated (its movements are history)."""
+    db, ctx = dc
+    wh = get_or_404(db, Warehouse, wh_id)
+    ctx.require("inventory.delete", wh.branch_id)
+    before = snapshot(wh)
+    used = db.scalar(select(StockMovement.id).where(StockMovement.warehouse_id == wh.id).limit(1)) or \
+        db.scalar(select(StockTransfer.id).where(or_(StockTransfer.from_warehouse_id == wh.id,
+                                                     StockTransfer.to_warehouse_id == wh.id)).limit(1))
+    if used:
+        wh.is_active = False
+        audit(db, wh, "update", before)
+        db.commit()
+        return DeleteResult(result="deactivated")
+    for b in db.scalars(select(StockBalance).where(StockBalance.warehouse_id == wh.id)):
+        db.delete(b)
+    db.delete(wh)
+    db.flush()
+    audit(db, wh, "delete", before)
+    db.commit()
+    return DeleteResult(result="deleted")
+
+
+@router.delete("/inventory/transfers/{t_id}", response_model=DeleteResult)
+def delete_transfer(t_id: uuid.UUID, dc=Depends(require("inventory.delete"))):
+    """Only a transfer that was not sent yet (nothing moved)."""
+    db, ctx = dc
+    t = get_or_404(db, StockTransfer, t_id)
+    ctx.require("inventory.delete", db.get(Warehouse, t.from_warehouse_id).branch_id)
+    if t.status != "draft":
+        raise Conflict("Only a draft transfer can be deleted", code="TRANSFER_SENT")
+    before = snapshot(t)
+    db.delete(t)
+    db.flush()
+    audit(db, t, "delete", before)
+    db.commit()
+    return DeleteResult(result="deleted")

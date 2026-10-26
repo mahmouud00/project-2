@@ -50,6 +50,7 @@ POST /auth/login     {company_code?, username, password, device_key, device_name
 كل endpoint محتاج صلاحية معينة (`GET /permissions` بيرجّع القايمة كاملة). الصلاحية بتتمنح بالدور، والدور بيتربط بالفرع، فالمستخدم مابيشوفش ولا بيعدّل غير في الفروع اللي ليه فيها الصلاحية.
 
 ### الترخيص
+- **الإضافة والحذف صلاحيات منفصلة** لكل قسم (`customers.create` / `customers.delete`، ...). كل `DELETE` بيرجّع `{"result": "deleted"}` أو `{"result": "deactivated"}` (للي ليه تاريخ)، أو `409` بسبب واضح (`QUOTE_IN_USE`، `WO_IN_USE`، `INVOICE_ISSUED`، `PO_NOT_DRAFT`، `TRANSFER_SENT`). الفلوس والمخزن عمرهم ما بيتمسحوا: حركة الخزينة بتتعكس (`treasury.delete`) والفاتورة الصادرة بتتلغي (`invoices.delete`).
 - لو الترخيص أو الاشتراك منتهي: فترة سماح، وبعدها السيستم بيبقى **قراءة بس** (`LICENSE_READ_ONLY` على أي POST/PUT/PATCH/DELETE).
 - لو الترخيص مش موجود أو متلاعب فيه: مفيش أي وصول، ما عدا رفع ترخيص جديد.
 
@@ -108,6 +109,7 @@ WS /api/v1/system/events?token=<access_token>
 | GET / POST | `/library/models/{id}/tests` | الاختبارات المرجعية للنموذج |
 | DELETE | `/library/tests/{id}` | |
 | POST | `/library/models/{id}/tests/run` | تشغيل الاختبارات المرجعية |
+| DELETE | `/library/systems/{id}`، `/library/materials/{id}`، `/library/models/{id}` | لو عمره ما اتنشر ولا اتستخدم بيتمسح (السيستم بكل اللي جواه)، ولو اتنشر أو مستخدم بيتوقف بس (`{"result": "deactivated"}`). الخامة المستخدمة في نموذج: `MATERIAL_IN_USE` بأكواد النماذج. الشركة محتاجة `library.manage` + `library.delete` لصفوفها الخاصة بس |
 | POST | `/library/systems/{id}/publish` | نشر نسخة مجمّدة. بيترفض لو أي نموذج فيه غلط أو أي اختبار مرجعي اختلف أكتر من 0.1 مم |
 | GET | `/library/systems/{id}/versions`، `/library/versions/{id}` | النسخ المنشورة ومحتواها |
 | GET / PUT | `/library/systems/{id}/adjustments` | معايرة الشركة (`calibrations: [{constant_name, delta}]`) وقيمها الخاصة (`overrides`) |

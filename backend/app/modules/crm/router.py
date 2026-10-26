@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 from sqlalchemy import or_, select
 
-from app.api.common import ORMModel, Page, PageParams, Record, VersionedUpdate, paginate
+from app.api.common import DeleteResult, ORMModel, Page, PageParams, Record, VersionedUpdate, paginate
 from app.core.audit import apply_changes, audit, check_version, snapshot
 from app.core.errors import Conflict, NotFound
 from app.core.numbering import next_number
@@ -103,10 +103,10 @@ def list_customers(q: str | None = None, customer_type: str | None = None, param
 
 
 @router.post("/customers", response_model=CustomerOut, status_code=201)
-def create_customer(body: CustomerIn, dc=Depends(require("customers.write"))):
+def create_customer(body: CustomerIn, dc=Depends(require("customers.create"))):
     db, ctx = dc
     if body.branch_id:
-        ctx.require("customers.write", body.branch_id)
+        ctx.require("customers.create", body.branch_id)
         get_or_404(db, Branch, body.branch_id)
     data = body.model_dump()
     data["code"] = data["code"] or next_number(db, "customer", "CU")
@@ -280,9 +280,9 @@ def list_surveys(customer_id: uuid.UUID | None = None, status: str | None = None
 
 
 @router.post("/surveys", response_model=SurveyOut, status_code=201)
-def create_survey(body: SurveyIn, dc=Depends(require("surveys.write"))):
+def create_survey(body: SurveyIn, dc=Depends(require("surveys.create"))):
     db, ctx = dc
-    ctx.require("surveys.write", body.branch_id)
+    ctx.require("surveys.create", body.branch_id)
     branch = get_or_404(db, Branch, body.branch_id)
     _visible_customer(db, ctx, body.customer_id)
     survey = SiteSurvey(number=next_number(db, "survey", "SV", branch.code),
@@ -324,3 +324,28 @@ def update_survey(survey_id: uuid.UUID, body: SurveyUpdate, dc=Depends(require("
     audit(db, survey, "update", before)
     db.commit()
     return _survey_out(db, survey)
+
+
+# ---------------------------------------------------------------- delete (soft: history keeps pointing to them)
+@router.delete("/customers/{customer_id}", response_model=DeleteResult)
+def delete_customer(customer_id: uuid.UUID, dc=Depends(require("customers.delete"))):
+    db, ctx = dc
+    customer = _visible_customer(db, ctx, customer_id, "customers.delete")
+    before = snapshot(customer)
+    customer.deleted_at = utcnow()
+    audit(db, customer, "delete", before)
+    log_pii(db, ctx, "customer", [customer.id], "delete", ["name"])
+    db.commit()
+    return DeleteResult(result="deleted")
+
+
+@router.delete("/surveys/{survey_id}", response_model=DeleteResult)
+def delete_survey(survey_id: uuid.UUID, dc=Depends(require("surveys.delete"))):
+    db, ctx = dc
+    survey = get_or_404(db, SiteSurvey, survey_id)
+    ctx.require("surveys.delete", survey.branch_id)
+    before = snapshot(survey)
+    survey.deleted_at = utcnow()
+    audit(db, survey, "delete", before)
+    db.commit()
+    return DeleteResult(result="deleted")

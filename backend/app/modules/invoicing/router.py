@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 from sqlalchemy import case, func, select
 
-from app.api.common import Page, PageParams, Record, VersionedUpdate, paginate
+from app.api.common import DeleteResult, Page, PageParams, Record, VersionedUpdate, paginate
 from app.core.audit import apply_changes, audit, check_version, snapshot
 from app.core.errors import Conflict, ValidationFailed
 from app.core.numbering import next_number
@@ -201,7 +201,7 @@ def list_invoices(customer_id: uuid.UUID | None = None, status: str | None = Non
 
 
 @router.post("/invoices", response_model=InvoiceOut, status_code=201)
-def create_invoice(body: InvoiceIn, dc=Depends(require(EDIT_PERM))):
+def create_invoice(body: InvoiceIn, dc=Depends(require("invoices.create"))):
     db, ctx = dc
     settings = get_company_settings(db, ctx.company_id)
     new_lines: list[InvoiceLine] = []
@@ -242,7 +242,7 @@ def create_invoice(body: InvoiceIn, dc=Depends(require(EDIT_PERM))):
                                              qty=l.qty, unit_price=l.unit_price, calc=l.calc, db=db))
     if customer_id is None or branch_id is None:
         raise ValidationFailed("customer_id and branch_id required", code="CUSTOMER_REQUIRED")
-    ctx.require(EDIT_PERM, branch_id)
+    ctx.require("invoices.create", branch_id)
     get_or_404(db, Customer, customer_id)
     get_or_404(db, Branch, branch_id)
     inv = Invoice(customer_id=customer_id, branch_id=branch_id, work_order_id=body.work_order_id,
@@ -366,9 +366,9 @@ class CancelIn(BaseModel):
 
 
 @router.post("/invoices/{inv_id}/cancel", response_model=InvoiceOut)
-def cancel(inv_id: uuid.UUID, body: CancelIn, dc=Depends(require(EDIT_PERM))):
+def cancel(inv_id: uuid.UUID, body: CancelIn, dc=Depends(require("invoices.delete"))):
     db, ctx = dc
-    inv = _get(db, ctx, inv_id, EDIT_PERM)
+    inv = _get(db, ctx, inv_id, "invoices.delete")
     check_version(inv, body.version)
     if inv.status == "cancelled":
         raise Conflict("Already cancelled", code="INVALID_TRANSITION")
@@ -377,3 +377,17 @@ def cancel(inv_id: uuid.UUID, body: CancelIn, dc=Depends(require(EDIT_PERM))):
     audit(db, inv, "update", before, note=f"cancelled: {body.reason}")
     db.commit()
     return invoice_out(db, inv)
+
+
+@router.delete("/invoices/{inv_id}", response_model=DeleteResult)
+def delete_invoice(inv_id: uuid.UUID, dc=Depends(require("invoices.delete"))):
+    """A draft is deleted; an issued invoice keeps its number and is cancelled with a reason instead."""
+    db, ctx = dc
+    inv = _get(db, ctx, inv_id, "invoices.delete")
+    if inv.status != "draft":
+        raise Conflict("Issued invoices are cancelled, not deleted", code="INVOICE_ISSUED")
+    before = snapshot(inv)
+    inv.deleted_at = utcnow()
+    audit(db, inv, "delete", before)
+    db.commit()
+    return DeleteResult(result="deleted")

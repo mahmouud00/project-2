@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 from sqlalchemy import case, func, select
 
-from app.api.common import ORMModel, Page, PageParams, Record, paginate
+from app.api.common import DeleteResult, ORMModel, Page, PageParams, Record, paginate
 from app.core.audit import audit
 from app.core.errors import Conflict, ValidationFailed
 from app.core.numbering import next_number
@@ -54,7 +54,7 @@ def list_cashboxes(dc=Depends(require("treasury.read"))):
 
 
 @router.post("/cashboxes", response_model=CashboxOut, status_code=201)
-def create_cashbox(body: CashboxIn, dc=Depends(require("org.manage"))):
+def create_cashbox(body: CashboxIn, dc=Depends(require("treasury.create"))):
     db, _ = dc
     get_or_404(db, Branch, body.branch_id)
     if db.scalar(select(Cashbox).where(Cashbox.code == body.code)):
@@ -111,10 +111,10 @@ def _apply_links(db, tx: CashTransaction, sign: int) -> None:
 
 
 @router.post("/cash-transactions", response_model=TxOut, status_code=201)
-def create_tx(body: TxIn, dc=Depends(require("treasury.write"))):
+def create_tx(body: TxIn, dc=Depends(require("treasury.create"))):
     db, ctx = dc
     box = get_or_404(db, Cashbox, body.cashbox_id)
-    ctx.require("treasury.write", box.branch_id)
+    ctx.require("treasury.create", box.branch_id)
     if body.party_type == "customer":
         if body.party_id is None:
             raise ValidationFailed("Customer required", code="PARTY_REQUIRED")
@@ -158,14 +158,14 @@ class ReverseIn(BaseModel):
 
 
 @router.post("/cash-transactions/{tx_id}/reverse", response_model=TxOut, status_code=201)
-def reverse_tx(tx_id: uuid.UUID, body: ReverseIn, dc=Depends(require("treasury.write"))):
+def reverse_tx(tx_id: uuid.UUID, body: ReverseIn, dc=Depends(require("treasury.delete"))):
     db, ctx = dc
     tx = db.scalar(select(CashTransaction).where(CashTransaction.id == tx_id).with_for_update())
     if tx is None:
         from app.core.errors import NotFound
         raise NotFound("Transaction not found")
     box = db.get(Cashbox, tx.cashbox_id)
-    ctx.require("treasury.write", box.branch_id)
+    ctx.require("treasury.delete", box.branch_id)     # the "delete" of money is a reversing transaction
     if tx.reversed or tx.reverses_id:
         raise Conflict("Already reversed", code="ALREADY_REVERSED")
     branch = db.get(Branch, box.branch_id)
@@ -240,3 +240,24 @@ def supplier_statement(supplier_id: uuid.UUID, dc=Depends(require("treasury.read
             "balance": str(received - paid),
             "orders": [{"id": str(p.id), "number": p.number, "status": p.status, "total": str(p.total),
                         "received_value": str(p.received_value), "paid": str(p.paid_amount)} for p in pos]}
+
+
+@router.delete("/cashboxes/{box_id}", response_model=DeleteResult)
+def delete_cashbox(box_id: uuid.UUID, dc=Depends(require("treasury.delete"))):
+    """Deleted when it never had a transaction; otherwise deactivated (money history stays)."""
+    from app.core.audit import snapshot
+
+    db, ctx = dc
+    box = get_or_404(db, Cashbox, box_id)
+    ctx.require("treasury.delete", box.branch_id)
+    before = snapshot(box)
+    if db.scalar(select(CashTransaction.id).where(CashTransaction.cashbox_id == box.id).limit(1)):
+        box.is_active = False
+        audit(db, box, "update", before)
+        db.commit()
+        return DeleteResult(result="deactivated")
+    db.delete(box)
+    db.flush()
+    audit(db, box, "delete", before)
+    db.commit()
+    return DeleteResult(result="deleted")

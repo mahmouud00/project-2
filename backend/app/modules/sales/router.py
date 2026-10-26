@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 
-from app.api.common import ORMModel, Page, PageParams, Record, VersionedUpdate, paginate
+from app.api.common import DeleteResult, ORMModel, Page, PageParams, Record, VersionedUpdate, paginate
 from app.core.audit import apply_changes, audit, check_version, snapshot
 from app.core.errors import Conflict, NotFound, ValidationFailed
 from app.core.numbering import next_number
@@ -96,7 +96,7 @@ def list_price_lists(dc=Depends(require("quotes.read"))):
 
 
 @router.post("/price-lists", response_model=PriceListOut, status_code=201)
-def create_price_list(body: PriceListIn, dc=Depends(require("pricelists.manage"))):
+def create_price_list(body: PriceListIn, dc=Depends(require("pricelists.create"))):
     db, _ = dc
     if db.scalar(select(PriceList).where(PriceList.code == body.code)):
         raise Conflict("Price list code exists", code="DUPLICATE_CODE")
@@ -404,9 +404,9 @@ def list_quotations(customer_id: uuid.UUID | None = None, status: str | None = N
 
 
 @router.post("/quotations", response_model=QuotationOut, status_code=201)
-def create_quotation(body: QuotationIn, dc=Depends(require("quotes.write"))):
+def create_quotation(body: QuotationIn, dc=Depends(require("quotes.create"))):
     db, ctx = dc
-    ctx.require("quotes.write", body.branch_id)
+    ctx.require("quotes.create", body.branch_id)
     branch = get_or_404(db, Branch, body.branch_id)
     customer = get_or_404(db, Customer, body.customer_id)
     settings = get_company_settings(db, ctx.company_id)
@@ -637,3 +637,45 @@ def survey_pricing(survey_id: uuid.UUID, price_list_id: uuid.UUID | None = None,
     return SurveyPricing(survey_id=survey.id, price_list_id=pl.id, suggested_total=money(total),
                          price_per_m2=money(total / billed_sum) if billed_sum else None, area_m2=area_sum,
                          billed_area_m2=billed_sum, priced=priced, unpriced=len(rows) - priced, openings=rows)
+
+
+# ---------------------------------------------------------------- delete
+@router.delete("/quotations/{quote_id}", response_model=DeleteResult)
+def delete_quotation(quote_id: uuid.UUID, dc=Depends(require("quotes.delete"))):
+    """A quotation that became a work order or an invoice stays (cancel those first)."""
+    from app.modules.invoicing.models import Invoice
+    from app.modules.production.models import WorkOrder
+
+    db, ctx = dc
+    q = _get_quote(db, ctx, quote_id, "quotes.delete")
+    if db.scalar(select(WorkOrder.id).where(WorkOrder.quotation_id == q.id, WorkOrder.deleted_at.is_(None),
+                                            WorkOrder.stage != "cancelled")) or \
+            db.scalar(select(Invoice.id).where(Invoice.quotation_id == q.id, Invoice.deleted_at.is_(None),
+                                               Invoice.status != "cancelled")):
+        raise Conflict("Quotation has a work order or an invoice", code="QUOTE_IN_USE")
+    before = snapshot(q)
+    q.deleted_at = utcnow()
+    audit(db, q, "delete", before)
+    db.commit()
+    return DeleteResult(result="deleted")
+
+
+@router.delete("/price-lists/{pl_id}", response_model=DeleteResult)
+def delete_price_list(pl_id: uuid.UUID, dc=Depends(require("pricelists.delete"))):
+    """Deleted when nothing uses it; a list that quotations or customers use is deactivated instead."""
+    db, _ = dc
+    pl = get_or_404(db, PriceList, pl_id)
+    before = snapshot(pl)
+    if db.scalar(select(Quotation.id).where(Quotation.price_list_id == pl.id).limit(1)) or \
+            db.scalar(select(Customer.id).where(Customer.price_list_id == pl.id, Customer.deleted_at.is_(None)).limit(1)):
+        pl.is_active = False
+        audit(db, pl, "update", before)
+        db.commit()
+        return DeleteResult(result="deactivated")
+    for item in db.scalars(select(PriceListItem).where(PriceListItem.price_list_id == pl.id)):
+        db.delete(item)
+    db.delete(pl)
+    db.flush()
+    audit(db, pl, "delete", before)
+    db.commit()
+    return DeleteResult(result="deleted")

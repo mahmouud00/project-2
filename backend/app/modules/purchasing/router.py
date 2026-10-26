@@ -8,10 +8,11 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 
-from app.api.common import ORMModel, Page, PageParams, Record, VersionedUpdate, paginate
+from app.api.common import DeleteResult, ORMModel, Page, PageParams, Record, VersionedUpdate, paginate
 from app.core.audit import apply_changes, audit, check_version, snapshot
 from app.core.errors import Conflict, ValidationFailed
 from app.core.numbering import next_number
+from app.db.base import utcnow
 from app.modules.crm.router import branch_scope, get_or_404
 from app.modules.inventory.models import Warehouse
 from app.modules.inventory.service import move, resolve_sku
@@ -64,7 +65,7 @@ def list_suppliers(params: PageParams = Depends(), dc=Depends(require("purchasin
 
 
 @router.post("/suppliers", response_model=SupplierOut, status_code=201)
-def create_supplier(body: SupplierIn, dc=Depends(require("purchasing.write"))):
+def create_supplier(body: SupplierIn, dc=Depends(require("purchasing.create"))):
     db, _ = dc
     data = body.model_dump()
     data["code"] = data["code"] or next_number(db, "supplier", "SU")
@@ -162,9 +163,9 @@ def get_po(po_id: uuid.UUID, dc=Depends(require("purchasing.read"))):
 
 
 @router.post("/purchase-orders", response_model=POOut, status_code=201)
-def create_po(body: POIn, dc=Depends(require("purchasing.write"))):
+def create_po(body: POIn, dc=Depends(require("purchasing.create"))):
     db, ctx = dc
-    ctx.require("purchasing.write", body.branch_id)
+    ctx.require("purchasing.create", body.branch_id)
     branch = get_or_404(db, Branch, body.branch_id)
     get_or_404(db, Supplier, body.supplier_id)
     wh = get_or_404(db, Warehouse, body.warehouse_id)
@@ -249,3 +250,28 @@ def receive(po_id: uuid.UUID, body: ReceiveIn, dc=Depends(require("inventory.wri
     po.status = "received" if all(l.received_qty >= l.qty for l in lines) else "partial"
     db.commit()
     return _po_out(db, po)
+
+
+@router.delete("/suppliers/{supplier_id}", response_model=DeleteResult)
+def delete_supplier(supplier_id: uuid.UUID, dc=Depends(require("purchasing.delete"))):
+    db, _ = dc
+    supplier = get_or_404(db, Supplier, supplier_id)
+    before = snapshot(supplier)
+    supplier.deleted_at = utcnow()
+    audit(db, supplier, "delete", before)
+    db.commit()
+    return DeleteResult(result="deleted")
+
+
+@router.delete("/purchase-orders/{po_id}", response_model=DeleteResult)
+def delete_po(po_id: uuid.UUID, dc=Depends(require("purchasing.delete"))):
+    """A draft order is deleted; an ordered one is cancelled instead (status "cancelled")."""
+    db, ctx = dc
+    po = _get_po(db, ctx, po_id, "purchasing.delete")
+    if po.status != "draft":
+        raise Conflict("Only a draft purchase order can be deleted", code="PO_NOT_DRAFT")
+    before = snapshot(po)
+    po.deleted_at = utcnow()
+    audit(db, po, "delete", before)
+    db.commit()
+    return DeleteResult(result="deleted")

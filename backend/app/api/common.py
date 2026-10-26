@@ -45,3 +45,8 @@ def paginate(db: Session, stmt: Select, params: PageParams, schema) -> dict:
 class VersionedUpdate(BaseModel):
     """Every update must carry the version the client read (optimistic locking)."""
     version: int
+
+
+class DeleteResult(BaseModel):
+    """What a delete did: "deleted", or "deactivated" when history still points to the record."""
+    result: str

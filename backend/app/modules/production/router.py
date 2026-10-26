@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 
-from app.api.common import ORMModel, Page, PageParams, Record, VersionedUpdate, paginate
+from app.api.common import DeleteResult, ORMModel, Page, PageParams, Record, VersionedUpdate, paginate
 from app.core.audit import apply_changes, audit, check_version, snapshot
 from app.core.errors import Conflict, ValidationFailed
 from app.core.numbering import next_number
@@ -130,10 +130,10 @@ def list_work_orders(stage: str | None = None, customer_id: uuid.UUID | None = N
 
 
 @router.post("/work-orders", response_model=WorkOrderOut, status_code=201)
-def create_work_order(body: WorkOrderIn, dc=Depends(require("workorders.write"))):
+def create_work_order(body: WorkOrderIn, dc=Depends(require("workorders.create"))):
     """Open an order at the survey stage (before any quotation)."""
     db, ctx = dc
-    ctx.require("workorders.write", body.branch_id)
+    ctx.require("workorders.create", body.branch_id)
     branch = get_or_404(db, Branch, body.branch_id)
     get_or_404(db, Customer, body.customer_id)
     wo = WorkOrder(number=next_number(db, "wo", "WO", branch.code), stage="survey", **body.model_dump())
@@ -146,10 +146,10 @@ def create_work_order(body: WorkOrderIn, dc=Depends(require("workorders.write"))
 
 
 @router.post("/work-orders/from-quotation", response_model=WorkOrderOut, status_code=201)
-def from_quotation(body: FromQuotationIn, dc=Depends(require("workorders.write"))):
+def from_quotation(body: FromQuotationIn, dc=Depends(require("workorders.create"))):
     db, ctx = dc
     q = get_or_404(db, Quotation, body.quotation_id)
-    ctx.require("workorders.write", q.branch_id)
+    ctx.require("workorders.create", q.branch_id)
     if q.status != "accepted":
         raise Conflict("Quotation must be accepted first", code="QUOTE_NOT_ACCEPTED")
     if db.scalar(select(WorkOrder).where(WorkOrder.quotation_id == q.id, WorkOrder.deleted_at.is_(None))):
@@ -280,3 +280,22 @@ def get_outputs(wo_id: uuid.UUID, dc=Depends(require("workorders.read"))):
             raise Conflict("No outputs", code="NO_OUTPUTS")
         return generate_outputs(db, wo)
     return wo.outputs
+
+
+@router.delete("/work-orders/{wo_id}", response_model=DeleteResult)
+def delete_work_order(wo_id: uuid.UUID, dc=Depends(require("workorders.delete"))):
+    """Only before anything happened to it: once materials are issued, money is received or it is
+    invoiced, it is cancelled (stage "cancelled") instead, so the records stay consistent."""
+    from app.modules.invoicing.models import Invoice
+
+    db, ctx = dc
+    wo = _get_wo(db, ctx, wo_id, "workorders.delete")
+    if wo.materials_issued or wo.paid_amount > 0 or db.scalar(
+            select(Invoice.id).where(Invoice.work_order_id == wo.id, Invoice.deleted_at.is_(None),
+                                     Invoice.status != "cancelled")):
+        raise Conflict("Work order has materials, payments or an invoice", code="WO_IN_USE")
+    before = snapshot(wo)
+    wo.deleted_at = utcnow()
+    audit(db, wo, "delete", before)
+    db.commit()
+    return DeleteResult(result="deleted")

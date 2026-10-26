@@ -85,6 +85,11 @@ def test_upgrade_from_old_revision_keeps_data():
         c.execute(text("INSERT INTO quotations (id, company_id, number, customer_id, branch_id, price_list_id, status, "
                        "discount_amount, tax_pct, subtotal, tax_amount, total, total_cost, notes, terms, version) VALUES "
                        "(:q, :c, 'QT-1', :cust, :b, :pl, 'draft', 0, 0, 300, 0, 300, 200, '', '', 1)"), p)
+        p["admin_role"], p["sales_role"] = uuid.uuid4(), uuid.uuid4()
+        c.execute(text("INSERT INTO roles (id, company_id, code, name, permissions, is_builtin, version) VALUES "
+                       "(:admin_role, :c, 'admin', 'مدير', ARRAY['customers.read','customers.write'], true, 1), "
+                       "(:sales_role, :c, 'sales2', 'مبيعات', ARRAY['customers.read','customers.write','quotes.read'], "
+                       "false, 1)"), p)
         c.execute(text("INSERT INTO quotation_lines (id, company_id, quotation_id, position, location, model_id, "
                        "formula_set_version_id, opening_width_mm, opening_height_mm, params, qty, area_m2, unit_cost, "
                        "unit_price, line_total, calc, cost_breakdown, notes, version) VALUES (:ql, :c, :q, 1, 'kitchen', "
@@ -102,11 +107,19 @@ def test_upgrade_from_old_revision_keeps_data():
     assert after["survey_openings"][str(ids["op"])]["application"] == ""
     line = after["quotation_lines"][str(ids["ql"])]
     assert line["price_per_m2"] is None and line["total_height_mm"] is None and float(line["billed_area_m2"]) == 0.48 and float(line["line_total"]) == 300
+    # 0009: whoever could edit customers can still add them; only the built-in admin gets delete
+    admin_perms = set(after["roles"][str(p["admin_role"])]["permissions"])
+    sales_perms = set(after["roles"][str(p["sales_role"])]["permissions"])
+    assert {"customers.create", "customers.delete", "invoices.delete"} <= admin_perms
+    assert "customers.create" in sales_perms and "customers.delete" not in sales_perms and "quotes.create" not in sales_perms
     for table, rows in {**before, **before2, **before3, **before4}.items():
         assert set(after[table]) == set(rows), f"rows lost or added in {table}"
         for row_id, old in rows.items():
             new = after[table][row_id]
             # new columns may appear; every old value must be unchanged
+            if table == "roles":       # permissions only grow (0009); every permission a role had is kept
+                assert set(old["permissions"]) <= set(new["permissions"])
+                old = {k: v for k, v in old.items() if k != "permissions"}
             assert {k: new.get(k) for k in old} == old, f"data changed in {table} {row_id}"
 
 

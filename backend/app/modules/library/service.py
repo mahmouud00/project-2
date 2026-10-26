@@ -24,6 +24,14 @@ def require_author(ctx: RequestContext) -> None:
     ctx.require("platform.library.author" if ctx.is_platform else "library.manage")
 
 
+def require_deleter(ctx: RequestContext) -> None:
+    if ctx.is_platform:
+        ctx.require("platform.library.author")
+    else:
+        ctx.require("library.manage")
+        ctx.require("library.delete")
+
+
 def ensure_writable(ctx: RequestContext, obj) -> None:
     """Library rows belong to MYTech; a company may only edit its own private rows."""
     if obj.company_id != ctx.company_id:

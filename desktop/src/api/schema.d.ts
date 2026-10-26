@@ -561,7 +561,12 @@ export interface paths {
         get: operations["get_system_api_v1_library_systems__system_id__get"];
         put?: never;
         post?: never;
-        delete?: never;
+        /**
+         * Delete System
+         * @description Deleted with its constants, materials and models when it was never published; otherwise deactivated
+         *     (published versions are frozen: work orders were calculated with them).
+         */
+        delete: operations["delete_system_api_v1_library_systems__system_id__delete"];
         options?: never;
         head?: never;
         /** Update System */
@@ -633,7 +638,11 @@ export interface paths {
         get: operations["get_material_api_v1_library_materials__material_id__get"];
         put?: never;
         post?: never;
-        delete?: never;
+        /**
+         * Delete Material
+         * @description Refused while a model still uses it; deactivated when it was published or has stock/orders; else deleted.
+         */
+        delete: operations["delete_material_api_v1_library_materials__material_id__delete"];
         options?: never;
         head?: never;
         /** Update Material */
@@ -689,7 +698,11 @@ export interface paths {
         get: operations["get_model_api_v1_library_models__model_id__get"];
         put?: never;
         post?: never;
-        delete?: never;
+        /**
+         * Delete Model
+         * @description Deactivated when it was published or quotations/orders use it (they keep their history); else deleted.
+         */
+        delete: operations["delete_model_api_v1_library_models__model_id__delete"];
         options?: never;
         head?: never;
         /** Update Model */
@@ -982,7 +995,8 @@ export interface paths {
         get: operations["get_customer_api_v1_customers__customer_id__get"];
         put?: never;
         post?: never;
-        delete?: never;
+        /** Delete Customer */
+        delete: operations["delete_customer_api_v1_customers__customer_id__delete"];
         options?: never;
         head?: never;
         /** Update Customer */
@@ -1018,7 +1032,8 @@ export interface paths {
         get: operations["get_survey_api_v1_surveys__survey_id__get"];
         put?: never;
         post?: never;
-        delete?: never;
+        /** Delete Survey */
+        delete: operations["delete_survey_api_v1_surveys__survey_id__delete"];
         options?: never;
         head?: never;
         /** Update Survey */
@@ -1053,7 +1068,11 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        delete?: never;
+        /**
+         * Delete Price List
+         * @description Deleted when nothing uses it; a list that quotations or customers use is deactivated instead.
+         */
+        delete: operations["delete_price_list_api_v1_price_lists__pl_id__delete"];
         options?: never;
         head?: never;
         /** Update Price List */
@@ -1089,7 +1108,11 @@ export interface paths {
         get: operations["get_quotation_api_v1_quotations__quote_id__get"];
         put?: never;
         post?: never;
-        delete?: never;
+        /**
+         * Delete Quotation
+         * @description A quotation that became a work order or an invoice stays (cancel those first).
+         */
+        delete: operations["delete_quotation_api_v1_quotations__quote_id__delete"];
         options?: never;
         head?: never;
         /** Update Quotation */
@@ -1258,7 +1281,12 @@ export interface paths {
         get: operations["get_work_order_api_v1_work_orders__wo_id__get"];
         put?: never;
         post?: never;
-        delete?: never;
+        /**
+         * Delete Work Order
+         * @description Only before anything happened to it: once materials are issued, money is received or it is
+         *     invoiced, it is cancelled (stage "cancelled") instead, so the records stay consistent.
+         */
+        delete: operations["delete_work_order_api_v1_work_orders__wo_id__delete"];
         options?: never;
         head?: never;
         /** Update Work Order */
@@ -1350,7 +1378,11 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        delete?: never;
+        /**
+         * Delete Warehouse
+         * @description Deleted when it never had a movement; otherwise deactivated (its movements are history).
+         */
+        delete: operations["delete_warehouse_api_v1_warehouses__wh_id__delete"];
         options?: never;
         head?: never;
         /** Update Warehouse */
@@ -1484,6 +1516,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/inventory/transfers/{t_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete Transfer
+         * @description Only a transfer that was not sent yet (nothing moved).
+         */
+        delete: operations["delete_transfer_api_v1_inventory_transfers__t_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/suppliers": {
         parameters: {
             query?: never;
@@ -1512,7 +1564,8 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        delete?: never;
+        /** Delete Supplier */
+        delete: operations["delete_supplier_api_v1_suppliers__supplier_id__delete"];
         options?: never;
         head?: never;
         /** Update Supplier */
@@ -1548,7 +1601,11 @@ export interface paths {
         get: operations["get_po_api_v1_purchase_orders__po_id__get"];
         put?: never;
         post?: never;
-        delete?: never;
+        /**
+         * Delete Po
+         * @description A draft order is deleted; an ordered one is cancelled instead (status "cancelled").
+         */
+        delete: operations["delete_po_api_v1_purchase_orders__po_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1675,6 +1732,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/cashboxes/{box_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete Cashbox
+         * @description Deleted when it never had a transaction; otherwise deactivated (money history stays).
+         */
+        delete: operations["delete_cashbox_api_v1_cashboxes__box_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/privacy/subjects/{subject_type}/{subject_id}/export": {
         parameters: {
             query?: never;
@@ -1755,7 +1832,11 @@ export interface paths {
         get: operations["get_invoice_api_v1_invoices__inv_id__get"];
         put?: never;
         post?: never;
-        delete?: never;
+        /**
+         * Delete Invoice
+         * @description A draft is deleted; an issued invoice keeps its number and is cancelled with a reason instead.
+         */
+        delete: operations["delete_invoice_api_v1_invoices__inv_id__delete"];
         options?: never;
         head?: never;
         /** Update Invoice */
@@ -2624,6 +2705,14 @@ export interface components {
              * @default []
              */
             drawing: components["schemas"]["DrawingElement"][];
+        };
+        /**
+         * DeleteResult
+         * @description What a delete did: "deleted", or "deactivated" when history still points to the record.
+         */
+        DeleteResult: {
+            /** Result */
+            result: string;
         };
         /** DeviceOut */
         DeviceOut: {
@@ -6460,6 +6549,37 @@ export interface operations {
             };
         };
     };
+    delete_system_api_v1_library_systems__system_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                system_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeleteResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     update_system_api_v1_library_systems__system_id__patch: {
         parameters: {
             query?: never;
@@ -6724,6 +6844,37 @@ export interface operations {
             };
         };
     };
+    delete_material_api_v1_library_materials__material_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                material_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeleteResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     update_material_api_v1_library_materials__material_id__patch: {
         parameters: {
             query?: never;
@@ -6875,6 +7026,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ModelOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_model_api_v1_library_models__model_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                model_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeleteResult"];
                 };
             };
             /** @description Validation Error */
@@ -7526,6 +7708,37 @@ export interface operations {
             };
         };
     };
+    delete_customer_api_v1_customers__customer_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                customer_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeleteResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     update_customer_api_v1_customers__customer_id__patch: {
         parameters: {
             query?: never;
@@ -7659,6 +7872,37 @@ export interface operations {
             };
         };
     };
+    delete_survey_api_v1_surveys__survey_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                survey_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeleteResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     update_survey_api_v1_surveys__survey_id__patch: {
         parameters: {
             query?: never;
@@ -7734,6 +7978,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PriceListOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_price_list_api_v1_price_lists__pl_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                pl_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeleteResult"];
                 };
             };
             /** @description Validation Error */
@@ -7869,6 +8144,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["QuotationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_quotation_api_v1_quotations__quote_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                quote_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeleteResult"];
                 };
             };
             /** @description Validation Error */
@@ -8283,6 +8589,37 @@ export interface operations {
             };
         };
     };
+    delete_work_order_api_v1_work_orders__wo_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                wo_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeleteResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     update_work_order_api_v1_work_orders__wo_id__patch: {
         parameters: {
             query?: never;
@@ -8455,6 +8792,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WarehouseOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_warehouse_api_v1_warehouses__wh_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                wh_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeleteResult"];
                 };
             };
             /** @description Validation Error */
@@ -8768,6 +9136,37 @@ export interface operations {
             };
         };
     };
+    delete_transfer_api_v1_inventory_transfers__t_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                t_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeleteResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_suppliers_api_v1_suppliers_get: {
         parameters: {
             query?: {
@@ -8820,6 +9219,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SupplierOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_supplier_api_v1_suppliers__supplier_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                supplier_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeleteResult"];
                 };
             };
             /** @description Validation Error */
@@ -8953,6 +9383,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["POOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_po_api_v1_purchase_orders__po_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                po_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeleteResult"];
                 };
             };
             /** @description Validation Error */
@@ -9254,6 +9715,37 @@ export interface operations {
             };
         };
     };
+    delete_cashbox_api_v1_cashboxes__box_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                box_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeleteResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     export_subject_api_v1_privacy_subjects__subject_type___subject_id__export_get: {
         parameters: {
             query?: never;
@@ -9441,6 +9933,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["InvoiceOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_invoice_api_v1_invoices__inv_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                inv_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeleteResult"];
                 };
             };
             /** @description Validation Error */

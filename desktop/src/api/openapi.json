@@ -1817,6 +1817,53 @@
       }
      }
     }
+   },
+   "delete": {
+    "tags": [
+     "library"
+    ],
+    "summary": "Delete System",
+    "description": "Deleted with its constants, materials and models when it was never published; otherwise deactivated\n(published versions are frozen: work orders were calculated with them).",
+    "operationId": "delete_system_api_v1_library_systems__system_id__delete",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "system_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "System Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/DeleteResult"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
    }
   },
   "/api/v1/library/systems/{system_id}/constants": {
@@ -2280,6 +2327,53 @@
       }
      }
     }
+   },
+   "delete": {
+    "tags": [
+     "library"
+    ],
+    "summary": "Delete Material",
+    "description": "Refused while a model still uses it; deactivated when it was published or has stock/orders; else deleted.",
+    "operationId": "delete_material_api_v1_library_materials__material_id__delete",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "material_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Material Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/DeleteResult"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
    }
   },
   "/api/v1/library/materials/{material_id}/settings": {
@@ -2527,6 +2621,53 @@
        "application/json": {
         "schema": {
          "$ref": "#/components/schemas/ModelOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "delete": {
+    "tags": [
+     "library"
+    ],
+    "summary": "Delete Model",
+    "description": "Deactivated when it was published or quotations/orders use it (they keep their history); else deleted.",
+    "operationId": "delete_model_api_v1_library_models__model_id__delete",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "model_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Model Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/DeleteResult"
         }
        }
       }
@@ -3547,6 +3688,52 @@
       }
      }
     }
+   },
+   "delete": {
+    "tags": [
+     "crm"
+    ],
+    "summary": "Delete Customer",
+    "operationId": "delete_customer_api_v1_customers__customer_id__delete",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "customer_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Customer Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/DeleteResult"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
    }
   },
   "/api/v1/surveys": {
@@ -3789,6 +3976,52 @@
       }
      }
     }
+   },
+   "delete": {
+    "tags": [
+     "crm"
+    ],
+    "summary": "Delete Survey",
+    "operationId": "delete_survey_api_v1_surveys__survey_id__delete",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "survey_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Survey Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/DeleteResult"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
    }
   },
   "/api/v1/price-lists": {
@@ -3906,6 +4139,53 @@
        "application/json": {
         "schema": {
          "$ref": "#/components/schemas/PriceListOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "delete": {
+    "tags": [
+     "sales"
+    ],
+    "summary": "Delete Price List",
+    "description": "Deleted when nothing uses it; a list that quotations or customers use is deactivated instead.",
+    "operationId": "delete_price_list_api_v1_price_lists__pl_id__delete",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "pl_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Pl Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/DeleteResult"
         }
        }
       }
@@ -4158,6 +4438,53 @@
        "application/json": {
         "schema": {
          "$ref": "#/components/schemas/QuotationOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "delete": {
+    "tags": [
+     "sales"
+    ],
+    "summary": "Delete Quotation",
+    "description": "A quotation that became a work order or an invoice stays (cancel those first).",
+    "operationId": "delete_quotation_api_v1_quotations__quote_id__delete",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "quote_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Quote Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/DeleteResult"
         }
        }
       }
@@ -4856,6 +5183,53 @@
       }
      }
     }
+   },
+   "delete": {
+    "tags": [
+     "production"
+    ],
+    "summary": "Delete Work Order",
+    "description": "Only before anything happened to it: once materials are issued, money is received or it is\ninvoiced, it is cancelled (stage \"cancelled\") instead, so the records stay consistent.",
+    "operationId": "delete_work_order_api_v1_work_orders__wo_id__delete",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "wo_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Wo Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/DeleteResult"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
    }
   },
   "/api/v1/work-orders/{wo_id}/stage": {
@@ -5125,6 +5499,53 @@
        "application/json": {
         "schema": {
          "$ref": "#/components/schemas/WarehouseOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "delete": {
+    "tags": [
+     "inventory"
+    ],
+    "summary": "Delete Warehouse",
+    "description": "Deleted when it never had a movement; otherwise deactivated (its movements are history).",
+    "operationId": "delete_warehouse_api_v1_warehouses__wh_id__delete",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "wh_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Wh Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/DeleteResult"
         }
        }
       }
@@ -5624,6 +6045,55 @@
     }
    }
   },
+  "/api/v1/inventory/transfers/{t_id}": {
+   "delete": {
+    "tags": [
+     "inventory"
+    ],
+    "summary": "Delete Transfer",
+    "description": "Only a transfer that was not sent yet (nothing moved).",
+    "operationId": "delete_transfer_api_v1_inventory_transfers__t_id__delete",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "t_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "T Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/DeleteResult"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/v1/suppliers": {
    "get": {
     "tags": [
@@ -5770,6 +6240,52 @@
        "application/json": {
         "schema": {
          "$ref": "#/components/schemas/SupplierOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "delete": {
+    "tags": [
+     "purchasing"
+    ],
+    "summary": "Delete Supplier",
+    "operationId": "delete_supplier_api_v1_suppliers__supplier_id__delete",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "supplier_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Supplier Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/DeleteResult"
         }
        }
       }
@@ -5956,6 +6472,53 @@
        "application/json": {
         "schema": {
          "$ref": "#/components/schemas/POOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "delete": {
+    "tags": [
+     "purchasing"
+    ],
+    "summary": "Delete Po",
+    "description": "A draft order is deleted; an ordered one is cancelled instead (status \"cancelled\").",
+    "operationId": "delete_po_api_v1_purchase_orders__po_id__delete",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "po_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Po Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/DeleteResult"
         }
        }
       }
@@ -6469,6 +7032,55 @@
     }
    }
   },
+  "/api/v1/cashboxes/{box_id}": {
+   "delete": {
+    "tags": [
+     "treasury"
+    ],
+    "summary": "Delete Cashbox",
+    "description": "Deleted when it never had a transaction; otherwise deactivated (money history stays).",
+    "operationId": "delete_cashbox_api_v1_cashboxes__box_id__delete",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "box_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Box Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/DeleteResult"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/v1/privacy/subjects/{subject_type}/{subject_id}/export": {
    "get": {
     "tags": [
@@ -6908,6 +7520,53 @@
        "application/json": {
         "schema": {
          "$ref": "#/components/schemas/InvoiceOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "delete": {
+    "tags": [
+     "invoicing"
+    ],
+    "summary": "Delete Invoice",
+    "description": "A draft is deleted; an issued invoice keeps its number and is cancelled with a reason instead.",
+    "operationId": "delete_invoice_api_v1_invoices__inv_id__delete",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "inv_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Inv Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/DeleteResult"
         }
        }
       }
@@ -9394,6 +10053,20 @@
     },
     "type": "object",
     "title": "Definition"
+   },
+   "DeleteResult": {
+    "properties": {
+     "result": {
+      "type": "string",
+      "title": "Result"
+     }
+    },
+    "type": "object",
+    "required": [
+     "result"
+    ],
+    "title": "DeleteResult",
+    "description": "What a delete did: \"deleted\", or \"deactivated\" when history still points to the record."
    },
    "DeviceOut": {
     "properties": {
