@@ -14,6 +14,7 @@ import PriceLists from "./PriceLists";
 import Users from "./Users";
 import Settings from "./Settings";
 import System from "./System";
+import FieldPage from "./Field";
 
 export const PAGES: Record<string, ComponentType<PageProps>> = {
   dashboard: Dashboard,
@@ -30,4 +31,5 @@ export const PAGES: Record<string, ComponentType<PageProps>> = {
   users: Users,
   settings: Settings,
   system: System,
+  field: FieldPage,
 };

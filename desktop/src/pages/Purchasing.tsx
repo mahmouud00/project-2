@@ -5,7 +5,7 @@ import { useAction, useLoad, when } from "../lib/hooks";
 import { useDefaultBranch, useSession } from "../state/session";
 import { useToast } from "../state/toast";
 import { Btn, Card, Chip, ErrorBox, Field, Loading, Modal, Money, NumIn, PageHead, Pager, Qty, Table, Tabs, TextArea, TextIn, Check } from "../components/ui";
-import { BranchName, BranchSelect, SupplierSelect, WarehouseSelect } from "../components/pickers";
+import { BranchName, BranchSelect, CustomerName, SupplierSelect, WarehouseSelect } from "../components/pickers";
 import { PO_STATUS, invalidate, lookups } from "../lib/lookups";
 import { go, setQuery } from "../lib/router";
 import { date, mulMoney, sumMoney } from "../lib/format";
@@ -44,6 +44,7 @@ function POList() {
       <Table rows={list.data?.items} loading={list.loading} onRow={(p) => go(`purchasing/${p.id}`)} columns={[
         { key: "n", label: "الرقم", render: (p) => <span className="num bold">{p.number}</span> },
         { key: "s", label: "المورد", render: (p) => sup.data?.find((x) => x.id === p.supplier_id)?.name ?? "" },
+        { key: "cu", label: "للعميل", render: (p) => p.customer_id ? <CustomerName id={p.customer_id} /> : <span className="faint">مخزن</span> },
         { key: "b", label: "الفرع", render: (p) => <BranchName id={p.branch_id} /> },
         { key: "d", label: "التاريخ", render: (p) => <span className="num">{date(p.order_date)}</span> },
         { key: "st", label: "الحالة", render: (p) => <Chip color={PO_STATUS[p.status]?.[1]}>{PO_STATUS[p.status]?.[0] ?? p.status}</Chip> },
@@ -127,6 +128,9 @@ function PODetail({ id }: { id: string }) {
       <Card>
         <div className="row wrap" style={{ gap: 18 }}>
           <div><div className="muted small">المورد</div><b>{sup.data?.find((x) => x.id === p.supplier_id)?.name}</b></div>
+          {p.customer_id && <div><div className="muted small">طلبية للعميل</div><a style={{ cursor: "pointer", fontWeight: 700 }}
+            onClick={() => go(`customers/${p.customer_id}`)}><CustomerName id={p.customer_id} /></a>
+            {p.work_order_id && <> · <a style={{ cursor: "pointer" }} onClick={() => go(`work-orders/${p.work_order_id}`)}>أمر التصنيع</a></>}</div>}
           <div><div className="muted small">الحالة</div><Chip color={PO_STATUS[p.status]?.[1]}>{PO_STATUS[p.status]?.[0] ?? p.status}</Chip></div>
           <div><div className="muted small">الإجمالي</div><b><Money v={p.total} /></b></div>
           <div><div className="muted small">المستلم</div><Money v={p.received_value} /></div>

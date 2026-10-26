@@ -9,6 +9,7 @@ import { BranchName, BranchSelect, CustomerName, CustomerPicker } from "../compo
 import { ItemForm } from "../components/items";
 import { PrintPreview } from "../components/media";
 import { DeleteBtn } from "../components/actions";
+import { AssignJob, LocationField, MapBtn } from "../components/field";
 import { SuggestedPrice, SurveySheet, blankRow, isEmptyRow, rowFromApi, rowMissingSize, rowToApi, type SheetRow, type SurveyKind } from "../components/surveysheet";
 import { SURVEY_KIND, SURVEY_STATUS, lookups } from "../lib/lookups";
 import { go } from "../lib/router";
@@ -64,8 +65,9 @@ function NewSurvey({ customerId }: { customerId?: string }) {
   const { busy, run } = useAction(toast.err);
   const branch = useDefaultBranch("surveys.create");
   const [d, setD] = useState<{ customer_id: string | null; branch_id: string | null; survey_date: string; address: string; notes: string;
-    kind: SurveyKind; floor: string; technician: string }>(
-    { customer_id: customerId ?? null, branch_id: branch, survey_date: today(), address: "", notes: "", kind: "window", floor: "", technician: "" });
+    kind: SurveyKind; floor: string; technician: string; location_url: string }>(
+    { customer_id: customerId ?? null, branch_id: branch, survey_date: today(), address: "", notes: "", kind: "window", floor: "", technician: "",
+      location_url: "" });
   return (
     <Card title="بيانات المعاينة">
       <div className="grid g2" style={{ maxWidth: 820 }}>
@@ -81,6 +83,7 @@ function NewSurvey({ customerId }: { customerId?: string }) {
         <Field label="العميل" className="span-all"><CustomerPicker value={d.customer_id} onChange={(id, c) => setD((x) => ({ ...x, customer_id: id,
           address: x.address || c?.address || "" }))} /></Field>
         <Field label="العنوان" className="span-all"><TextIn value={d.address} onChange={(v) => setD((x) => ({ ...x, address: v }))} /></Field>
+        <LocationField value={d.location_url} onChange={(v) => setD((x) => ({ ...x, location_url: v }))} />
         <Field label="الدور"><TextIn value={d.floor} onChange={(v) => setD((x) => ({ ...x, floor: v }))} /></Field>
         <Field label="الفني"><TextIn value={d.technician} onChange={(v) => setD((x) => ({ ...x, technician: v }))} /></Field>
         <Field label="التاريخ"><input type="date" className="input" value={d.survey_date} onChange={(e) => setD((x) => ({ ...x, survey_date: e.target.value }))} /></Field>
@@ -90,7 +93,7 @@ function NewSurvey({ customerId }: { customerId?: string }) {
       <div className="row mt">
         <Btn kind="primary" busy={busy} disabled={!d.customer_id || !d.branch_id} onClick={() => run(async () => {
           const sv = await api.post<Survey>("/surveys", { ...d, survey_date: d.survey_date || null, address: d.address || null,
-            floor: d.floor || null, technician: d.technician || null });
+            floor: d.floor || null, technician: d.technician || null, location_url: d.location_url || null });
           go(`surveys/${sv.id}`);
         })}>فتح المعاينة</Btn>
       </div>
@@ -108,6 +111,7 @@ function SurveyDetail({ id }: { id: string }) {
   const [details, setDetails] = useState<number | null>(null);
   const [header, setHeader] = useState(false);
   const [printing, setPrinting] = useState(false);
+  const [assign, setAssign] = useState(false);
   const survey = sv.data;
   const editable = !!survey && s.can("surveys.write", survey.branch_id) && survey.status === "open";
   const customer = useLoad(() => survey ? lookups.customer(survey.customer_id) : Promise.resolve(undefined), [survey?.customer_id]);
@@ -145,6 +149,9 @@ function SurveyDetail({ id }: { id: string }) {
             <div><div className="k">العنوان</div>{survey.address || customer.data?.address || "—"}</div>
             <div><div className="k">التاريخ</div><span className="num">{date(survey.survey_date)}</span></div>
             <div><div className="k">الفني</div><b>{survey.technician || "—"}</b></div>
+            <div><div className="k">اللوكيشن</div>{survey.location_url || survey.latitude
+              ? <MapBtn place={survey} label={survey.latitude ? `${survey.latitude}, ${survey.longitude}` : "افتح الخريطة"} />
+              : <span className="faint">—</span>}</div>
           </div>
           <div className="col" style={{ alignItems: "flex-end", gap: 8 }}>
             <div className="row" style={{ gap: 6 }}>
@@ -155,6 +162,8 @@ function SurveyDetail({ id }: { id: string }) {
               <Btn icon="print" onClick={() => setPrinting(true)}>طباعة</Btn>
               {s.can("surveys.write", survey.branch_id) && <Btn icon="edit" onClick={() => setHeader(true)}>البيانات</Btn>}
               {editable && <Btn kind="success" busy={busy} onClick={() => setStatus("done")}>المعاينة خلصت</Btn>}
+              {s.can("field.manage", survey.branch_id) && survey.status === "open" &&
+                <Btn icon="truck" onClick={() => setAssign(true)}>إسناد لفني</Btn>}
               {s.can("surveys.delete", survey.branch_id) &&
                 <DeleteBtn small={false} path={`/surveys/${id}`} what={`المعاينة ${survey.number}`} onDone={() => go("surveys")} />}
               {s.can("quotes.create", survey.branch_id) && openings.some((o) => o.model_id) &&
@@ -197,6 +206,8 @@ function SurveyDetail({ id }: { id: string }) {
             qty: Number(d.qty) || 1, notes: d.notes ?? "" })));
         }} />}
       {header && <SurveyHeader survey={survey} onClose={() => setHeader(false)} onSaved={(x) => sv.set(x)} />}
+      {assign && <AssignJob job={{ kind: "survey", customer_id: survey.customer_id, branch_id: survey.branch_id, survey_id: survey.id }}
+        onClose={() => setAssign(false)} onSaved={() => sv.reload()} />}
       {printing && <PrintPreview path={`/surveys/${id}/print`} title={`معاينة ${survey.number}`} onClose={() => setPrinting(false)} />}
     </div>
   );
@@ -206,15 +217,16 @@ function SurveyHeader({ survey, onClose, onSaved }: { survey: Survey; onClose: (
   const toast = useToast();
   const { busy, run } = useAction(toast.err);
   const [d, setD] = useState({ survey_date: survey.survey_date ?? "", address: survey.address ?? "", notes: survey.notes, status: survey.status,
-    floor: survey.floor ?? "", technician: survey.technician ?? "" });
+    floor: survey.floor ?? "", technician: survey.technician ?? "", location_url: survey.location_url ?? "" });
   return (
     <Modal title="بيانات المعاينة" onClose={onClose} footer={<><Btn kind="primary" busy={busy} onClick={() => run(async () => {
       onSaved(await api.patch<Survey>(`/surveys/${survey.id}`, { version: survey.version, ...d, survey_date: d.survey_date || null,
-        floor: d.floor || null, technician: d.technician || null }));
+        floor: d.floor || null, technician: d.technician || null, location_url: d.location_url || null }));
       onClose();
     })}>حفظ</Btn><Btn onClick={onClose}>رجوع</Btn></>}>
       <div className="grid g2">
         <Field label="العنوان" className="span-all"><TextIn value={d.address} onChange={(v) => setD((x) => ({ ...x, address: v }))} /></Field>
+        <LocationField value={d.location_url} onChange={(v) => setD((x) => ({ ...x, location_url: v }))} />
         <Field label="الدور"><TextIn value={d.floor} onChange={(v) => setD((x) => ({ ...x, floor: v }))} /></Field>
         <Field label="الفني"><TextIn value={d.technician} onChange={(v) => setD((x) => ({ ...x, technician: v }))} /></Field>
         <Field label="التاريخ"><input type="date" className="input" value={d.survey_date} onChange={(e) => setD((x) => ({ ...x, survey_date: e.target.value }))} /></Field>

@@ -188,6 +188,20 @@ WS /api/v1/system/events?token=<access_token>
 
 القبض على فاتورة: `POST /cash-transactions` بـ `invoice_id` (لازم تكون صادرة ونفس العميل).
 
+### field: الصيانة والفنيين والتتبع
+| | | |
+|---|---|---|
+| GET / POST / GET / PATCH / DELETE | `/maintenance` | طلبات الصيانة (`customer_id`، المشكلة، العنوان، `location_url`، الحالة open/scheduled/done/cancelled، التكلفة) |
+| GET / POST / PATCH / DELETE | `/field/jobs` | مهام الفنيين: `kind` (survey/installation/maintenance)، `technician_id`، `scheduled_at`، ومربوطة بمعاينة أو أمر أو طلب صيانة. `?mine=true` للفني |
+| POST | `/field/jobs/{id}/status` | `on_way` ← `arrived` ← `done` (الفني أو المكتب)، `cancelled` (المكتب بس) |
+| POST | `/field/locations` | نقطة GPS من موبايل الفني؛ بتترفض (`NO_ACTIVE_JOB`) لو مفيش مهمة شغالة |
+| GET | `/field/technicians`، `/field/jobs/{id}/track`، `/field/technician-users` | آخر مكان لكل فني ومهمته الحالية، مسار مهمة، أسماء الفنيين. قراءة المكان بتتسجل في سجل البيانات الشخصية |
+| GET | `/tech` | تطبيق الفني (صفحة موبايل قابلة للتسطيب) |
+
+اللوكيشن في المعاينة وطلب الصيانة والمهمة: `location_url` (لينك جوجل ماب)، والسيرفر بيطلّع منه `latitude`/`longitude`.
+أوامر التصنيع فيها `progress_pct` و`expected_delivery` و`late` من مدة كل مرحلة (`stage_durations_days` في إعدادات الشركة).
+`GET /work-orders/{id}/material-needs`: القطاعات (أعواد كاملة بعد تحسين التقطيع) والزجاج والإكسسوار، ومنها أمر شراء بـ `work_order_id` (بيتربط بالعميل).
+
 ### documents: المطبوعات (A4 HTML جاهز للطباعة أو حفظ PDF)
 كل مطبوع فيه اسم الشركة ولوجوها وبياناتها، والمقاسات بالسنتيمتر والعرض قبل الارتفاع، والصور والخطوط جوه الملف (من غير إنترنت).
 | | | |

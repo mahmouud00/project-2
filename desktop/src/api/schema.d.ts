@@ -1350,6 +1350,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/work-orders/{wo_id}/material-needs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Material Needs
+         * @description What the order needs, from its deductions (cut list after optimisation), glass and each model's
+         *     accessories: the lines of a goods order for this customer.
+         */
+        get: operations["material_needs_api_v1_work_orders__wo_id__material_needs_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/warehouses": {
         parameters: {
             query?: never;
@@ -1987,6 +2008,203 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/documents/report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Print Report
+         * @description Any screen printed as an A4 document with the company's logo and details. The program sends what the
+         *     user sees (headers and rows as text); nothing is read from the database except the company branding.
+         */
+        post: operations["print_report_api_v1_documents_report_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/maintenance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Maintenance */
+        get: operations["list_maintenance_api_v1_maintenance_get"];
+        put?: never;
+        /** Create Maintenance */
+        post: operations["create_maintenance_api_v1_maintenance_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/maintenance/{mid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Maintenance */
+        get: operations["get_maintenance_api_v1_maintenance__mid__get"];
+        put?: never;
+        post?: never;
+        /** Delete Maintenance */
+        delete: operations["delete_maintenance_api_v1_maintenance__mid__delete"];
+        options?: never;
+        head?: never;
+        /** Update Maintenance */
+        patch: operations["update_maintenance_api_v1_maintenance__mid__patch"];
+        trace?: never;
+    };
+    "/api/v1/field/jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Jobs
+         * @description Office (field.read): every job, filtered. Technician (field.self): only their own (`mine`).
+         */
+        get: operations["list_jobs_api_v1_field_jobs_get"];
+        put?: never;
+        /** Create Job */
+        post: operations["create_job_api_v1_field_jobs_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/field/jobs/{job_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Job */
+        delete: operations["delete_job_api_v1_field_jobs__job_id__delete"];
+        options?: never;
+        head?: never;
+        /** Update Job */
+        patch: operations["update_job_api_v1_field_jobs__job_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/field/jobs/{job_id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Job Status
+         * @description The technician (or the office) moves the job along: on the way -> arrived -> done.
+         */
+        post: operations["job_status_api_v1_field_jobs__job_id__status_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/field/locations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send Location
+         * @description From the technician's phone. Accepted only while one of their jobs is on the way or arrived.
+         */
+        post: operations["send_location_api_v1_field_locations_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/field/technicians": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Technicians
+         * @description Every technician with their last position (if on a job now) and current job: the map.
+         */
+        get: operations["technicians_api_v1_field_technicians_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/field/jobs/{job_id}/track": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Job Track
+         * @description The technician's path during one job.
+         */
+        get: operations["job_track_api_v1_field_jobs__job_id__track_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/field/technician-users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Technician Users
+         * @description Names for the "assign to" picker.
+         */
+        get: operations["technician_users_api_v1_field_technician_users_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2483,6 +2701,10 @@ export interface components {
              * @default
              */
             quote_terms: string;
+            /** Stage Durations Days */
+            stage_durations_days?: {
+                [key: string]: number | string;
+            };
             /**
              * Length Unit
              * @default cm
@@ -3011,6 +3233,167 @@ export interface components {
             /** Unit Price */
             unit_price: string;
         };
+        /** JobIn */
+        JobIn: {
+            /** Address */
+            address?: string | null;
+            /** Location Url */
+            location_url?: string | null;
+            /** Latitude */
+            latitude?: number | string | null;
+            /** Longitude */
+            longitude?: number | string | null;
+            /** Kind */
+            kind: string;
+            /**
+             * Customer Id
+             * Format: uuid
+             */
+            customer_id: string;
+            /**
+             * Branch Id
+             * Format: uuid
+             */
+            branch_id: string;
+            /**
+             * Technician Id
+             * Format: uuid
+             */
+            technician_id: string;
+            /**
+             * Scheduled At
+             * Format: date-time
+             */
+            scheduled_at: string;
+            /** Survey Id */
+            survey_id?: string | null;
+            /** Work Order Id */
+            work_order_id?: string | null;
+            /** Maintenance Id */
+            maintenance_id?: string | null;
+            /**
+             * Notes
+             * @default
+             */
+            notes: string;
+        };
+        /** JobOut */
+        JobOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Version */
+            version: number;
+            /** Created At */
+            created_at?: string | null;
+            /** Updated At */
+            updated_at?: string | null;
+            /** Kind */
+            kind: string;
+            /**
+             * Customer Id
+             * Format: uuid
+             */
+            customer_id: string;
+            /**
+             * Branch Id
+             * Format: uuid
+             */
+            branch_id: string;
+            /** Survey Id */
+            survey_id: string | null;
+            /** Work Order Id */
+            work_order_id: string | null;
+            /** Maintenance Id */
+            maintenance_id: string | null;
+            /**
+             * Technician Id
+             * Format: uuid
+             */
+            technician_id: string;
+            /**
+             * Scheduled At
+             * Format: date-time
+             */
+            scheduled_at: string;
+            /** Status */
+            status: string;
+            /** Started At */
+            started_at: string | null;
+            /** Arrived At */
+            arrived_at: string | null;
+            /** Finished At */
+            finished_at: string | null;
+            /** Address */
+            address: string | null;
+            /** Location Url */
+            location_url: string | null;
+            /** Latitude */
+            latitude: string | null;
+            /** Longitude */
+            longitude: string | null;
+            /** Notes */
+            notes: string;
+            /** Result Note */
+            result_note: string;
+            /**
+             * Customer Name
+             * @default
+             */
+            customer_name: string;
+            /** Customer Phone */
+            customer_phone?: string | null;
+            /**
+             * Technician Name
+             * @default
+             */
+            technician_name: string;
+            /**
+             * Reference
+             * @default
+             */
+            reference: string;
+        };
+        /** JobStatusIn */
+        JobStatusIn: {
+            /** Status */
+            status: string;
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+        };
+        /** JobUpdate */
+        JobUpdate: {
+            /** Version */
+            version: number;
+            /** Technician Id */
+            technician_id?: string | null;
+            /** Scheduled At */
+            scheduled_at?: string | null;
+            /** Address */
+            address?: string | null;
+            /** Location Url */
+            location_url?: string | null;
+            /** Latitude */
+            latitude?: number | string | null;
+            /** Longitude */
+            longitude?: number | string | null;
+            /** Notes */
+            notes?: string | null;
+        };
+        /** LocationIn */
+        LocationIn: {
+            /** Latitude */
+            latitude: number | string;
+            /** Longitude */
+            longitude: number | string;
+            /** Accuracy M */
+            accuracy_m?: number | string | null;
+        };
         /** LoginIn */
         LoginIn: {
             /** Company Code */
@@ -3036,6 +3419,115 @@ export interface components {
              * @default
              */
             platform: string;
+        };
+        /** MaintenanceIn */
+        MaintenanceIn: {
+            /** Address */
+            address?: string | null;
+            /** Location Url */
+            location_url?: string | null;
+            /** Latitude */
+            latitude?: number | string | null;
+            /** Longitude */
+            longitude?: number | string | null;
+            /**
+             * Customer Id
+             * Format: uuid
+             */
+            customer_id: string;
+            /**
+             * Branch Id
+             * Format: uuid
+             */
+            branch_id: string;
+            /** Work Order Id */
+            work_order_id?: string | null;
+            /** Request Date */
+            request_date?: string | null;
+            /** Description */
+            description: string;
+            /**
+             * Cost
+             * @default 0
+             */
+            cost: number | string;
+            /**
+             * Notes
+             * @default
+             */
+            notes: string;
+        };
+        /** MaintenanceOut */
+        MaintenanceOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Version */
+            version: number;
+            /** Created At */
+            created_at?: string | null;
+            /** Updated At */
+            updated_at?: string | null;
+            /** Number */
+            number: string;
+            /**
+             * Customer Id
+             * Format: uuid
+             */
+            customer_id: string;
+            /**
+             * Branch Id
+             * Format: uuid
+             */
+            branch_id: string;
+            /** Work Order Id */
+            work_order_id: string | null;
+            /**
+             * Request Date
+             * Format: date
+             */
+            request_date: string;
+            /** Description */
+            description: string;
+            /** Address */
+            address: string | null;
+            /** Location Url */
+            location_url: string | null;
+            /** Latitude */
+            latitude: string | null;
+            /** Longitude */
+            longitude: string | null;
+            /** Status */
+            status: string;
+            /** Cost */
+            cost: string;
+            /** Notes */
+            notes: string;
+        };
+        /** MaintenanceUpdate */
+        MaintenanceUpdate: {
+            /** Version */
+            version: number;
+            /** Description */
+            description?: string | null;
+            /** Address */
+            address?: string | null;
+            /** Location Url */
+            location_url?: string | null;
+            /** Latitude */
+            latitude?: number | string | null;
+            /** Longitude */
+            longitude?: number | string | null;
+            /** Status */
+            status?: string | null;
+            /** Cost */
+            cost?: number | string | null;
+            /** Notes */
+            notes?: string | null;
+            /** Work Order Id */
+            work_order_id?: string | null;
         };
         /** MaterialIn */
         MaterialIn: {
@@ -3364,6 +3856,34 @@ export interface components {
             /** Note */
             note: string;
         };
+        /** NeedOut */
+        NeedOut: {
+            /** Kind */
+            kind: string;
+            /** Sku */
+            sku: string;
+            /** Material Code */
+            material_code: string;
+            /** Name */
+            name: string;
+            /** Unit */
+            unit: string;
+            /** Qty */
+            qty: string;
+            /** Bars */
+            bars?: number | null;
+            /** Bar Length Mm */
+            bar_length_mm?: string | null;
+            /** Pieces */
+            pieces?: number | null;
+            /** Unit Cost */
+            unit_cost?: string | null;
+            /**
+             * In Stock
+             * @default 0
+             */
+            in_stock: string;
+        };
         /** OpeningIn */
         OpeningIn: {
             /**
@@ -3543,6 +4063,8 @@ export interface components {
              * @default
              */
             notes: string;
+            /** Work Order Id */
+            work_order_id?: string | null;
             /** Lines */
             lines: components["schemas"]["POLineIn"][];
         };
@@ -3620,6 +4142,10 @@ export interface components {
             paid_amount: string;
             /** Notes */
             notes: string;
+            /** Work Order Id */
+            work_order_id?: string | null;
+            /** Customer Id */
+            customer_id?: string | null;
             /**
              * Lines
              * @default []
@@ -3681,6 +4207,17 @@ export interface components {
         Page_InvoiceOut_: {
             /** Items */
             items: components["schemas"]["InvoiceOut"][];
+            /** Total */
+            total: number;
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+        };
+        /** Page[MaintenanceOut] */
+        Page_MaintenanceOut_: {
+            /** Items */
+            items: components["schemas"]["MaintenanceOut"][];
             /** Total */
             total: number;
             /** Limit */
@@ -3853,6 +4390,20 @@ export interface components {
             angle_right: string;
             /** Condition */
             condition?: string | null;
+        };
+        /** PointOut */
+        PointOut: {
+            /**
+             * At
+             * Format: date-time
+             */
+            at: string;
+            /** Latitude */
+            latitude: string;
+            /** Longitude */
+            longitude: string;
+            /** Accuracy M */
+            accuracy_m?: string | null;
         };
         /** PriceListIn */
         PriceListIn: {
@@ -4114,6 +4665,39 @@ export interface components {
             /** Refresh Token */
             refresh_token: string;
         };
+        /** ReportIn */
+        ReportIn: {
+            /** Title */
+            title: string;
+            /**
+             * Subtitle
+             * @default
+             */
+            subtitle: string;
+            /** Landscape */
+            landscape?: boolean | null;
+            /** Sections */
+            sections: components["schemas"]["ReportSection"][];
+        };
+        /** ReportSection */
+        ReportSection: {
+            /**
+             * Title
+             * @default
+             */
+            title: string;
+            /** Kv */
+            kv?: [
+                string,
+                string
+            ][];
+            /** Columns */
+            columns?: string[];
+            /** Rows */
+            rows?: string[][];
+            /** Nums */
+            nums?: number[];
+        };
         /** ReverseIn */
         ReverseIn: {
             /** Note */
@@ -4315,6 +4899,12 @@ export interface components {
             floor?: string | null;
             /** Technician */
             technician?: string | null;
+            /** Location Url */
+            location_url?: string | null;
+            /** Latitude */
+            latitude?: number | string | null;
+            /** Longitude */
+            longitude?: number | string | null;
             /**
              * Openings
              * @default []
@@ -4362,6 +4952,12 @@ export interface components {
             floor: string | null;
             /** Technician */
             technician: string | null;
+            /** Location Url */
+            location_url?: string | null;
+            /** Latitude */
+            latitude?: string | null;
+            /** Longitude */
+            longitude?: string | null;
             /**
              * Openings
              * @default []
@@ -4415,6 +5011,12 @@ export interface components {
             floor?: string | null;
             /** Technician */
             technician?: string | null;
+            /** Location Url */
+            location_url?: string | null;
+            /** Latitude */
+            latitude?: number | string | null;
+            /** Longitude */
+            longitude?: number | string | null;
             /** Openings */
             openings?: components["schemas"]["OpeningIn"][] | null;
         };
@@ -4561,6 +5163,23 @@ export interface components {
             image_id?: string | null;
             /** Is Active */
             is_active?: boolean | null;
+        };
+        /** TechnicianOut */
+        TechnicianOut: {
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+            /** Full Name */
+            full_name: string;
+            last?: components["schemas"]["PointOut"] | null;
+            active_job?: components["schemas"]["JobOut"] | null;
+            /**
+             * Jobs Today
+             * @default 0
+             */
+            jobs_today: number;
         };
         /** TestCaseIn */
         TestCaseIn: {
@@ -5033,6 +5652,17 @@ export interface components {
              * @default []
              */
             stage_log: components["schemas"]["StageLogOut"][];
+            /** Progress Pct */
+            progress_pct?: number | null;
+            /** Stage Due At */
+            stage_due_at?: string | null;
+            /** Expected Delivery */
+            expected_delivery?: string | null;
+            /**
+             * Late
+             * @default false
+             */
+            late: boolean;
         };
         /** WorkOrderUpdate */
         WorkOrderUpdate: {
@@ -8752,6 +9382,37 @@ export interface operations {
             };
         };
     };
+    material_needs_api_v1_work_orders__wo_id__material_needs_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                wo_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NeedOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_warehouses_api_v1_warehouses_get: {
         parameters: {
             query?: never;
@@ -9303,6 +9964,8 @@ export interface operations {
             query?: {
                 status?: string | null;
                 supplier_id?: string | null;
+                customer_id?: string | null;
+                work_order_id?: string | null;
                 limit?: number;
                 offset?: number;
             };
@@ -10303,6 +10966,478 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    print_report_api_v1_documents_report_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReportIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/html": string;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_maintenance_api_v1_maintenance_get: {
+        parameters: {
+            query?: {
+                customer_id?: string | null;
+                status?: string | null;
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_MaintenanceOut_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_maintenance_api_v1_maintenance_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MaintenanceIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MaintenanceOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_maintenance_api_v1_maintenance__mid__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                mid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MaintenanceOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_maintenance_api_v1_maintenance__mid__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                mid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeleteResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_maintenance_api_v1_maintenance__mid__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                mid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MaintenanceUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MaintenanceOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_jobs_api_v1_field_jobs_get: {
+        parameters: {
+            query?: {
+                technician_id?: string | null;
+                status?: string | null;
+                day?: string | null;
+                customer_id?: string | null;
+                mine?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_job_api_v1_field_jobs_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["JobIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_job_api_v1_field_jobs__job_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeleteResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_job_api_v1_field_jobs__job_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["JobUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    job_status_api_v1_field_jobs__job_id__status_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["JobStatusIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    send_location_api_v1_field_locations_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LocationIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    technicians_api_v1_field_technicians_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TechnicianOut"][];
+                };
+            };
+        };
+    };
+    job_track_api_v1_field_jobs__job_id__track_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PointOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    technician_users_api_v1_field_technician_users_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    }[];
                 };
             };
         };

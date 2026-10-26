@@ -4,12 +4,13 @@ import { useTitle, type PageProps } from "../lib/title";
 import { useAction, useLoad, when } from "../lib/hooks";
 import { useSession } from "../state/session";
 import { useToast } from "../state/toast";
-import { Btn, Card, Chip, Confirm, Dim, ErrorBox, Field, Len, Loading, Modal, Money, NumIn, PageHead, Pager, Qty, Table, Tabs, TextIn } from "../components/ui";
+import { Btn, Card, Check, Chip, Confirm, Dim, ErrorBox, Field, Len, Loading, Modal, Money, NumIn, PageHead, Pager, Qty, Select, Table, Tabs, TextIn } from "../components/ui";
 import { DeleteBtn } from "../components/actions";
+import { AssignJob, Progress } from "../components/field";
 import { BranchName, ColorName, CustomerName, ModelThumb, WarehouseSelect } from "../components/pickers";
 import { Issues, ParamLabels, type Issue } from "../components/items";
 import { Drawing, MediaImg, PrintPreview } from "../components/media";
-import { STAGES, STAGE_COLOR, STAGE_NAMES, lookups } from "../lib/lookups";
+import { STAGES, STAGE_COLOR, STAGE_NAMES, UNITS, lookups } from "../lib/lookups";
 import { go, setQuery } from "../lib/router";
 import { date, dateTime } from "../lib/format";
 import { PaymentForm } from "./Treasury";
@@ -47,6 +48,7 @@ function WorkOrderList({ stage }: { stage: string }) {
           { key: "d", label: "التسليم", render: (w) => <span className="num">{date(w.due_date)}</span> },
           { key: "t", label: "الإجمالي", num: true, render: (w) => <Money v={w.total} /> },
           { key: "p", label: "المدفوع", num: true, render: (w) => <Money v={w.paid_amount} /> },
+          { key: "pr", label: "الإنجاز", render: (w) => <Progress pct={w.progress_pct} late={w.late} expected={w.expected_delivery} /> },
           { key: "del", label: "", width: 80, render: (w) => s.can("workorders.delete", w.branch_id) &&
             <DeleteBtn path={`/work-orders/${w.id}`} what={`أمر التصنيع ${w.number}`} onDone={list.reload}
               note="الأمر هيتمسح بس لو مفيش خامات اتصرفت ولا فلوس اتدفعت ولا فاتورة. غير كدا ألغيه من مراحل الأمر." /> },
@@ -85,6 +87,8 @@ function WorkOrderDetail({ id, tab }: { id: string; tab: string }) {
   const [cancel, setCancel] = useState(false);
   const [edit, setEdit] = useState(false);
   const [note, setNote] = useState("");
+  const [ordering, setOrdering] = useState(false);
+  const [assign, setAssign] = useState(false);
   const outputs = useLoad(() => when(tab === "mfg" || tab === "cut", () => api.get<Outputs>(`/work-orders/${id}/manufacturing`)), [id, tab, wo.data?.outputs_generated_at]);
   if (wo.error) return <ErrorBox text={wo.error} onRetry={wo.reload} />;
   if (!wo.data) return <Loading />;
@@ -125,8 +129,13 @@ function WorkOrderDetail({ id, tab }: { id: string; tab: string }) {
           <div><div className="muted small">العربون المطلوب</div><Money v={w.deposit_required} /></div>
           <div><div className="muted small">المدفوع</div><span className={Number(w.paid_amount) >= Number(w.deposit_required) ? "success-text bold" : "bold"}><Money v={w.paid_amount} /></span></div>
           <div><div className="muted small">الخامات</div>{w.materials_issued ? <Chip color="green">اتصرفت</Chip> : <Chip>لسه</Chip>}</div>
+          <div style={{ minWidth: 170 }}><div className="muted small">الإنجاز{w.expected_delivery ? ` · متوقع ${date(w.expected_delivery)}` : ""}</div>
+            <Progress pct={w.progress_pct} late={w.late} /></div>
           <div className="end row wrap">
             <Btn icon="print" onClick={() => setPrinting(true)}>كشف التقطيع</Btn>
+            {s.can("purchasing.create", w.branch_id) && w.stage !== "cancelled" && <Btn icon="cart" onClick={() => setOrdering(true)}>طلبية بضاعة</Btn>}
+            {s.can("field.manage", w.branch_id) && w.stage !== "cancelled" &&
+              <Btn icon="truck" onClick={() => setAssign(true)}>مهمة تركيب</Btn>}
             {s.can("workorders.write", w.branch_id) && !frozen && <Btn icon="edit" onClick={() => setEdit(true)}>تعديل</Btn>}
             {s.can("treasury.create", w.branch_id) && w.stage !== "cancelled" && <Btn icon="cash" onClick={() => setPaying(true)}>تحصيل</Btn>}
             {s.can("invoices.create", w.branch_id) && w.stage !== "cancelled" && w.quotation_id && <Btn icon="invoice" busy={busy} onClick={invoice}>فاتورة</Btn>}
@@ -185,6 +194,9 @@ function WorkOrderDetail({ id, tab }: { id: string; tab: string }) {
         ]} />}
       </Card>
 
+      {ordering && <GoodsOrder wo={w} onClose={() => setOrdering(false)} />}
+      {assign && <AssignJob job={{ kind: "installation", customer_id: w.customer_id, branch_id: w.branch_id, work_order_id: w.id }}
+        onClose={() => setAssign(false)} onSaved={() => undefined} />}
       {printing && <PrintPreview path={`/work-orders/${id}/print/cut-list`} title={`كشف تقطيع ${w.number}`} onClose={() => setPrinting(false)} />}
       {paying && <PaymentForm onClose={() => setPaying(false)} onSaved={() => wo.reload()}
         initial={{ direction: "in", party_type: "customer", party_id: w.customer_id, work_order_id: w.id }} />}
@@ -348,3 +360,55 @@ function BarPlans({ o }: { o: Outputs }) {
   );
 }
 
+
+type Need = S<"NeedOut"> & { include: boolean };
+const NEED_KIND: Record<string, string> = { profile: "قطاع", glass: "زجاج", accessory: "إكسسوار" };
+
+/** The order's needs (deductions after cutting optimisation, glass, each model's accessories) as a draft purchase
+ *  order for this customer: pick the supplier, adjust, save. */
+function GoodsOrder({ wo, onClose }: { wo: WO; onClose: () => void }) {
+  const toast = useToast();
+  const { busy, run } = useAction(toast.err);
+  const [lines, setLines] = useState<Need[] | null>(null);
+  const [supplier, setSupplier] = useState("");
+  const [warehouse, setWarehouse] = useState(wo.warehouse_id ?? "");
+  const [minusStock, setMinusStock] = useState(false);
+  const sups = useLoad(() => lookups.suppliers(), []);
+  useLoad(() => api.get<S<"NeedOut">[]>(`/work-orders/${wo.id}/material-needs`).then((n) => setLines(n.map((x) => ({ ...x, include: true })))), [wo.id]);
+  const qtyOf = (n: Need) => minusStock ? Math.max(Number(n.qty) - Math.max(Number(n.in_stock), 0), 0) : Number(n.qty);
+  const set = (i: number, patch: Partial<Need>) => setLines((x) => x!.map((l, j) => j === i ? { ...l, ...patch } : l));
+  const chosen = (lines ?? []).filter((n) => n.include && qtyOf(n) > 0);
+  const total = chosen.reduce((t, n) => t + qtyOf(n) * Number(n.unit_cost ?? 0), 0);
+  return (
+    <Modal title={`طلبية بضاعة · أمر ${wo.number}`} size="xwide" onClose={onClose} footer={<>
+      <Btn kind="primary" busy={busy} disabled={!supplier || !warehouse || !chosen.length} onClick={() => run(async () => {
+        const po = await api.post<S<"POOut">>("/purchase-orders", { supplier_id: supplier, branch_id: wo.branch_id, warehouse_id: warehouse,
+          work_order_id: wo.id, notes: `طلبية أمر التصنيع ${wo.number}`,
+          lines: chosen.map((n) => ({ sku: n.sku, qty: String(qtyOf(n).toFixed(3)), unit_cost: String(n.unit_cost ?? 0) })) });
+        toast.ok(`اتعمل أمر الشراء ${po.number} (مسودة).`);
+        go(`purchasing/${po.id}`);
+      })}>حفظ أمر شراء (مسودة)</Btn><Btn onClick={onClose}>رجوع</Btn></>}>
+      <div className="grid g3 mb">
+        <Field label="المورد"><Select value={supplier} onChange={setSupplier} placeholder="اختار المورد"
+          options={(sups.data ?? []).map((x) => ({ value: x.id, label: x.name }))} /></Field>
+        <Field label="يستلم في مخزن"><WarehouseSelect value={warehouse} onChange={setWarehouse} /></Field>
+        <Field label=" "><Check checked={minusStock} onChange={setMinusStock} label="اطلب الناقص بس (اطرح الموجود في المخازن)" /></Field>
+      </div>
+      {!lines ? <Loading /> : (
+        <Table rows={lines} rowKey={(n) => n.sku} empty="مفيش خامات (اتأكد إن الأمر فيه بنود محسوبة)" columns={[
+          { key: "i", label: "", width: 40, render: (n, i) => <input type="checkbox" checked={n.include} onChange={(e) => set(i, { include: e.target.checked })} /> },
+          { key: "k", label: "النوع", render: (n) => <Chip color={n.kind === "profile" ? "violet" : n.kind === "glass" ? "blue" : "gray"}>{NEED_KIND[n.kind] ?? n.kind}</Chip> },
+          { key: "s", label: "الكود", render: (n) => <span className="code">{n.sku}</span> },
+          { key: "n", label: "الخامة", render: (n) => n.name },
+          { key: "b", label: "التفاصيل", render: (n) => <span className="small muted">{n.bars ? `${n.bars} عود × ${Number(n.bar_length_mm) / 1000} م`
+            : n.pieces ? `${n.pieces} لوح` : ""}</span> },
+          { key: "st", label: "في المخازن", num: true, render: (n) => <span className="num">{Number(n.in_stock)}</span> },
+          { key: "q", label: "الكمية", num: true, render: (n) => <span className="num bold">{qtyOf(n).toLocaleString("en", { maximumFractionDigits: 3 })} {UNITS[n.unit] ?? n.unit}</span> },
+          { key: "c", label: "سعر الوحدة", num: true, width: 130, render: (n, i) => <NumIn value={String(n.unit_cost ?? "")} onChange={(v) => set(i, { unit_cost: v || null })} /> },
+        ]} />
+      )}
+      <div className="row mt"><span className="muted small">القطاعات بأعواد كاملة (بعد تحسين التقطيع) بالمتر، والزجاج بالمتر المربع، والإكسسوار حسب كل نموذج × عدد الوحدات.</span>
+        <b className="end">الإجمالي التقريبي: <Money v={total.toFixed(2)} /></b></div>
+    </Modal>
+  );
+}

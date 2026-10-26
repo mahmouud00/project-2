@@ -70,3 +70,9 @@ export const MATERIAL_KINDS: Record<string, string> = {
 };
 export const UNITS: Record<string, string> = { m: "متر", pcs: "قطعة", set: "طقم", roll: "لفة", m2: "م²", kg: "كجم", l: "لتر" };
 export const METHODS: Record<string, string> = { cash: "نقدي", transfer: "تحويل", cheque: "شيك", card: "كارت" };
+export const JOB_KINDS: Record<string, string> = { survey: "معاينة", installation: "تركيب", maintenance: "صيانة" };
+export const JOB_STATUS: Record<string, [string, "blue" | "green" | "amber" | "red" | "gray" | "violet"]> = {
+  scheduled: ["متحددة", "gray"], on_way: ["في الطريق", "amber"], arrived: ["وصل", "blue"], done: ["خلصت", "green"],
+  cancelled: ["ملغية", "red"] };
+export const MAINT_STATUS: Record<string, [string, "blue" | "green" | "amber" | "red" | "gray" | "violet"]> = {
+  open: ["جديد", "amber"], scheduled: ["متحدد له فني", "blue"], done: ["خلص", "green"], cancelled: ["ملغي", "red"] };

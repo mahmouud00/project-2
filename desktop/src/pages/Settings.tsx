@@ -8,6 +8,8 @@ import { useToast } from "../state/toast";
 import { Btn, Card, Chip, Field, FilePick, Modal, NumIn, PageHead, Select, Table, Tabs, TextArea, TextIn } from "../components/ui";
 import { setQuery } from "../lib/router";
 
+import { STAGE_NAMES } from "../lib/lookups";
+const WORK_STAGES = ["survey", "quotation", "approved", "manufacturing", "assembly", "quality"] as const;
 const BRANCH_KINDS: Record<string, string> = { factory: "مصنع", warehouse: "مخزن", showroom: "معرض", office: "مكتب" };
 
 export default function Settings({ route }: PageProps) {
@@ -84,7 +86,12 @@ function Defaults() {
   const [d, setD] = useState<Partial<Settings>>({ currency: st.currency, default_tax_pct: st.default_tax_pct, quote_validity_days: st.quote_validity_days,
     quote_waste_pct: st.quote_waste_pct, deposit_pct: st.deposit_pct, saw_kerf_mm: st.saw_kerf_mm, bar_trim_mm: st.bar_trim_mm,
     min_reusable_offcut_mm: st.min_reusable_offcut_mm, quote_terms: st.quote_terms, length_unit: st.length_unit ?? "cm",
-    min_billed_area_m2: st.min_billed_area_m2, default_arch_model_id: st.default_arch_model_id ?? null });
+    min_billed_area_m2: st.min_billed_area_m2, default_arch_model_id: st.default_arch_model_id ?? null,
+    stage_durations_days: { ...(st.stage_durations_days ?? {}) } });
+  const durations = (d.stage_durations_days ?? {}) as Record<string, string | number>;
+  const setDuration = (stage: string) => (v: string) =>
+    setD((x) => ({ ...x, stage_durations_days: { ...(x.stage_durations_days ?? {}), [stage]: v || "0" } as Settings["stage_durations_days"] }));
+  const totalDays = WORK_STAGES.reduce((t, k) => t + (Number(durations[k]) || 0), 0);
   const set = (k: keyof Settings) => (v: any) => setD((x) => ({ ...x, [k]: v }));
   return (
     <div className="grid g4" style={{ maxWidth: 1000 }}>
@@ -101,6 +108,14 @@ function Defaults() {
       <Field label="أقل مساحة بتتحسب للوحدة" hint="أي وحدة أصغر بتتحسب بالمساحة دي في سعر المتر"><NumIn value={d.min_billed_area_m2 as string} onChange={set("min_billed_area_m2")} unit="م²" /></Field>
       <Field label="نموذج الأرج الافتراضي" hint="بيتستخدم لما الوحدة يكون ليها ارتفاع كلي (أرج نص دايرة بحلق لوحده)" className="span-3">
         <ModelSelect value={d.default_arch_model_id} onChange={(id) => set("default_arch_model_id")(id || null)} /></Field>
+      <div className="span-all">
+        <h4 style={{ margin: "8px 0 2px" }}>مدة كل مرحلة في التصنيع (بالأيام)</h4>
+        <div className="muted small">بيتحسب منها نسبة كل أمر في بروفايل العميل، وتاريخ التسليم المتوقع، والأوامر المتأخرة.
+          الإجمالي: <b className="num">{totalDays}</b> يوم.</div>
+      </div>
+      {WORK_STAGES.map((k) => (
+        <Field key={k} label={STAGE_NAMES[k]}><NumIn value={String(durations[k] ?? "")} onChange={setDuration(k)} unit="يوم" /></Field>
+      ))}
       <Field label="شروط عرض السعر الافتراضية" className="span-all"><TextArea value={d.quote_terms} onChange={set("quote_terms")} /></Field>
       <div className="span-all"><Btn kind="primary" busy={busy} onClick={() => save(d)}>حفظ</Btn></div>
     </div>

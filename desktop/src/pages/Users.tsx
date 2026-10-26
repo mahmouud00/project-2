@@ -115,9 +115,9 @@ function RoleList() {
 const GROUP_NAMES: Record<string, string> = { org: "الشركة", users: "المستخدمين", library: "مكتبة القطاعات", engine: "الحسابات",
   customers: "العملاء", surveys: "المعاينات", quotes: "عروض الأسعار", pricelists: "قوائم الأسعار", workorders: "أوامر التصنيع",
   invoices: "الفواتير", inventory: "المخازن", purchasing: "المشتريات", treasury: "الخزينة", privacy: "البيانات الشخصية",
-  audit: "سجل التعديلات", system: "السيستم" };
+  audit: "سجل التعديلات", system: "السيستم", maintenance: "الصيانة", field: "الفنيين والتتبع" };
 // read, then add, edit, delete: the order a factory owner thinks in
-const ACTION_ORDER = ["read", "create", "write", "manage", "stage", "calculate", "import", "delete"];
+const ACTION_ORDER = ["read", "self", "create", "write", "manage", "stage", "calculate", "import", "delete"];
 
 function RoleForm({ role, perms, onClose, onSaved }: { role: Partial<Role>; perms: { code: string; name: string }[]; onClose: () => void; onSaved: () => void }) {
   const toast = useToast();

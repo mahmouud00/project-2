@@ -372,3 +372,13 @@ select.cell { appearance: none; text-overflow: ellipsis; cursor: pointer; }
 .sheet-head .k { color: var(--muted); font-size: 12px; }
 .helper-values { margin-top: 18px; border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; }
 .helper-values summary { cursor: pointer; font-weight: 700; }
+
+/* work order progress (planned stage durations) */
+.progress-cell { display: flex; align-items: center; gap: 6px; min-width: 120px; }
+.progress { flex: 1; height: 8px; border-radius: 99px; background: var(--border); overflow: hidden; direction: rtl; }
+.progress span { display: block; height: 100%; background: var(--primary); border-radius: 99px; }
+.progress.done span { background: var(--success); }
+.progress.late span { background: var(--danger); }
+/* technicians map */
+.tech-map { height: 520px; border-radius: 10px; overflow: hidden; border: 1px solid var(--border); }
+.tech-map .leaflet-popup-content { font-family: inherit; direction: rtl; text-align: right; }

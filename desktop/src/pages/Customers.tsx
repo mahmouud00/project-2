@@ -12,6 +12,8 @@ import { date } from "../lib/format";
 import { BranchSelect } from "../components/pickers";
 import { SuggestedPrice } from "../components/surveysheet";
 import { DeleteBtn } from "../components/actions";
+import { Maintenance, Visits } from "../components/maintenance";
+import { Progress } from "../components/field";
 
 export default function Customers({ route }: PageProps) {
   const id = route.path[1];
@@ -141,6 +143,7 @@ function CustomerDetail({ id, tab: tabQuery }: { id: string; tab?: string }) {
           {s.can("customers.write") && !cu.anonymized && <Btn small icon="edit" onClick={() => setEdit(true)}>تعديل</Btn>}
           {s.can("quotes.create") && <Btn small kind="primary" icon="plus" onClick={() => go("quotations/new", { customer: id })}>عرض سعر</Btn>}
           {s.can("surveys.create") && <Btn small icon="ruler" onClick={() => go("surveys/new", { customer: id })}>معاينة</Btn>}
+          {s.can("maintenance.create") && <Btn small icon="wrench" onClick={() => setQuery({ tab: "maintenance", new: "1" })}>طلب صيانة</Btn>}
           {s.can("customers.delete") && <DeleteBtn path={`/customers/${id}`} what={`العميل ${cu.name}`} onDone={() => go("customers")} />}
         </>}>
           {cu.anonymized && <div className="notice warn mb">البيانات الشخصية للعميل ده اتمسحت بناءً على طلبه. السجلات المالية فاضلة.</div>}
@@ -168,6 +171,8 @@ function CustomerDetail({ id, tab: tabQuery }: { id: string; tab?: string }) {
           { id: "quotes", label: "عروض الأسعار", count: quotes.data?.total, hidden: !s.can("quotes.read") },
           { id: "orders", label: "أوامر التصنيع", count: wos.data?.total, hidden: !s.can("workorders.read") },
           { id: "invoices", label: "الفواتير", count: invoices.data?.total, hidden: !s.can("treasury.read") },
+          { id: "maintenance", label: "الصيانة", hidden: !s.can("maintenance.read") },
+          { id: "visits", label: "زيارات الفنيين", hidden: !s.can("field.read") },
           { id: "privacy", label: "البيانات الشخصية", hidden: !s.can("privacy.manage") },
         ]} />
         {tab === "surveys" && <Table rows={surveys.data?.items} loading={surveys.loading} onRow={(x) => go(`surveys/${x.id}`)} empty="مفيش معاينات" columns={[
@@ -190,7 +195,11 @@ function CustomerDetail({ id, tab: tabQuery }: { id: string; tab?: string }) {
           { key: "s", label: "المرحلة", render: (w) => <Chip color={STAGE_COLOR[w.stage]}>{STAGE_NAMES[w.stage] ?? w.stage}</Chip> },
           { key: "t", label: "الإجمالي", num: true, render: (w) => <Money v={w.total} /> },
           { key: "p", label: "المدفوع", num: true, render: (w) => <Money v={w.paid_amount} /> },
+          { key: "pr", label: "نسبة الإنجاز", width: 220, render: (w) => <Progress pct={w.progress_pct} late={w.late} expected={w.expected_delivery} /> },
+          { key: "ex", label: "التسليم المتوقع", render: (w) => <span className="num">{date(w.expected_delivery)}</span> },
         ]} />}
+        {tab === "maintenance" && <Maintenance customer={cu} />}
+        {tab === "visits" && <Visits customerId={cu.id} />}
         {tab === "invoices" && <Table rows={invoices.data?.items} loading={invoices.loading} onRow={(i) => go(`invoices/${i.id}`)} columns={[
           { key: "n", label: "الرقم", render: (i) => <span className="num">{i.number ?? "مسودة"}</span> },
           { key: "d", label: "التاريخ", render: (i) => <span className="num">{date(i.issue_date)}</span> },
