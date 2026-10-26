@@ -63,6 +63,15 @@ class Settings(BaseSettings):
     backup_hour: int = 2
     pg_bin_dir: str = ""
 
+    # Capacity: database connections kept open per server process, and worker threads for requests.
+    # Defaults fit 20-40 people working at the same time on one server PC.
+    db_pool_size: int = 20
+    db_max_overflow: int = 20
+    request_threads: int = 80
+
+    # Technician locations are personal data: kept this many days, then erased
+    location_retention_days: int = 30
+
     # Background services (backup scheduler, live events, LAN discovery)
     background_jobs: bool = True
 

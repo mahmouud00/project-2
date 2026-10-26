@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#5048E5">
+<link rel="manifest" href="/tech/manifest.webmanifest">
+<link rel="icon" href="/tech/icon.png">
+<link rel="apple-touch-icon" href="/tech/icon.png">
+<title>MYTech · الفني</title>
+<style>
+  :root { --bg: #F3F5F9; --card: #fff; --text: #1B2533; --muted: #6A7686; --line: #E2E7EE; --primary: #5048E5;
+          --green: #15803D; --amber: #B45309; --red: #C62828; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #0E141D; --card: #172130; --text: #E8EDF4; --muted: #94A3B8; --line: #263244; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: "Cairo", "Segoe UI", Tahoma, system-ui, sans-serif; background: var(--bg); color: var(--text);
+         font-size: 16px; padding: 0 0 env(safe-area-inset-bottom); }
+  header { position: sticky; top: 0; background: var(--primary); color: #fff; padding: 12px 16px; display: flex;
+           align-items: center; gap: 10px; z-index: 5; }
+  header h1 { font-size: 18px; margin: 0; flex: 1; }
+  header button { background: rgba(255,255,255,.18); color: #fff; border: 0; border-radius: 8px; padding: 6px 10px; font: inherit; font-size: 14px; }
+  main { padding: 12px 16px 40px; max-width: 640px; margin: 0 auto; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px; margin-bottom: 12px; }
+  label { display: block; font-size: 14px; color: var(--muted); margin: 10px 0 4px; }
+  input, textarea { width: 100%; font: inherit; padding: 11px 12px; border-radius: 10px; border: 1px solid var(--line);
+          background: var(--bg); color: var(--text); }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 0; border-radius: 10px;
+         padding: 12px 14px; font: inherit; font-weight: 700; cursor: pointer; text-decoration: none; }
+  .btn.primary { background: var(--primary); color: #fff; } .btn.green { background: var(--green); color: #fff; }
+  .btn.amber { background: var(--amber); color: #fff; } .btn.ghost { background: var(--bg); color: var(--text); border: 1px solid var(--line); }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; } .row > .btn { flex: 1; min-width: 120px; }
+  .muted { color: var(--muted); font-size: 14px; } .err { color: var(--red); margin-top: 10px; }
+  .chip { display: inline-block; padding: 2px 10px; border-radius: 99px; font-size: 13px; font-weight: 700; background: var(--bg); }
+  .chip.on_way { color: var(--amber); } .chip.arrived { color: var(--primary); } .chip.done { color: var(--green); }
+  .job h2 { font-size: 17px; margin: 6px 0 2px; } .job .meta { margin: 6px 0 10px; line-height: 1.7; }
+  .track { border-radius: 12px; padding: 10px 12px; margin-bottom: 12px; font-size: 14px; }
+  .track.on { background: #DCFCE7; color: #14532D; } .track.warn { background: #FEF3C7; color: #78350F; }
+  .num { direction: ltr; unicode-bidi: isolate; }
+  .empty { text-align: center; padding: 40px 10px; color: var(--muted); }
+  img.logo { height: 26px; }
+</style>
+</head>
+<body>
+<header><img class="logo" src="/tech/logo.png" alt=""><h1 id="title">الفني</h1><button id="logout" hidden>خروج</button></header>
+<main id="app"></main>
+<script>
+"use strict";
+const API = "/api/v1";
+const KINDS = { survey: "معاينة", installation: "تركيب", maintenance: "صيانة" };
+const STATUS = { scheduled: "متحدد", on_way: "في الطريق", arrived: "وصل", done: "خلص", cancelled: "ملغي" };
+const ERR = { INVALID_CREDENTIALS: "اسم المستخدم أو كلمة المرور غلط.", COMPANY_REQUIRED: "اكتب كود الشركة.",
+  LICENSE_DEVICE_LIMIT: "عدد الأجهزة المسموح بيه في الترخيص خلص. كلّم المدير.", ACCOUNT_LOCKED: "الحساب مقفول مؤقتًا، جرّب بعد شوية.",
+  NO_ACTIVE_JOB: "مفيش مهمة شغالة دلوقتي.", INVALID_TRANSITION: "الخطوة دي مش مسموحة دلوقتي.", FORBIDDEN: "مش مسموح لك.",
+  NETWORK: "مفيش اتصال بالسيرفر." };
+const $ = (s) => document.querySelector(s);
+const store = { get: (k) => { try { return localStorage.getItem("mt." + k); } catch { return null; } },
+  set: (k, v) => { try { v == null ? localStorage.removeItem("mt." + k) : localStorage.setItem("mt." + k, v); } catch {} } };
+const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+if (!store.get("device")) store.set("device", "phone-" + (crypto.randomUUID ? crypto.randomUUID() : Date.now() + "-" + Math.random()));
+
+async function call(method, path, body, retry = true) {
+  const headers = { "Content-Type": "application/json" };
+  const token = store.get("access");
+  if (token) headers.Authorization = "Bearer " + token;
+  let r;
+  try { r = await fetch(API + path, { method, headers, body: body ? JSON.stringify(body) : undefined }); }
+  catch { throw new Error(ERR.NETWORK); }
+  if (r.status === 401 && retry && store.get("refresh")) {
+    const rr = await fetch(API + "/auth/refresh", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refresh_token: store.get("refresh") }) }).catch(() => null);
+    if (rr && rr.ok) { const t = await rr.json(); store.set("access", t.access_token); store.set("refresh", t.refresh_token); return call(method, path, body, false); }
+    logout(); throw new Error("سجّل دخول تاني.");
+  }
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) { const code = data?.error?.code; throw new Error(ERR[code] || data?.error?.message || ("خطأ " + r.status)); }
+  return data;
+}
+
+function logout() {
+  const refresh = store.get("refresh");
+  if (refresh) fetch(API + "/auth/logout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ refresh_token: refresh }) }).catch(() => {});
+  store.set("access", null); store.set("refresh", null); stopTracking(); showLogin();
+}
+
+function showLogin(msg) {
+  $("#logout").hidden = true; $("#title").textContent = "دخول الفني";
+  $("#app").innerHTML = `<div class="card"><form id="f">
+    <label>كود الشركة</label><input id="co" autocomplete="organization" value="${esc(store.get("company") || "")}">
+    <label>اسم المستخدم</label><input id="us" autocomplete="username" value="${esc(store.get("user") || "")}">
+    <label>كلمة المرور</label><input id="pw" type="password" autocomplete="current-password">
+    <div style="margin-top:16px"><button class="btn primary" style="width:100%">دخول</button></div>
+    <div class="err" id="e">${esc(msg || "")}</div></form></div>
+    <p class="muted">اطلب من المدير يعملك مستخدم بدور «فني». بعد الدخول اضغط من قايمة المتصفح «إضافة للشاشة الرئيسية» عشان يبقى زي التطبيق.</p>`;
+  $("#f").onsubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const t = await call("POST", "/auth/login", { company_code: $("#co").value.trim() || null, username: $("#us").value.trim(),
+        password: $("#pw").value, device_key: store.get("device"), device_name: "موبايل فني", platform: "mobile-web" }, false);
+      store.set("company", $("#co").value.trim()); store.set("user", $("#us").value.trim());
+      store.set("access", t.access_token); store.set("refresh", t.refresh_token);
+      start();
+    } catch (err) { $("#e").textContent = err.message; }
+  };
+}
+
+let jobs = [], me = null, timer = null;
+async function start() {
+  $("#logout").hidden = false;
+  try { me = await call("GET", "/auth/me"); } catch (e) { return showLogin(e.message); }
+  $("#title").textContent = me.full_name || "الفني";
+  await load();
+  clearInterval(timer); timer = setInterval(load, 60000);
+}
+
+async function load() {
+  try { jobs = await call("GET", "/field/jobs?mine=true"); render(); syncTracking(); }
+  catch (e) { $("#app").innerHTML = `<div class="card err">${esc(e.message)}</div>`; }
+}
+
+function mapUrl(j) {
+  if (j.latitude != null && j.longitude != null) return `https://www.google.com/maps/dir/?api=1&destination=${j.latitude},${j.longitude}`;
+  if (j.location_url) return j.location_url;
+  if (j.address) return "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(j.address);
+  return null;
+}
+
+function render() {
+  const active = jobs.some((j) => j.status === "on_way" || j.status === "arrived");
+  const banner = !active ? "" : !window.isSecureContext || !navigator.geolocation
+    ? `<div class="track warn">مكانك مش بيتبعت: الموبايل محتاج اتصال آمن (https) بالسيرفر عشان يدّي المكان. كلّم المدير.</div>`
+    : `<div class="track on" id="trk">📍 مكانك بيتبعت للمكتب لحد ما تخلّص المهمة.</div>`;
+  if (!jobs.length) { $("#app").innerHTML = `<div class="empty">مفيش مهام ليك دلوقتي 👌</div>`; return; }
+  $("#app").innerHTML = banner + jobs.map((j) => {
+    const when = new Date(j.scheduled_at).toLocaleString("ar-EG", { weekday: "long", hour: "numeric", minute: "2-digit", day: "numeric", month: "numeric" });
+    const map = mapUrl(j);
+    const act = { scheduled: [["on_way", "أنا في الطريق", "amber"], ["arrived", "وصلت", "primary"]],
+      on_way: [["arrived", "وصلت", "primary"]], arrived: [["done", "خلصت المهمة", "green"]] }[j.status] || [];
+    return `<div class="card job">
+      <div class="row" style="align-items:center"><span class="chip">${esc(KINDS[j.kind] || j.kind)}</span>
+        <span class="chip ${esc(j.status)}">${esc(STATUS[j.status] || j.status)}</span><span class="muted" style="margin-inline-start:auto">${esc(j.reference)}</span></div>
+      <h2>${esc(j.customer_name)}</h2>
+      <div class="meta muted">🕒 ${esc(when)}<br>${j.address ? "📌 " + esc(j.address) + "<br>" : ""}${j.notes ? "📝 " + esc(j.notes) : ""}</div>
+      <div class="row">
+        ${j.customer_phone ? `<a class="btn ghost" href="tel:${esc(j.customer_phone)}">📞 <span class="num">${esc(j.customer_phone)}</span></a>` : ""}
+        ${map ? `<a class="btn ghost" href="${esc(map)}" target="_blank" rel="noopener">🗺️ الخريطة</a>` : ""}
+      </div>
+      ${act.length ? `<div class="row" style="margin-top:8px">${act.map(([s, l, c]) => `<button class="btn ${c}" data-job="${esc(j.id)}" data-to="${s}">${l}</button>`).join("")}</div>` : ""}
+    </div>`;
+  }).join("");
+  document.querySelectorAll("[data-job]").forEach((b) => b.onclick = () => move(b.dataset.job, b.dataset.to, b));
+}
+
+async function move(id, to, btn) {
+  let note = "";
+  if (to === "done") { note = prompt("اكتب ملاحظة عن اللي اتعمل (اختياري):", "") ?? ""; }
+  btn.disabled = true;
+  try { await call("POST", `/field/jobs/${id}/status`, { status: to, note }); await load(); }
+  catch (e) { alert(e.message); btn.disabled = false; }
+}
+
+// GPS: only while a job is on the way / arrived; at most one point every 30 s
+let watch = null, lastSent = 0;
+function syncTracking() {
+  const active = jobs.some((j) => j.status === "on_way" || j.status === "arrived");
+  if (active && watch === null && navigator.geolocation && window.isSecureContext) {
+    watch = navigator.geolocation.watchPosition(sendPoint, (e) => {
+      const t = $("#trk"); if (t) { t.className = "track warn"; t.textContent = "شغّل الـ Location في الموبايل واسمح للصفحة تستخدمه."; }
+    }, { enableHighAccuracy: true, maximumAge: 15000, timeout: 30000 });
+  } else if (!active) stopTracking();
+}
+function stopTracking() { if (watch !== null) { navigator.geolocation.clearWatch(watch); watch = null; } }
+async function sendPoint(pos) {
+  if (Date.now() - lastSent < 30000) return;
+  lastSent = Date.now();
+  try {
+    await call("POST", "/field/locations", { latitude: +pos.coords.latitude.toFixed(6), longitude: +pos.coords.longitude.toFixed(6),
+      accuracy_m: pos.coords.accuracy != null ? Math.round(pos.coords.accuracy) : null });
+  } catch (e) { if (/مفيش مهمة/.test(e.message)) { stopTracking(); load(); } }
+}
+document.addEventListener("visibilitychange", () => { if (!document.hidden && store.get("access")) load(); });
+$("#logout").onclick = () => { if (confirm("تسجيل خروج؟")) logout(); };
+if ("serviceWorker" in navigator && window.isSecureContext) navigator.serviceWorker.register("/tech/sw.js").catch(() => {});
+store.get("refresh") ? start() : showLogin();
+</script>
+</body>
+</html>

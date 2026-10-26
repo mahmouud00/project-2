@@ -26,7 +26,9 @@ from app.db.base import PLATFORM_COMPANY_ID, Base, TenantMixin
 
 @lru_cache
 def app_engine() -> Engine:
-    return create_engine(get_settings().database_url, pool_pre_ping=True, future=True)
+    s = get_settings()
+    return create_engine(s.database_url, pool_pre_ping=True, future=True, pool_size=s.db_pool_size,
+                         max_overflow=s.db_max_overflow, pool_recycle=1800)
 
 
 @lru_cache

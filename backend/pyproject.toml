@@ -24,6 +24,7 @@ dependencies = [
   "zeroconf>=0.132",
   "httpx>=0.27",
   "jinja2>=3.1",
+  "segno>=1.6",
 ]
 
 [project.optional-dependencies]
@@ -34,6 +35,7 @@ include = ["app*"]
 
 [tool.setuptools.package-data]
 "app.modules.documents" = ["templates/*.html", "fonts/*.woff2"]
+"app.modules.field" = ["static/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

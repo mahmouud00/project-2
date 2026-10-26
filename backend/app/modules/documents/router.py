@@ -175,7 +175,7 @@ def print_survey(survey_id: uuid.UUID, dc=Depends(require("surveys.read"))):
                        "color": o.color_text or look.colors.get(o.color_code or "", o.color_code)})
     rows += [{}] * max(0, 10 - len(rows))
     customer = db.get(Customer, survey.customer_id)
-    log_pii(db, ctx, "customer", [customer.id], "export", ["name", "phone", "address"])
+    log_pii(db, ctx, "customer", [customer.id], "export", ["name", "phone", "address", "location"])
     db.commit()
     title = "معاينة شيش" if survey.kind == "shutter" else "معاينة"
     return _page("survey.html", db, ctx, title=title, doc=survey, rows=rows, customer=customer, landscape=True)

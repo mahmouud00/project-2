@@ -67,6 +67,18 @@ try {
     [IO.File]::AppendAllText((Join-Path $pgData "postgresql.conf"), "`r`nport = $PgPort`r`nlisten_addresses = 'localhost'`r`n", $utf8)
     & icacls $pgData /grant "NT AUTHORITY\NetworkService:(OI)(CI)F" /T | Out-Null
   }
+  # Tuning for the server PC's memory (20-40 people at once). Rewritten on every install/upgrade; read at start.
+  $ramMb = [int]((Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory / 1MB)
+  $sharedMb = [Math]::Max(128, [Math]::Min(4096, [int]($ramMb / 4)))
+  $cacheMb = [Math]::Max(512, [int]($ramMb / 2))
+  Write-Utf8 (Join-Path $pgData "mytech-tuning.conf") ("max_connections = 150`r`nshared_buffers = ${sharedMb}MB`r`n" +
+    "effective_cache_size = ${cacheMb}MB`r`nwork_mem = 16MB`r`nmaintenance_work_mem = 256MB`r`n" +
+    "random_page_cost = 1.1`r`nwal_compression = on`r`n")
+  $pgConf = Join-Path $pgData "postgresql.conf"
+  if (-not (Select-String -Path $pgConf -Pattern "mytech-tuning.conf" -SimpleMatch -Quiet)) {
+    [IO.File]::AppendAllText($pgConf, "`r`ninclude_if_exists = 'mytech-tuning.conf'`r`n", $utf8)
+  }
+  Log "PostgreSQL tuned for ${ramMb} MB RAM (shared_buffers ${sharedMb} MB)"
   if (-not (Get-Service MYTechPostgreSQL -ErrorAction SilentlyContinue)) {
     Log "registering PostgreSQL service"
     & (Join-Path $pgBin "pg_ctl.exe") register -N MYTechPostgreSQL -D $pgData -S auto -U "NT AUTHORITY\NetworkService" | Out-Null

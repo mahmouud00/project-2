@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import or_, select
 
 from app.api.common import DeleteResult, ORMModel, Page, PageParams, Record, VersionedUpdate, paginate
+from app.core.maps import fill_location
 from app.core.audit import apply_changes, audit, check_version, snapshot
 from app.core.errors import Conflict, NotFound
 from app.core.numbering import next_number
@@ -213,6 +214,9 @@ class SurveyIn(BaseModel):
     kind: str = Field("window", pattern=SURVEY_KIND)
     floor: str | None = Field(None, max_length=40)
     technician: str | None = Field(None, max_length=120)
+    location_url: str | None = Field(None, max_length=2000)
+    latitude: Decimal | None = Field(None, ge=-90, le=90)
+    longitude: Decimal | None = Field(None, ge=-180, le=180)
     openings: list[OpeningIn] = []
 
 
@@ -225,6 +229,9 @@ class SurveyUpdate(VersionedUpdate):
     kind: str | None = Field(None, pattern=SURVEY_KIND)
     floor: str | None = Field(None, max_length=40)
     technician: str | None = Field(None, max_length=120)
+    location_url: str | None = Field(None, max_length=2000)
+    latitude: Decimal | None = Field(None, ge=-90, le=90)
+    longitude: Decimal | None = Field(None, ge=-180, le=180)
     openings: list[OpeningIn] | None = None
 
 
@@ -240,6 +247,9 @@ class SurveyOut(Record):
     kind: str
     floor: str | None
     technician: str | None
+    location_url: str | None = None
+    latitude: Decimal | None = None
+    longitude: Decimal | None = None
     openings: list[OpeningOut] = []
 
 
@@ -286,7 +296,7 @@ def create_survey(body: SurveyIn, dc=Depends(require("surveys.create"))):
     branch = get_or_404(db, Branch, body.branch_id)
     _visible_customer(db, ctx, body.customer_id)
     survey = SiteSurvey(number=next_number(db, "survey", "SV", branch.code),
-                        **body.model_dump(exclude={"openings"}))
+                        **fill_location(body.model_dump(exclude={"openings"})))
     db.add(survey)
     db.flush()
     _set_openings(db, survey, body.openings)
@@ -313,7 +323,7 @@ def update_survey(survey_id: uuid.UUID, body: SurveyUpdate, dc=Depends(require("
     ctx.require("surveys.write", survey.branch_id)
     check_version(survey, body.version)
     before = snapshot(survey)
-    data = body.model_dump(exclude_unset=True, exclude={"version", "openings"})
+    data = fill_location(body.model_dump(exclude_unset=True, exclude={"version", "openings"}))
     if data.get("kind", "") is None:
         del data["kind"]
     apply_changes(survey, data)

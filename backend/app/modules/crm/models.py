@@ -37,7 +37,7 @@ class Customer(Base, Entity, SoftDeleteMixin):
 class SiteSurvey(Base, Entity, SoftDeleteMixin):
     """معاينة: visit to measure the openings."""
     __tablename__ = "site_surveys"
-    __pii__ = ("address",)
+    __pii__ = ("address", "location_url", "latitude", "longitude")
 
     number: Mapped[str] = mapped_column(String(40))
     customer_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("customers.id"), index=True)
@@ -50,6 +50,10 @@ class SiteSurvey(Base, Entity, SoftDeleteMixin):
     kind: Mapped[str] = mapped_column(String(20), default="window", server_default="window")  # window | shutter
     floor: Mapped[str | None] = mapped_column(String(40), nullable=True)                     # الدور
     technician: Mapped[str | None] = mapped_column(String(120), nullable=True)               # الفني
+    # the place on the map: a Google Maps link as sent by the customer, and its coordinates when the link has them
+    location_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    latitude: Mapped[Decimal | None] = mapped_column(Numeric(9, 6), nullable=True)
+    longitude: Mapped[Decimal | None] = mapped_column(Numeric(9, 6), nullable=True)
 
 
 class SurveyOpening(Base, Entity):

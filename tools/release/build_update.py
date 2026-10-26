@@ -27,7 +27,8 @@ from app.licensing.signing import load_private_key  # noqa: E402
 from app.ops.updater import build_package  # noqa: E402
 
 DEPS = ["fastapi", "uvicorn", "sqlalchemy", "psycopg[binary]", "alembic", "pydantic", "pydantic-settings",
-        "argon2-cffi", "pyjwt", "cryptography", "python-multipart", "openpyxl", "apscheduler<4", "zeroconf"]
+        "argon2-cffi", "pyjwt", "cryptography", "python-multipart", "openpyxl", "apscheduler<4", "zeroconf",
+        "jinja2", "segno"]
 
 
 def main() -> int:

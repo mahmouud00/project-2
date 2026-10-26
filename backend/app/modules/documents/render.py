@@ -39,8 +39,25 @@ def size(w_mm, h_mm) -> Markup:
     return Markup(f'<span class="dim"><b>{cm(w_mm)}</b><span class="x">×</span>{cm(h_mm)}</span>')
 
 
+def map_link(url=None, lat=None, lng=None) -> str:
+    """Link that opens the place: the coordinates when known, else the link as the customer sent it."""
+    if lat is not None and lng is not None and not isinstance(lat, Undefined):
+        return f"https://www.google.com/maps?q={lat},{lng}"
+    return url or ""
+
+
+def qr(text: str, size_mm: int = 22) -> Markup:
+    """QR code (inline SVG) the technician scans with the phone to open the place on the map."""
+    if not text:
+        return Markup("")
+    import segno
+
+    svg = segno.make(text, error="m").svg_inline(scale=1, border=1, dark="#1B2533")
+    return Markup(svg.replace("<svg ", f'<svg style="width:{size_mm}mm;height:{size_mm}mm" ', 1))
+
+
 env.filters.update(cm=cm, money=money)
-env.globals.update(size=size)
+env.globals.update(size=size, map_link=map_link, qr=qr)
 
 
 def data_uri(db, media_id) -> str | None:

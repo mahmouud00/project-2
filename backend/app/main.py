@@ -45,6 +45,8 @@ def create_app() -> FastAPI:
     for r in (auth_router, org_router, system_router):
         app.include_router(r, prefix=API_PREFIX)
     _include_optional(app)
+    from app.modules.field.pages import router as tech_pages   # technicians' phone app at /tech
+    app.include_router(tech_pages)
     return app
 
 
@@ -55,6 +57,9 @@ async def lifespan(app: FastAPI):
 
     s = get_settings()
     started = []
+    # every non-async endpoint runs in this thread pool (default 40): room for 20-40 people at once
+    import anyio.to_thread
+    anyio.to_thread.current_default_thread_limiter().total_tokens = s.request_threads
     if s.background_jobs:
         from app.ops.events import hub
         hub.start()
@@ -98,6 +103,7 @@ MODULE_ROUTERS: list[str] = [
     "app.modules.privacy.router",
     "app.modules.invoicing.router",
     "app.modules.documents.router",
+    "app.modules.field.router",
 ]
 
 app = create_app()

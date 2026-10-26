@@ -40,6 +40,10 @@ class PurchaseOrder(Base, Entity, SoftDeleteMixin):
     received_value: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal(0))
     paid_amount: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal(0))
     notes: Mapped[str] = mapped_column(Text, default="")
+    # a goods order for one customer's work order (from its cut list, glass and accessories)
+    work_order_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("work_orders.id"),
+                                                            nullable=True, index=True)
+    customer_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("customers.id"), nullable=True)
 
 
 class PurchaseOrderLine(Base, Entity):

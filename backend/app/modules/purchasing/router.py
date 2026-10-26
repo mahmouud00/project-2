@@ -103,6 +103,7 @@ class POIn(BaseModel):
     warehouse_id: uuid.UUID
     order_date: date | None = None
     notes: str = ""
+    work_order_id: uuid.UUID | None = None   # goods order for this customer's work order
     lines: list[POLineIn] = Field(min_length=1)
 
 
@@ -127,6 +128,8 @@ class POOut(Record):
     received_value: Decimal
     paid_amount: Decimal
     notes: str
+    work_order_id: uuid.UUID | None = None
+    customer_id: uuid.UUID | None = None
     lines: list[POLineOut] = []
 
 
@@ -144,7 +147,8 @@ def _get_po(db, ctx, po_id, permission) -> PurchaseOrder:
 
 
 @router.get("/purchase-orders", response_model=Page[POOut])
-def list_pos(status: str | None = None, supplier_id: uuid.UUID | None = None, params: PageParams = Depends(),
+def list_pos(status: str | None = None, supplier_id: uuid.UUID | None = None, customer_id: uuid.UUID | None = None,
+             work_order_id: uuid.UUID | None = None, params: PageParams = Depends(),
              dc=Depends(require("purchasing.read"))):
     db, ctx = dc
     stmt = select(PurchaseOrder).where(PurchaseOrder.deleted_at.is_(None)).order_by(PurchaseOrder.created_at.desc())
@@ -153,6 +157,10 @@ def list_pos(status: str | None = None, supplier_id: uuid.UUID | None = None, pa
         stmt = stmt.where(PurchaseOrder.status == status)
     if supplier_id:
         stmt = stmt.where(PurchaseOrder.supplier_id == supplier_id)
+    if customer_id:
+        stmt = stmt.where(PurchaseOrder.customer_id == customer_id)
+    if work_order_id:
+        stmt = stmt.where(PurchaseOrder.work_order_id == work_order_id)
     return paginate(db, stmt, params, POOut)
 
 
@@ -171,8 +179,14 @@ def create_po(body: POIn, dc=Depends(require("purchasing.create"))):
     wh = get_or_404(db, Warehouse, body.warehouse_id)
     if wh.branch_id != branch.id:
         raise ValidationFailed("Warehouse belongs to another branch", code="WAREHOUSE_BRANCH")
+    customer_id = None
+    if body.work_order_id:
+        from app.modules.production.models import WorkOrder
+        wo = get_or_404(db, WorkOrder, body.work_order_id)
+        ctx.require("workorders.read", wo.branch_id)
+        customer_id = wo.customer_id
     po = PurchaseOrder(number=next_number(db, "po", "PO", branch.code), order_date=body.order_date or date.today(),
-                       **body.model_dump(exclude={"lines", "order_date"}))
+                       customer_id=customer_id, **body.model_dump(exclude={"lines", "order_date"}))
     db.add(po)
     db.flush()
     total = Decimal(0)

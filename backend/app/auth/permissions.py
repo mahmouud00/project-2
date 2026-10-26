@@ -47,6 +47,14 @@ PERMISSIONS: dict[str, str] = {
     "treasury.create": "إضافة خزن وحركات خزينة",
     "treasury.write": "تعديل الخزينة والفواتير",
     "treasury.delete": "حذف الخزن وعكس حركات الخزينة",
+    "maintenance.read": "عرض طلبات الصيانة",
+    "maintenance.create": "إضافة طلبات صيانة",
+    "maintenance.write": "تعديل طلبات الصيانة",
+    "maintenance.delete": "حذف طلبات الصيانة",
+    "field.read": "متابعة الفنيين: مهامهم ومكانهم على الخريطة",
+    "field.manage": "توزيع مهام المعاينة والتركيب والصيانة على الفنيين",
+    "field.delete": "حذف مهام الفنيين",
+    "field.self": "فني: يشوف مهامه من الموبايل ويبعت مكانه وهو في المهمة",
     "privacy.manage": "طلبات البيانات الشخصية (تصدير/مسح)",
     "audit.read": "عرض سجل التعديلات",
     "system.manage": "النسخ الاحتياطي والتحديثات والأجهزة",
@@ -61,11 +69,12 @@ PLATFORM_PERMISSIONS: dict[str, str] = {
 _ALL = list(PERMISSIONS)
 
 DEFAULT_ROLES: dict[str, dict] = {
-    "admin": {"name": "مدير", "permissions": _ALL},
+    # the administrator manages technicians but is not one (field.self puts a user on the technicians map)
+    "admin": {"name": "مدير", "permissions": [p for p in _ALL if p != "field.self"]},
     "sales": {"name": "مبيعات", "permissions": [
         "library.read", "engine.calculate", "customers.read", "customers.create", "customers.write", "surveys.read",
         "surveys.create", "surveys.write", "quotes.read", "quotes.create", "quotes.write", "workorders.read",
-        "inventory.read"]},
+        "inventory.read", "maintenance.read", "maintenance.create", "maintenance.write", "field.read"]},
     "production": {"name": "إنتاج", "permissions": [
         "library.read", "engine.calculate", "workorders.read", "workorders.create", "workorders.write",
         "workorders.stage", "inventory.read", "surveys.read"]},
@@ -75,4 +84,5 @@ DEFAULT_ROLES: dict[str, dict] = {
         "customers.read", "quotes.read", "workorders.read", "purchasing.read", "purchasing.create", "purchasing.write",
         "treasury.read", "treasury.create", "treasury.write", "invoices.create", "pricelists.create",
         "pricelists.manage"]},
+    "technician": {"name": "فني", "permissions": ["field.self"]},
 }

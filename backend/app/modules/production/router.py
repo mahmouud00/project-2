@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import uuid
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from app.api.common import DeleteResult, ORMModel, Page, PageParams, Record, VersionedUpdate, paginate
 from app.core.audit import apply_changes, audit, check_version, snapshot
@@ -89,11 +89,29 @@ class WorkOrderOut(Record):
     outputs_generated_at: object | None
     items: list[ItemOut] = []
     stage_log: list[StageLogOut] = []
+    # planned durations (company settings): how far the order is and when it should be delivered
+    progress_pct: int | None = None
+    stage_due_at: datetime | None = None
+    expected_delivery: date | None = None
+    late: bool = False
 
 
-def _wo_out(db, wo: WorkOrder, full: bool = True) -> WorkOrderOut:
+def _with_progress(db, ctx, outs: list[WorkOrderOut], orders: list[WorkOrder]) -> None:
+    from app.modules.org.settings import get_company_settings
+    from app.modules.production.progress import progress, stage_entered
+
+    durations = get_company_settings(db, ctx.company_id).stage_durations_days
+    entered = stage_entered(db, [o.id for o in orders])
+    for out, wo in zip(outs, orders):
+        for k, v in progress(wo, entered.get(wo.id, {}), durations).items():
+            setattr(out, k, v)
+
+
+def _wo_out(db, wo: WorkOrder, full: bool = True, ctx=None) -> WorkOrderOut:
     out = WorkOrderOut.model_validate(wo)
     out.stage_name = STAGE_NAMES.get(wo.stage, wo.stage)
+    if ctx is not None:
+        _with_progress(db, ctx, [out], [wo])
     if full:
         out.items = [ItemOut.model_validate(i) for i in db.scalars(
             select(WorkOrderItem).where(WorkOrderItem.work_order_id == wo.id).order_by(WorkOrderItem.position))]
@@ -126,6 +144,8 @@ def list_work_orders(stage: str | None = None, customer_id: uuid.UUID | None = N
     page = paginate(db, stmt, params, WorkOrderOut)
     for o in page["items"]:
         o.stage_name = STAGE_NAMES.get(o.stage, o.stage)
+    orders = {w.id: w for w in db.scalars(select(WorkOrder).where(WorkOrder.id.in_([o.id for o in page["items"]])))}
+    _with_progress(db, ctx, page["items"], [orders[o.id] for o in page["items"]])
     return page
 
 
@@ -142,7 +162,7 @@ def create_work_order(body: WorkOrderIn, dc=Depends(require("workorders.create")
     _log_stage(db, ctx, wo, None, "survey")
     audit(db, wo, "create")
     db.commit()
-    return _wo_out(db, wo)
+    return _wo_out(db, wo, ctx=ctx)
 
 
 @router.post("/work-orders/from-quotation", response_model=WorkOrderOut, status_code=201)
@@ -185,13 +205,13 @@ def from_quotation(body: FromQuotationIn, dc=Depends(require("workorders.create"
     _log_stage(db, ctx, wo, before_stage, "quotation", f"quotation {q.number}")
     audit(db, wo, "create" if before_stage is None else "update")
     db.commit()
-    return _wo_out(db, wo)
+    return _wo_out(db, wo, ctx=ctx)
 
 
 @router.get("/work-orders/{wo_id}", response_model=WorkOrderOut)
 def get_work_order(wo_id: uuid.UUID, dc=Depends(require("workorders.read"))):
     db, ctx = dc
-    return _wo_out(db, _get_wo(db, ctx, wo_id))
+    return _wo_out(db, _get_wo(db, ctx, wo_id), ctx=ctx)
 
 
 @router.patch("/work-orders/{wo_id}", response_model=WorkOrderOut)
@@ -211,7 +231,7 @@ def update_work_order(wo_id: uuid.UUID, body: WorkOrderUpdate, dc=Depends(requir
     apply_changes(wo, data)
     audit(db, wo, "update", before)
     db.commit()
-    return _wo_out(db, wo)
+    return _wo_out(db, wo, ctx=ctx)
 
 
 class StageIn(BaseModel):
@@ -255,7 +275,7 @@ def change_stage(wo_id: uuid.UUID, body: StageIn, dc=Depends(require("workorders
     _log_stage(db, ctx, wo, current, body.to, body.note)
     audit(db, wo, "update", before)
     db.commit()
-    return _wo_out(db, wo)
+    return _wo_out(db, wo, ctx=ctx)
 
 
 @router.post("/work-orders/{wo_id}/manufacturing/generate")
@@ -280,6 +300,66 @@ def get_outputs(wo_id: uuid.UUID, dc=Depends(require("workorders.read"))):
             raise Conflict("No outputs", code="NO_OUTPUTS")
         return generate_outputs(db, wo)
     return wo.outputs
+
+
+class NeedOut(BaseModel):
+    kind: str                     # profile | glass | accessory
+    sku: str
+    material_code: str
+    name: str
+    unit: str
+    qty: Decimal                  # in the stock unit: metres of whole bars, m² of glass, pieces
+    bars: int | None = None       # profiles: whole bars after cutting optimisation
+    bar_length_mm: Decimal | None = None
+    pieces: int | None = None     # glass panes
+    unit_cost: Decimal | None = None
+    in_stock: Decimal = Decimal(0)
+
+
+@router.get("/work-orders/{wo_id}/material-needs", response_model=list[NeedOut])
+def material_needs(wo_id: uuid.UUID, dc=Depends(require("workorders.read"))):
+    """What the order needs, from its deductions (cut list after optimisation), glass and each model's
+    accessories: the lines of a goods order for this customer."""
+    from app.modules.inventory.models import StockBalance
+    from app.modules.library.service import find_material
+
+    db, ctx = dc
+    wo = _get_wo(db, ctx, wo_id)
+    out = wo.outputs or generate_outputs(db, wo)   # not saved: only reading the needs
+    cost = {c["sku"]: Decimal(str(c["unit_cost"])) for c in out.get("costs", [])}
+    needs: list[NeedOut] = []
+    planned = {p["sku"]: p for p in out.get("optimisation", [])}
+    for g in out.get("cut_list", []):
+        plan = planned.get(g["sku"])
+        if plan:
+            qty = Decimal(str(plan["bar_length_mm"])) * plan["bars_count"] / 1000
+            needs.append(NeedOut(kind="profile", sku=g["sku"], material_code=g["material_code"],
+                                 name=g.get("material_name") or g["material_code"], unit="m", qty=qty,
+                                 bars=plan["bars_count"], bar_length_mm=Decimal(str(plan["bar_length_mm"]))))
+        else:
+            needs.append(NeedOut(kind="profile", sku=g["sku"], material_code=g["material_code"],
+                                 name=g.get("material_name") or g["material_code"], unit="m",
+                                 qty=Decimal(str(g["total_length_mm"])) / 1000))
+    panes: dict[str, int] = {}
+    for gl in out.get("glass", []):
+        panes[gl["material_code"] or "-"] = panes.get(gl["material_code"] or "-", 0) + int(gl["qty"])
+    for code, area in out.get("glass_area_by_type", {}).items():
+        if code == "-":
+            continue
+        m = find_material(db, code)
+        needs.append(NeedOut(kind="glass", sku=code, material_code=code, name=m.name if m else code, unit="m2",
+                             qty=Decimal(str(area)), pieces=panes.get(code)))
+    for a in out.get("accessories", []):
+        needs.append(NeedOut(kind="accessory", sku=a["sku"], material_code=a["material_code"],
+                             name=a.get("material_name") or a["material_code"], unit=a.get("unit") or "pcs",
+                             qty=Decimal(str(a["qty"]))))
+    stock = dict(db.execute(select(StockBalance.sku, func.sum(StockBalance.qty))
+                            .where(StockBalance.sku.in_([n.sku for n in needs])).group_by(StockBalance.sku)).all())
+    for n in needs:
+        n.unit_cost = cost.get(n.sku)
+        n.in_stock = Decimal(stock.get(n.sku) or 0)
+        n.qty = n.qty.quantize(Decimal("0.001"))
+    return needs
 
 
 @router.delete("/work-orders/{wo_id}", response_model=DeleteResult)

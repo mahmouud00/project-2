@@ -14,13 +14,17 @@
   table.sheet .mark { font-weight: 800; color: {{ company.accent_color or '#5048E5' }}; }
   table.sheet td.text { text-align: start; }
 </style>
-<div class="sheet-head">
+{% set place = map_link(doc.location_url, doc.latitude, doc.longitude) %}
+<div style="display:flex;gap:14px;align-items:center">
+<div class="sheet-head" style="flex:1">
   <div>اسم العميل:<b>{{ customer.name }}</b></div>
   <div>الدور:<b>{{ doc.floor or "" }}</b></div>
   <div>الموبايل:<b class="num">{{ customer.phone or "" }}</b></div>
   <div>العنوان:<b>{{ doc.address or customer.address or "" }}</b></div>
-  <div></div>
+  <div>{% if doc.latitude is not none %}اللوكيشن:<b class="num">{{ doc.latitude }}, {{ doc.longitude }}</b>{% endif %}</div>
   <div>الفني:<b>{{ doc.technician or "" }}</b></div>
+</div>
+{% if place %}<div style="text-align:center;font-size:9px;color:#6A7686">{{ qr(place) }}<div>امسح للخريطة</div></div>{% endif %}
 </div>
 {% set ok = '<span class="mark">✓</span>' | safe %}
 {% if doc.kind == "shutter" %}

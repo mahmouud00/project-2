@@ -112,6 +112,13 @@ def test_upgrade_from_old_revision_keeps_data():
     sales_perms = set(after["roles"][str(p["sales_role"])]["permissions"])
     assert {"customers.create", "customers.delete", "invoices.delete"} <= admin_perms
     assert "customers.create" in sales_perms and "customers.delete" not in sales_perms and "quotes.create" not in sales_perms
+    # 0010: surveys get an empty location; admin gets maintenance/field; every company gets a technician role
+    assert after["site_surveys"][str(ids["sv"])]["location_url"] is None
+    assert {"maintenance.delete", "field.manage"} <= set(after["roles"][str(p["admin_role"])]["permissions"])
+    assert "maintenance.create" in set(after["roles"][str(p["sales_role"])]["permissions"])
+    techs = [r for r in after["roles"].values() if r["code"] == "technician" and r["company_id"] == str(cid)]
+    assert len(techs) == 1 and techs[0]["permissions"] == ["field.self"] and techs[0]["is_builtin"]
+    after["roles"] = {k: v for k, v in after["roles"].items() if v["code"] != "technician"}
     for table, rows in {**before, **before2, **before3, **before4}.items():
         assert set(after[table]) == set(rows), f"rows lost or added in {table}"
         for row_id, old in rows.items():
