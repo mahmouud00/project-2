@@ -9,6 +9,7 @@ import { useToast } from "../state/toast";
 import { Btn, Card, Chip, Confirm, ErrorBox, Field, FilePick, Loading, Modal, Money, NumIn, PageHead, Select, Table, Tabs, TextArea, TextIn } from "../components/ui";
 import { RowsEditor } from "../components/rows";
 import { MediaImg } from "../components/media";
+import { DeleteBtn } from "../components/actions";
 import { MATERIAL_KINDS, MATERIAL_TYPES, UNITS, invalidate } from "../lib/lookups";
 import { go, setQuery } from "../lib/router";
 import { clean, dateTime } from "../lib/format";
@@ -21,6 +22,8 @@ export function useAuthor() {
   const author = s.isPlatform ? s.can("platform.library.author") : s.can("library.manage");
   return {
     author,
+    /** Deleting needs its own permission (MYTech's authors may always). */
+    deleter: s.isPlatform ? author : author && s.can("library.delete"),
     /** Can this row be edited by the current company? */
     canEdit: (row: { company_id: string } | undefined) => !!row && author && row.company_id === s.me.company_id,
   };
@@ -123,9 +126,10 @@ function SystemForm({ system, onClose, onSaved }: { system?: System; onClose: ()
 
 function SystemPanel({ system, tab, onChanged }: { system: System; tab: string; onChanged: () => void }) {
   const s = useSession();
-  const { canEdit } = useAuthor();
+  const { canEdit, deleter } = useAuthor();
   const editable = canEdit(system);
   const [edit, setEdit] = useState(false);
+  const LIB_NOTE = "لو اتنشر قبل كدا أو مستخدم في عروض أو أوامر، هيتوقف ويختفي بس (عشان الأوامر القديمة تفضل زي ما هي). لو عمره ما اتنشر هيتمسح خالص.";
   return (
     <Card flush>
       <div className="card-h">
@@ -136,6 +140,8 @@ function SystemPanel({ system, tab, onChanged }: { system: System; tab: string; 
         </div>
         {!editable && system.is_library && !s.isPlatform && <Chip color="blue">من مكتبة MYTech (قراءة بس)</Chip>}
         {editable && <Btn small icon="edit" onClick={() => setEdit(true)}>تعديل</Btn>}
+        {editable && deleter && <DeleteBtn path={`/library/systems/${system.id}`} what={`القطاع ${system.name}`}
+          note={`هيتحذف القطاع بثوابته وخاماته ونماذجه. ${LIB_NOTE}`} onDone={(r) => { if (r.result === "deleted") go("library"); onChanged(); }} />}
       </div>
       <Tabs value={tab} onChange={(t) => setQuery({ tab: t })} tabs={[
         { id: "info", label: "الثوابت" }, { id: "materials", label: "الخامات" }, { id: "models", label: "النماذج" },
@@ -202,6 +208,7 @@ type Material = S<"MaterialOut">;
 
 function Materials({ system, editable }: { system: System; editable: boolean }) {
   const s = useSession();
+  const { deleter } = useAuthor();
   const list = useLoad(() => api.get<S<"Page_MaterialOut_">>("/library/materials", { system_id: system.id, limit: 500 }).then((p) => p.items), [system.id]);
   const [edit, setEdit] = useState<Partial<Material> | null>(null);
   const [setting, setSetting] = useState<Material | null>(null);
@@ -217,7 +224,10 @@ function Materials({ system, editable }: { system: System; editable: boolean }) 
         { key: "bar", label: "طول العود", num: true, render: (m) => m.bar_length_mm ? <span className="num">{clean(m.bar_length_mm)} مم</span> : <span className="faint">—</span> },
         { key: "v", label: "الألوان", render: (m) => <span className="small">{(m.variants ?? []).map((v) => v.color_code).join("، ") || "—"}</span> },
         { key: "c", label: "تكلفة مرجعية", num: true, render: (m) => <Money v={m.reference_cost} /> },
-        { key: "st", label: "", render: (m) => <>{m.status === "trial" && <Chip color="amber">تجربة</Chip>}{!m.is_active && <Chip color="red">متوقفة</Chip>}</> },
+        { key: "st", label: "الحالة", render: (m) => <>{m.status === "trial" && <Chip color="amber">تجربة</Chip>}{!m.is_active && <Chip color="red">متوقفة</Chip>}</> },
+        ...(editable && deleter ? [{ key: "del", label: "", width: 80, render: (m: Material) => m.is_active &&
+          <DeleteBtn path={`/library/materials/${m.id}`} what={`الخامة ${m.code}`} onDone={() => { invalidate("glass"); list.reload(); }}
+            note="لو الخامة مستخدمة في نموذج لازم تشيلها منه الأول. لو اتنشرت أو عليها مخزون أو أوامر شراء هتتوقف بس، غير كدا هتتمسح." /> }] : []),
       ]} empty="مفيش خامات" />
       {!editable && !s.isPlatform && <div className="muted small">اضغط على خامة عشان تحط سعرها عند شركتك أو كودك الداخلي.</div>}
       {edit && <MaterialForm system={system} material={edit} onClose={() => setEdit(null)} onSaved={() => { invalidate("glass"); list.reload(); }} />}
@@ -306,19 +316,28 @@ function Models({ system, editable }: { system: System; editable: boolean }) {
   const toast = useToast();
   const { busy, run } = useAction(toast.err);
   const list = useLoad(() => api.get<S<"ModelOut">[]>("/library/models", { system_id: system.id, include_inactive: editable || undefined }), [system.id]);
+  const { deleter } = useAuthor();
   const [d, setD] = useState<{ code: string; name: string; category: string } | null>(null);
   return (
     <div className="col">
       {editable && <PageHead><Btn kind="primary" small icon="plus" onClick={() => setD({ code: "", name: "", category: "" })}>نموذج جديد</Btn></PageHead>}
       <div className="grid" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))" }}>
         {(list.data ?? []).map((m) => (
-          <button key={m.id} className="card" style={{ padding: 12, cursor: "pointer", textAlign: "start" }} onClick={() => go(`library/${system.id}/models/${m.id}`)}>
+          <div key={m.id} style={{ position: "relative" }}>
+          <button className="card" style={{ width: "100%", padding: 12, cursor: "pointer", textAlign: "start" }} onClick={() => go(`library/${system.id}/models/${m.id}`)}>
             <MediaImg id={m.image_id} className="thumb lg" />
             <div className="mt"><b>{m.name}</b></div>
             <div className="row small muted" style={{ gap: 6 }}><span className="code">{m.code}</span>{({ window: "شباك", door: "باب", shutter: "شيش" } as Record<string, string>)[m.category] ?? m.category}
               {m.status === "trial" && <Chip color="amber">تجربة</Chip>}{!m.is_active && <Chip color="red">متوقف</Chip>}</div>
             <div className="small muted">{((m.definition as any)?.pieces ?? []).length} قطعة · {((m.definition as any)?.params ?? []).length} متغير</div>
           </button>
+          {editable && deleter && m.is_active && (
+            <div className="no-print" style={{ position: "absolute", top: 8, left: 8 }}>
+              <DeleteBtn label="" path={`/library/models/${m.id}`} what={`النموذج ${m.name}`} onDone={() => { invalidate("models"); list.reload(); }}
+                note="لو النموذج اتنشر قبل كدا أو مستخدم في عروض أو أوامر هيتوقف ويختفي بس (الأوامر القديمة بتفضل زي ما هي). لو عمره ما اتنشر هيتمسح." />
+            </div>
+          )}
+          </div>
         ))}
       </div>
       {list.loading && <Loading />}

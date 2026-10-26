@@ -5,6 +5,7 @@ import { useAction, useLoad, when } from "../lib/hooks";
 import { useSession } from "../state/session";
 import { useToast } from "../state/toast";
 import { Btn, Card, Chip, Confirm, Dim, ErrorBox, Field, Len, Loading, Modal, Money, NumIn, PageHead, Pager, Qty, Table, Tabs, TextIn } from "../components/ui";
+import { DeleteBtn } from "../components/actions";
 import { BranchName, ColorName, CustomerName, ModelThumb, WarehouseSelect } from "../components/pickers";
 import { Issues, ParamLabels, type Issue } from "../components/items";
 import { Drawing, MediaImg, PrintPreview } from "../components/media";
@@ -46,6 +47,9 @@ function WorkOrderList({ stage }: { stage: string }) {
           { key: "d", label: "التسليم", render: (w) => <span className="num">{date(w.due_date)}</span> },
           { key: "t", label: "الإجمالي", num: true, render: (w) => <Money v={w.total} /> },
           { key: "p", label: "المدفوع", num: true, render: (w) => <Money v={w.paid_amount} /> },
+          { key: "del", label: "", width: 80, render: (w) => s.can("workorders.delete", w.branch_id) &&
+            <DeleteBtn path={`/work-orders/${w.id}`} what={`أمر التصنيع ${w.number}`} onDone={list.reload}
+              note="الأمر هيتمسح بس لو مفيش خامات اتصرفت ولا فلوس اتدفعت ولا فاتورة. غير كدا ألغيه من مراحل الأمر." /> },
         ]} empty="مفيش أوامر تصنيع" />
         {list.data && <Pager total={list.data.total} limit={50} offset={offset} onChange={setOffset} />}
       </Card>
@@ -124,8 +128,11 @@ function WorkOrderDetail({ id, tab }: { id: string; tab: string }) {
           <div className="end row wrap">
             <Btn icon="print" onClick={() => setPrinting(true)}>كشف التقطيع</Btn>
             {s.can("workorders.write", w.branch_id) && !frozen && <Btn icon="edit" onClick={() => setEdit(true)}>تعديل</Btn>}
-            {s.can("treasury.write", w.branch_id) && w.stage !== "cancelled" && <Btn icon="cash" onClick={() => setPaying(true)}>تحصيل</Btn>}
-            {s.can("treasury.write", w.branch_id) && w.stage !== "cancelled" && w.quotation_id && <Btn icon="invoice" busy={busy} onClick={invoice}>فاتورة</Btn>}
+            {s.can("treasury.create", w.branch_id) && w.stage !== "cancelled" && <Btn icon="cash" onClick={() => setPaying(true)}>تحصيل</Btn>}
+            {s.can("invoices.create", w.branch_id) && w.stage !== "cancelled" && w.quotation_id && <Btn icon="invoice" busy={busy} onClick={invoice}>فاتورة</Btn>}
+            {s.can("workorders.delete", w.branch_id) &&
+              <DeleteBtn small={false} path={`/work-orders/${id}`} what={`أمر التصنيع ${w.number}`} onDone={() => go("work-orders")}
+                note="الأمر هيتمسح بس لو مفيش خامات اتصرفت ولا فلوس اتدفعت ولا فاتورة. غير كدا ألغيه من مراحل الأمر." />}
           </div>
         </div>
         <div className="mt"><Stepper stage={w.stage} /></div>

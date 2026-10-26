@@ -112,6 +112,13 @@ function RoleList() {
   );
 }
 
+const GROUP_NAMES: Record<string, string> = { org: "الشركة", users: "المستخدمين", library: "مكتبة القطاعات", engine: "الحسابات",
+  customers: "العملاء", surveys: "المعاينات", quotes: "عروض الأسعار", pricelists: "قوائم الأسعار", workorders: "أوامر التصنيع",
+  invoices: "الفواتير", inventory: "المخازن", purchasing: "المشتريات", treasury: "الخزينة", privacy: "البيانات الشخصية",
+  audit: "سجل التعديلات", system: "السيستم" };
+// read, then add, edit, delete: the order a factory owner thinks in
+const ACTION_ORDER = ["read", "create", "write", "manage", "stage", "calculate", "import", "delete"];
+
 function RoleForm({ role, perms, onClose, onSaved }: { role: Partial<Role>; perms: { code: string; name: string }[]; onClose: () => void; onSaved: () => void }) {
   const toast = useToast();
   const { busy, run } = useAction(toast.err);
@@ -136,7 +143,12 @@ function RoleForm({ role, perms, onClose, onSaved }: { role: Partial<Role>; perm
       <div className="grid g2">
         {[...groups.entries()].map(([g, items]) => (
           <div key={g} className="card" style={{ padding: 10 }}>
-            {items.map((p) => <div key={p.code}><Check checked={d.permissions.has(p.code)} onChange={(v) => toggle(p.code, v)} label={p.name} /></div>)}
+            <div className="bold small mb">{GROUP_NAMES[g] ?? g}</div>
+            {[...items].sort((x, y) => ACTION_ORDER.indexOf(x.code.split(".")[1]) - ACTION_ORDER.indexOf(y.code.split(".")[1])).map((p) => (
+              <div key={p.code} className={p.code.endsWith(".delete") ? "danger-text" : undefined}>
+                <Check checked={d.permissions.has(p.code)} onChange={(v) => toggle(p.code, v)} label={p.name} />
+              </div>
+            ))}
           </div>
         ))}
       </div>

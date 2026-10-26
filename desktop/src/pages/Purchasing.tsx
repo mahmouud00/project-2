@@ -11,6 +11,7 @@ import { go, setQuery } from "../lib/router";
 import { date, mulMoney, sumMoney } from "../lib/format";
 import { SkuIn } from "./Inventory";
 import { PaymentForm } from "./Treasury";
+import { DeleteBtn } from "../components/actions";
 
 type PO = S<"POOut">;
 
@@ -38,7 +39,7 @@ function POList() {
   const sup = useLoad(() => lookups.suppliers(), []);
   return (
     <div className="col">
-      <PageHead>{s.can("purchasing.write") && <Btn kind="primary" icon="plus" onClick={() => go("purchasing/new")}>أمر شراء جديد</Btn>}</PageHead>
+      <PageHead>{s.can("purchasing.create") && <Btn kind="primary" icon="plus" onClick={() => go("purchasing/new")}>أمر شراء جديد</Btn>}</PageHead>
       {list.error && <ErrorBox text={list.error} onRetry={list.reload} />}
       <Table rows={list.data?.items} loading={list.loading} onRow={(p) => go(`purchasing/${p.id}`)} columns={[
         { key: "n", label: "الرقم", render: (p) => <span className="num bold">{p.number}</span> },
@@ -49,6 +50,8 @@ function POList() {
         { key: "t", label: "الإجمالي", num: true, render: (p) => <Money v={p.total} /> },
         { key: "r", label: "المستلم", num: true, render: (p) => <Money v={p.received_value} /> },
         { key: "pd", label: "المدفوع", num: true, render: (p) => <Money v={p.paid_amount} /> },
+        { key: "del", label: "", width: 80, render: (p) => p.status === "draft" && s.can("purchasing.delete", p.branch_id) &&
+          <DeleteBtn path={`/purchase-orders/${p.id}`} what={`أمر الشراء ${p.number}`} onDone={list.reload} /> },
       ]} empty="مفيش أوامر شراء" />
       {list.data && <Pager total={list.data.total} limit={50} offset={offset} onChange={setOffset} />}
     </div>
@@ -61,7 +64,7 @@ function NewPO() {
   useTitle("أمر شراء جديد", <a onClick={() => go("purchasing")} style={{ cursor: "pointer" }}>المشتريات</a>);
   const toast = useToast();
   const { busy, run } = useAction(toast.err);
-  const branch = useDefaultBranch("purchasing.write");
+  const branch = useDefaultBranch("purchasing.create");
   const [d, setD] = useState({ supplier_id: "", branch_id: branch ?? "", warehouse_id: "", order_date: "", notes: "" });
   const [lines, setLines] = useState<Line[]>([{ sku: "", qty: "", unit_cost: "" }]);
   const setLine = (i: number, k: keyof Line, v: string) => setLines((x) => x.map((l, j) => j === i ? { ...l, [k]: v } : l));
@@ -70,7 +73,7 @@ function NewPO() {
     <Card title="أمر الشراء">
       <div className="grid g4 mb">
         <Field label="المورد"><SupplierSelect value={d.supplier_id} onChange={(v) => setD((x) => ({ ...x, supplier_id: v }))} /></Field>
-        <Field label="الفرع"><BranchSelect value={d.branch_id} onChange={(v) => setD((x) => ({ ...x, branch_id: v, warehouse_id: "" }))} perm="purchasing.write" /></Field>
+        <Field label="الفرع"><BranchSelect value={d.branch_id} onChange={(v) => setD((x) => ({ ...x, branch_id: v, warehouse_id: "" }))} perm="purchasing.create" /></Field>
         <Field label="المخزن"><WarehouseSelect value={d.warehouse_id} branchId={d.branch_id} onChange={(v) => setD((x) => ({ ...x, warehouse_id: v }))} /></Field>
         <Field label="التاريخ"><input type="date" className="input" value={d.order_date} onChange={(e) => setD((x) => ({ ...x, order_date: e.target.value }))} /></Field>
       </div>
@@ -131,7 +134,9 @@ function PODetail({ id }: { id: string }) {
           <div className="end row wrap">
             {write && p.status === "draft" && <Btn kind="primary" busy={busy} onClick={() => setStatus("ordered")}>تأكيد الطلب</Btn>}
             {write && ["ordered", "partial"].includes(p.status) && <Btn kind="success" icon="box" onClick={() => setReceiving(true)}>استلام</Btn>}
-            {s.can("treasury.write", p.branch_id) && p.status !== "cancelled" && <Btn icon="cash" onClick={() => setPaying(true)}>دفع للمورد</Btn>}
+            {s.can("treasury.create", p.branch_id) && p.status !== "cancelled" && <Btn icon="cash" onClick={() => setPaying(true)}>دفع للمورد</Btn>}
+            {p.status === "draft" && s.can("purchasing.delete", p.branch_id) &&
+              <DeleteBtn small={false} path={`/purchase-orders/${id}`} what={`أمر الشراء ${p.number}`} onDone={() => go("purchasing")} />}
             {write && (p.status === "draft" || (p.status === "ordered" && Number(p.received_value) === 0)) && <Btn kind="danger" busy={busy} onClick={() => setStatus("cancelled")}>إلغاء</Btn>}
           </div>
         </div>
@@ -183,13 +188,15 @@ function Suppliers() {
   const list = useLoad(() => api.get<S<"Page_SupplierOut_">>("/suppliers", { limit: 50, offset }), [offset]);
   return (
     <div className="col">
-      <PageHead>{s.can("purchasing.write") && <Btn kind="primary" icon="plus" onClick={() => setEdit({})}>مورد جديد</Btn>}</PageHead>
+      <PageHead>{s.can("purchasing.create") && <Btn kind="primary" icon="plus" onClick={() => setEdit({})}>مورد جديد</Btn>}</PageHead>
       <Table rows={list.data?.items} loading={list.loading} onRow={(x) => s.can("purchasing.write") && setEdit(x)} columns={[
         { key: "c", label: "الكود", render: (x) => <span className="code">{x.code}</span> },
         { key: "n", label: "الاسم", render: (x) => <b>{x.name}</b> },
         { key: "p", label: "المسؤول", render: (x) => x.contact_name ?? "" },
         { key: "t", label: "التليفون", render: (x) => <span className="num">{x.phone ?? ""}</span> },
         { key: "s", label: "", render: (x) => s.can("treasury.read") && <Btn small onClick={(e) => { e.stopPropagation(); setStmt(x); }}>كشف حساب</Btn> },
+        { key: "del", label: "", width: 80, render: (x) => s.can("purchasing.delete") &&
+          <DeleteBtn path={`/suppliers/${x.id}`} what={`المورد ${x.name}`} onDone={() => { invalidate("suppliers"); list.reload(); }} /> },
       ]} empty="مفيش موردين" />
       {list.data && <Pager total={list.data.total} limit={50} offset={offset} onChange={setOffset} />}
       {edit && <SupplierForm supplier={edit} onClose={() => setEdit(null)} onSaved={() => { invalidate("suppliers"); list.reload(); }} />}

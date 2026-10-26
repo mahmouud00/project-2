@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { useSession } from "../state/session";
 import { useTheme } from "../state/theme";
 import { Icon } from "./icons";
@@ -6,6 +6,8 @@ import { Btn, Field, Modal, TextIn } from "./ui";
 import { api, errorText, store, CLIENT_VERSION } from "../api/client";
 import { go } from "../lib/router";
 import { useToast } from "../state/toast";
+import { PrintPreview } from "./media";
+import { collectPage, type Report } from "../lib/printpage";
 import mytechLogo from "../assets/logo-transparent.png";
 
 export type NavItem = { id: string; icon: string; label: string; perm?: string | string[]; module?: string; platformOnly?: boolean;
@@ -26,7 +28,7 @@ export const NAV: [string, NavItem[]][] = [
   ["الحسابات", [{ id: "treasury", icon: "cash", label: "الخزينة", perm: "treasury.read", hideForPlatform: true }]],
   ["الإعداد", [
     { id: "library", icon: "layers", label: "مكتبة القطاعات", perm: ["library.read", "platform.library.author"] },
-    { id: "price-lists", icon: "tag", label: "قوائم الأسعار", perm: "pricelists.manage", hideForPlatform: true },
+    { id: "price-lists", icon: "tag", label: "قوائم الأسعار", perm: ["pricelists.manage", "pricelists.create", "pricelists.delete"], hideForPlatform: true },
     { id: "users", icon: "shield", label: "المستخدمين والصلاحيات", perm: "users.manage" },
     { id: "settings", icon: "gear", label: "بيانات الشركة", perm: "org.manage", hideForPlatform: true },
     { id: "system", icon: "key", label: "الترخيص والنسخ", perm: ["system.manage", "platform.library.author"] },
@@ -48,6 +50,19 @@ export function Shell({ page, title, crumbs, children, onLogout }:
   const [pwd, setPwd] = useState(false);
   const name = s.company.branding?.name || s.company.name;
   const lic = s.license;
+  const content = useRef<HTMLDivElement>(null);
+  const top = useRef<HTMLDivElement>(null);
+  const [report, setReport] = useState<Report | null>(null);
+  const toast = useToast();
+  const printPage = () => {
+    if (!content.current) return;
+    const crumbs = top.current?.querySelector(".crumbs")?.textContent?.trim();
+    const heading = top.current?.querySelector(".page-title")?.textContent?.trim() || "تقرير";
+    const r = collectPage(content.current, heading);
+    if (crumbs) r.subtitle = [crumbs, r.subtitle].filter(Boolean).join(" · ");
+    if (!r.sections.length) { toast.info("مفيش جداول أو بيانات في الصفحة دي للطباعة."); return; }
+    setReport(r);
+  };
 
   return (
     <div className="app">
@@ -88,7 +103,7 @@ export function Shell({ page, title, crumbs, children, onLogout }:
         {!lic.can_write && lic.can_read && <div className="banner warn">الترخيص منتهي أو غير صالح: البرنامج شغال قراءة بس. كلّم MYTech لتجديد الترخيص.</div>}
         {lic.status === "grace" && <div className="banner warn">الترخيص في فترة السماح. جدّد الترخيص قبل ما البرنامج يتحول لقراءة بس.</div>}
         <header className="topbar">
-          <div className="grow">
+          <div className="grow" ref={top}>
             {crumbs && <div className="crumbs">{crumbs}</div>}
             <div className="page-title">{title}</div>
           </div>
@@ -99,6 +114,7 @@ export function Shell({ page, title, crumbs, children, onLogout }:
               {s.branches.filter((b) => b.is_active).map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
             </select>
           )}
+          <button className="icon-btn" onClick={printPage} title="طباعة الصفحة / حفظ PDF"><Icon name="print" /></button>
           <button className="icon-btn" onClick={theme.toggle} title={theme.isDark ? "الوضع الفاتح" : "الوضع الغامق"}>
             <Icon name={theme.isDark ? "sun" : "moon"} />
           </button>
@@ -119,9 +135,10 @@ export function Shell({ page, title, crumbs, children, onLogout }:
             )}
           </div>
         </header>
-        <div className="content">{children}</div>
+        <div className="content" ref={content}>{children}</div>
       </div>
       {pwd && <ChangePassword onClose={() => setPwd(false)} />}
+      {report && <PrintPreview path="/documents/report" body={report} title={report.title} onClose={() => setReport(null)} />}
     </div>
   );
 }

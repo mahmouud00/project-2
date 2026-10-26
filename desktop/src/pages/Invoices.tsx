@@ -7,6 +7,7 @@ import { useToast } from "../state/toast";
 import { Btn, Card, Chip, Confirm, Dim, ErrorBox, Field, Loading, Modal, Money, NumIn, PageHead, Pager, Qty, Select, SizeIn, Table, TextArea, TextIn } from "../components/ui";
 import { BranchName, BranchSelect, ColorName, ColorSelect, CustomerName, CustomerPicker, GlassSelect, ModelSelect } from "../components/pickers";
 import { Drawing, MediaImg, PrintPreview } from "../components/media";
+import { DeleteBtn } from "../components/actions";
 import { INVOICE_STATUS } from "../lib/lookups";
 import { go } from "../lib/router";
 import { date } from "../lib/format";
@@ -35,7 +36,7 @@ function InvoiceList() {
           <Select value={status} onChange={(v) => { setStatus(v); setOffset(0); }} placeholder="كل الحالات"
             options={Object.entries(INVOICE_STATUS).map(([value, [label]]) => ({ value, label }))} />
         </div>
-        {s.can("treasury.write") && <Btn kind="primary" icon="plus" onClick={() => go("invoices/new")}>فاتورة جديدة</Btn>}
+        {s.can("invoices.create") && <Btn kind="primary" icon="plus" onClick={() => go("invoices/new")}>فاتورة جديدة</Btn>}
       </PageHead>
       {list.error && <ErrorBox text={list.error} onRetry={list.reload} />}
       <Card flush>
@@ -48,6 +49,8 @@ function InvoiceList() {
           { key: "t", label: "الإجمالي", num: true, render: (i) => <b><Money v={i.total} /></b> },
           { key: "p", label: "المدفوع", num: true, render: (i) => <Money v={i.paid_amount} /> },
           { key: "b", label: "الباقي", num: true, render: (i) => <span className={Number(i.balance) > 0 && i.status === "issued" ? "danger-text bold" : ""}><Money v={i.balance} /></span> },
+          { key: "del", label: "", width: 80, render: (i) => i.status === "draft" && s.can("invoices.delete", i.branch_id) &&
+            <DeleteBtn path={`/invoices/${i.id}`} what="الفاتورة المسودة" onDone={list.reload} /> },
         ]} empty="مفيش فواتير" />
         {list.data && <Pager total={list.data.total} limit={50} offset={offset} onChange={setOffset} />}
       </Card>
@@ -59,7 +62,7 @@ function NewInvoice() {
   useTitle("فاتورة جديدة", <a onClick={() => go("invoices")} style={{ cursor: "pointer" }}>الفواتير</a>);
   const toast = useToast();
   const { busy, run } = useAction(toast.err);
-  const branch = useDefaultBranch("treasury.write");
+  const branch = useDefaultBranch("invoices.create");
   const [d, setD] = useState<{ customer_id: string | null; branch_id: string | null; source: string; ref: string }>(
     { customer_id: null, branch_id: branch, source: "manual", ref: "" });
   const wos = useLoad(() => d.customer_id ? api.get<S<"Page_WorkOrderOut_">>("/work-orders", { customer_id: d.customer_id, limit: 100 }).then((p) => p.items) : Promise.resolve([]), [d.customer_id]);
@@ -76,7 +79,7 @@ function NewInvoice() {
         <Field label="العميل" className="span-all"><CustomerPicker value={d.customer_id} onChange={(id) => setD((x) => ({ ...x, customer_id: id, ref: "" }))} /></Field>
         <Field label="من"><Select value={d.source} onChange={(v) => setD((x) => ({ ...x, source: v, ref: "" }))} options={[
           { value: "manual", label: "فاتورة يدوي" }, { value: "wo", label: "أمر تصنيع" }, { value: "quote", label: "عرض سعر مقبول" }]} /></Field>
-        {d.source === "manual" && <Field label="الفرع"><BranchSelect value={d.branch_id} onChange={(v) => setD((x) => ({ ...x, branch_id: v }))} perm="treasury.write" /></Field>}
+        {d.source === "manual" && <Field label="الفرع"><BranchSelect value={d.branch_id} onChange={(v) => setD((x) => ({ ...x, branch_id: v }))} perm="invoices.create" /></Field>}
         {d.source === "wo" && <Field label="أمر التصنيع"><Select value={d.ref} onChange={(v) => setD((x) => ({ ...x, ref: v }))} placeholder="اختار…"
           options={(wos.data ?? []).filter((w) => w.stage !== "cancelled").map((w) => ({ value: w.id, label: w.number }))} /></Field>}
         {d.source === "quote" && <Field label="عرض السعر"><Select value={d.ref} onChange={(v) => setD((x) => ({ ...x, ref: v }))} placeholder="اختار…"
@@ -124,8 +127,10 @@ function InvoiceDetail({ id }: { id: string }) {
             <Btn icon="print" onClick={() => setPrinting(true)}>طباعة</Btn>
             {draft && <Btn icon="edit" onClick={() => setHeader(true)}>الخصم والضريبة</Btn>}
             {draft && <Btn kind="primary" icon="check" disabled={!lines.length} onClick={() => setIssue(true)}>إصدار الفاتورة</Btn>}
-            {v.status === "issued" && s.can("treasury.write", v.branch_id) && Number(v.balance) > 0 && <Btn kind="success" icon="cash" onClick={() => setPaying(true)}>تحصيل</Btn>}
-            {v.status !== "cancelled" && s.can("treasury.write", v.branch_id) && <Btn kind="danger" icon="ban" onClick={() => { setReason(""); setCancel(true); }}>إلغاء</Btn>}
+            {v.status === "issued" && s.can("treasury.create", v.branch_id) && Number(v.balance) > 0 && <Btn kind="success" icon="cash" onClick={() => setPaying(true)}>تحصيل</Btn>}
+            {v.status === "issued" && s.can("invoices.delete", v.branch_id) && <Btn kind="danger" icon="ban" onClick={() => { setReason(""); setCancel(true); }}>إلغاء</Btn>}
+            {v.status === "draft" && s.can("invoices.delete", v.branch_id) &&
+              <DeleteBtn small={false} path={`/invoices/${id}`} what="الفاتورة المسودة" onDone={() => go("invoices")} />}
           </div>
         </div>
         {v.status === "cancelled" && <div className="notice err mt">الفاتورة ملغية: {v.cancel_reason}</div>}

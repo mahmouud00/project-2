@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block docmeta %}
+  {% if subtitle %}<div>{{ subtitle }}</div>{% endif %}
+  <div>التاريخ: <span class="num">{{ printed_at }}</span></div>
+{% endblock %}
+{% block content %}
+<style>
+  section { margin-top: 14px; }
+  section h3 { margin: 0 0 6px; font-size: 13px; color: {{ company.accent_color or '#5048E5' }}; }
+  table.rep th, table.rep td { border: 1px solid #DDE3EA; }
+  table.rep tbody tr:nth-child(even) td { background: #FAFBFD; }
+  table.rep td.n { direction: ltr; text-align: end; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  table.rep th.n { text-align: end; }
+  .kvs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px 14px; }
+  .kvs div { border-bottom: 1px dotted #DDE3EA; padding: 3px 0; }
+  .kvs span { color: #6A7686; margin-inline-end: 6px; }
+  .count { margin-top: 4px; font-size: 10px; color: #6A7686; }
+</style>
+{% for s in sections %}
+<section>
+  {% if s.title %}<h3>{{ s.title }}</h3>{% endif %}
+  {% if s.kv %}<div class="kvs">{% for k, v in s.kv %}<div><span>{{ k }}</span><b>{{ v }}</b></div>{% endfor %}</div>{% endif %}
+  {% if s.columns %}
+  <table class="rep">
+    <thead><tr>{% for c in s.columns %}<th{% if loop.index0 in s.nums %} class="n"{% endif %}>{{ c }}</th>{% endfor %}</tr></thead>
+    <tbody>{% for r in s.rows %}<tr>{% for v in r %}<td{% if loop.index0 in s.nums %} class="n"{% endif %}>{{ v }}</td>{% endfor %}</tr>{% endfor %}</tbody>
+  </table>
+  <div class="count">عدد السطور: <span class="num">{{ s.rows | length }}</span></div>
+  {% endif %}
+</section>
+{% endfor %}
+{% endblock %}

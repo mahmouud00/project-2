@@ -118,3 +118,19 @@ def test_library_delete(platform, tenant_a, client):
     r = client.delete(f"/api/v1/library/systems/{own['id']}", headers=tenant_a.headers("lib1", "user-pass-123"))
     assert r.status_code == 403 and r.json()["error"]["details"]["permission"] == "library.delete"
     assert client.delete(f"/api/v1/library/systems/{own['id']}", headers=tenant_a.h).json()["result"] == "deleted"
+
+
+def test_print_any_screen(tenant_a, client):
+    r = client.post("/api/v1/documents/report", headers=tenant_a.h, json={
+        "title": "العملاء", "subtitle": "بحث: أحمد", "sections": [
+            {"title": "القائمة", "columns": ["الاسم", "الرصيد"], "rows": [["<script>x</script>", "1,200.00"], ["محمد"]],
+             "nums": [1]},
+            {"kv": [["الهاتف", "0100"]]}]})
+    assert r.status_code == 200 and r.headers["content-type"].startswith("text/html")
+    html = r.text
+    assert "العملاء" in html and "بحث: أحمد" in html and "1,200.00" in html and "الهاتف" in html
+    assert "<script>x" not in html and "&lt;script&gt;" in html            # what the screen sends is escaped
+    assert "size: A4;" in html                                             # portrait for few columns
+    wide = client.post("/api/v1/documents/report", headers=tenant_a.h, json={
+        "title": "x", "sections": [{"columns": [str(i) for i in range(9)], "rows": []}]}).text
+    assert "A4 landscape" in wide

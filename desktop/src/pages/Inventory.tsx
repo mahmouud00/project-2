@@ -6,6 +6,7 @@ import { useDefaultBranch, useSession } from "../state/session";
 import { useToast } from "../state/toast";
 import { Btn, Card, Chip, ErrorBox, Field, Modal, Money, NumIn, PageHead, Pager, Qty, SearchBox, Table, Tabs, TextIn } from "../components/ui";
 import { BranchName, BranchSelect, WarehouseSelect } from "../components/pickers";
+import { DeleteBtn } from "../components/actions";
 import { invalidate, lookups, UNITS } from "../lib/lookups";
 import { setQuery } from "../lib/router";
 import { dateTime } from "../lib/format";
@@ -27,7 +28,7 @@ export default function Inventory({ route }: PageProps) {
       <Card flush>
         <Tabs value={tab} onChange={(t) => setQuery({ tab: t })} tabs={[
           { id: "balances", label: "الأرصدة" }, { id: "movements", label: "الحركات" }, { id: "transfers", label: "التحويلات" },
-          { id: "warehouses", label: "المخازن", hidden: !s.can("org.manage") },
+          { id: "warehouses", label: "المخازن", hidden: !["org.manage", "inventory.create", "inventory.delete"].some((p) => s.can(p)) },
         ]} />
         <div className="card-b">
           {tab !== "warehouses" && tab !== "transfers" && <div className="row" style={{ width: 260 }}><WarehouseSelect value={wh} onChange={setWh} /></div>}
@@ -64,7 +65,7 @@ function Balances({ wh }: { wh: string }) {
     <div className="col mt">
       <PageHead>
         <SearchBox value={q} onChange={setQ} placeholder="بحث بالكود…" />
-        {s.can("inventory.write") && <Btn kind="primary" icon="plus" onClick={() => setAdjust(true)}>تسوية / رصيد افتتاحي</Btn>}
+        {s.can("inventory.create") && <Btn kind="primary" icon="plus" onClick={() => setAdjust(true)}>تسوية / رصيد افتتاحي</Btn>}
       </PageHead>
       {list.error && <ErrorBox text={list.error} onRetry={list.reload} />}
       <Table rows={rows} loading={list.loading} rowKey={(b) => b.warehouse_id + b.sku} columns={[
@@ -154,7 +155,7 @@ function Transfers() {
   });
   return (
     <div className="col mt">
-      <PageHead>{s.can("inventory.write") && <Btn kind="primary" icon="swap" onClick={() => setCreating(true)}>تحويل جديد</Btn>}</PageHead>
+      <PageHead>{s.can("inventory.create") && <Btn kind="primary" icon="swap" onClick={() => setCreating(true)}>تحويل جديد</Btn>}</PageHead>
       <Table rows={list.data} loading={list.loading} columns={[
         { key: "n", label: "الرقم", render: (t) => <span className="num">{t.number}</span> },
         { key: "f", label: "من", render: (t) => name(t.from_warehouse_id) },
@@ -164,6 +165,8 @@ function Transfers() {
         { key: "a", label: "", render: (t) => s.can("inventory.write") && (t.status === "draft"
           ? <Btn small busy={busy} onClick={() => act(t, "send")}>إرسال</Btn>
           : t.status === "sent" ? <Btn small kind="success" busy={busy} onClick={() => act(t, "receive")}>استلام</Btn> : null) },
+        { key: "del", label: "", width: 80, render: (t) => t.status === "draft" && s.can("inventory.delete") &&
+          <DeleteBtn path={`/inventory/transfers/${t.id}`} what={`التحويل ${t.number}`} onDone={list.reload} /> },
       ]} empty="مفيش تحويلات" />
       {creating && <NewTransfer onClose={() => setCreating(false)} onSaved={list.reload} />}
     </div>
@@ -201,28 +204,33 @@ function NewTransfer({ onClose, onSaved }: { onClose: () => void; onSaved: () =>
 }
 
 function Warehouses() {
+  const s = useSession();
   const toast = useToast();
   const { busy, run } = useAction(toast.err);
   const list = useLoad(() => api.get<S<"WarehouseOut">[]>("/warehouses"), []);
-  const branch = useDefaultBranch("org.manage");
+  const branch = useDefaultBranch("inventory.create");
   const [d, setD] = useState<{ code: string; name: string; branch_id: string } | null>(null);
   return (
     <div className="col mt">
-      <PageHead><Btn kind="primary" icon="plus" onClick={() => setD({ code: "", name: "", branch_id: branch ?? "" })}>مخزن جديد</Btn></PageHead>
+      <PageHead>{s.can("inventory.create") && <Btn kind="primary" icon="plus" onClick={() => setD({ code: "", name: "", branch_id: branch ?? "" })}>مخزن جديد</Btn>}</PageHead>
       <Table rows={list.data} loading={list.loading} columns={[
         { key: "c", label: "الكود", render: (w) => <span className="code">{w.code}</span> },
         { key: "n", label: "الاسم", render: (w) => <b>{w.name}</b> },
         { key: "b", label: "الفرع", render: (w) => <BranchName id={w.branch_id} /> },
-        { key: "a", label: "الحالة", render: (w) => <Btn small onClick={() => run(async () => {
+        { key: "a", label: "الحالة", render: (w) => !s.can("org.manage") ? <Chip color={w.is_active ? "green" : "red"}>{w.is_active ? "نشط" : "متوقف"}</Chip>
+          : <Btn small onClick={() => run(async () => {
           await api.patch(`/warehouses/${w.id}`, { version: w.version, is_active: !w.is_active }); invalidate("warehouses"); list.reload(); })}>
           {w.is_active ? "نشط · إيقاف" : "متوقف · تفعيل"}</Btn> },
+        { key: "del", label: "", width: 80, render: (w) => s.can("inventory.delete", w.branch_id) &&
+          <DeleteBtn path={`/warehouses/${w.id}`} what={`المخزن ${w.name}`} onDone={() => { invalidate("warehouses"); list.reload(); }}
+            note="المخزن هيتمسح بس لو عمره ما كان عليه حركات. لو عليه حركات هيتوقف بس، والأرصدة والحركات القديمة بتفضل." /> },
       ]} />
       {d && <Modal title="مخزن جديد" onClose={() => setD(null)} footer={<><Btn kind="primary" busy={busy} disabled={!d.code || !d.name || !d.branch_id}
         onClick={() => run(async () => { await api.post("/warehouses", d); invalidate("warehouses"); list.reload(); setD(null); })}>حفظ</Btn><Btn onClick={() => setD(null)}>رجوع</Btn></>}>
         <div className="col">
           <Field label="الكود"><TextIn value={d.code} onChange={(v) => setD({ ...d, code: v })} code /></Field>
           <Field label="الاسم"><TextIn value={d.name} onChange={(v) => setD({ ...d, name: v })} /></Field>
-          <Field label="الفرع"><BranchSelect value={d.branch_id} onChange={(v) => setD({ ...d, branch_id: v })} /></Field>
+          <Field label="الفرع"><BranchSelect value={d.branch_id} onChange={(v) => setD({ ...d, branch_id: v })} perm="inventory.create" /></Field>
         </div>
       </Modal>}
     </div>

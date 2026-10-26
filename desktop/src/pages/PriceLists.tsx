@@ -5,6 +5,8 @@ import { useAction, useLoad } from "../lib/hooks";
 import { useToast } from "../state/toast";
 import { Btn, Card, Chip, Field, Modal, NumIn, PageHead, Select, Table, TextIn } from "../components/ui";
 import { RowsEditor } from "../components/rows";
+import { DeleteBtn } from "../components/actions";
+import { useSession } from "../state/session";
 import { CUSTOMER_TYPES, invalidate, lookups } from "../lib/lookups";
 import { clean } from "../lib/format";
 
@@ -14,10 +16,11 @@ export default function PriceLists(_: PageProps) {
   useTitle("قوائم الأسعار");
   const [edit, setEdit] = useState<Partial<PL> | null>(null);
   const list = useLoad(() => api.get<PL[]>("/price-lists"), []);
+  const s = useSession();
   return (
     <div className="col">
       <div className="notice info">سعر الشباك = تكلفة الخامات (من المعادلات المنشورة وأسعار شركتك) + الهالك + المصنعية للمتر + هامش الربح. تقدر تحدد هامش أو سعر متر مختلف لنموذج أو قطاع معين.</div>
-      <PageHead><Btn kind="primary" icon="plus" onClick={() => setEdit({ margin_pct: "25", labor_cost_per_m2: "0", min_unit_price: "0", items: [] })}>قائمة جديدة</Btn></PageHead>
+      <PageHead>{s.can("pricelists.create") && <Btn kind="primary" icon="plus" onClick={() => setEdit({ margin_pct: "25", labor_cost_per_m2: "0", min_unit_price: "0", items: [] })}>قائمة جديدة</Btn>}</PageHead>
       <Card flush>
         <Table rows={list.data} loading={list.loading} onRow={(p) => setEdit(p)} columns={[
           { key: "c", label: "الكود", render: (p) => <span className="code">{p.code}</span> },
@@ -26,7 +29,9 @@ export default function PriceLists(_: PageProps) {
           { key: "m", label: "هامش الربح", num: true, render: (p) => <span className="num">{clean(p.margin_pct)}%</span> },
           { key: "l", label: "مصنعية المتر", num: true, render: (p) => <span className="num">{clean(p.labor_cost_per_m2)}</span> },
           { key: "i", label: "استثناءات", num: true, render: (p) => <span className="num">{p.items?.length ?? 0}</span> },
-          { key: "a", label: "", render: (p) => !p.is_active && <Chip color="red">متوقفة</Chip> },
+          { key: "a", label: "الحالة", render: (p) => p.is_active ? <Chip color="green">نشطة</Chip> : <Chip color="red">متوقفة</Chip> },
+          { key: "del", label: "", width: 80, render: (p) => s.can("pricelists.delete") &&
+            <DeleteBtn path={`/price-lists/${p.id}`} what={`قائمة ${p.name}`} onDone={() => { invalidate("priceLists"); list.reload(); }} /> },
         ]} empty="مفيش قوائم أسعار" />
       </Card>
       {edit && <PLForm pl={edit} onClose={() => setEdit(null)} onSaved={() => { invalidate("priceLists"); list.reload(); }} />}

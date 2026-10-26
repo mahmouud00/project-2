@@ -9,6 +9,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, Depends
 from fastapi.responses import HTMLResponse
+from pydantic import BaseModel, Field
 from sqlalchemy import select
 
 from app.core.pii import log_pii
@@ -17,7 +18,7 @@ from app.modules.crm.router import get_or_404
 from app.modules.documents.render import company_context, data_uri, render
 from app.modules.library.models import Color, ProductModel
 from app.modules.library.service import find_material, model_image
-from app.tenancy.context import require
+from app.tenancy.context import get_db_and_ctx, require
 
 router = APIRouter(tags=["documents"])
 _FONTS = Path(__file__).with_name("fonts")
@@ -193,3 +194,30 @@ def print_cut_list(wo_id: uuid.UUID, dc=Depends(require("workorders.read"))):
     db.commit()
     return _page("cutlist.html", db, ctx, title="كشف تقطيع", wo=wo, outputs=outputs,
                  customer=db.get(Customer, wo.customer_id))
+
+
+class ReportSection(BaseModel):
+    title: str = Field("", max_length=200)
+    kv: list[tuple[str, str]] = Field(default_factory=list, max_length=200)
+    columns: list[str] = Field(default_factory=list, max_length=30)
+    rows: list[list[str]] = Field(default_factory=list, max_length=5000)
+    nums: list[int] = Field(default_factory=list, max_length=30)
+
+
+class ReportIn(BaseModel):
+    title: str = Field(min_length=1, max_length=200)
+    subtitle: str = Field("", max_length=300)
+    landscape: bool | None = None
+    sections: list[ReportSection] = Field(max_length=30)
+
+
+@router.post("/documents/report", response_class=HTMLResponse)
+def print_report(body: ReportIn, dc=Depends(get_db_and_ctx)):
+    """Any screen printed as an A4 document with the company's logo and details. The program sends what the
+    user sees (headers and rows as text); nothing is read from the database except the company branding."""
+    db, ctx = dc
+    landscape = body.landscape if body.landscape is not None else any(len(s.columns) > 7 for s in body.sections)
+    sections = [{**s.model_dump(), "rows": [(r + [""] * len(s.columns))[:len(s.columns)] for r in s.rows]}
+                for s in body.sections]
+    return _page("report.html", db, ctx, title=body.title, subtitle=body.subtitle, landscape=landscape,
+                 sections=sections)

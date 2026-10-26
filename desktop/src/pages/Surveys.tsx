@@ -8,6 +8,7 @@ import { Btn, Card, Chip, ErrorBox, Field, Loading, Modal, PageHead, Pager, Sele
 import { BranchName, BranchSelect, CustomerName, CustomerPicker } from "../components/pickers";
 import { ItemForm } from "../components/items";
 import { PrintPreview } from "../components/media";
+import { DeleteBtn } from "../components/actions";
 import { SuggestedPrice, SurveySheet, blankRow, isEmptyRow, rowFromApi, rowMissingSize, rowToApi, type SheetRow, type SurveyKind } from "../components/surveysheet";
 import { SURVEY_KIND, SURVEY_STATUS, lookups } from "../lib/lookups";
 import { go } from "../lib/router";
@@ -35,7 +36,7 @@ function SurveyList() {
           <Select value={status} onChange={(v) => { setStatus(v); setOffset(0); }} placeholder="كل الحالات"
             options={Object.entries(SURVEY_STATUS).map(([value, [label]]) => ({ value, label }))} />
         </div>
-        {s.can("surveys.write") && <Btn kind="primary" icon="plus" onClick={() => go("surveys/new")}>معاينة جديدة</Btn>}
+        {s.can("surveys.create") && <Btn kind="primary" icon="plus" onClick={() => go("surveys/new")}>معاينة جديدة</Btn>}
       </PageHead>
       {list.error && <ErrorBox text={list.error} onRetry={list.reload} />}
       <Card flush>
@@ -48,6 +49,8 @@ function SurveyList() {
           { key: "o", label: "الفتحات", num: true, render: (x) => <span className="num">{x.openings?.length ?? 0}</span> },
           { key: "b", label: "الفرع", render: (x) => <BranchName id={x.branch_id} /> },
           { key: "s", label: "الحالة", render: (x) => <Chip color={SURVEY_STATUS[x.status]?.[1]}>{SURVEY_STATUS[x.status]?.[0] ?? x.status}</Chip> },
+          { key: "del", label: "", width: 80, render: (x) => s.can("surveys.delete", x.branch_id) &&
+            <DeleteBtn path={`/surveys/${x.id}`} what={`المعاينة ${x.number}`} onDone={list.reload} /> },
         ]} empty="مفيش معاينات" />
         {list.data && <Pager total={list.data.total} limit={50} offset={offset} onChange={setOffset} />}
       </Card>
@@ -59,7 +62,7 @@ function NewSurvey({ customerId }: { customerId?: string }) {
   useTitle("معاينة جديدة", <a onClick={() => go("surveys")} style={{ cursor: "pointer" }}>المعاينات</a>);
   const toast = useToast();
   const { busy, run } = useAction(toast.err);
-  const branch = useDefaultBranch("surveys.write");
+  const branch = useDefaultBranch("surveys.create");
   const [d, setD] = useState<{ customer_id: string | null; branch_id: string | null; survey_date: string; address: string; notes: string;
     kind: SurveyKind; floor: string; technician: string }>(
     { customer_id: customerId ?? null, branch_id: branch, survey_date: today(), address: "", notes: "", kind: "window", floor: "", technician: "" });
@@ -81,7 +84,7 @@ function NewSurvey({ customerId }: { customerId?: string }) {
         <Field label="الدور"><TextIn value={d.floor} onChange={(v) => setD((x) => ({ ...x, floor: v }))} /></Field>
         <Field label="الفني"><TextIn value={d.technician} onChange={(v) => setD((x) => ({ ...x, technician: v }))} /></Field>
         <Field label="التاريخ"><input type="date" className="input" value={d.survey_date} onChange={(e) => setD((x) => ({ ...x, survey_date: e.target.value }))} /></Field>
-        <Field label="الفرع"><BranchSelect value={d.branch_id} onChange={(v) => setD((x) => ({ ...x, branch_id: v }))} perm="surveys.write" /></Field>
+        <Field label="الفرع"><BranchSelect value={d.branch_id} onChange={(v) => setD((x) => ({ ...x, branch_id: v }))} perm="surveys.create" /></Field>
         <Field label="ملاحظات" className="span-all"><TextArea value={d.notes} onChange={(v) => setD((x) => ({ ...x, notes: v }))} rows={2} /></Field>
       </div>
       <div className="row mt">
@@ -152,7 +155,9 @@ function SurveyDetail({ id }: { id: string }) {
               <Btn icon="print" onClick={() => setPrinting(true)}>طباعة</Btn>
               {s.can("surveys.write", survey.branch_id) && <Btn icon="edit" onClick={() => setHeader(true)}>البيانات</Btn>}
               {editable && <Btn kind="success" busy={busy} onClick={() => setStatus("done")}>المعاينة خلصت</Btn>}
-              {s.can("quotes.write", survey.branch_id) && openings.some((o) => o.model_id) &&
+              {s.can("surveys.delete", survey.branch_id) &&
+                <DeleteBtn small={false} path={`/surveys/${id}`} what={`المعاينة ${survey.number}`} onDone={() => go("surveys")} />}
+              {s.can("quotes.create", survey.branch_id) && openings.some((o) => o.model_id) &&
                 <Btn kind="primary" icon="quote" onClick={() => go("quotations/new", { customer: survey.customer_id, survey: survey.id })}>عرض سعر</Btn>}
             </div>
           </div>

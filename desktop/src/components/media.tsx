@@ -78,12 +78,13 @@ export function Drawing({ elements, w, h, maxW = 150, maxH = 110 }:
 }
 
 /** Shows a printable document from the server (A4 HTML with the company's logo) and prints it. */
-export function PrintPreview({ path, title, onClose }: { path: string; title: string; onClose: () => void }) {
+export function PrintPreview({ path, body, title, onClose }:
+  { path: string; body?: unknown; title: string; onClose: () => void }) {
   const [html, setHtml] = useState<string | null>(null);
   const frame = useRef<HTMLIFrameElement>(null);
   const toast = useToast();
   useEffect(() => {
-    api.text(path).then(setHtml).catch((e) => { toast.err(errorText(e)); onClose(); });
+    (body === undefined ? api.text(path) : api.postText(path, body)).then(setHtml).catch((e) => { toast.err(errorText(e)); onClose(); });
   }, [path]); // eslint-disable-line react-hooks/exhaustive-deps
   const print = () => frame.current?.contentWindow?.print();
   const save = () => {

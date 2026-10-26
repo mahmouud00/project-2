@@ -92,6 +92,8 @@ def test_grace_then_read_only(vendor_key, offline_provider, tenant_a, client):
     assert client.get("/api/v1/branches", headers=h).status_code == 200          # read still allowed
     r = client.post("/api/v1/branches", headers=h, json={"code": "G2", "name": "g"})
     assert r.status_code == 402 and r.json()["error"]["code"] == "LICENSE_READ_ONLY"
+    r = client.post("/api/v1/documents/report", headers=h, json={"title": "x", "sections": []})
+    assert r.status_code == 200                                                  # printing changes nothing
 
 
 def test_upload_license_endpoint(vendor_key, offline_provider, tenant_a, client):

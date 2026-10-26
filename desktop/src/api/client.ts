@@ -141,6 +141,12 @@ export const api = {
     if (!r.ok) throw await parseError(r);
     return r.text();
   },
+  /** POST a body, get text back (a printable document built from what the screen shows). */
+  async postText(path: string, body: unknown): Promise<string> {
+    const r = await raw(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    if (!r.ok) throw await parseError(r);
+    return r.text();
+  },
   async blob(path: string): Promise<Blob> {
     const r = await raw(path);
     if (!r.ok) throw await parseError(r);

@@ -8,6 +8,7 @@ import { Btn, Card, Chip, Confirm, Dim, ErrorBox, Field, Len, Loading, Modal, Mo
 import { BranchName, BranchSelect, ColorName, CustomerName, CustomerPicker } from "../components/pickers";
 import { ItemForm, ParamLabels, type ItemDraft } from "../components/items";
 import { Drawing, MediaImg, PrintPreview } from "../components/media";
+import { DeleteBtn } from "../components/actions";
 import { QUOTE_STATUS, lookups } from "../lib/lookups";
 import { go } from "../lib/router";
 import { date, mulMoney, sumMoney } from "../lib/format";
@@ -35,7 +36,7 @@ function QuotationList() {
           <Select value={status} onChange={(v) => { setStatus(v); setOffset(0); }} placeholder="كل الحالات"
             options={Object.entries(QUOTE_STATUS).filter(([k]) => k !== "ordered").map(([value, [label]]) => ({ value, label }))} />
         </div>
-        {s.can("quotes.write") && <Btn kind="primary" icon="plus" onClick={() => go("quotations/new")}>عرض سعر جديد</Btn>}
+        {s.can("quotes.create") && <Btn kind="primary" icon="plus" onClick={() => go("quotations/new")}>عرض سعر جديد</Btn>}
       </PageHead>
       {list.error && <ErrorBox text={list.error} onRetry={list.reload} />}
       <Card flush>
@@ -47,6 +48,8 @@ function QuotationList() {
           { key: "v", label: "صالح لحد", render: (q) => <span className="num">{date(q.valid_until)}</span> },
           { key: "s", label: "الحالة", render: (q) => <Chip color={QUOTE_STATUS[q.status]?.[1]}>{QUOTE_STATUS[q.status]?.[0] ?? q.status}</Chip> },
           { key: "t", label: "الإجمالي", num: true, render: (q) => <b><Money v={q.total} /></b> },
+          { key: "del", label: "", width: 80, render: (q) => s.can("quotes.delete", q.branch_id) && q.status !== "ordered" &&
+            <DeleteBtn path={`/quotations/${q.id}`} what={`عرض السعر ${q.number}`} onDone={list.reload} /> },
         ]} empty="مفيش عروض أسعار" />
         {list.data && <Pager total={list.data.total} limit={50} offset={offset} onChange={setOffset} />}
       </Card>
@@ -58,7 +61,7 @@ function NewQuotation({ customerId, surveyId }: { customerId?: string; surveyId?
   useTitle("عرض سعر جديد", <a onClick={() => go("quotations")} style={{ cursor: "pointer" }}>عروض الأسعار</a>);
   const toast = useToast();
   const { busy, run } = useAction(toast.err);
-  const branch = useDefaultBranch("quotes.write");
+  const branch = useDefaultBranch("quotes.create");
   const [d, setD] = useState<{ customer_id?: string | null; branch_id?: string | null; price_list_id?: string; survey_id?: string }>(
     { customer_id: customerId ?? null, branch_id: branch, survey_id: surveyId });
   const priceLists = useLoad(() => lookups.priceLists().catch(() => []), []);
@@ -73,7 +76,7 @@ function NewQuotation({ customerId, surveyId }: { customerId?: string; surveyId?
     <Card title="بيانات العرض" className="" >
       <div className="grid g2" style={{ maxWidth: 820 }}>
         <Field label="العميل" className="span-all"><CustomerPicker value={d.customer_id} onChange={(id) => setD((x) => ({ ...x, customer_id: id, survey_id: undefined }))} /></Field>
-        <Field label="الفرع"><BranchSelect value={d.branch_id} onChange={(v) => setD((x) => ({ ...x, branch_id: v }))} perm="quotes.write" /></Field>
+        <Field label="الفرع"><BranchSelect value={d.branch_id} onChange={(v) => setD((x) => ({ ...x, branch_id: v }))} perm="quotes.create" /></Field>
         <Field label="قائمة الأسعار" hint="لو فاضية بتتاخد قائمة العميل أو نوعه">
           <Select value={d.price_list_id ?? ""} onChange={(v) => setD((x) => ({ ...x, price_list_id: v }))} placeholder="حسب العميل"
             options={(priceLists.data ?? []).filter((p) => p.is_active).map((p) => ({ value: p.id, label: p.name }))} /></Field>
@@ -160,8 +163,10 @@ function QuotationDetail({ id }: { id: string }) {
             {s.can("quotes.write", quote.branch_id) && (NEXT[quote.status] ?? []).map((n) => (
               <Btn key={n.to} kind={n.kind} busy={busy} onClick={() => setStatus(n.to)}>{n.label}</Btn>
             ))}
-            {quote.status === "accepted" && s.can("workorders.write", quote.branch_id) && <Btn kind="primary" icon="factory" onClick={() => setToWo(true)}>أمر تصنيع</Btn>}
-            {quote.status === "accepted" && s.can("treasury.write", quote.branch_id) && <Btn icon="invoice" busy={busy} onClick={makeInvoice}>فاتورة</Btn>}
+            {quote.status === "accepted" && s.can("workorders.create", quote.branch_id) && <Btn kind="primary" icon="factory" onClick={() => setToWo(true)}>أمر تصنيع</Btn>}
+            {quote.status === "accepted" && s.can("invoices.create", quote.branch_id) && <Btn icon="invoice" busy={busy} onClick={makeInvoice}>فاتورة</Btn>}
+            {s.can("quotes.delete", quote.branch_id) && quote.status !== "ordered" &&
+              <DeleteBtn small={false} path={`/quotations/${id}`} what={`عرض السعر ${quote.number}`} onDone={() => go("quotations")} />}
           </div>
         </div>
       </Card>

@@ -90,6 +90,7 @@ def get_db_and_ctx(request: Request, token: str | None = Depends(oauth2)) -> Ite
 
 
 _LICENSE_EXEMPT = ("/api/v1/system/license", "/api/v1/auth/")
+_READ_ONLY_POSTS = ("/api/v1/documents/report",)  # POST only to send a body; changes nothing
 
 
 def _license_gate(db: TenantSession, ctx: RequestContext, request: Request) -> None:
@@ -101,7 +102,8 @@ def _license_gate(db: TenantSession, ctx: RequestContext, request: Request) -> N
     ctx.entitlements = ent
     if not ent.can_read:
         raise LicenseError("Licence not valid", code="LICENSE_INVALID", details=ent.as_dict())
-    if request.method in ("POST", "PUT", "PATCH", "DELETE") and not ent.can_write:
+    if request.method in ("POST", "PUT", "PATCH", "DELETE") and not ent.can_write \
+            and request.url.path not in _READ_ONLY_POSTS:
         raise LicenseError("Licence expired: read-only mode", code="LICENSE_READ_ONLY", details=ent.as_dict())
 
 

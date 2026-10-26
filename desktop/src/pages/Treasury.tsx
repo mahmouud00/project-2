@@ -7,6 +7,7 @@ import { useToast } from "../state/toast";
 import { Btn, Card, Chip, Confirm, ErrorBox, Field, Modal, Money, NumIn, PageHead, Pager, Select, Table, TextIn } from "../components/ui";
 import { BranchName, BranchSelect, CashboxSelect, CustomerName, CustomerPicker, SupplierSelect } from "../components/pickers";
 import { METHODS, invalidate, lookups } from "../lib/lookups";
+import { DeleteBtn } from "../components/actions";
 import { dateTime } from "../lib/format";
 
 type Tx = S<"TxOut">;
@@ -26,23 +27,32 @@ export default function Treasury(_: PageProps) {
   const txs = useLoad(() => api.get<S<"Page_TxOut_">>("/cash-transactions", { cashbox_id: box || undefined, limit: 50, offset }), [box, offset]);
   const reload = () => { invalidate("cashboxes"); boxes.reload(); txs.reload(); };
   const boxName = (id: string) => boxes.data?.find((b) => b.id === id)?.name ?? "";
-  const write = s.can("treasury.write");
+  const write = s.can("treasury.create");
+  const reverser = s.can("treasury.delete");
 
   return (
     <div className="col" style={{ gap: 14 }}>
       <PageHead>
         {write && <Btn kind="success" icon="plus" onClick={() => setForm("in")}>قبض</Btn>}
         {write && <Btn kind="danger" icon="send" onClick={() => setForm("out")}>صرف</Btn>}
-        {s.can("org.manage") && <Btn icon="plus" onClick={() => setNewBox(true)}>خزينة جديدة</Btn>}
+        {s.can("treasury.create") && <Btn icon="plus" onClick={() => setNewBox(true)}>خزينة جديدة</Btn>}
       </PageHead>
       {boxes.error && <ErrorBox text={boxes.error} onRetry={boxes.reload} />}
       <div className="grid g4">
         {(boxes.data ?? []).map((b) => (
-          <button key={b.id} className="card kpi" style={{ textAlign: "start", cursor: "pointer", outline: box === b.id ? "2px solid var(--primary)" : undefined }}
-            onClick={() => { setBox(box === b.id ? "" : b.id); setOffset(0); }}>
-            <div className="label">{b.name} · <BranchName id={b.branch_id} /></div>
-            <div className="value"><Money v={b.balance} /></div>
-          </button>
+          <div key={b.id} style={{ position: "relative" }}>
+            <button className="card kpi" style={{ width: "100%", textAlign: "start", cursor: "pointer", outline: box === b.id ? "2px solid var(--primary)" : undefined }}
+              onClick={() => { setBox(box === b.id ? "" : b.id); setOffset(0); }}>
+              <div className="label">{b.name} · <BranchName id={b.branch_id} /></div>
+              <div className="value"><Money v={b.balance} /></div>
+            </button>
+            {s.can("treasury.delete", b.branch_id) && (
+              <div className="no-print" style={{ position: "absolute", top: 8, left: 8 }}>
+                <DeleteBtn label="" path={`/cashboxes/${b.id}`} what={`الخزينة ${b.name}`} onDone={() => { if (box === b.id) setBox(""); reload(); }}
+                  note="الخزينة هتتمسح بس لو عمرها ما كان عليها حركات. لو عليها حركات هتتوقف وتختفي، والحركات القديمة بتفضل زي ما هي." />
+              </div>
+            )}
+          </div>
         ))}
       </div>
       <Card title={box ? `حركات ${boxName(box)}` : "كل الحركات"} flush>
@@ -58,7 +68,7 @@ export default function Treasury(_: PageProps) {
           { key: "r", label: "بيان", render: (t) => <span className="muted small">{[t.reference, t.note].filter(Boolean).join(" · ")}</span> },
           { key: "a", label: "المبلغ", num: true, render: (t) => <b className={t.direction === "in" ? "success-text" : "danger-text"}>
             {t.direction === "in" ? "+" : "−"}<Money v={t.amount} /></b> },
-          ...(write ? [{ key: "x", label: "", width: 70, render: (t: Tx) => !t.reversed && !t.reverses_id
+          ...(reverser ? [{ key: "x", label: "", width: 70, render: (t: Tx) => !t.reversed && !t.reverses_id
             ? <Btn small kind="danger" onClick={() => { setReverse(t); setNote(""); }}>عكس</Btn> : t.reversed ? <Chip>معكوسة</Chip> : null }] : []),
         ]} empty="مفيش حركات" />
         {txs.data && <Pager total={txs.data.total} limit={50} offset={offset} onChange={setOffset} />}
@@ -85,7 +95,7 @@ function SupplierName({ id }: { id: string | null | undefined }) {
 function NewCashbox({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
   const toast = useToast();
   const { busy, run } = useAction(toast.err);
-  const branch = useDefaultBranch("org.manage");
+  const branch = useDefaultBranch("treasury.create");
   const [d, setD] = useState({ code: "", name: "", branch_id: branch ?? "" });
   return (
     <Modal title="خزينة جديدة" onClose={onClose} footer={<><Btn kind="primary" busy={busy} disabled={!d.code || !d.name || !d.branch_id}
@@ -93,7 +103,7 @@ function NewCashbox({ onClose, onSaved }: { onClose: () => void; onSaved: () => 
       <div className="col">
         <Field label="الكود"><TextIn value={d.code} onChange={(v) => setD((x) => ({ ...x, code: v }))} code /></Field>
         <Field label="الاسم"><TextIn value={d.name} onChange={(v) => setD((x) => ({ ...x, name: v }))} /></Field>
-        <Field label="الفرع"><BranchSelect value={d.branch_id} onChange={(v) => setD((x) => ({ ...x, branch_id: v }))} /></Field>
+        <Field label="الفرع"><BranchSelect value={d.branch_id} onChange={(v) => setD((x) => ({ ...x, branch_id: v }))} perm="treasury.create" /></Field>
       </div>
     </Modal>
   );

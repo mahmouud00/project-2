@@ -11,6 +11,7 @@ import { go, setQuery } from "../lib/router";
 import { date } from "../lib/format";
 import { BranchSelect } from "../components/pickers";
 import { SuggestedPrice } from "../components/surveysheet";
+import { DeleteBtn } from "../components/actions";
 
 export default function Customers({ route }: PageProps) {
   const id = route.path[1];
@@ -35,7 +36,7 @@ function CustomerList() {
           <Select value={type} onChange={(v) => { setType(v); setOffset(0); }} placeholder="كل الأنواع"
             options={Object.entries(CUSTOMER_TYPES).map(([value, label]) => ({ value, label }))} />
         </div>
-        {s.can("customers.write") && <Btn kind="primary" icon="plus" onClick={() => setCreating(true)}>عميل جديد</Btn>}
+        {s.can("customers.create") && <Btn kind="primary" icon="plus" onClick={() => setCreating(true)}>عميل جديد</Btn>}
       </PageHead>
       {list.error && <ErrorBox text={list.error} onRetry={list.reload} />}
       <Card flush>
@@ -45,6 +46,8 @@ function CustomerList() {
           { key: "type", label: "النوع", render: (c) => <Chip>{CUSTOMER_TYPES[c.customer_type] ?? c.customer_type}</Chip> },
           { key: "phone", label: "التليفون", render: (c) => <span className="num">{c.phone ?? ""}</span> },
           { key: "address", label: "العنوان", render: (c) => <span className="muted ellipsis" style={{ maxWidth: 320, display: "block" }}>{c.address ?? ""}</span> },
+          ...(s.can("customers.delete") ? [{ key: "del", label: "", width: 80, render: (c: S<"CustomerOut">) =>
+            <DeleteBtn path={`/customers/${c.id}`} what={`العميل ${c.name}`} onDone={list.reload} /> }] : []),
         ]} empty="مفيش عملاء لسه" />
         {list.data && <Pager total={list.data.total} limit={50} offset={offset} onChange={setOffset} />}
       </Card>
@@ -90,7 +93,7 @@ export function CustomerForm({ customer, onClose, onSaved }:
         <Field label="الإيميل"><TextIn value={d.email} onChange={set("email")} code /></Field>
         <Field label="الرقم القومي"><TextIn value={d.national_id} onChange={set("national_id")} code /></Field>
         <Field label="الرقم الضريبي"><TextIn value={d.tax_number} onChange={set("tax_number")} code /></Field>
-        <Field label="الفرع"><BranchSelect value={d.branch_id} onChange={set("branch_id")} perm="customers.write" /></Field>
+        <Field label="الفرع"><BranchSelect value={d.branch_id} onChange={set("branch_id")} perm={customer ? "customers.write" : "customers.create"} /></Field>
         <Field label="قائمة الأسعار" hint="لو فاضية بيتاخد قائمة نوع العميل">
           <Select value={d.price_list_id ?? ""} onChange={set("price_list_id")} placeholder="حسب نوع العميل"
             options={(priceLists.data ?? []).map((p) => ({ value: p.id, label: p.name }))} /></Field>
@@ -136,8 +139,9 @@ function CustomerDetail({ id, tab: tabQuery }: { id: string; tab?: string }) {
       <div className="grid" style={{ gridTemplateColumns: "minmax(0,2fr) minmax(0,1fr)" }}>
         <Card title="بيانات العميل" actions={<>
           {s.can("customers.write") && !cu.anonymized && <Btn small icon="edit" onClick={() => setEdit(true)}>تعديل</Btn>}
-          {s.can("quotes.write") && <Btn small kind="primary" icon="plus" onClick={() => go("quotations/new", { customer: id })}>عرض سعر</Btn>}
-          {s.can("surveys.write") && <Btn small icon="ruler" onClick={() => go("surveys/new", { customer: id })}>معاينة</Btn>}
+          {s.can("quotes.create") && <Btn small kind="primary" icon="plus" onClick={() => go("quotations/new", { customer: id })}>عرض سعر</Btn>}
+          {s.can("surveys.create") && <Btn small icon="ruler" onClick={() => go("surveys/new", { customer: id })}>معاينة</Btn>}
+          {s.can("customers.delete") && <DeleteBtn path={`/customers/${id}`} what={`العميل ${cu.name}`} onDone={() => go("customers")} />}
         </>}>
           {cu.anonymized && <div className="notice warn mb">البيانات الشخصية للعميل ده اتمسحت بناءً على طلبه. السجلات المالية فاضلة.</div>}
           <div className="grid g2">
