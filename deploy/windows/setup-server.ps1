@@ -140,11 +140,19 @@ DISCOVERY_UDP_PORT=$UdpPort
     & $serviceExe install | Out-Null
     Log "MYTech service installed"
   }
-  if (-not (Get-NetFirewallRule -DisplayName "MYTech API" -ErrorAction SilentlyContinue)) {
-    New-NetFirewallRule -DisplayName "MYTech API" -Direction Inbound -Protocol TCP -LocalPort $HttpPort -Action Allow -Profile Private,Domain | Out-Null
-    New-NetFirewallRule -DisplayName "MYTech Discovery" -Direction Inbound -Protocol UDP -LocalPort $UdpPort -Action Allow -Profile Private,Domain | Out-Null
-    Log "firewall rules added (private/domain networks)"
+  # Any network profile: factory Wi-Fi is often marked "Public" by Windows, and then the other PCs cannot
+  # reach the server at all. Only the MYTech port and the discovery port are opened (owner's decision).
+  # Older installs had Private/Domain only; their rules are widened here.
+  foreach ($rule in @(@{ Name = "MYTech API"; Protocol = "TCP"; Port = $HttpPort },
+                      @{ Name = "MYTech Discovery"; Protocol = "UDP"; Port = $UdpPort })) {
+    if (Get-NetFirewallRule -DisplayName $rule.Name -ErrorAction SilentlyContinue) {
+      Set-NetFirewallRule -DisplayName $rule.Name -Profile Any -Enabled True
+    } else {
+      New-NetFirewallRule -DisplayName $rule.Name -Direction Inbound -Protocol $rule.Protocol -LocalPort $rule.Port `
+        -Action Allow -Profile Any | Out-Null
+    }
   }
+  Log "firewall rules for ports $HttpPort/TCP and $UdpPort/UDP (all network profiles)"
   Start-Service MYTechServer
   Wait-Until { try { (Invoke-WebRequest -UseBasicParsing "http://localhost:$HttpPort/api/v1/system/health" -TimeoutSec 3).StatusCode -eq 200 } catch { $false } } 90 "MYTech server"
   Log "MYTech server running on port $HttpPort"

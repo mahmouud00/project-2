@@ -136,6 +136,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { Get-Content "$root\logs\install.log"; Get-ChildItem "$root\logs" ; throw "setup failed" }
           $info = Invoke-RestMethod http://localhost:8000/api/v1/system/info
           if ($info.version -ne $v -or $info.mode -ne "offline") { throw "unexpected info $($info | ConvertTo-Json)" }
+          foreach ($r in Get-NetFirewallRule -DisplayName "MYTech API", "MYTech Discovery") { if ($r.Profile -ne "Any") { throw "firewall rule $($r.DisplayName) is $($r.Profile), expected Any" } }
           $health = Invoke-RestMethod http://localhost:8000/api/v1/system/health
           Write-Host "health: $($health | ConvertTo-Json -Compress)"
           $branding = Invoke-RestMethod http://localhost:8000/api/v1/system/branding
