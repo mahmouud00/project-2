@@ -44,7 +44,8 @@ Name: "en"; MessagesFile: "compiler:Default.isl"
 
 [Files]
 Source: "{#Stage}\app\{#MyVersion}\*"; DestDir: "{app}\app\{#MyVersion}"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "{#Stage}\pgsql\*"; DestDir: "{app}\pgsql"; Flags: ignoreversion recursesubdirs createallsubdirs
+; PostgreSQL binaries are installed once: an upgrade of MYTech never rewrites them (they are the same build)
+Source: "{#Stage}\pgsql\*"; DestDir: "{app}\pgsql"; Flags: onlyifdoesntexist recursesubdirs createallsubdirs
 Source: "{#Stage}\service\*"; DestDir: "{app}\service"; Flags: ignoreversion recursesubdirs
 Source: "{#Stage}\scripts\*"; DestDir: "{app}\scripts"; Flags: ignoreversion
 Source: "{#Stage}\scripts\stop-services.ps1"; Flags: dontcopy

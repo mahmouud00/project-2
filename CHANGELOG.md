@@ -29,6 +29,7 @@ All notable changes are listed here. Versions follow Semantic Versioning (MAJOR.
 - "Authorize" button on `/api/docs` (OAuth2 password form, `POST /auth/token`, client_id = company code).
 
 ### Changed
+- Server installer: PostgreSQL binaries are installed once (an upgrade never rewrites them); stop-services also ends a PostgreSQL left running without its service; the uninstaller stops everything before removing the services (it could leave postgres.exe running with its files locked). CI uninstalls with both services running and checks nothing is left.
 - `GET /surveys` returns each survey's openings (the list showed 0 units).
 - Server installer: stops the MYTech and PostgreSQL services before replacing files (upgrade over a running install failed with "Access is denied"), with `stop-services.ps1`: waits up to 2 minutes, falls back to `pg_ctl stop` and to ending leftover processes, logs to `logs\install.log`; tested in CI on running services.
 - Licence files saved with a UTF-8 BOM (e.g. by Notepad) are accepted.

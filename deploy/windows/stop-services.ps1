@@ -65,6 +65,19 @@ if ((Status "MYTechPostgreSQL") -notin @("Stopped", "Missing")) {
   }
 }
 
+# 3) anything still running from this folder (e.g. a PostgreSQL left running after its service was
+#    removed, or one still shutting down) keeps its files locked: give it a moment, then end it
+$deadline = (Get-Date).AddSeconds(20)
+while ((Get-Date) -lt $deadline) {
+  $left = Get-Process -Name "postgres", "pg_ctl", "mytech-server", "mytech-service" -ErrorAction SilentlyContinue |
+    Where-Object { try { $_.Path -and $_.Path.StartsWith($Root, [StringComparison]::OrdinalIgnoreCase) } catch { $false } }
+  if (-not $left) { break }
+  Start-Sleep -Seconds 1
+}
+Kill-Under @("postgres", "pg_ctl") (Join-Path $Root "pgsql")
+Kill-Under @("mytech-server") (Join-Path $Root "app")
+Kill-Under @("mytech-service", "MYTechServer") (Join-Path $Root "service")
+
 $server, $pg = (Status "MYTechServer"), (Status "MYTechPostgreSQL")
 Log "MYTechServer: $server, MYTechPostgreSQL: $pg"
 if ($server -in @("Stopped", "Missing") -and $pg -in @("Stopped", "Missing")) { exit 0 }

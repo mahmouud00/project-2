@@ -162,7 +162,11 @@ jobs:
           if ($LASTEXITCODE -ne 0) { Get-Content "$root\logs\install.log" -Tail 30; throw "stop-services failed" }
           foreach ($n in "MYTechServer", "MYTechPostgreSQL") { if ((Get-Service $n).Status -ne "Stopped") { throw "$n not stopped" } }
           if (Get-Process mytech-server, postgres -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "$root*" }) { throw "processes left running" }
+          # uninstall with both services RUNNING: nothing may be left running (it would lock the files)
+          Start-Service MYTechServer
           powershell -NoProfile -ExecutionPolicy Bypass -File "$root\scripts\uninstall-server.ps1" -Root $root
+          if (Get-Service MYTechServer, MYTechPostgreSQL -ErrorAction SilentlyContinue) { throw "services left registered" }
+          if (Get-Process postgres, mytech-server -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "$root*" }) { throw "processes left running after uninstall" }
       - name: Installer (Inno Setup)
         shell: pwsh
         run: |
