@@ -74,7 +74,7 @@ class WorkOrderStageLog(Base, IdMixin, TenantMixin):
 
 
 class Offcut(Base, Entity):
-    """فُضلة قطاع (بعد التقطيع) أطول من «أقل فُضلة تتشال»: المخزون الوحيد في المصنع. Used first by later orders."""
+    """فضلة قطاع (بعد التقطيع) أطول من «أقل فضلة تتشال»: المخزون الوحيد في المصنع. Used first by later orders."""
     __tablename__ = "offcuts"
 
     branch_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("branches.id"), index=True)

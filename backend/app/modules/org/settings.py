@@ -49,7 +49,7 @@ class CompanySettings(BaseModel):
     min_billed_area_m2: Decimal = Field(Decimal(1), ge=0, description="price per m² bills at least this area per unit")
     saw_kerf_mm: Decimal = Field(Decimal(0), ge=0)
     bar_trim_mm: Decimal = Field(Decimal(0), ge=0, description="trimmed at each end of a bar")
-    min_reusable_offcut_mm: Decimal = Field(Decimal(400), ge=0, description="أقصر فُضلة بتتشال (أقل منها هالك)")
+    min_reusable_offcut_mm: Decimal = Field(Decimal(400), ge=0, description="أقصر فضلة بتتشال (أقل منها هالك)")
     quote_terms: str = ""
     # Planned days for each work order stage (progress %, expected delivery, late warning)
     stage_durations_days: dict[Literal["survey", "quotation", "approved", "manufacturing", "assembly", "quality"],
