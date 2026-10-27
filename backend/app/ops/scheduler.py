@@ -38,6 +38,9 @@ def _purge_locations_job() -> None:
         db.commit()
         if n:
             log.info("erased %d old technician locations", n)
+        from app.modules.notifications.router import purge_old_notifications
+        purge_old_notifications(db)
+        db.commit()
     except Exception as e:
         db.rollback()
         log.error("location purge failed: %s", type(e).__name__)

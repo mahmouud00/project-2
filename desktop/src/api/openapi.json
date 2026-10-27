@@ -4902,6 +4902,7 @@
      "production"
     ],
     "summary": "List Work Orders",
+    "description": "`sale_status=pending`: sales waiting for the accounts (an accepted quotation, not cancelled).",
     "operationId": "list_work_orders_api_v1_work_orders_get",
     "security": [
      {
@@ -4940,6 +4941,22 @@
         }
        ],
        "title": "Customer Id"
+      }
+     },
+     {
+      "name": "sale_status",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Sale Status"
       }
      },
      {
@@ -5263,6 +5280,65 @@
       "application/json": {
        "schema": {
         "$ref": "#/components/schemas/StageIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/WorkOrderOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/work-orders/{wo_id}/approve-sale": {
+   "post": {
+    "tags": [
+     "production"
+    ],
+    "summary": "Approve Sale",
+    "description": "الحسابات بتأكد البيعة (السعر والخصم والعربون) أو ترفضها، قبل ما الأمر يتنقل للموافقة والتصنيع.",
+    "operationId": "approve_sale_api_v1_work_orders__wo_id__approve_sale_post",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "wo_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Wo Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/SaleApproveIn"
        }
       }
      }
@@ -8493,7 +8569,7 @@
      "hr"
     ],
     "summary": "Employee Names",
-    "description": "Active employees' names for choosing the salesperson of a sale (whoever can see quotations).",
+    "description": "Employees' names for choosing the salesperson of a sale and showing it (whoever can see quotations).\nThose who left are listed too (old sales still show their name); pick only active ones.",
     "operationId": "employee_names_api_v1_employees_brief_get",
     "security": [
      {
@@ -9792,6 +9868,146 @@
       "content": {
        "application/json": {
         "schema": {}
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ]
+   }
+  },
+  "/api/v1/notifications": {
+   "get": {
+    "tags": [
+     "notifications"
+    ],
+    "summary": "My Notifications",
+    "description": "My latest notifications (or only those after a time, for polling) and how many are unread.",
+    "operationId": "my_notifications_api_v1_notifications_get",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "after",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string",
+         "format": "date-time"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "After"
+      }
+     },
+     {
+      "name": "limit",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "default": 30,
+       "title": "Limit"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Inbox"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/notifications/{nid}/read": {
+   "post": {
+    "tags": [
+     "notifications"
+    ],
+    "summary": "Read One",
+    "operationId": "read_one_api_v1_notifications__nid__read_post",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "nid",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Nid"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Inbox"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/notifications/read-all": {
+   "post": {
+    "tags": [
+     "notifications"
+    ],
+    "summary": "Read All",
+    "operationId": "read_all_api_v1_notifications_read_all_post",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Inbox"
+        }
        }
       }
      }
@@ -13121,6 +13337,27 @@
     "type": "object",
     "title": "HTTPValidationError"
    },
+   "Inbox": {
+    "properties": {
+     "unread": {
+      "type": "integer",
+      "title": "Unread"
+     },
+     "items": {
+      "items": {
+       "$ref": "#/components/schemas/NotificationOut"
+      },
+      "type": "array",
+      "title": "Items"
+     }
+    },
+    "type": "object",
+    "required": [
+     "unread",
+     "items"
+    ],
+    "title": "Inbox"
+   },
    "InvoiceIn": {
     "properties": {
      "customer_id": {
@@ -15785,6 +16022,59 @@
      "qty"
     ],
     "title": "NeedOut"
+   },
+   "NotificationOut": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Id"
+     },
+     "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Created At"
+     },
+     "category": {
+      "type": "string",
+      "title": "Category"
+     },
+     "title": {
+      "type": "string",
+      "title": "Title"
+     },
+     "body": {
+      "type": "string",
+      "title": "Body"
+     },
+     "link": {
+      "type": "string",
+      "title": "Link"
+     },
+     "read_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Read At"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "created_at",
+     "category",
+     "title",
+     "body",
+     "link",
+     "read_at"
+    ],
+    "title": "NotificationOut"
    },
    "OpeningIn": {
     "properties": {
@@ -18790,6 +19080,29 @@
     ],
     "title": "RunOut"
    },
+   "SaleApproveIn": {
+    "properties": {
+     "version": {
+      "type": "integer",
+      "title": "Version"
+     },
+     "approve": {
+      "type": "boolean",
+      "title": "Approve",
+      "default": true
+     },
+     "note": {
+      "type": "string",
+      "title": "Note",
+      "default": ""
+     }
+    },
+    "type": "object",
+    "required": [
+     "version"
+    ],
+    "title": "SaleApproveIn"
+   },
    "StageIn": {
     "properties": {
      "version": {
@@ -21058,6 +21371,28 @@
        }
       ],
       "title": "Salesperson Id"
+     },
+     "sale_status": {
+      "type": "string",
+      "title": "Sale Status",
+      "default": "pending"
+     },
+     "sale_approved_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Sale Approved At"
+     },
+     "sale_approval_note": {
+      "type": "string",
+      "title": "Sale Approval Note",
+      "default": ""
      },
      "stage": {
       "type": "string",

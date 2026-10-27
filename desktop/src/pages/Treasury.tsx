@@ -10,6 +10,8 @@ import { METHODS, PO_STATUS, invalidate, lookups } from "../lib/lookups";
 import { go, setQuery } from "../lib/router";
 import { date } from "../lib/format";
 import { ApproveForm } from "./Purchasing";
+import { SALE_STATUS, SaleDecisionForm } from "./WorkOrders";
+import { SalespersonName } from "../components/pickers";
 import { DeleteBtn } from "../components/actions";
 import { dateTime } from "../lib/format";
 
@@ -20,6 +22,7 @@ export default function Treasury({ route }: PageProps) {
   const s = useSession();
   const tabs = [
     { id: "cash", label: "الخزينة", hidden: !s.can("treasury.read") },
+    { id: "sales", label: "تأكيد المبيعات", hidden: !s.can("sales.approve") },
     { id: "approvals", label: "تأكيد المشتريات", hidden: !s.can("purchasing.approve") },
     { id: "profit", label: "الربحية ورأس المال", hidden: !s.can("finance.read") },
   ].filter((t) => !t.hidden);
@@ -27,7 +30,7 @@ export default function Treasury({ route }: PageProps) {
   return (
     <div className="col" style={{ gap: 14 }}>
       {tabs.length > 1 && <Card flush><Tabs value={tab} onChange={(t) => setQuery({ tab: t })} tabs={tabs} /></Card>}
-      {tab === "cash" ? <Cash /> : tab === "approvals" ? <Approvals /> : tab === "profit" ? <Profit /> : null}
+      {tab === "cash" ? <Cash /> : tab === "sales" ? <SaleApprovals /> : tab === "approvals" ? <Approvals /> : tab === "profit" ? <Profit /> : null}
     </div>
   );
 }
@@ -113,6 +116,40 @@ function EmployeeName({ id }: { id: string | null | undefined }) {
 }
 
 type PO = S<"POOut">;
+type WO = S<"WorkOrderOut">;
+
+/** المبيعات اللي مستنية الحسابات: السعر والخصم والعربون، قبل ما الأمر يتوافق عليه ويدخل تصنيع. */
+function SaleApprovals() {
+  const list = useLoad(() => api.get<S<"Page_WorkOrderOut_">>("/work-orders", { sale_status: "pending", limit: 200 }), []);
+  const rejected = useLoad(() => api.get<S<"Page_WorkOrderOut_">>("/work-orders", { sale_status: "rejected", limit: 50 }), []);
+  const [deciding, setDeciding] = useState<[WO, boolean] | null>(null);
+  const reload = () => { list.reload(); rejected.reload(); };
+  const cols = [
+    { key: "n", label: "الأمر", render: (w: WO) => <span className="num bold">{w.number}</span> },
+    { key: "c", label: "العميل", render: (w: WO) => <CustomerName id={w.customer_id} /> },
+    { key: "sp", label: "البائع", render: (w: WO) => <SalespersonName id={w.salesperson_id} /> },
+    { key: "b", label: "الفرع", render: (w: WO) => <BranchName id={w.branch_id} /> },
+    { key: "t", label: "الإجمالي", num: true, render: (w: WO) => <b><Money v={w.total} /></b> },
+    { key: "d", label: "العربون المطلوب", num: true, render: (w: WO) => <Money v={w.deposit_required} /> },
+    { key: "p", label: "المدفوع", num: true, render: (w: WO) => <Money v={w.paid_amount} /> },
+  ];
+  return (
+    <>
+      <Card title={`مبيعات مستنية التأكيد (${list.data?.total ?? 0})`} flush>
+        <Table rows={list.data?.items} loading={list.loading} onRow={(w) => go(`work-orders/${w.id}`)} empty="مفيش مبيعات مستنية تأكيد"
+          columns={[...cols, { key: "a", label: "", render: (w: WO) => <div className="row" style={{ gap: 4, justifyContent: "flex-end" }}>
+            <Btn small kind="success" icon="check" onClick={(e) => { e.stopPropagation(); setDeciding([w, true]); }}>تأكيد</Btn>
+            <Btn small kind="danger" onClick={(e) => { e.stopPropagation(); setDeciding([w, false]); }}>رفض</Btn></div> }]} />
+      </Card>
+      {!!rejected.data?.items.length && <Card title="مرفوضة" flush>
+        <Table rows={rejected.data.items} onRow={(w) => go(`work-orders/${w.id}`)} columns={[...cols,
+          { key: "s", label: "", render: (w: WO) => <><Chip color={SALE_STATUS.rejected[1]}>{SALE_STATUS.rejected[0]}</Chip>
+            <span className="small muted"> {w.sale_approval_note}</span></> }]} />
+      </Card>}
+      {deciding && <SaleDecisionForm wo={deciding[0]} approve={deciding[1]} onClose={() => setDeciding(null)} onSaved={reload} />}
+    </>
+  );
+}
 
 /** المشتريات اللي مستنية الحسابات تأكدها قبل ما تتطلب من المورد. */
 function Approvals() {

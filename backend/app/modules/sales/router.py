@@ -542,6 +542,10 @@ def set_status(quote_id: uuid.UUID, body: StatusIn, dc=Depends(require("quotes.w
     before = snapshot(q)
     q.status = body.status
     audit(db, q, "update", before)
+    from app.modules.notifications.router import alert, customer_name
+    word = {"sent": "اتبعت للعميل", "accepted": "العميل وافق عليه", "rejected": "العميل رفضه", "draft": "رجع مسودة"}
+    alert(db, ctx, "sales", q.branch_id, f"عرض السعر {q.number} {word.get(q.status, q.status)}",
+          customer_name(db, q.customer_id), f"quotations/{q.id}")
     db.commit()
     return _quote_out(db, q, with_calc=False)
 

@@ -156,7 +156,14 @@ def test_upgrade_from_old_revision_keeps_data():
     assert {"hr.create", "purchasing.approve"} <= set(after["roles"][str(p["admin_role"])]["permissions"])
     hr = [r for r in after["roles"].values() if r["code"] == "hr" and r["company_id"] == str(cid)]
     assert len(hr) == 1 and hr[0]["is_builtin"]
-    after["roles"] = {k: v for k, v in after["roles"].items() if v["code"] not in ("technician", "hr")}
+    # 0012: orders already in production count as confirmed sales; accounts confirm sales; manager roles
+    assert wo["sale_status"] == "approved" and wo["sale_approval_note"] == "قبل تأكيد الحسابات"
+    assert {"sales.approve", "notify.accounts"} <= acc
+    assert {"notify.sales", "notify.field", "sales.approve"} <= set(after["roles"][str(p["admin_role"])]["permissions"])
+    for code in ("sales_manager", "production_manager", "field_manager"):
+        assert [r for r in after["roles"].values() if r["code"] == code and r["company_id"] == str(cid)]
+    after["roles"] = {k: v for k, v in after["roles"].items() if v["code"] not in (
+        "technician", "hr", "sales_manager", "production_manager", "field_manager")}
     for t in ("warehouses", "stock_movements"):
         before5.pop(t)
     before5["roles"] = {k: v for k, v in before5["roles"].items()

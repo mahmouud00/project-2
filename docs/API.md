@@ -170,6 +170,16 @@ WS /api/v1/system/events?token=<access_token>
 | GET | `/customers/{id}/statement`، `/suppliers/{id}/statement` | كشف حساب |
 
 
+### الإشعارات وتأكيد البيعة
+| | | |
+|---|---|---|
+| GET | `/notifications?after=` | إشعاراتي (آخر 30، أو الجديد بعد وقت) وعدد اللي ماتقرأش. البرنامج بيسأل كل 15 ثانية |
+| POST | `/notifications/{id}/read`، `/notifications/read-all` | |
+| POST | `/work-orders/{id}/approve-sale` | `{version, approve, note}`: الحسابات بتأكد البيعة أو ترفضها (`sales.approve`). من غيرها الأمر مايتنقلش لـ approved (`SALE_NOT_APPROVED`) |
+| GET | `/work-orders?sale_status=pending` | المبيعات المستنية تأكيد |
+
+مين يوصله إيه: صلاحية لكل قسم (`notify.accounts`، `notify.sales`، `notify.production`، `notify.field`) في الفرع. اللي عمل التغيير مابيوصلوش إشعار عن نفسه.
+
 ### hr: الموارد البشرية
 | | | |
 |---|---|---|

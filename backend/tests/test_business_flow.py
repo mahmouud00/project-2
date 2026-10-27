@@ -59,6 +59,10 @@ def test_full_cycle(platform, tenant_a, tenant_b, client):
     wo = wo.json()
     assert wo["stage"] == "quotation" and D(wo["deposit_required"]) == (D(q["total"]) * D("0.3")).quantize(D("0.01"))
     r = client.post(f"/api/v1/work-orders/{wo['id']}/stage", headers=h, json={"version": wo["version"], "to": "approved"})
+    assert r.status_code == 409 and r.json()["error"]["code"] == "SALE_NOT_APPROVED"
+    wo = client.post(f"/api/v1/work-orders/{wo['id']}/approve-sale", headers=h, json={"version": wo["version"]}).json()
+    assert wo["sale_status"] == "approved"
+    r = client.post(f"/api/v1/work-orders/{wo['id']}/stage", headers=h, json={"version": wo["version"], "to": "approved"})
     assert r.status_code == 409 and r.json()["error"]["code"] == "DEPOSIT_REQUIRED"
 
     box = client.post("/api/v1/cashboxes", headers=h, json={"code": "CASH1", "name": "خزينة", "branch_id": branch["id"]}).json()

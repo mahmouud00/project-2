@@ -118,6 +118,8 @@ def create_customer(body: CustomerIn, dc=Depends(require("customers.create"))):
     db.flush()
     audit(db, customer, "create")
     log_pii(db, ctx, "customer", [customer.id], "create", [k for k in CUSTOMER_PII if data.get(k)])
+    from app.modules.notifications.router import alert
+    alert(db, ctx, "sales", customer.branch_id, f"عميل جديد: {customer.name}", link=f"customers/{customer.id}")
     db.commit()
     return customer
 
@@ -148,6 +150,8 @@ def update_customer(customer_id: uuid.UUID, body: CustomerUpdate, dc=Depends(req
     apply_changes(customer, data)
     audit(db, customer, "update", before)
     log_pii(db, ctx, "customer", [customer.id], "update", [k for k in data if k in CUSTOMER_PII])
+    from app.modules.notifications.router import alert
+    alert(db, ctx, "sales", customer.branch_id, f"اتعدلت بيانات العميل {customer.name}", link=f"customers/{customer.id}")
     db.commit()
     return customer
 
@@ -301,6 +305,9 @@ def create_survey(body: SurveyIn, dc=Depends(require("surveys.create"))):
     db.flush()
     _set_openings(db, survey, body.openings)
     audit(db, survey, "create")
+    from app.modules.notifications.router import alert, customer_name
+    alert(db, ctx, "sales", survey.branch_id, f"معاينة جديدة {survey.number}", customer_name(db, survey.customer_id),
+          f"surveys/{survey.id}")
     db.commit()
     return _survey_out(db, survey)
 

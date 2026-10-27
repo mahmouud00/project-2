@@ -17,6 +17,8 @@ tauri = { version = "~2.12", features = [] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tauri-plugin-opener = "=2.7.1"
+# Windows / Android notifications (new sales to confirm, customer updates, jobs...)
+tauri-plugin-notification = "=2.6.0"
 
 # phones: the technician's position comes from the phone's GPS
 [target.'cfg(any(target_os = "android", target_os = "ios"))'.dependencies]

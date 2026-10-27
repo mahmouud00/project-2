@@ -79,6 +79,9 @@ class WorkOrderOut(Record):
     branch_id: uuid.UUID
     quotation_id: uuid.UUID | None
     salesperson_id: uuid.UUID | None = None
+    sale_status: str = "pending"
+    sale_approved_at: datetime | None = None
+    sale_approval_note: str = ""
     stage: str
     stage_name: str = ""
     total: Decimal
@@ -132,13 +135,17 @@ def _get_wo(db, ctx, wo_id, permission="workorders.read") -> WorkOrder:
 
 
 @router.get("/work-orders", response_model=Page[WorkOrderOut])
-def list_work_orders(stage: str | None = None, customer_id: uuid.UUID | None = None, params: PageParams = Depends(),
-                     dc=Depends(require("workorders.read"))):
+def list_work_orders(stage: str | None = None, customer_id: uuid.UUID | None = None, sale_status: str | None = None,
+                     params: PageParams = Depends(), dc=Depends(require("workorders.read"))):
+    """`sale_status=pending`: sales waiting for the accounts (an accepted quotation, not cancelled)."""
     db, ctx = dc
     stmt = select(WorkOrder).where(WorkOrder.deleted_at.is_(None)).order_by(WorkOrder.created_at.desc())
     stmt = branch_scope(stmt, ctx, "workorders.read", WorkOrder.branch_id)
     if stage:
         stmt = stmt.where(WorkOrder.stage == stage)
+    if sale_status:
+        stmt = stmt.where(WorkOrder.sale_status == sale_status, WorkOrder.quotation_id.is_not(None),
+                          WorkOrder.stage != "cancelled")
     if customer_id:
         stmt = stmt.where(WorkOrder.customer_id == customer_id)
     page = paginate(db, stmt, params, WorkOrderOut)
@@ -209,6 +216,9 @@ def from_quotation(body: FromQuotationIn, dc=Depends(require("workorders.create"
     wo.stage = "quotation"
     _log_stage(db, ctx, wo, before_stage, "quotation", f"quotation {q.number}")
     audit(db, wo, "create" if before_stage is None else "update")
+    from app.modules.notifications.router import alert, customer_name
+    alert(db, ctx, "accounts", wo.branch_id, f"بيعة مستنية تأكيد: {wo.number} بـ {wo.total}",
+          customer_name(db, wo.customer_id), "treasury?tab=sales")
     db.commit()
     return _wo_out(db, wo, ctx=ctx)
 
@@ -258,6 +268,8 @@ def change_stage(wo_id: uuid.UUID, body: StageIn, dc=Depends(require("workorders
         if body.to == "approved":
             if wo.quotation_id is None:
                 raise Conflict("No accepted quotation", code="NO_QUOTATION")
+            if wo.sale_status != "approved":
+                raise Conflict("The accounts must confirm this sale first", code="SALE_NOT_APPROVED")
             if wo.paid_amount < wo.deposit_required:
                 raise Conflict("Deposit not paid", code="DEPOSIT_REQUIRED",
                                details={"required": str(wo.deposit_required), "paid": str(wo.paid_amount)})
@@ -272,6 +284,43 @@ def change_stage(wo_id: uuid.UUID, body: StageIn, dc=Depends(require("workorders
     wo.stage = body.to
     _log_stage(db, ctx, wo, current, body.to, body.note)
     audit(db, wo, "update", before)
+    from app.modules.notifications.router import alert, customer_name
+    title = f"أمر {wo.number}: {STAGE_NAMES.get(body.to, body.to)}"
+    who = customer_name(db, wo.customer_id)
+    alert(db, ctx, "production", wo.branch_id, title, who, f"work-orders/{wo.id}")
+    alert(db, ctx, "sales", wo.branch_id, title, who, f"work-orders/{wo.id}")
+    db.commit()
+    return _wo_out(db, wo, ctx=ctx)
+
+
+class SaleApproveIn(BaseModel):
+    version: int
+    approve: bool = True
+    note: str = ""
+
+
+@router.post("/work-orders/{wo_id}/approve-sale", response_model=WorkOrderOut)
+def approve_sale(wo_id: uuid.UUID, body: SaleApproveIn, dc=Depends(require("sales.approve"))):
+    """الحسابات بتأكد البيعة (السعر والخصم والعربون) أو ترفضها، قبل ما الأمر يتنقل للموافقة والتصنيع."""
+    db, ctx = dc
+    wo = _get_wo(db, ctx, wo_id, "sales.approve")
+    check_version(wo, body.version)
+    if wo.quotation_id is None:
+        raise Conflict("No accepted quotation", code="NO_QUOTATION")
+    if wo.stage not in ("survey", "quotation") or wo.sale_status == "approved":
+        raise Conflict("This sale is already confirmed", code="INVALID_TRANSITION")
+    before = snapshot(wo)
+    wo.sale_status = "approved" if body.approve else "rejected"
+    wo.sale_approved_at, wo.sale_approved_by, wo.sale_approval_note = utcnow(), ctx.user_id, body.note
+    audit(db, wo, "update", before, note=f"sale {wo.sale_status}")
+    from app.modules.notifications.router import alert, customer_name
+    who = customer_name(db, wo.customer_id)
+    if body.approve:
+        alert(db, ctx, "sales", wo.branch_id, f"الحسابات أكدت البيعة {wo.number}", who, f"work-orders/{wo.id}")
+        alert(db, ctx, "production", wo.branch_id, f"بيعة اتأكدت: {wo.number} جاهز للتصنيع بعد العربون", who,
+              f"work-orders/{wo.id}")
+    else:
+        alert(db, ctx, "sales", wo.branch_id, f"الحسابات رفضت البيعة {wo.number}", body.note or who, f"work-orders/{wo.id}")
     db.commit()
     return _wo_out(db, wo, ctx=ctx)
 

@@ -33,6 +33,7 @@ PERMISSIONS: dict[str, str] = {
     "workorders.write": "تعديل أوامر التصنيع",
     "workorders.stage": "تغيير مرحلة أمر التصنيع",
     "workorders.delete": "حذف أوامر التصنيع",
+    "sales.approve": "تأكيد البيعة (الحسابات) قبل ما أمر التصنيع يتوافق عليه ويدخل تصنيع",
     "invoices.create": "إضافة فواتير",
     "invoices.delete": "حذف الفواتير (المسودة) وإلغاء الصادرة",
     "purchasing.read": "عرض المشتريات",
@@ -58,6 +59,10 @@ PERMISSIONS: dict[str, str] = {
     "field.manage": "توزيع مهام المعاينة والتركيب والصيانة على الفنيين",
     "field.delete": "حذف مهام الفنيين",
     "field.self": "فني: يشوف مهامه من الموبايل ويبعت مكانه وهو في المهمة",
+    "notify.accounts": "إشعارات الحسابات: بيعة أو أمر شراء مستني تأكيد",
+    "notify.sales": "إشعارات المبيعات: أي تحديث على العملاء وعروض الأسعار والتحصيل",
+    "notify.production": "إشعارات التصنيع: بيعة اتأكدت وكل نقل مرحلة في أوامر التصنيع",
+    "notify.field": "إشعارات التركيبات: مهام الفنيين وحالتها وطلبات الصيانة",
     "privacy.manage": "طلبات البيانات الشخصية (تصدير/مسح)",
     "audit.read": "عرض سجل التعديلات",
     "system.manage": "النسخ الاحتياطي والتحديثات والأجهزة",
@@ -84,7 +89,19 @@ DEFAULT_ROLES: dict[str, dict] = {
     "accounts": {"name": "حسابات", "permissions": [
         "customers.read", "quotes.read", "workorders.read", "purchasing.read", "purchasing.create", "purchasing.write",
         "treasury.read", "treasury.create", "treasury.write", "invoices.create", "pricelists.create",
-        "pricelists.manage", "purchasing.approve", "finance.read", "hr.read", "hr.payroll"]},
+        "pricelists.manage", "purchasing.approve", "finance.read", "hr.read", "hr.payroll", "sales.approve",
+        "notify.accounts"]},
+    "sales_manager": {"name": "مدير مبيعات", "permissions": [
+        "library.read", "engine.calculate", "customers.read", "customers.create", "customers.write", "surveys.read",
+        "surveys.create", "surveys.write", "quotes.read", "quotes.create", "quotes.write", "workorders.read",
+        "workorders.create", "invoices.create", "treasury.read", "maintenance.read", "maintenance.create",
+        "maintenance.write", "field.read", "notify.sales"]},
+    "production_manager": {"name": "مدير تصنيع", "permissions": [
+        "library.read", "engine.calculate", "workorders.read", "workorders.create", "workorders.write",
+        "workorders.stage", "surveys.read", "purchasing.read", "purchasing.create", "notify.production"]},
+    "field_manager": {"name": "مدير تركيبات", "permissions": [
+        "customers.read", "surveys.read", "workorders.read", "maintenance.read", "maintenance.create",
+        "maintenance.write", "field.read", "field.manage", "notify.field"]},
     "hr": {"name": "موارد بشرية", "permissions": ["hr.read", "hr.create", "hr.write", "hr.delete"]},
     "technician": {"name": "فني", "permissions": ["field.self"]},
 }

@@ -1239,7 +1239,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List Work Orders */
+        /**
+         * List Work Orders
+         * @description `sale_status=pending`: sales waiting for the accounts (an accepted quotation, not cancelled).
+         */
         get: operations["list_work_orders_api_v1_work_orders_get"];
         put?: never;
         /**
@@ -1307,6 +1310,26 @@ export interface paths {
          * @description Move forward one stage, or cancel (before delivery).
          */
         post: operations["change_stage_api_v1_work_orders__wo_id__stage_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/work-orders/{wo_id}/approve-sale": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approve Sale
+         * @description الحسابات بتأكد البيعة (السعر والخصم والعربون) أو ترفضها، قبل ما الأمر يتنقل للموافقة والتصنيع.
+         */
+        post: operations["approve_sale_api_v1_work_orders__wo_id__approve_sale_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2072,7 +2095,8 @@ export interface paths {
         };
         /**
          * Employee Names
-         * @description Active employees' names for choosing the salesperson of a sale (whoever can see quotations).
+         * @description Employees' names for choosing the salesperson of a sale and showing it (whoever can see quotations).
+         *     Those who left are listed too (old sales still show their name); pick only active ones.
          */
         get: operations["employee_names_api_v1_employees_brief_get"];
         put?: never;
@@ -2414,6 +2438,60 @@ export interface paths {
         get: operations["capital_api_v1_finance_capital_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * My Notifications
+         * @description My latest notifications (or only those after a time, for polling) and how many are unread.
+         */
+        get: operations["my_notifications_api_v1_notifications_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notifications/{nid}/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Read One */
+        post: operations["read_one_api_v1_notifications__nid__read_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notifications/read-all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Read All */
+        post: operations["read_all_api_v1_notifications_read_all_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3563,6 +3641,13 @@ export interface components {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
         };
+        /** Inbox */
+        Inbox: {
+            /** Unread */
+            unread: number;
+            /** Items */
+            items: components["schemas"]["NotificationOut"][];
+        };
         /** InvoiceIn */
         InvoiceIn: {
             /** Customer Id */
@@ -4412,6 +4497,29 @@ export interface components {
             pieces?: number | null;
             /** Unit Cost */
             unit_cost?: string | null;
+        };
+        /** NotificationOut */
+        NotificationOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Category */
+            category: string;
+            /** Title */
+            title: string;
+            /** Body */
+            body: string;
+            /** Link */
+            link: string;
+            /** Read At */
+            read_at: string | null;
         };
         /** OpeningIn */
         OpeningIn: {
@@ -5428,6 +5536,21 @@ export interface components {
              */
             payslips: components["schemas"]["PayslipOut"][];
         };
+        /** SaleApproveIn */
+        SaleApproveIn: {
+            /** Version */
+            version: number;
+            /**
+             * Approve
+             * @default true
+             */
+            approve: boolean;
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+        };
         /** StageIn */
         StageIn: {
             /** Version */
@@ -6178,6 +6301,18 @@ export interface components {
             quotation_id: string | null;
             /** Salesperson Id */
             salesperson_id?: string | null;
+            /**
+             * Sale Status
+             * @default pending
+             */
+            sale_status: string;
+            /** Sale Approved At */
+            sale_approved_at?: string | null;
+            /**
+             * Sale Approval Note
+             * @default
+             */
+            sale_approval_note: string;
             /** Stage */
             stage: string;
             /**
@@ -9648,6 +9783,7 @@ export interface operations {
             query?: {
                 stage?: string | null;
                 customer_id?: string | null;
+                sale_status?: string | null;
                 limit?: number;
                 offset?: number;
             };
@@ -9852,6 +9988,41 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["StageIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkOrderOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    approve_sale_api_v1_work_orders__wo_id__approve_sale_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                wo_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaleApproveIn"];
             };
         };
         responses: {
@@ -12496,6 +12667,89 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+        };
+    };
+    my_notifications_api_v1_notifications_get: {
+        parameters: {
+            query?: {
+                after?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Inbox"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_one_api_v1_notifications__nid__read_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                nid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Inbox"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_all_api_v1_notifications_read_all_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Inbox"];
                 };
             };
         };

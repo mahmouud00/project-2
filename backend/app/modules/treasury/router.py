@@ -146,6 +146,10 @@ def create_tx(body: TxIn, dc=Depends(require("treasury.create"))):
         if body.party_type != "supplier" or po.supplier_id != body.party_id:
             raise ValidationFailed("Purchase order belongs to another supplier", code="PARTY_MISMATCH")
     tx = post_cash(db, ctx, box, **body.model_dump(exclude={"cashbox_id"}))
+    if tx.party_type == "customer" and tx.direction == "in":
+        from app.modules.notifications.router import alert, customer_name
+        alert(db, ctx, "sales", box.branch_id, f"تحصيل {tx.amount} من {customer_name(db, tx.party_id)}", tx.number,
+              f"customers/{tx.party_id}")
     db.commit()
     return tx
 

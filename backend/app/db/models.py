@@ -11,3 +11,4 @@ from app.modules.invoicing import models as _invoicing  # noqa: F401
 from app.modules.field import models as _field  # noqa: F401
 from app.modules.hr import models as _hr  # noqa: F401
 from app.modules.finance import models as _finance  # noqa: F401
+from app.modules.notifications import models as _notifications  # noqa: F401

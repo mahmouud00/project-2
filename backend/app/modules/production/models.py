@@ -26,6 +26,11 @@ class WorkOrder(Base, Entity, SoftDeleteMixin):
     quotation_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("quotations.id"), nullable=True)
     salesperson_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("employees.id"),
                                                              nullable=True, index=True)
+    # تأكيد الحسابات على البيعة: the order cannot reach "approved" (nor manufacturing) before it
+    sale_status: Mapped[str] = mapped_column(String(20), default="pending", server_default="pending")  # pending|approved|rejected
+    sale_approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    sale_approved_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    sale_approval_note: Mapped[str] = mapped_column(Text, default="", server_default="")
     stage: Mapped[str] = mapped_column(String(20), default="survey", index=True)
     total: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal(0))
     deposit_required: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal(0))

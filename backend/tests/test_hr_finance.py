@@ -176,3 +176,50 @@ def test_assets_profit_and_capital(platform, tenant_a, client):
     assert "opening_capital" not in client.get("/api/v1/company", headers=hs).json()["settings"]
     assert client.get("/api/v1/finance/profit", headers=hs).status_code == 403
     assert a1["status"] == "active"
+
+
+def test_sale_needs_accounts_and_notifications_reach_each_section(platform, tenant_a, tenant_b, client):
+    lib, branch, pl, customer = _setup(client, platform, tenant_a, "NTF")
+    h = tenant_a.h
+    _make_user(tenant_a, client, "acc2", "accounts")
+    _make_user(tenant_a, client, "smgr", "sales_manager")
+    _make_user(tenant_a, client, "pmgr", "production_manager")
+    _make_user(tenant_a, client, "fmgr", "field_manager")
+    ha, hs, hp, hf = (tenant_a.headers(u, "user-pass-123") for u in ("acc2", "smgr", "pmgr", "fmgr"))
+    inbox = lambda hh: client.get("/api/v1/notifications", headers=hh).json()
+    # a customer change reaches the sales manager only
+    client.patch(f"/api/v1/customers/{customer['id']}", headers=h, json={"version": customer["version"], "phone": "0123"})
+    assert any(customer["name"] in n["title"] for n in inbox(hs)["items"])
+    assert inbox(hp)["unread"] == 0 and inbox(hf)["unread"] == 0
+    # a sale waits for the accounts, who are notified
+    wo = _accepted_order(client, h, lib, branch, customer, "NTF")
+    assert wo["sale_status"] == "pending"
+    note = next(n for n in inbox(ha)["items"] if wo["number"] in n["title"])
+    assert note["link"] == "treasury?tab=sales" and note["read_at"] is None
+    pending = client.get("/api/v1/work-orders?sale_status=pending", headers=ha).json()["items"]
+    assert [x["id"] for x in pending] == [wo["id"]]
+    r = client.post(f"/api/v1/work-orders/{wo['id']}/approve-sale", headers=hs, json={"version": wo["version"]})
+    assert r.status_code == 403       # only the accounts confirm a sale
+    wo = client.post(f"/api/v1/work-orders/{wo['id']}/approve-sale", headers=ha,
+                     json={"version": wo["version"], "note": "العربون تمام"}).json()
+    assert wo["sale_status"] == "approved" and wo["sale_approval_note"] == "العربون تمام"
+    assert any("جاهز للتصنيع" in n["title"] for n in inbox(hp)["items"])
+    # the one who acted is not notified of their own change; reading clears the count
+    assert not any("أكدت" in n["title"] for n in inbox(ha)["items"])
+    n = inbox(hs)
+    assert n["unread"] >= 2
+    assert client.post("/api/v1/notifications/read-all", headers=hs).json()["unread"] == 0
+    # technicians' jobs reach the installations manager and the technician
+    tech = _make_user(tenant_a, client, "tech9", "technician")
+    from datetime import datetime, timedelta, timezone
+    job = client.post("/api/v1/field/jobs", headers=h, json={
+        "kind": "installation", "customer_id": customer["id"], "branch_id": branch["id"], "work_order_id": wo["id"],
+        "technician_id": tech["id"], "scheduled_at": (datetime.now(timezone.utc) + timedelta(hours=3)).isoformat()}).json()
+    ht = tenant_a.headers("tech9", "user-pass-123")
+    assert any("عندك مهمة" in x["title"] for x in inbox(ht)["items"])
+    client.post(f"/api/v1/field/jobs/{job['id']}/status", headers=ht, json={"status": "on_way"})
+    assert any("في الطريق" in x["title"] for x in inbox(hf)["items"])
+    # polling for what is new; nobody else's notifications, no other company's
+    after = inbox(hf)["items"][0]["created_at"]
+    assert client.get("/api/v1/notifications", params={"after": after}, headers=hf).json()["items"] == []
+    assert inbox(tenant_b.h)["items"] == []

@@ -205,6 +205,8 @@ def create_po(body: POIn, dc=Depends(require("purchasing.create"))):
         total += l.qty * l.unit_cost
     po.total = money(total)
     audit(db, po, "create")
+    from app.modules.notifications.router import alert
+    alert(db, ctx, "accounts", po.branch_id, f"أمر شراء مستني تأكيد: {po.number} بـ {po.total}", link=f"purchasing/{po.id}")
     db.commit()
     return _po_out(db, po)
 
@@ -253,6 +255,9 @@ def approve_po(po_id: uuid.UUID, body: ApproveIn, dc=Depends(require("purchasing
     po.approved_by = ctx.user_id
     po.approval_note = body.note
     audit(db, po, "update", before, note="approved" if body.approve else "rejected")
+    from app.modules.notifications.router import alert
+    alert(db, ctx, "production", po.branch_id, f"أمر الشراء {po.number} " + ("اتأكد" if body.approve else "اترفض"),
+          body.note, f"purchasing/{po.id}")
     db.commit()
     return _po_out(db, po)
 

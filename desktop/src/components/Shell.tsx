@@ -7,6 +7,7 @@ import { api, errorText, store, CLIENT_VERSION } from "../api/client";
 import { go } from "../lib/router";
 import { useToast } from "../state/toast";
 import { PrintPreview } from "./media";
+import { Bell } from "./bell";
 import { collectPage, type Report } from "../lib/printpage";
 import mytechLogo from "../assets/logo-transparent.png";
 
@@ -120,6 +121,7 @@ export function Shell({ page, title, crumbs, children, onLogout }:
               {s.branches.filter((b) => b.is_active).map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
             </select>
           )}
+          <Bell />
           <button className="icon-btn hide-phone" onClick={printPage} title="طباعة الصفحة / حفظ PDF"><Icon name="print" /></button>
           <button className="icon-btn" onClick={theme.toggle} title={theme.isDark ? "الوضع الفاتح" : "الوضع الغامق"}>
             <Icon name={theme.isDark ? "sun" : "moon"} />

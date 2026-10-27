@@ -410,3 +410,14 @@ select.cell { appearance: none; text-overflow: ellipsis; cursor: pointer; }
   .tech-map { height: 360px; }
   .totals { width: 100% !important; }
 }
+
+/* notifications bell */
+.bell { position: relative; }
+.bell-count { position: absolute; top: -6px; left: -6px; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 9px;
+  background: var(--danger); color: #fff; font-size: 11px; line-height: 18px; text-align: center; }
+.bell-panel { position: absolute; left: 0; top: 42px; width: 360px; max-width: calc(100vw - 24px); z-index: 40; padding: 0; }
+.bell-item { display: block; width: 100%; text-align: start; padding: 9px 12px; border: 0; border-bottom: 1px solid var(--border);
+  background: transparent; color: var(--text); cursor: pointer; font: inherit; }
+.bell-item:hover { background: var(--hover); }
+.bell-item.unread { background: color-mix(in srgb, var(--primary) 8%, transparent); }
+@media (max-width: 820px) { .bell-panel { position: fixed; left: 12px; right: 12px; top: 58px; width: auto; } }

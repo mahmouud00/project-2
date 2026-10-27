@@ -83,6 +83,7 @@ function WorkOrderDetail({ id, tab }: { id: string; tab: string }) {
   const wo = useLoad(() => api.get<WO>(`/work-orders/${id}`), [id]);
   useTitle(wo.data ? `أمر تصنيع ${wo.data.number}` : "…", <a onClick={() => go("work-orders")} style={{ cursor: "pointer" }}>أوامر التصنيع</a>, [wo.data?.number]);
   const [printing, setPrinting] = useState(false);
+  const [saleDecision, setSaleDecision] = useState<boolean | null>(null);
   const [paying, setPaying] = useState(false);
   const [cancel, setCancel] = useState(false);
   const [edit, setEdit] = useState(false);
@@ -124,6 +125,8 @@ function WorkOrderDetail({ id, tab }: { id: string; tab: string }) {
           <div><div className="muted small">العربون المطلوب</div><Money v={w.deposit_required} /></div>
           <div><div className="muted small">المدفوع</div><span className={Number(w.paid_amount) >= Number(w.deposit_required) ? "success-text bold" : "bold"}><Money v={w.paid_amount} /></span></div>
           <div><div className="muted small">البائع</div><SalespersonName id={w.salesperson_id} /></div>
+          {w.quotation_id && <div><div className="muted small">تأكيد الحسابات</div><Chip color={SALE_STATUS[w.sale_status ?? "pending"][1]}
+            >{SALE_STATUS[w.sale_status ?? "pending"][0]}</Chip>{w.sale_approval_note && <div className="small muted">{w.sale_approval_note}</div>}</div>}
           <div style={{ minWidth: 170 }}><div className="muted small">الإنجاز{w.expected_delivery ? ` · متوقع ${date(w.expected_delivery)}` : ""}</div>
             <Progress pct={w.progress_pct} late={w.late} /></div>
           <div className="end row wrap">
@@ -131,6 +134,9 @@ function WorkOrderDetail({ id, tab }: { id: string; tab: string }) {
             {s.can("purchasing.create", w.branch_id) && w.stage !== "cancelled" && <Btn icon="cart" onClick={() => setOrdering(true)}>طلبية بضاعة</Btn>}
             {s.can("field.manage", w.branch_id) && w.stage !== "cancelled" &&
               <Btn icon="truck" onClick={() => setAssign(true)}>مهمة تركيب</Btn>}
+            {w.quotation_id && w.sale_status !== "approved" && ["survey", "quotation"].includes(w.stage) && s.can("sales.approve", w.branch_id) && <>
+              <Btn kind="success" icon="check" onClick={() => setSaleDecision(true)}>تأكيد البيعة</Btn>
+              {w.sale_status !== "rejected" && <Btn kind="danger" onClick={() => setSaleDecision(false)}>رفض البيعة</Btn>}</>}
             {s.can("workorders.write", w.branch_id) && !frozen && <Btn icon="edit" onClick={() => setEdit(true)}>تعديل</Btn>}
             {s.can("treasury.create", w.branch_id) && w.stage !== "cancelled" && <Btn icon="cash" onClick={() => setPaying(true)}>تحصيل</Btn>}
             {s.can("invoices.create", w.branch_id) && w.stage !== "cancelled" && w.quotation_id && <Btn icon="invoice" busy={busy} onClick={invoice}>فاتورة</Btn>}
@@ -143,7 +149,9 @@ function WorkOrderDetail({ id, tab }: { id: string; tab: string }) {
         {canStage && w.stage !== "cancelled" && w.stage !== "delivered" && (
           <div className="row mt wrap">
             <div style={{ width: 280 }}><TextIn value={note} onChange={setNote} placeholder="ملاحظة على النقل (اختياري)" /></div>
-            {next && <Btn kind="primary" icon="arrow" busy={busy} onClick={() => move(next)}>نقل لـ {STAGE_NAMES[next]}</Btn>}
+            {next && <Btn kind="primary" icon="arrow" busy={busy} disabled={next === "approved" && w.sale_status !== "approved"}
+              onClick={() => move(next)}>نقل لـ {STAGE_NAMES[next]}</Btn>}
+            {next === "approved" && w.sale_status !== "approved" && <span className="muted small">مستني تأكيد الحسابات على البيعة.</span>}
             <Btn kind="danger" icon="ban" className="end" onClick={() => setCancel(true)}>إلغاء الأمر</Btn>
           </div>
         )}
@@ -191,6 +199,7 @@ function WorkOrderDetail({ id, tab }: { id: string; tab: string }) {
       {assign && <AssignJob job={{ kind: "installation", customer_id: w.customer_id, branch_id: w.branch_id, work_order_id: w.id }}
         onClose={() => setAssign(false)} onSaved={() => undefined} />}
       {printing && <PrintPreview path={`/work-orders/${id}/print/cut-list`} title={`كشف تقطيع ${w.number}`} onClose={() => setPrinting(false)} />}
+      {saleDecision !== null && <SaleDecisionForm wo={w} approve={saleDecision} onClose={() => setSaleDecision(null)} onSaved={(x) => wo.set(x)} />}
       {paying && <PaymentForm onClose={() => setPaying(false)} onSaved={() => wo.reload()}
         initial={{ direction: "in", party_type: "customer", party_id: w.customer_id, work_order_id: w.id }} />}
       {cancel && <Confirm title="إلغاء أمر التصنيع" danger yes="إلغاء الأمر" busy={busy} onClose={() => setCancel(false)}
@@ -397,6 +406,31 @@ function GoodsOrder({ wo, onClose }: { wo: WO; onClose: () => void }) {
       )}
       <div className="row mt"><span className="muted small">القطاعات بأعواد كاملة (بعد تحسين التقطيع) بالمتر، والزجاج بالمتر المربع، والإكسسوار حسب كل نموذج × عدد الوحدات.</span>
         <b className="end">الإجمالي التقريبي: <Money v={total.toFixed(2)} /></b></div>
+    </Modal>
+  );
+}
+
+export const SALE_STATUS: Record<string, [string, "gray" | "green" | "red"]> = {
+  pending: ["مستني الحسابات", "gray"], approved: ["الحسابات أكدت", "green"], rejected: ["الحسابات رفضت", "red"] };
+
+/** The accounts confirm (or refuse) a sale: price, discount and deposit, before the order is approved and made. */
+export function SaleDecisionForm({ wo, approve, onClose, onSaved }: { wo: WO; approve: boolean; onClose: () => void; onSaved: (w: WO) => void }) {
+  const toast = useToast();
+  const { busy, run } = useAction(toast.err);
+  const [note, setNote] = useState("");
+  return (
+    <Modal title={`${approve ? "تأكيد" : "رفض"} البيعة ${wo.number}`} onClose={onClose} footer={<>
+      <Btn kind={approve ? "success" : "solid-danger"} busy={busy} disabled={!approve && !note.trim()} onClick={() => run(async () => {
+        onSaved(await api.post<WO>(`/work-orders/${wo.id}/approve-sale`, { version: wo.version, approve, note }));
+        toast.ok(approve ? "اتأكدت البيعة." : "اترفضت البيعة.");
+        onClose();
+      })}>{approve ? "تأكيد" : "رفض"}</Btn><Btn onClick={onClose}>رجوع</Btn></>}>
+      <div className="col">
+        <div className="row wrap" style={{ gap: 16 }}><span>العميل: <b><CustomerName id={wo.customer_id} /></b></span>
+          <span>الإجمالي: <b><Money v={wo.total} cur /></b></span><span>العربون المطلوب: <Money v={wo.deposit_required} /></span>
+          <span>المدفوع: <Money v={wo.paid_amount} /></span></div>
+        <Field label={approve ? "ملاحظة (اختياري)" : "سبب الرفض"}><TextIn value={note} onChange={setNote} /></Field>
+      </div>
     </Modal>
   );
 }

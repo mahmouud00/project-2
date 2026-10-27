@@ -120,6 +120,10 @@ def create_maintenance(body: MaintenanceIn, dc=Depends(require("maintenance.crea
     db.add(m)
     db.flush()
     audit(db, m, "create")
+    from app.modules.notifications.router import alert
+    for cat in ("sales", "field"):
+        alert(db, ctx, cat, m.branch_id, f"طلب صيانة جديد {m.number}: {customer.name}", m.description[:200],
+              f"customers/{customer.id}?tab=maintenance")
     db.commit()
     return m
 
@@ -300,6 +304,12 @@ def create_job(body: JobIn, dc=Depends(require("field.manage"))):
         source.technician = tech.full_name if tech else source.technician
     db.flush()
     audit(db, job, "create")
+    from app.modules.notifications.router import alert
+    kind = JOB_NAMES.get(job.kind, job.kind)
+    when = job.scheduled_at.strftime("%Y-%m-%d %H:%M")
+    alert(db, ctx, "field", job.branch_id, f"مهمة {kind} جديدة: {customer.name}", when, "field?tab=jobs")
+    alert(db, ctx, "field", job.branch_id, f"عندك مهمة {kind}: {customer.name}", f"{when} · {job.address or ''}", "field",
+          users={job.technician_id})
     db.commit()
     return _job_out(db, job)
 
@@ -319,6 +329,7 @@ def update_job(job_id: uuid.UUID, body: JobUpdate, dc=Depends(require("field.man
     return _job_out(db, job)
 
 
+JOB_NAMES = {"survey": "معاينة", "installation": "تركيب", "maintenance": "صيانة"}
 NEXT = {"scheduled": {"on_way", "arrived", "cancelled"}, "on_way": {"arrived", "cancelled"},
         "arrived": {"done", "cancelled"}}
 
@@ -353,6 +364,14 @@ def job_status(job_id: uuid.UUID, body: JobStatusIn, dc=Depends(get_db_and_ctx))
     if body.note and body.status != "done":
         job.notes = (job.notes + "\n" if job.notes else "") + body.note
     audit(db, job, "update", before)
+    from app.modules.notifications.router import alert, customer_name
+    tech = db.get(User, job.technician_id)
+    word = {"on_way": "في الطريق لـ", "arrived": "وصل عند", "done": "خلص عند", "cancelled": "اتلغت مهمته عند"}
+    text = f"{tech.full_name if tech else 'الفني'} {word.get(job.status, job.status)} {customer_name(db, job.customer_id)}"
+    alert(db, ctx, "field", job.branch_id, text, body.note or "", "field?tab=jobs")
+    if job.status == "done" and job.kind == "installation":
+        alert(db, ctx, "sales", job.branch_id, f"التركيب خلص عند {customer_name(db, job.customer_id)}", body.note or "",
+              f"customers/{job.customer_id}")
     db.commit()
     return _job_out(db, job)
 

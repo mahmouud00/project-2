@@ -367,6 +367,9 @@ def issue(inv_id: uuid.UUID, body: VersionIn, dc=Depends(require(EDIT_PERM))):
     inv.number = next_number(db, "invoice", "INV", branch.code)
     inv.status, inv.issue_date = "issued", date.today()
     audit(db, inv, "update", before, note="issued")
+    from app.modules.notifications.router import alert, customer_name
+    alert(db, ctx, "sales", inv.branch_id, f"فاتورة صادرة {inv.number} بـ {inv.total}", customer_name(db, inv.customer_id),
+          f"invoices/{inv.id}")
     db.commit()
     return invoice_out(db, inv)
 
