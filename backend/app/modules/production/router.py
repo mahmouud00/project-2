@@ -245,6 +245,21 @@ def update_work_order(wo_id: uuid.UUID, body: WorkOrderUpdate, dc=Depends(requir
     return _wo_out(db, wo, ctx=ctx)
 
 
+def _take_offcuts(db, wo: WorkOrder) -> None:
+    """Offcuts the cut plan uses become "used" by this order; every reusable leftover becomes a new offcut."""
+    from app.modules.production.models import Offcut
+
+    for plan in wo.outputs.get("optimisation", []):
+        code = next((g["material_code"] for g in wo.outputs["cut_list"] if g["sku"] == plan["sku"]), plan["sku"])
+        for used in plan.get("offcuts_used", []):
+            o = db.get(Offcut, uuid.UUID(used["id"]))
+            o.status, o.used_work_order_id = "used", wo.id
+        for bar in plan["bars"]:
+            if bar["offcut_reusable"]:
+                db.add(Offcut(branch_id=wo.branch_id, sku=plan["sku"], material_code=code,
+                              length_mm=Decimal(str(bar["offcut_mm"])), source_work_order_id=wo.id))
+
+
 class StageIn(BaseModel):
     version: int
     to: str
@@ -274,12 +289,15 @@ def change_stage(wo_id: uuid.UUID, body: StageIn, dc=Depends(require("workorders
                 raise Conflict("Deposit not paid", code="DEPOSIT_REQUIRED",
                                details={"required": str(wo.deposit_required), "paid": str(wo.paid_amount)})
         if body.to == "manufacturing":
-            wo.outputs = generate_outputs(db, wo)
+            from app.modules.production.manufacturing import available_offcuts
+            # the offcuts are taken now (locked, so two orders never cut the same one)
+            wo.outputs = generate_outputs(db, wo, available_offcuts(db, wo.branch_id, lock=True))
             wo.outputs_generated_at = utcnow()
             errors = [i for i in wo.outputs["issues"] if i.get("level") == "error"]
             if errors:
                 raise ValidationFailed("Manufacturing outputs have errors", code="MANUFACTURING_ERRORS",
                                        details=errors)
+            _take_offcuts(db, wo)
     before = snapshot(wo)
     wo.stage = body.to
     _log_stage(db, ctx, wo, current, body.to, body.note)
@@ -359,6 +377,7 @@ class NeedOut(BaseModel):
     bars: int | None = None       # profiles: whole bars after cutting optimisation
     bar_length_mm: Decimal | None = None
     pieces: int | None = None     # glass panes
+    offcuts_used: int = 0         # profiles: offcuts in stock that this order cuts from (fewer bars to buy)
     unit_cost: Decimal | None = None
 
 
@@ -380,7 +399,8 @@ def material_needs(wo_id: uuid.UUID, dc=Depends(require("workorders.read"))):
             qty = Decimal(str(plan["bar_length_mm"])) * plan["bars_count"] / 1000
             needs.append(NeedOut(kind="profile", sku=g["sku"], material_code=g["material_code"],
                                  name=g.get("material_name") or g["material_code"], unit="m", qty=qty,
-                                 bars=plan["bars_count"], bar_length_mm=Decimal(str(plan["bar_length_mm"]))))
+                                 bars=plan["bars_count"], bar_length_mm=Decimal(str(plan["bar_length_mm"])),
+                                 offcuts_used=len(plan.get("offcuts_used", []))))
         else:
             needs.append(NeedOut(kind="profile", sku=g["sku"], material_code=g["material_code"],
                                  name=g.get("material_name") or g["material_code"], unit="m",
@@ -421,3 +441,86 @@ def delete_work_order(wo_id: uuid.UUID, dc=Depends(require("workorders.delete"))
     audit(db, wo, "delete", before)
     db.commit()
     return DeleteResult(result="deleted")
+
+
+# ---------------------------------------------------------------- offcuts (البواقي)
+class OffcutIn(BaseModel):
+    branch_id: uuid.UUID
+    sku: str = Field(min_length=1)
+    length_mm: Decimal = Field(gt=0)
+    note: str = ""
+
+
+class OffcutOut(Record):
+    branch_id: uuid.UUID
+    sku: str
+    material_code: str
+    length_mm: Decimal
+    status: str
+    source_work_order_id: uuid.UUID | None
+    used_work_order_id: uuid.UUID | None
+    note: str
+
+
+@router.get("/offcuts", response_model=Page[OffcutOut])
+def list_offcuts(status: str | None = "available", sku: str | None = None, params: PageParams = Depends(),
+                 dc=Depends(require("workorders.read"))):
+    from app.modules.production.models import Offcut
+
+    db, ctx = dc
+    stmt = select(Offcut).order_by(Offcut.sku, Offcut.length_mm.desc())
+    stmt = branch_scope(stmt, ctx, "workorders.read", Offcut.branch_id)
+    if status:
+        stmt = stmt.where(Offcut.status == status)
+    if sku:
+        stmt = stmt.where(Offcut.sku.ilike(f"%{sku}%"))
+    return paginate(db, stmt, params, OffcutOut)
+
+
+@router.post("/offcuts", response_model=OffcutOut, status_code=201)
+def add_offcut(body: OffcutIn, dc=Depends(require("workorders.write"))):
+    """A leftover already in the factory (counted by hand)."""
+    from app.modules.org.settings import get_company_settings
+    from app.modules.production.models import Offcut
+    from app.modules.purchasing.router import resolve_sku
+
+    db, ctx = dc
+    ctx.require("workorders.write", body.branch_id)
+    get_or_404(db, Branch, body.branch_id)
+    material = resolve_sku(db, body.sku)
+    if material.kind != "profile":
+        raise ValidationFailed("Offcuts are profiles", code="NOT_A_PROFILE")
+    minimum = get_company_settings(db, ctx.company_id).min_reusable_offcut_mm
+    if body.length_mm < minimum:
+        raise ValidationFailed("Shorter than the minimum kept offcut", code="OFFCUT_TOO_SHORT",
+                               details={"minimum_mm": str(minimum)})
+    o = Offcut(branch_id=body.branch_id, sku=body.sku, material_code=material.code, length_mm=body.length_mm,
+               note=body.note)
+    db.add(o)
+    db.flush()
+    audit(db, o, "create")
+    db.commit()
+    return o
+
+
+class ScrapIn(BaseModel):
+    version: int
+    note: str = ""
+
+
+@router.post("/offcuts/{offcut_id}/scrap", response_model=OffcutOut)
+def scrap_offcut(offcut_id: uuid.UUID, body: ScrapIn, dc=Depends(require("workorders.write"))):
+    """اتشال كهالك (اتكسر، اتباع، مش موجود)."""
+    from app.modules.production.models import Offcut
+
+    db, ctx = dc
+    o = get_or_404(db, Offcut, offcut_id)
+    ctx.require("workorders.write", o.branch_id)
+    check_version(o, body.version)
+    if o.status != "available":
+        raise Conflict("Not in stock", code="INVALID_TRANSITION")
+    before = snapshot(o)
+    o.status, o.note = "scrapped", body.note or o.note
+    audit(db, o, "update", before)
+    db.commit()
+    return o

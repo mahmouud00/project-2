@@ -24,7 +24,23 @@ def _sku(material: dict | None, code: str, color: str | None) -> str:
     return code
 
 
-def generate_outputs(db: Session, wo: WorkOrder) -> dict:
+def available_offcuts(db: Session, branch_id, skus=None, lock: bool = False) -> dict[str, list[dict]]:
+    """Offcuts in stock at the order's branch, per SKU (locked while an order takes them)."""
+    from app.modules.production.models import Offcut
+
+    stmt = select(Offcut).where(Offcut.branch_id == branch_id, Offcut.status == "available")
+    if skus is not None:
+        stmt = stmt.where(Offcut.sku.in_(list(skus)))
+    if lock:
+        stmt = stmt.with_for_update()
+    out: dict[str, list[dict]] = defaultdict(list)
+    for o in db.scalars(stmt.order_by(Offcut.length_mm)):
+        out[o.sku].append({"id": str(o.id), "length_mm": o.length_mm})
+    return out
+
+
+def generate_outputs(db: Session, wo: WorkOrder, offcuts: dict[str, list[dict]] | None = None) -> dict:
+    """offcuts: stock to cut from first (default: what is available at the order's branch now)."""
     settings = get_company_settings(db, wo.company_id)
     items = list(db.scalars(select(WorkOrderItem).where(WorkOrderItem.work_order_id == wo.id)
                             .order_by(WorkOrderItem.position)))
@@ -76,6 +92,8 @@ def generate_outputs(db: Session, wo: WorkOrder) -> dict:
                          "elements": calc.get("drawing", [])})
 
     resolver = CostResolver(db)
+    if offcuts is None:
+        offcuts = available_offcuts(db, wo.branch_id, cut_groups.keys())
     cut_list, optimisation, costs, missing = [], [], [], set()
     for sku, g in sorted(cut_groups.items()):
         # (group key is the SKU, so all its pieces share one colour)
@@ -90,13 +108,14 @@ def generate_outputs(db: Session, wo: WorkOrder) -> dict:
             plan = optimise([{"length_mm": p["length_mm"], "qty": p["qty"], "label": p["label"],
                               "angle_left": p["angle_left"], "angle_right": p["angle_right"]} for p in pieces],
                             bar_length_mm=Decimal(g["bar_length_mm"]), kerf_mm=settings.saw_kerf_mm,
-                            trim_mm=settings.bar_trim_mm, min_offcut_mm=settings.min_reusable_offcut_mm)
+                            trim_mm=settings.bar_trim_mm, min_offcut_mm=settings.min_reusable_offcut_mm,
+                            stock=offcuts.get(sku, []))
             plan["sku"] = sku
             for t in plan["too_long"]:
                 issues.append({"level": "error", "code": "PIECE_LONGER_THAN_BAR", "message": f"{sku}: {t['length_mm']} mm",
                                "where": sku})
             optimisation.append(plan)
-            consumed_m = plan["total_length_mm"] / 1000
+            consumed_m = plan["new_bars_length_mm"] / 1000      # offcuts were paid by earlier orders
         else:
             consumed_m = cut_list[-1]["total_length_mm"] / 1000
         if cost is None:

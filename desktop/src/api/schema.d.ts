@@ -1394,6 +1394,47 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/offcuts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Offcuts */
+        get: operations["list_offcuts_api_v1_offcuts_get"];
+        put?: never;
+        /**
+         * Add Offcut
+         * @description A leftover already in the factory (counted by hand).
+         */
+        post: operations["add_offcut_api_v1_offcuts_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/offcuts/{offcut_id}/scrap": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Scrap Offcut
+         * @description اتشال كهالك (اتكسر، اتباع، مش موجود).
+         */
+        post: operations["scrap_offcut_api_v1_offcuts__offcut_id__scrap_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/suppliers": {
         parameters: {
             query?: never;
@@ -3035,7 +3076,8 @@ export interface components {
             bar_trim_mm: number | string;
             /**
              * Min Reusable Offcut Mm
-             * @default 0
+             * @description أقصر باقي بيتشال (أقل منه هالك)
+             * @default 400
              */
             min_reusable_offcut_mm: number | string;
             /**
@@ -4495,6 +4537,11 @@ export interface components {
             bar_length_mm?: string | null;
             /** Pieces */
             pieces?: number | null;
+            /**
+             * Offcuts Used
+             * @default 0
+             */
+            offcuts_used: number;
             /** Unit Cost */
             unit_cost?: string | null;
         };
@@ -4520,6 +4567,56 @@ export interface components {
             link: string;
             /** Read At */
             read_at: string | null;
+        };
+        /** OffcutIn */
+        OffcutIn: {
+            /**
+             * Branch Id
+             * Format: uuid
+             */
+            branch_id: string;
+            /** Sku */
+            sku: string;
+            /** Length Mm */
+            length_mm: number | string;
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+        };
+        /** OffcutOut */
+        OffcutOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Version */
+            version: number;
+            /** Created At */
+            created_at?: string | null;
+            /** Updated At */
+            updated_at?: string | null;
+            /**
+             * Branch Id
+             * Format: uuid
+             */
+            branch_id: string;
+            /** Sku */
+            sku: string;
+            /** Material Code */
+            material_code: string;
+            /** Length Mm */
+            length_mm: string;
+            /** Status */
+            status: string;
+            /** Source Work Order Id */
+            source_work_order_id: string | null;
+            /** Used Work Order Id */
+            used_work_order_id: string | null;
+            /** Note */
+            note: string;
         };
         /** OpeningIn */
         OpeningIn: {
@@ -4876,6 +4973,17 @@ export interface components {
         Page_MaterialOut_: {
             /** Items */
             items: components["schemas"]["MaterialOut"][];
+            /** Total */
+            total: number;
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+        };
+        /** Page[OffcutOut] */
+        Page_OffcutOut_: {
+            /** Items */
+            items: components["schemas"]["OffcutOut"][];
             /** Total */
             total: number;
             /** Limit */
@@ -5545,6 +5653,16 @@ export interface components {
              * @default true
              */
             approve: boolean;
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+        };
+        /** ScrapIn */
+        ScrapIn: {
+            /** Version */
+            version: number;
             /**
              * Note
              * @default
@@ -10126,6 +10244,108 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["NeedOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_offcuts_api_v1_offcuts_get: {
+        parameters: {
+            query?: {
+                status?: string | null;
+                sku?: string | null;
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_OffcutOut_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_offcut_api_v1_offcuts_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OffcutIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OffcutOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    scrap_offcut_api_v1_offcuts__offcut_id__scrap_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                offcut_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScrapIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OffcutOut"];
                 };
             };
             /** @description Validation Error */

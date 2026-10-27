@@ -176,6 +176,9 @@ def test_upgrade_from_old_revision_keeps_data():
             if table == "roles":       # permissions only grow (0009), except the removed inventory ones (0011)
                 assert {x for x in old["permissions"] if not x.startswith("inventory.")} <= set(new["permissions"])
                 old = {k: v for k, v in old.items() if k != "permissions"}
+            if table == "companies":   # 0013: companies that never set it keep offcuts of 40 cm
+                assert new["settings"]["min_reusable_offcut_mm"] == "400"
+                new = {**new, "settings": {k: v for k, v in new["settings"].items() if k != "min_reusable_offcut_mm"}}
             if table == "purchase_orders":
                 old = {k: v for k, v in old.items() if k != "warehouse_id"}
             if table == "work_orders":

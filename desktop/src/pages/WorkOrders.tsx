@@ -241,7 +241,8 @@ type CutPiece = { length_mm: string; angle_left?: string; angle_right?: string; 
 type Outputs = {
   cut_list: { sku: string; material_code: string; material_name: string; pieces: CutPiece[]; total_pieces: number; total_length_mm: string }[];
   optimisation: { sku: string; bar_length_mm: string; bars_count: number; bars: { bar_no: number; pieces: { length_mm: string; label?: string }[]; used_mm: string;
-    offcut_mm: string; offcut_reusable: boolean; waste_mm: string }[]; waste_pct: string; reusable_offcuts_mm: (string | number)[];
+    offcut_mm: string; offcut_reusable: boolean; waste_mm: string; length_mm?: string; from_offcut?: string | null }[]; waste_pct: string;
+    reusable_offcuts_mm: (string | number)[]; offcuts_used?: { id: string; length_mm: string }[];
     too_long?: unknown[] }[];
   waste_pct?: string;
   glass: { item: number; location: string; label: string; material_code: string; width_mm: string; height_mm: string; qty: number; area_m2: string }[];
@@ -338,19 +339,20 @@ function BarPlans({ o }: { o: Outputs }) {
         return (
           <div key={m.sku} className="card">
             <div className="card-h"><h3>{names[m.sku] ?? m.sku}</h3><span className="code">{m.sku}</span>
-              <span className="end muted small">العود <Len mm={m.bar_length_mm} /> {s.unit === "cm" ? "سم" : "مم"} · <b className="num">{m.bars_count}</b> عود · الهالك <b className="num">{Number(m.waste_pct)}%</b></span></div>
+              <span className="end muted small">العود <Len mm={m.bar_length_mm} /> {s.unit === "cm" ? "سم" : "مم"} · <b className="num">{m.bars_count}</b> عود جديد
+                {!!m.offcuts_used?.length && <> + <b className="num">{m.offcuts_used.length}</b> باقي من المخزون</>} · الهالك <b className="num">{Number(m.waste_pct)}%</b></span></div>
             <div className="card-b col" style={{ gap: 6 }}>
               {m.bars.map((b) => (
                 <div key={b.bar_no} className="row">
-                  <span className="num muted small" style={{ width: 24 }}>{b.bar_no}</span>
-                  <div className="bar-plan grow">
-                    {b.pieces.map((p, i) => <span key={i} style={{ width: `${(Number(p.length_mm) / bar) * 100}%` }} title={`${p.label ?? ""} ${s.len(p.length_mm)}`}>{s.len(p.length_mm)}</span>)}
-                    {Number(b.offcut_mm) > 0 && <span className={b.offcut_reusable ? "off" : "waste"} style={{ width: `${(Number(b.offcut_mm) / bar) * 100}%` }}
-                      title={(b.offcut_reusable ? "باقي يرجع المخزن " : "هالك ") + s.len(b.offcut_mm)}>{s.len(b.offcut_mm)}</span>}
+                  <span className="num muted small" style={{ width: 24 }} title={b.from_offcut ? "باقي من المخزون" : ""}>{b.from_offcut ? "♻" : b.bar_no}</span>
+                  <div className="bar-plan" style={{ width: `${(Number(b.length_mm ?? bar) / bar) * 100}%` }}>
+                    {b.pieces.map((p, i) => <span key={i} style={{ width: `${(Number(p.length_mm) / Number(b.length_mm ?? bar)) * 100}%` }} title={`${p.label ?? ""} ${s.len(p.length_mm)}`}>{s.len(p.length_mm)}</span>)}
+                    {Number(b.offcut_mm) > 0 && <span className={b.offcut_reusable ? "off" : "waste"} style={{ width: `${(Number(b.offcut_mm) / Number(b.length_mm ?? bar)) * 100}%` }}
+                      title={(b.offcut_reusable ? "باقي يتشال " : "هالك ") + s.len(b.offcut_mm)}>{s.len(b.offcut_mm)}</span>}
                   </div>
                 </div>
               ))}
-              {!!m.reusable_offcuts_mm?.length && <div className="muted small">بواقي ترجع المخزن: <span className="num">{m.reusable_offcuts_mm.map((x) => s.len(x)).join("، ")}</span></div>}
+              {!!m.reusable_offcuts_mm?.length && <div className="muted small">بواقي هتتشال (٤٠ سم وأكتر): <span className="num">{m.reusable_offcuts_mm.map((x) => s.len(x)).join("، ")}</span></div>}
             </div>
           </div>
         );
@@ -399,7 +401,7 @@ function GoodsOrder({ wo, onClose }: { wo: WO; onClose: () => void }) {
           { key: "s", label: "الكود", render: (n) => <span className="code">{n.sku}</span> },
           { key: "n", label: "الخامة", render: (n) => n.name },
           { key: "b", label: "التفاصيل", render: (n) => <span className="small muted">{n.bars ? `${n.bars} عود × ${Number(n.bar_length_mm) / 1000} م`
-            : n.pieces ? `${n.pieces} لوح` : ""}</span> },
+            : n.pieces ? `${n.pieces} لوح` : ""}{n.offcuts_used ? ` · + ${n.offcuts_used} باقي من المخزون` : ""}</span> },
           { key: "q", label: "الكمية", num: true, render: (n) => <span className="num bold">{qtyOf(n).toLocaleString("en", { maximumFractionDigits: 3 })} {UNITS[n.unit] ?? n.unit}</span> },
           { key: "c", label: "سعر الوحدة", num: true, width: 130, render: (n, i) => <NumIn value={String(n.unit_cost ?? "")} onChange={(v) => set(i, { unit_cost: v || null })} /> },
         ]} />

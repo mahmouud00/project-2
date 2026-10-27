@@ -170,6 +170,14 @@ WS /api/v1/system/events?token=<access_token>
 | GET | `/customers/{id}/statement`، `/suppliers/{id}/statement` | كشف حساب |
 
 
+### البواقي
+| | | |
+|---|---|---|
+| GET / POST | `/offcuts?status=available&sku=` | البواقي (من «أقل باقي يتشال»، افتراضي 400 مم) لكل قطاع بلونه وطوله. الإضافة لباقي موجود في المصنع |
+| POST | `/offcuts/{id}/scrap` | اتشال هالك |
+
+البواقي بتتعمل أوتوماتيك لما الأمر يدخل تصنيع، والأمر بيقطع من البواقي الموجودة الأول (`offcuts_used` في خطة الأعواد و`material-needs`).
+
 ### الإشعارات وتأكيد البيعة
 | | | |
 |---|---|---|

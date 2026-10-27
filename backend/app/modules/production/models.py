@@ -71,3 +71,19 @@ class WorkOrderStageLog(Base, IdMixin, TenantMixin):
     at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     user_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
     note: Mapped[str] = mapped_column(Text, default="")
+
+
+class Offcut(Base, Entity):
+    """باقي قطاع (بعد التقطيع) أطول من «أقل باقي يتشال»: المخزون الوحيد في المصنع. Used first by later orders."""
+    __tablename__ = "offcuts"
+
+    branch_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("branches.id"), index=True)
+    sku: Mapped[str] = mapped_column(String(80), index=True)          # the profile in its colour
+    material_code: Mapped[str] = mapped_column(String(60))
+    length_mm: Mapped[Decimal] = mapped_column(Numeric(12, 2))        # clean usable length
+    status: Mapped[str] = mapped_column(String(20), default="available", index=True)  # available | used | scrapped
+    source_work_order_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("work_orders.id"),
+                                                                   nullable=True)
+    used_work_order_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("work_orders.id"),
+                                                                 nullable=True)
+    note: Mapped[str] = mapped_column(Text, default="")

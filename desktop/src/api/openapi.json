@@ -5513,6 +5513,204 @@
     }
    }
   },
+  "/api/v1/offcuts": {
+   "get": {
+    "tags": [
+     "production"
+    ],
+    "summary": "List Offcuts",
+    "operationId": "list_offcuts_api_v1_offcuts_get",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "status",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "default": "available",
+       "title": "Status"
+      }
+     },
+     {
+      "name": "sku",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Sku"
+      }
+     },
+     {
+      "name": "limit",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "maximum": 500,
+       "minimum": 1,
+       "default": 50,
+       "title": "Limit"
+      }
+     },
+     {
+      "name": "offset",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "minimum": 0,
+       "default": 0,
+       "title": "Offset"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Page_OffcutOut_"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "post": {
+    "tags": [
+     "production"
+    ],
+    "summary": "Add Offcut",
+    "description": "A leftover already in the factory (counted by hand).",
+    "operationId": "add_offcut_api_v1_offcuts_post",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/OffcutIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/OffcutOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/offcuts/{offcut_id}/scrap": {
+   "post": {
+    "tags": [
+     "production"
+    ],
+    "summary": "Scrap Offcut",
+    "description": "اتشال كهالك (اتكسر، اتباع، مش موجود).",
+    "operationId": "scrap_offcut_api_v1_offcuts__offcut_id__scrap_post",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "offcut_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Offcut Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ScrapIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/OffcutOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/v1/suppliers": {
    "get": {
     "tags": [
@@ -11451,7 +11649,8 @@
        }
       ],
       "title": "Min Reusable Offcut Mm",
-      "default": "0"
+      "description": "أقصر باقي بيتشال (أقل منه هالك)",
+      "default": "400"
      },
      "quote_terms": {
       "type": "string",
@@ -16000,6 +16199,11 @@
       ],
       "title": "Pieces"
      },
+     "offcuts_used": {
+      "type": "integer",
+      "title": "Offcuts Used",
+      "default": 0
+     },
      "unit_cost": {
       "anyOf": [
        {
@@ -16075,6 +16279,144 @@
      "read_at"
     ],
     "title": "NotificationOut"
+   },
+   "OffcutIn": {
+    "properties": {
+     "branch_id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Branch Id"
+     },
+     "sku": {
+      "type": "string",
+      "minLength": 1,
+      "title": "Sku"
+     },
+     "length_mm": {
+      "anyOf": [
+       {
+        "type": "number",
+        "exclusiveMinimum": 0.0
+       },
+       {
+        "type": "string"
+       }
+      ],
+      "title": "Length Mm"
+     },
+     "note": {
+      "type": "string",
+      "title": "Note",
+      "default": ""
+     }
+    },
+    "type": "object",
+    "required": [
+     "branch_id",
+     "sku",
+     "length_mm"
+    ],
+    "title": "OffcutIn"
+   },
+   "OffcutOut": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Id"
+     },
+     "version": {
+      "type": "integer",
+      "title": "Version"
+     },
+     "created_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Created At"
+     },
+     "updated_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Updated At"
+     },
+     "branch_id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Branch Id"
+     },
+     "sku": {
+      "type": "string",
+      "title": "Sku"
+     },
+     "material_code": {
+      "type": "string",
+      "title": "Material Code"
+     },
+     "length_mm": {
+      "type": "string",
+      "title": "Length Mm"
+     },
+     "status": {
+      "type": "string",
+      "title": "Status"
+     },
+     "source_work_order_id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "uuid"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Source Work Order Id"
+     },
+     "used_work_order_id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "uuid"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Used Work Order Id"
+     },
+     "note": {
+      "type": "string",
+      "title": "Note"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "version",
+     "branch_id",
+     "sku",
+     "material_code",
+     "length_mm",
+     "status",
+     "source_work_order_id",
+     "used_work_order_id",
+     "note"
+    ],
+    "title": "OffcutOut"
    },
    "OpeningIn": {
     "properties": {
@@ -17206,6 +17548,37 @@
      "offset"
     ],
     "title": "Page[MaterialOut]"
+   },
+   "Page_OffcutOut_": {
+    "properties": {
+     "items": {
+      "items": {
+       "$ref": "#/components/schemas/OffcutOut"
+      },
+      "type": "array",
+      "title": "Items"
+     },
+     "total": {
+      "type": "integer",
+      "title": "Total"
+     },
+     "limit": {
+      "type": "integer",
+      "title": "Limit"
+     },
+     "offset": {
+      "type": "integer",
+      "title": "Offset"
+     }
+    },
+    "type": "object",
+    "required": [
+     "items",
+     "total",
+     "limit",
+     "offset"
+    ],
+    "title": "Page[OffcutOut]"
    },
    "Page_POOut_": {
     "properties": {
@@ -19102,6 +19475,24 @@
      "version"
     ],
     "title": "SaleApproveIn"
+   },
+   "ScrapIn": {
+    "properties": {
+     "version": {
+      "type": "integer",
+      "title": "Version"
+     },
+     "note": {
+      "type": "string",
+      "title": "Note",
+      "default": ""
+     }
+    },
+    "type": "object",
+    "required": [
+     "version"
+    ],
+    "title": "ScrapIn"
    },
    "StageIn": {
     "properties": {

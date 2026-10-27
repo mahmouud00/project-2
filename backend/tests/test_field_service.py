@@ -160,3 +160,43 @@ def test_tech_page_is_served(client):
     assert r.status_code == 200 and "field/jobs?mine=true" in r.text and "geolocation" in r.text
     assert client.get("/tech/manifest.webmanifest").json()["start_url"] == "/tech"
     assert client.get("/tech/icon.png").status_code == 200
+
+
+def test_offcuts_are_kept_and_used_by_the_next_order(platform, tenant_a, client):
+    code = "OFC"
+    lib, branch, pl, customer = _setup(client, platform, tenant_a, code)
+    h = tenant_a.h
+    start = lambda wo: client.post(f"/api/v1/work-orders/{wo['id']}/stage", headers=h,
+                                   json={"version": wo["version"], "to": "manufacturing"})
+    def ready(wo):
+        wo = client.patch(f"/api/v1/work-orders/{wo['id']}", headers=h, json={"version": wo["version"],
+                                                                              "deposit_required": "0"}).json()
+        wo = client.post(f"/api/v1/work-orders/{wo['id']}/approve-sale", headers=h, json={"version": wo["version"]}).json()
+        return client.post(f"/api/v1/work-orders/{wo['id']}/stage", headers=h,
+                           json={"version": wo["version"], "to": "approved"}).json()
+    wo1 = ready(_accepted_order(client, h, lib, branch, customer, code))
+    r = start(wo1)
+    assert r.status_code == 200, r.text
+    kept = client.get(f"/api/v1/offcuts?sku={code}-FRAME-W", headers=h).json()["items"]
+    plan = next(p for p in r.json()["outputs"]["optimisation"] if p["sku"] == f"{code}-FRAME-W") \
+        if "outputs" in r.json() else client.get(f"/api/v1/work-orders/{wo1['id']}/manufacturing", headers=h).json()
+    if "optimisation" in plan:
+        plan = next(p for p in plan["optimisation"] if p["sku"] == f"{code}-FRAME-W")
+    leftovers = [b["offcut_mm"] for b in plan["bars"] if b["offcut_reusable"]]
+    assert sorted(D(o["length_mm"]) for o in kept) == sorted(D(x) for x in leftovers) and kept
+    assert all(D(o["length_mm"]) >= 400 and o["source_work_order_id"] == wo1["id"] for o in kept)
+    # the next order of the same profile cuts from them first: fewer new bars to buy
+    wo2 = ready(_accepted_order(client, h, lib, branch, customer, code))
+    needs = {n["sku"]: n for n in client.get(f"/api/v1/work-orders/{wo2['id']}/material-needs", headers=h).json()}
+    assert needs[f"{code}-FRAME-W"]["offcuts_used"] >= 1
+    assert start(wo2).status_code == 200
+    used = client.get(f"/api/v1/offcuts?status=used&sku={code}-FRAME-W", headers=h).json()["items"]
+    assert used and all(o["used_work_order_id"] == wo2["id"] for o in used)
+    # a leftover counted by hand; one shorter than 40 cm is scrap, not stock
+    r = client.post("/api/v1/offcuts", headers=h, json={"branch_id": branch["id"], "sku": f"{code}-FRAME-W",
+                                                       "length_mm": "350"})
+    assert r.status_code == 422 and r.json()["error"]["code"] == "OFFCUT_TOO_SHORT"
+    o = client.post("/api/v1/offcuts", headers=h, json={"branch_id": branch["id"], "sku": f"{code}-FRAME-W",
+                                                       "length_mm": "1200", "note": "جرد"}).json()
+    o = client.post(f"/api/v1/offcuts/{o['id']}/scrap", headers=h, json={"version": o["version"]}).json()
+    assert o["status"] == "scrapped"
