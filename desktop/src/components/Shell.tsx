@@ -22,11 +22,13 @@ export const NAV: [string, NavItem[]][] = [
   ]],
   ["الإنتاج", [
     { id: "work-orders", icon: "factory", label: "أوامر التصنيع", perm: "workorders.read", hideForPlatform: true },
-    { id: "inventory", icon: "box", label: "المخازن", perm: "inventory.read", hideForPlatform: true },
     { id: "purchasing", icon: "cart", label: "المشتريات", perm: "purchasing.read", hideForPlatform: true },
     { id: "field", icon: "truck", label: "الفنيين", perm: ["field.read", "field.manage", "field.self"], hideForPlatform: true },
   ]],
-  ["الحسابات", [{ id: "treasury", icon: "cash", label: "الخزينة", perm: "treasury.read", hideForPlatform: true }]],
+  ["الحسابات والإدارة", [
+    { id: "treasury", icon: "cash", label: "الحسابات والخزينة", perm: ["treasury.read", "purchasing.approve", "finance.read"], hideForPlatform: true },
+    { id: "hr", icon: "idcard", label: "الموارد البشرية", perm: "hr.read", hideForPlatform: true },
+  ]],
   ["الإعداد", [
     { id: "library", icon: "layers", label: "مكتبة القطاعات", perm: ["library.read", "platform.library.author"] },
     { id: "price-lists", icon: "tag", label: "قوائم الأسعار", perm: ["pricelists.manage", "pricelists.create", "pricelists.delete"], hideForPlatform: true },

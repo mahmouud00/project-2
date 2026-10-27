@@ -67,6 +67,8 @@ class Quotation(Base, Entity, SoftDeleteMixin):
     total_cost: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal(0))
     notes: Mapped[str] = mapped_column(Text, default="")
     terms: Mapped[str] = mapped_column(Text, default="")
+    salesperson_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("employees.id"),
+                                                             nullable=True, index=True)
 
 
 class QuotationLine(Base, Entity):

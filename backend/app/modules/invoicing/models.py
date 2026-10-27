@@ -22,6 +22,8 @@ class Invoice(Base, Entity, SoftDeleteMixin):
     work_order_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("work_orders.id"),
                                                             nullable=True, index=True)
     quotation_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("quotations.id"), nullable=True)
+    salesperson_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("employees.id"),
+                                                             nullable=True, index=True)
     status: Mapped[str] = mapped_column(String(20), default="draft")  # draft | issued | cancelled
     issue_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     due_date: Mapped[date | None] = mapped_column(Date, nullable=True)

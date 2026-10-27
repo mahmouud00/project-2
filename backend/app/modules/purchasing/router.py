@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends
@@ -14,15 +14,25 @@ from app.core.errors import Conflict, ValidationFailed
 from app.core.numbering import next_number
 from app.db.base import utcnow
 from app.modules.crm.router import branch_scope, get_or_404
-from app.modules.inventory.models import Warehouse
-from app.modules.inventory.service import move, resolve_sku
-from app.modules.library.models import CompanyMaterialSetting, MaterialVariant
+from app.modules.library.models import CompanyMaterialSetting, Material, MaterialVariant
 from app.modules.org.models import Branch
 from app.modules.purchasing.models import PurchaseOrder, PurchaseOrderLine, Supplier
 from app.modules.sales.pricing import money
 from app.tenancy.context import require
 
 router = APIRouter(tags=["purchasing"])
+
+
+def resolve_sku(db, sku: str) -> Material:
+    """SKU -> material. Accepts a colour variant SKU or a material code."""
+    variant = db.scalar(select(MaterialVariant).where(MaterialVariant.sku == sku))
+    material = db.get(Material, variant.material_id) if variant else None
+    if material is None:
+        from app.modules.library.service import find_material
+        material = find_material(db, sku)
+    if material is None:
+        raise ValidationFailed(f"Unknown SKU {sku}", code="UNKNOWN_SKU", details={"sku": sku})
+    return material
 
 
 class SupplierIn(BaseModel):
@@ -100,7 +110,6 @@ class POLineIn(BaseModel):
 class POIn(BaseModel):
     supplier_id: uuid.UUID
     branch_id: uuid.UUID
-    warehouse_id: uuid.UUID
     order_date: date | None = None
     notes: str = ""
     work_order_id: uuid.UUID | None = None   # goods order for this customer's work order
@@ -121,7 +130,6 @@ class POOut(Record):
     number: str
     supplier_id: uuid.UUID
     branch_id: uuid.UUID
-    warehouse_id: uuid.UUID
     status: str
     order_date: date | None
     total: Decimal
@@ -130,6 +138,9 @@ class POOut(Record):
     notes: str
     work_order_id: uuid.UUID | None = None
     customer_id: uuid.UUID | None = None
+    approved_at: datetime | None = None
+    approved_by: uuid.UUID | None = None
+    approval_note: str = ""
     lines: list[POLineOut] = []
 
 
@@ -176,9 +187,6 @@ def create_po(body: POIn, dc=Depends(require("purchasing.create"))):
     ctx.require("purchasing.create", body.branch_id)
     branch = get_or_404(db, Branch, body.branch_id)
     get_or_404(db, Supplier, body.supplier_id)
-    wh = get_or_404(db, Warehouse, body.warehouse_id)
-    if wh.branch_id != branch.id:
-        raise ValidationFailed("Warehouse belongs to another branch", code="WAREHOUSE_BRANCH")
     customer_id = None
     if body.work_order_id:
         from app.modules.production.models import WorkOrder
@@ -191,7 +199,7 @@ def create_po(body: POIn, dc=Depends(require("purchasing.create"))):
     db.flush()
     total = Decimal(0)
     for i, l in enumerate(body.lines, 1):
-        material, _ = resolve_sku(db, l.sku)
+        material = resolve_sku(db, l.sku)
         db.add(PurchaseOrderLine(purchase_order_id=po.id, position=i, sku=l.sku, material_id=material.id, qty=l.qty,
                                  unit_cost=l.unit_cost))
         total += l.qty * l.unit_cost
@@ -208,15 +216,43 @@ class POStatusIn(BaseModel):
 
 @router.post("/purchase-orders/{po_id}/status", response_model=POOut)
 def po_status(po_id: uuid.UUID, body: POStatusIn, dc=Depends(require("purchasing.write"))):
+    """Order from the supplier (only after the accounts approved it) or cancel."""
     db, ctx = dc
     po = _get_po(db, ctx, po_id, "purchasing.write")
     check_version(po, body.version)
-    allowed = {"draft": {"ordered", "cancelled"}, "ordered": {"cancelled"}}
+    if body.status == "ordered" and po.status in ("draft", "rejected"):
+        raise Conflict("The accounts must approve this purchase first", code="PO_NOT_APPROVED")
+    allowed = {"draft": {"cancelled"}, "approved": {"ordered", "cancelled"}, "rejected": {"cancelled"},
+               "ordered": {"cancelled"}}
     if body.status not in allowed.get(po.status, set()) or (body.status == "cancelled" and po.received_value > 0):
         raise Conflict(f"Cannot go from {po.status} to {body.status}", code="INVALID_TRANSITION")
     before = snapshot(po)
     po.status = body.status
     audit(db, po, "update", before)
+    db.commit()
+    return _po_out(db, po)
+
+
+class ApproveIn(BaseModel):
+    version: int
+    approve: bool = True
+    note: str = ""
+
+
+@router.post("/purchase-orders/{po_id}/approve", response_model=POOut)
+def approve_po(po_id: uuid.UUID, body: ApproveIn, dc=Depends(require("purchasing.approve"))):
+    """The accounts confirm (or refuse) a purchase before anyone orders it from the supplier."""
+    db, ctx = dc
+    po = _get_po(db, ctx, po_id, "purchasing.approve")
+    check_version(po, body.version)
+    if po.status != "draft":
+        raise Conflict("Only a purchase waiting for approval", code="INVALID_TRANSITION")
+    before = snapshot(po)
+    po.status = "approved" if body.approve else "rejected"
+    po.approved_at = utcnow()
+    po.approved_by = ctx.user_id
+    po.approval_note = body.note
+    audit(db, po, "update", before, note="approved" if body.approve else "rejected")
     db.commit()
     return _po_out(db, po)
 
@@ -233,9 +269,10 @@ class ReceiveIn(BaseModel):
 
 
 @router.post("/purchase-orders/{po_id}/receive", response_model=POOut)
-def receive(po_id: uuid.UUID, body: ReceiveIn, dc=Depends(require("inventory.write"))):
+def receive(po_id: uuid.UUID, body: ReceiveIn, dc=Depends(require("purchasing.write"))):
+    """Record what arrived from the supplier (its cost counts in the company's purchases)."""
     db, ctx = dc
-    po = _get_po(db, ctx, po_id, "inventory.write")
+    po = _get_po(db, ctx, po_id, "purchasing.write")
     check_version(po, body.version)
     if po.status not in ("ordered", "partial"):
         raise Conflict("Order is not open for receiving", code="INVALID_TRANSITION")
@@ -246,8 +283,6 @@ def receive(po_id: uuid.UUID, body: ReceiveIn, dc=Depends(require("inventory.wri
         if line.received_qty + r.qty > line.qty:
             raise ValidationFailed("Receiving more than ordered", code="OVER_RECEIPT",
                                    details={"sku": line.sku, "remaining": str(line.qty - line.received_qty)})
-        move(db, ctx, warehouse_id=po.warehouse_id, sku=line.sku, qty=r.qty, kind="receipt", unit_cost=line.unit_cost,
-             ref_type="purchase_order", ref_id=po.id, note=po.number)
         line.received_qty += r.qty
         po.received_value = money(po.received_value + r.qty * line.unit_cost)
         if body.update_company_cost:
@@ -282,7 +317,7 @@ def delete_po(po_id: uuid.UUID, dc=Depends(require("purchasing.delete"))):
     """A draft order is deleted; an ordered one is cancelled instead (status "cancelled")."""
     db, ctx = dc
     po = _get_po(db, ctx, po_id, "purchasing.delete")
-    if po.status != "draft":
+    if po.status not in ("draft", "rejected"):
         raise Conflict("Only a draft purchase order can be deleted", code="PO_NOT_DRAFT")
     before = snapshot(po)
     po.deleted_at = utcnow()

@@ -17,10 +17,10 @@ def test_role_permissions_enforced(tenant_a, client):
 
 def test_branch_scoped_role(tenant_a, client):
     b = client.post("/api/v1/branches", headers=tenant_a.h, json={"code": "B2", "name": "Branch 2"}).json()
-    _make_user(tenant_a, client, "wh1", "warehouse", b["id"])
-    me = client.get("/api/v1/auth/me", headers=tenant_a.headers("wh1", "user-pass-123")).json()
+    _make_user(tenant_a, client, "pr1", "production", b["id"])
+    me = client.get("/api/v1/auth/me", headers=tenant_a.headers("pr1", "user-pass-123")).json()
     assert list(me["grants"]) == [b["id"]]
-    assert "inventory.write" in me["grants"][b["id"]]
+    assert "workorders.stage" in me["grants"][b["id"]]
 
 
 def test_optimistic_locking(tenant_a, client):

@@ -4,16 +4,35 @@ import { useTitle, type PageProps } from "../lib/title";
 import { useAction, useLoad } from "../lib/hooks";
 import { useDefaultBranch, useSession } from "../state/session";
 import { useToast } from "../state/toast";
-import { Btn, Card, Chip, Confirm, ErrorBox, Field, Modal, Money, NumIn, PageHead, Pager, Select, Table, TextIn } from "../components/ui";
+import { Btn, Card, Chip, Confirm, ErrorBox, Field, Modal, Money, NumIn, PageHead, Pager, Select, Table, Tabs, TextIn } from "../components/ui";
 import { BranchName, BranchSelect, CashboxSelect, CustomerName, CustomerPicker, SupplierSelect } from "../components/pickers";
-import { METHODS, invalidate, lookups } from "../lib/lookups";
+import { METHODS, PO_STATUS, invalidate, lookups } from "../lib/lookups";
+import { go, setQuery } from "../lib/router";
+import { date } from "../lib/format";
+import { ApproveForm } from "./Purchasing";
 import { DeleteBtn } from "../components/actions";
 import { dateTime } from "../lib/format";
 
 type Tx = S<"TxOut">;
 
-export default function Treasury(_: PageProps) {
-  useTitle("الخزينة");
+export default function Treasury({ route }: PageProps) {
+  useTitle("الحسابات والخزينة");
+  const s = useSession();
+  const tabs = [
+    { id: "cash", label: "الخزينة", hidden: !s.can("treasury.read") },
+    { id: "approvals", label: "تأكيد المشتريات", hidden: !s.can("purchasing.approve") },
+    { id: "profit", label: "الربحية ورأس المال", hidden: !s.can("finance.read") },
+  ].filter((t) => !t.hidden);
+  const tab = tabs.find((t) => t.id === route.query.tab)?.id ?? tabs[0]?.id;
+  return (
+    <div className="col" style={{ gap: 14 }}>
+      {tabs.length > 1 && <Card flush><Tabs value={tab} onChange={(t) => setQuery({ tab: t })} tabs={tabs} /></Card>}
+      {tab === "cash" ? <Cash /> : tab === "approvals" ? <Approvals /> : tab === "profit" ? <Profit /> : null}
+    </div>
+  );
+}
+
+function Cash() {
   const s = useSession();
   const toast = useToast();
   const { busy, run } = useAction(toast.err);
@@ -63,7 +82,8 @@ export default function Treasury(_: PageProps) {
           { key: "d", label: "النوع", render: (t) => t.reverses_id ? <Chip color="amber">عكس حركة</Chip>
             : t.direction === "in" ? <Chip color="green">قبض</Chip> : <Chip color="red">صرف</Chip> },
           { key: "p", label: "الطرف", render: (t) => t.party_type === "customer" ? <CustomerName id={t.party_id} />
-            : t.party_type === "supplier" ? <SupplierName id={t.party_id} /> : <span className="muted">أخرى</span> },
+            : t.party_type === "supplier" ? <SupplierName id={t.party_id} /> : t.party_type === "employee" ? <EmployeeName id={t.party_id} />
+            : <span className="muted">أخرى</span> },
           { key: "m", label: "الطريقة", render: (t) => METHODS[t.method] ?? t.method },
           { key: "r", label: "بيان", render: (t) => <span className="muted small">{[t.reference, t.note].filter(Boolean).join(" · ")}</span> },
           { key: "a", label: "المبلغ", num: true, render: (t) => <b className={t.direction === "in" ? "success-text" : "danger-text"}>
@@ -84,6 +104,86 @@ export default function Treasury(_: PageProps) {
         </Confirm>
       )}
     </div>
+  );
+}
+
+function EmployeeName({ id }: { id: string | null | undefined }) {
+  const list = useLoad(() => lookups.salespeople().catch(() => []), []);
+  return <>{list.data?.find((x) => x.id === id)?.full_name ?? "موظف"}</>;
+}
+
+type PO = S<"POOut">;
+
+/** المشتريات اللي مستنية الحسابات تأكدها قبل ما تتطلب من المورد. */
+function Approvals() {
+  const list = useLoad(() => api.get<S<"Page_POOut_">>("/purchase-orders", { status: "draft", limit: 200 }), []);
+  const done = useLoad(() => api.get<S<"Page_POOut_">>("/purchase-orders", { limit: 30 }), []);
+  const sup = useLoad(() => lookups.suppliers(), []);
+  const [deciding, setDeciding] = useState<[PO, boolean] | null>(null);
+  const reload = () => { list.reload(); done.reload(); };
+  const supName = (id: string) => sup.data?.find((x) => x.id === id)?.name ?? "";
+  const cols = [
+    { key: "n", label: "الرقم", render: (p: PO) => <span className="num bold">{p.number}</span> },
+    { key: "s", label: "المورد", render: (p: PO) => supName(p.supplier_id) },
+    { key: "cu", label: "للعميل", render: (p: PO) => p.customer_id ? <CustomerName id={p.customer_id} /> : <span className="faint">—</span> },
+    { key: "b", label: "الفرع", render: (p: PO) => <BranchName id={p.branch_id} /> },
+    { key: "d", label: "التاريخ", render: (p: PO) => <span className="num">{date(p.order_date)}</span> },
+    { key: "t", label: "الإجمالي", num: true, render: (p: PO) => <b><Money v={p.total} /></b> },
+  ];
+  return (
+    <>
+      <Card title={`مستني التأكيد (${list.data?.total ?? 0})`} flush>
+        <Table rows={list.data?.items} loading={list.loading} onRow={(p) => go(`purchasing/${p.id}`)} empty="مفيش مشتريات مستنية تأكيد"
+          columns={[...cols, { key: "a", label: "", render: (p: PO) => <div className="row" style={{ gap: 4, justifyContent: "flex-end" }}>
+            <Btn small kind="success" icon="check" onClick={(e) => { e.stopPropagation(); setDeciding([p, true]); }}>تأكيد</Btn>
+            <Btn small kind="danger" onClick={(e) => { e.stopPropagation(); setDeciding([p, false]); }}>رفض</Btn></div> }]} />
+      </Card>
+      <Card title="آخر أوامر الشراء" flush>
+        <Table rows={(done.data?.items ?? []).filter((p) => p.status !== "draft")} loading={done.loading} onRow={(p) => go(`purchasing/${p.id}`)}
+          columns={[...cols, { key: "st", label: "الحالة", render: (p: PO) => <Chip color={PO_STATUS[p.status]?.[1]}>{PO_STATUS[p.status]?.[0] ?? p.status}</Chip> }]} />
+      </Card>
+      {deciding && <ApproveForm po={deciding[0]} approve={deciding[1]} onClose={() => setDeciding(null)} onSaved={reload} />}
+    </>
+  );
+}
+
+type ProfitRow = { month?: string; sales: string; purchases: string; salaries: string; expenses: string; profit: string };
+const MONTHS = ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"];
+
+/** ربحية الشركة شهر بشهر، ورأس المال (الأساسي + الأصول + الأرباح المتراكمة). */
+function Profit() {
+  const [year, setYear] = useState(new Date().getFullYear());
+  const p = useLoad(() => api.get<{ year: number; months: ProfitRow[]; total: ProfitRow }>("/finance/profit", { year }), [year]);
+  const cap = useLoad(() => api.get<Record<string, string>>("/finance/capital"), []);
+  const t = p.data?.total;
+  const sign = (v: string) => <b className={Number(v) < 0 ? "danger-text" : "success-text"}><Money v={v} /></b>;
+  return (
+    <>
+      {cap.data && <div className="grid g4">
+        {([["رأس المال الأساسي", cap.data.opening_capital], ["الأصول", cap.data.assets], ["الأرباح المتراكمة", cap.data.accumulated_profit],
+          ["رأس المال الحالي", cap.data.capital]] as [string, string][]).map(([k, v]) => (
+          <div key={k} className="card kpi"><div className="label">{k}</div><div className="value"><Money v={v} /></div></div>))}
+      </div>}
+      <Card title={`الربحية ${year}`} actions={<div className="row" style={{ gap: 6 }}>
+        <Btn small onClick={() => setYear(year - 1)}>{year - 1}</Btn>
+        {year < new Date().getFullYear() && <Btn small onClick={() => setYear(year + 1)}>{year + 1}</Btn>}</div>} flush>
+        {p.error && <ErrorBox text={p.error} onRetry={p.reload} />}
+        <Table rows={p.data?.months} loading={p.loading} rowKey={(r) => r.month ?? ""} columns={[
+          { key: "m", label: "الشهر", render: (r) => MONTHS[Number(r.month?.slice(5)) - 1] },
+          { key: "s", label: "المبيعات (من غير ضريبة)", num: true, render: (r) => <Money v={r.sales} /> },
+          { key: "p", label: "المشتريات", num: true, render: (r) => <Money v={r.purchases} /> },
+          { key: "w", label: "المرتبات", num: true, render: (r) => <Money v={r.salaries} /> },
+          { key: "e", label: "المصروفات", num: true, render: (r) => <Money v={r.expenses} /> },
+          { key: "n", label: "صافي الربح", num: true, render: (r) => sign(r.profit) },
+        ]} />
+        {t && <div className="card-b row wrap" style={{ gap: 18 }}>
+          <span>المبيعات: <b><Money v={t.sales} /></b></span><span>المشتريات: <Money v={t.purchases} /></span>
+          <span>المرتبات: <Money v={t.salaries} /></span><span>المصروفات: <Money v={t.expenses} /></span>
+          <span className="end">صافي ربح السنة: {sign(t.profit)}</span></div>}
+      </Card>
+      <div className="muted small">المبيعات = الفواتير الصادرة · المشتريات = اللي اتستلم من الموردين · المرتبات = كشوف المرتبات اللي اتصرفت ·
+        المصروفات = الصرف من الخزينة لطرف «أخرى». صافي الربح بيتضاف على رأس المال.</div>
+    </>
   );
 }
 
@@ -139,9 +239,12 @@ export function PaymentForm({ initial, onClose, onSaved }: { initial: TxDraft; o
         <Field label="المبلغ"><NumIn value={d.amount as string} onChange={(v) => set("amount", v)} autoFocus /></Field>
         <Field label="الطريقة"><Select value={d.method} onChange={(v) => set("method", v)} options={Object.entries(METHODS).map(([value, label]) => ({ value, label }))} /></Field>
         <Field label="الطرف"><Select value={d.party_type} onChange={(v) => setD((x) => ({ ...x, party_type: v, party_id: null, work_order_id: null, invoice_id: null, purchase_order_id: null }))}
-          options={[{ value: "customer", label: "عميل" }, { value: "supplier", label: "مورد" }, { value: "other", label: "أخرى (مصروفات…)" }]} /></Field>
+          options={[{ value: "customer", label: "عميل" }, { value: "supplier", label: "مورد" }, { value: "employee", label: "موظف" },
+            { value: "other", label: "أخرى (مصروفات…)" }]} /></Field>
         {d.party_type === "customer" && <Field label="العميل"><CustomerPicker value={d.party_id} onChange={(id) => setD((x) => ({ ...x, party_id: id, work_order_id: null, invoice_id: null }))} /></Field>}
         {d.party_type === "supplier" && <Field label="المورد"><SupplierSelect value={d.party_id} onChange={(id) => setD((x) => ({ ...x, party_id: id, purchase_order_id: null }))} /></Field>}
+        {d.party_type === "employee" && <Field label="الموظف" hint="السلف والمرتبات بتتصرف من الموارد البشرية"><EmployeeSelect value={d.party_id}
+          onChange={(id) => set("party_id", id)} /></Field>}
         {d.party_type === "other" && <div />}
         {customer && <Field label="فاتورة"><Select value={d.invoice_id ?? ""} onChange={(v) => set("invoice_id", v || null)} placeholder="من غير فاتورة"
           options={(invs.data ?? []).map((i) => ({ value: i.id, label: `${i.number} · الباقي ${Number(i.balance).toLocaleString("en-US")}` }))} /></Field>}
@@ -156,3 +259,13 @@ export function PaymentForm({ initial, onClose, onSaved }: { initial: TxDraft; o
   );
 }
 
+
+function EmployeeSelect({ value, onChange }: { value: string | null | undefined; onChange: (id: string | null) => void }) {
+  const list = useLoad(() => lookups.salespeople().catch(() => []), []);
+  return (
+    <select className="input" value={value ?? ""} onChange={(e) => onChange(e.target.value || null)}>
+      <option value="">اختار الموظف…</option>
+      {(list.data ?? []).filter((e) => e.status === "active").map((e) => <option key={e.id} value={e.id}>{e.full_name}</option>)}
+    </select>
+  );
+}

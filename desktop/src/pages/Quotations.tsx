@@ -5,7 +5,7 @@ import { useAction, useLoad } from "../lib/hooks";
 import { useDefaultBranch, useSession } from "../state/session";
 import { useToast } from "../state/toast";
 import { Btn, Card, Chip, Confirm, Dim, ErrorBox, Field, Len, Loading, Modal, Money, NumIn, PageHead, Pager, Select, Table, TextArea } from "../components/ui";
-import { BranchName, BranchSelect, ColorName, CustomerName, CustomerPicker } from "../components/pickers";
+import { BranchName, BranchSelect, ColorName, CustomerName, CustomerPicker, SalespersonName, SalespersonSelect } from "../components/pickers";
 import { ItemForm, ParamLabels, type ItemDraft } from "../components/items";
 import { Drawing, MediaImg, PrintPreview } from "../components/media";
 import { DeleteBtn } from "../components/actions";
@@ -62,14 +62,15 @@ function NewQuotation({ customerId, surveyId }: { customerId?: string; surveyId?
   const toast = useToast();
   const { busy, run } = useAction(toast.err);
   const branch = useDefaultBranch("quotes.create");
-  const [d, setD] = useState<{ customer_id?: string | null; branch_id?: string | null; price_list_id?: string; survey_id?: string }>(
+  const [d, setD] = useState<{ customer_id?: string | null; branch_id?: string | null; price_list_id?: string; survey_id?: string;
+    salesperson_id?: string | null }>(
     { customer_id: customerId ?? null, branch_id: branch, survey_id: surveyId });
   const priceLists = useLoad(() => lookups.priceLists().catch(() => []), []);
   const surveys = useLoad(() => d.customer_id ? api.get<S<"Page_SurveyOut_">>("/surveys", { customer_id: d.customer_id, limit: 50 }).then((p) => p.items)
     : Promise.resolve([]), [d.customer_id]);
   const create = () => run(async () => {
     const q = await api.post<Quote>("/quotations", { customer_id: d.customer_id, branch_id: d.branch_id,
-      price_list_id: d.price_list_id || null, survey_id: d.survey_id || null });
+      price_list_id: d.price_list_id || null, survey_id: d.survey_id || null, salesperson_id: d.salesperson_id || null });
     go(`quotations/${q.id}`);
   });
   return (
@@ -80,7 +81,9 @@ function NewQuotation({ customerId, surveyId }: { customerId?: string; surveyId?
         <Field label="قائمة الأسعار" hint="لو فاضية بتتاخد قائمة العميل أو نوعه">
           <Select value={d.price_list_id ?? ""} onChange={(v) => setD((x) => ({ ...x, price_list_id: v }))} placeholder="حسب العميل"
             options={(priceLists.data ?? []).filter((p) => p.is_active).map((p) => ({ value: p.id, label: p.name }))} /></Field>
-        <Field label="من معاينة" hint="فتحات المعاينة اللي ليها نموذج بتتنقل للعرض" className="span-all">
+        <Field label="البائع (السيلز)" hint="لو فاضي: الموظف المربوط بحسابك"><SalespersonSelect value={d.salesperson_id}
+          onChange={(v) => setD((x) => ({ ...x, salesperson_id: v }))} /></Field>
+        <Field label="من معاينة" hint="فتحات المعاينة اللي ليها نموذج بتتنقل للعرض">
           <Select value={d.survey_id ?? ""} onChange={(v) => setD((x) => ({ ...x, survey_id: v }))} placeholder="من غير معاينة"
             options={(surveys.data ?? []).map((s) => ({ value: s.id, label: `${s.number} · ${s.openings?.length ?? 0} فتحة` }))} /></Field>
       </div>
@@ -155,6 +158,7 @@ function QuotationDetail({ id }: { id: string }) {
           </div>
           <div><div className="muted small">الحالة</div><Chip color={QUOTE_STATUS[quote.status]?.[1]}>{QUOTE_STATUS[quote.status]?.[0] ?? quote.status}</Chip></div>
           <div><div className="muted small">الفرع</div><BranchName id={quote.branch_id} /></div>
+          <div><div className="muted small">البائع</div><SalespersonName id={quote.salesperson_id} /></div>
           <div><div className="muted small">التاريخ</div><span className="num">{date(quote.issue_date ?? quote.created_at)}</span></div>
           <div><div className="muted small">صالح لحد</div><span className="num">{date(quote.valid_until)}</span></div>
           <div className="end row wrap">
@@ -301,10 +305,12 @@ function QuoteHeader({ quote, onClose, onSaved }: { quote: Quote; onClose: () =>
   const toast = useToast();
   const { busy, run } = useAction(toast.err);
   const [d, setD] = useState({ discount_amount: quote.discount_amount, tax_pct: quote.tax_pct, valid_until: quote.valid_until ?? "",
-    notes: quote.notes, terms: quote.terms, price_list_id: quote.price_list_id });
+    notes: quote.notes, terms: quote.terms, price_list_id: quote.price_list_id, salesperson_id: quote.salesperson_id ?? null });
   const priceLists = useLoad(() => lookups.priceLists().catch(() => []), []);
   const save = () => run(async () => {
-    onSaved(await api.patch<Quote>(`/quotations/${quote.id}`, { version: quote.version, ...d, valid_until: d.valid_until || null }));
+    const { salesperson_id, ...rest } = d;
+    onSaved(await api.patch<Quote>(`/quotations/${quote.id}`, { version: quote.version, ...rest, valid_until: d.valid_until || null,
+      ...(salesperson_id ? { salesperson_id } : {}) }));
     onClose();
   });
   return (
@@ -316,6 +322,7 @@ function QuoteHeader({ quote, onClose, onSaved }: { quote: Quote; onClose: () =>
         <Field label="قائمة الأسعار" hint="تغييرها بيعيد حساب الأسعار">
           <Select value={d.price_list_id} onChange={(v) => setD((x) => ({ ...x, price_list_id: v }))}
             options={(priceLists.data ?? []).map((p) => ({ value: p.id, label: p.name }))} /></Field>
+        <Field label="البائع (السيلز)"><SalespersonSelect value={d.salesperson_id} onChange={(v) => setD((x) => ({ ...x, salesperson_id: v }))} /></Field>
         <Field label="الشروط" className="span-all"><TextArea value={d.terms} onChange={(v) => setD((x) => ({ ...x, terms: v }))} /></Field>
         <Field label="ملاحظات" className="span-all"><TextArea value={d.notes} onChange={(v) => setD((x) => ({ ...x, notes: v }))} rows={2} /></Field>
       </div>

@@ -105,16 +105,34 @@ export function BranchSelect({ value, onChange, perm, allowAll }:
   );
 }
 
-export function WarehouseSelect({ value, onChange, branchId, allowAll }:
-  { value: string | null | undefined; onChange: (id: string) => void; branchId?: string | null; allowAll?: string }) {
-  const list = useLoad(() => lookups.warehouses(), []);
-  const items = (list.data ?? []).filter((w) => w.is_active && (!branchId || w.branch_id === branchId));
+/** A material SKU (colour variant) or material code, with suggestions from the library. */
+export function SkuIn({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const skus = useLoad(() => api.get<S<"Page_MaterialOut_">>("/library/materials", { limit: 500 })
+    .then((p) => p.items.flatMap((m) => m.variants?.length ? m.variants.map((v) => ({ sku: v.sku, name: `${m.name} ${v.name || v.color_code}` })) : [{ sku: m.code, name: m.name }])), []);
   return (
-    <select className="input" value={value ?? ""} onChange={(e) => onChange(e.target.value)}>
-      {allowAll !== undefined ? <option value="">{allowAll}</option> : <option value="">اختار المخزن…</option>}
-      {items.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
+    <>
+      <input className="input code-in" list="sku-list" value={value} onChange={(e) => onChange(e.target.value.trim())} placeholder="SKU" />
+      <datalist id="sku-list">{(skus.data ?? []).map((x) => <option key={x.sku} value={x.sku}>{x.name}</option>)}</datalist>
+    </>
+  );
+}
+
+/** Who sold it (an active employee, sales department first). */
+export function SalespersonSelect({ value, onChange }: { value: string | null | undefined; onChange: (id: string | null) => void }) {
+  const list = useLoad(() => lookups.salespeople().catch(() => []), []);
+  const items = (list.data ?? []).filter((e) => e.status === "active" || e.id === value).sort((a, b) => Number(b.department === "sales") - Number(a.department === "sales"));
+  return (
+    <select className="input" value={value ?? ""} onChange={(e) => onChange(e.target.value || null)}>
+      <option value="">— من غير —</option>
+      {items.map((e) => <option key={e.id} value={e.id}>{e.full_name}{e.job_title ? ` · ${e.job_title}` : ""}</option>)}
     </select>
   );
+}
+
+export function SalespersonName({ id }: { id: string | null | undefined }) {
+  const list = useLoad(() => id ? lookups.salespeople().catch(() => []) : Promise.resolve([]), [id]);
+  if (!id) return <span className="faint">—</span>;
+  return <>{list.data?.find((e) => e.id === id)?.full_name ?? "…"}</>;
 }
 
 export function CashboxSelect({ value, onChange, allowAll }: { value: string | null | undefined; onChange: (id: string) => void; allowAll?: string }) {

@@ -24,7 +24,8 @@ class WorkOrder(Base, Entity, SoftDeleteMixin):
     customer_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("customers.id"), index=True)
     branch_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("branches.id"), index=True)
     quotation_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("quotations.id"), nullable=True)
-    warehouse_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    salesperson_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("employees.id"),
+                                                             nullable=True, index=True)
     stage: Mapped[str] = mapped_column(String(20), default="survey", index=True)
     total: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal(0))
     deposit_required: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal(0))
@@ -33,7 +34,6 @@ class WorkOrder(Base, Entity, SoftDeleteMixin):
     notes: Mapped[str] = mapped_column(Text, default="")
     outputs: Mapped[dict] = mapped_column(JSONB, default=dict)   # manufacturing outputs (frozen at production start)
     outputs_generated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    materials_issued: Mapped[bool] = mapped_column(default=False)
 
 
 class WorkOrderItem(Base, Entity):

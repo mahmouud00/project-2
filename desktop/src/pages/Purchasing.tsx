@@ -5,11 +5,10 @@ import { useAction, useLoad, when } from "../lib/hooks";
 import { useDefaultBranch, useSession } from "../state/session";
 import { useToast } from "../state/toast";
 import { Btn, Card, Chip, ErrorBox, Field, Loading, Modal, Money, NumIn, PageHead, Pager, Qty, Table, Tabs, TextArea, TextIn, Check } from "../components/ui";
-import { BranchName, BranchSelect, CustomerName, SupplierSelect, WarehouseSelect } from "../components/pickers";
+import { BranchName, BranchSelect, CustomerName, SkuIn, SupplierSelect } from "../components/pickers";
 import { PO_STATUS, invalidate, lookups } from "../lib/lookups";
 import { go, setQuery } from "../lib/router";
 import { date, mulMoney, sumMoney } from "../lib/format";
-import { SkuIn } from "./Inventory";
 import { PaymentForm } from "./Treasury";
 import { DeleteBtn } from "../components/actions";
 
@@ -44,14 +43,14 @@ function POList() {
       <Table rows={list.data?.items} loading={list.loading} onRow={(p) => go(`purchasing/${p.id}`)} columns={[
         { key: "n", label: "الرقم", render: (p) => <span className="num bold">{p.number}</span> },
         { key: "s", label: "المورد", render: (p) => sup.data?.find((x) => x.id === p.supplier_id)?.name ?? "" },
-        { key: "cu", label: "للعميل", render: (p) => p.customer_id ? <CustomerName id={p.customer_id} /> : <span className="faint">مخزن</span> },
+        { key: "cu", label: "للعميل", render: (p) => p.customer_id ? <CustomerName id={p.customer_id} /> : <span className="faint">—</span> },
         { key: "b", label: "الفرع", render: (p) => <BranchName id={p.branch_id} /> },
         { key: "d", label: "التاريخ", render: (p) => <span className="num">{date(p.order_date)}</span> },
         { key: "st", label: "الحالة", render: (p) => <Chip color={PO_STATUS[p.status]?.[1]}>{PO_STATUS[p.status]?.[0] ?? p.status}</Chip> },
         { key: "t", label: "الإجمالي", num: true, render: (p) => <Money v={p.total} /> },
         { key: "r", label: "المستلم", num: true, render: (p) => <Money v={p.received_value} /> },
         { key: "pd", label: "المدفوع", num: true, render: (p) => <Money v={p.paid_amount} /> },
-        { key: "del", label: "", width: 80, render: (p) => p.status === "draft" && s.can("purchasing.delete", p.branch_id) &&
+        { key: "del", label: "", width: 80, render: (p) => ["draft", "rejected"].includes(p.status) && s.can("purchasing.delete", p.branch_id) &&
           <DeleteBtn path={`/purchase-orders/${p.id}`} what={`أمر الشراء ${p.number}`} onDone={list.reload} /> },
       ]} empty="مفيش أوامر شراء" />
       {list.data && <Pager total={list.data.total} limit={50} offset={offset} onChange={setOffset} />}
@@ -66,16 +65,15 @@ function NewPO() {
   const toast = useToast();
   const { busy, run } = useAction(toast.err);
   const branch = useDefaultBranch("purchasing.create");
-  const [d, setD] = useState({ supplier_id: "", branch_id: branch ?? "", warehouse_id: "", order_date: "", notes: "" });
+  const [d, setD] = useState({ supplier_id: "", branch_id: branch ?? "", order_date: "", notes: "" });
   const [lines, setLines] = useState<Line[]>([{ sku: "", qty: "", unit_cost: "" }]);
   const setLine = (i: number, k: keyof Line, v: string) => setLines((x) => x.map((l, j) => j === i ? { ...l, [k]: v } : l));
   const total = sumMoney(lines.map((l) => mulMoney(l.qty, l.unit_cost)));
   return (
     <Card title="أمر الشراء">
-      <div className="grid g4 mb">
+      <div className="grid g3 mb">
         <Field label="المورد"><SupplierSelect value={d.supplier_id} onChange={(v) => setD((x) => ({ ...x, supplier_id: v }))} /></Field>
-        <Field label="الفرع"><BranchSelect value={d.branch_id} onChange={(v) => setD((x) => ({ ...x, branch_id: v, warehouse_id: "" }))} perm="purchasing.create" /></Field>
-        <Field label="المخزن"><WarehouseSelect value={d.warehouse_id} branchId={d.branch_id} onChange={(v) => setD((x) => ({ ...x, warehouse_id: v }))} /></Field>
+        <Field label="الفرع"><BranchSelect value={d.branch_id} onChange={(v) => setD((x) => ({ ...x, branch_id: v }))} perm="purchasing.create" /></Field>
         <Field label="التاريخ"><input type="date" className="input" value={d.order_date} onChange={(e) => setD((x) => ({ ...x, order_date: e.target.value }))} /></Field>
       </div>
       <table className="editor-table">
@@ -95,9 +93,10 @@ function NewPO() {
       </div>
       <Field label="ملاحظات" className="mt"><TextArea value={d.notes} onChange={(v) => setD((x) => ({ ...x, notes: v }))} rows={2} /></Field>
       <div className="row mt">
-        <Btn kind="primary" busy={busy} disabled={!d.supplier_id || !d.branch_id || !d.warehouse_id || lines.some((l) => !l.sku || !l.qty || l.unit_cost === "")}
+        <Btn kind="primary" busy={busy} disabled={!d.supplier_id || !d.branch_id || lines.some((l) => !l.sku || !l.qty || l.unit_cost === "")}
           onClick={() => run(async () => {
             const po = await api.post<PO>("/purchase-orders", { ...d, order_date: d.order_date || null, lines });
+            toast.ok("اتحفظ أمر الشراء، ومستني تأكيد الحسابات قبل ما يتطلب.");
             go(`purchasing/${po.id}`);
           })}>حفظ أمر الشراء</Btn>
       </div>
@@ -114,6 +113,7 @@ function PODetail({ id }: { id: string }) {
   useTitle(po.data ? `أمر شراء ${po.data.number}` : "…", <a onClick={() => go("purchasing")} style={{ cursor: "pointer" }}>المشتريات</a>, [po.data?.number]);
   const [receiving, setReceiving] = useState(false);
   const [paying, setPaying] = useState(false);
+  const [deciding, setDeciding] = useState<boolean | null>(null);
   if (po.error) return <ErrorBox text={po.error} onRetry={po.reload} />;
   if (po.loading && !po.data) return <Loading />;
   if (!po.data) return <ErrorBox text="أمر الشراء مش موجود." />;
@@ -136,12 +136,16 @@ function PODetail({ id }: { id: string }) {
           <div><div className="muted small">المستلم</div><Money v={p.received_value} /></div>
           <div><div className="muted small">المدفوع</div><Money v={p.paid_amount} /></div>
           <div className="end row wrap">
-            {write && p.status === "draft" && <Btn kind="primary" busy={busy} onClick={() => setStatus("ordered")}>تأكيد الطلب</Btn>}
+            {p.status === "draft" && s.can("purchasing.approve", p.branch_id) && <>
+              <Btn kind="success" icon="check" onClick={() => setDeciding(true)}>تأكيد الحسابات</Btn>
+              <Btn kind="danger" onClick={() => setDeciding(false)}>رفض</Btn></>}
+            {p.status === "draft" && !s.can("purchasing.approve", p.branch_id) && <span className="muted small">مستني تأكيد الحسابات</span>}
+            {write && p.status === "approved" && <Btn kind="primary" busy={busy} onClick={() => setStatus("ordered")}>اطلب من المورد</Btn>}
             {write && ["ordered", "partial"].includes(p.status) && <Btn kind="success" icon="box" onClick={() => setReceiving(true)}>استلام</Btn>}
             {s.can("treasury.create", p.branch_id) && p.status !== "cancelled" && <Btn icon="cash" onClick={() => setPaying(true)}>دفع للمورد</Btn>}
-            {p.status === "draft" && s.can("purchasing.delete", p.branch_id) &&
+            {["draft", "rejected"].includes(p.status) && s.can("purchasing.delete", p.branch_id) &&
               <DeleteBtn small={false} path={`/purchase-orders/${id}`} what={`أمر الشراء ${p.number}`} onDone={() => go("purchasing")} />}
-            {write && (p.status === "draft" || (p.status === "ordered" && Number(p.received_value) === 0)) && <Btn kind="danger" busy={busy} onClick={() => setStatus("cancelled")}>إلغاء</Btn>}
+            {write && (["draft", "approved", "rejected"].includes(p.status) || (p.status === "ordered" && Number(p.received_value) === 0)) && <Btn kind="danger" busy={busy} onClick={() => setStatus("cancelled")}>إلغاء</Btn>}
           </div>
         </div>
       </Card>
@@ -153,8 +157,11 @@ function PODetail({ id }: { id: string }) {
           { key: "c", label: "تكلفة الوحدة", num: true, render: (l) => <Money v={l.unit_cost} /> },
         ]} />
       </Card>
+      {p.approved_at && <Card title={p.status === "rejected" ? "رفض الحسابات" : "تأكيد الحسابات"}>
+        <span className="num">{date(p.approved_at)}</span>{p.approval_note && <> · {p.approval_note}</>}</Card>}
       {p.notes && <Card title="ملاحظات"><div style={{ whiteSpace: "pre-wrap" }}>{p.notes}</div></Card>}
       {receiving && <Receive po={p} onClose={() => setReceiving(false)} onSaved={po.reload} />}
+      {deciding !== null && <ApproveForm po={p} approve={deciding} onClose={() => setDeciding(null)} onSaved={po.reload} />}
       {paying && <PaymentForm onClose={() => setPaying(false)} onSaved={po.reload}
         initial={{ direction: "out", party_type: "supplier", party_id: p.supplier_id, purchase_order_id: p.id }} />}
     </div>
@@ -168,10 +175,10 @@ function Receive({ po, onClose, onSaved }: { po: PO; onClose: () => void; onSave
     [l.id, String(Math.max(0, Number(l.qty) - Number(l.received_qty)))])));
   const [updateCost, setUpdateCost] = useState(true);
   return (
-    <Modal title="استلام في المخزن" size="wide" onClose={onClose} footer={<><Btn kind="success" busy={busy} onClick={() => run(async () => {
+    <Modal title="استلام من المورد" size="wide" onClose={onClose} footer={<><Btn kind="success" busy={busy} onClick={() => run(async () => {
       await api.post(`/purchase-orders/${po.id}/receive`, { version: po.version, update_company_cost: updateCost,
         lines: Object.entries(qty).filter(([, q]) => Number(q) > 0).map(([line_id, q]) => ({ line_id, qty: q })) });
-      toast.ok("اتسجل الاستلام في المخزن."); onSaved(); onClose();
+      toast.ok("اتسجل الاستلام."); onSaved(); onClose();
     })}>تسجيل الاستلام</Btn><Btn onClick={onClose}>رجوع</Btn></>}>
       <table className="editor-table">
         <thead><tr><th>الكود</th><th className="n">المطلوب</th><th className="n">اتستلم قبل كده</th><th>المستلم دلوقتي</th></tr></thead>
@@ -180,6 +187,26 @@ function Receive({ po, onClose, onSaved }: { po: PO; onClose: () => void; onSave
             <td><NumIn value={qty[l.id]} onChange={(v) => setQty((x) => ({ ...x, [l.id]: v }))} /></td></tr>))}</tbody>
       </table>
       <div className="mt"><Check checked={updateCost} onChange={setUpdateCost} label="سعر الشراء ده يبقى تكلفة الخامة عند الشركة" /></div>
+    </Modal>
+  );
+}
+
+/** The accounts confirm (or refuse) a purchase before anyone orders it. */
+export function ApproveForm({ po, approve, onClose, onSaved }: { po: PO; approve: boolean; onClose: () => void; onSaved: () => void }) {
+  const toast = useToast();
+  const { busy, run } = useAction(toast.err);
+  const [note, setNote] = useState("");
+  return (
+    <Modal title={`${approve ? "تأكيد" : "رفض"} أمر الشراء ${po.number}`} onClose={onClose} footer={<>
+      <Btn kind={approve ? "success" : "solid-danger"} busy={busy} disabled={!approve && !note.trim()} onClick={() => run(async () => {
+        await api.post(`/purchase-orders/${po.id}/approve`, { version: po.version, approve, note });
+        toast.ok(approve ? "اتأكد أمر الشراء، وممكن يتطلب من المورد." : "اترفض أمر الشراء.");
+        onSaved(); onClose();
+      })}>{approve ? "تأكيد" : "رفض"}</Btn><Btn onClick={onClose}>رجوع</Btn></>}>
+      <div className="col">
+        <div>الإجمالي: <b><Money v={po.total} cur /></b></div>
+        <Field label={approve ? "ملاحظة (اختياري)" : "سبب الرفض"}><TextArea value={note} onChange={setNote} rows={2} /></Field>
+      </div>
     </Modal>
   );
 }

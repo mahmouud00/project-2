@@ -1283,8 +1283,8 @@ export interface paths {
         post?: never;
         /**
          * Delete Work Order
-         * @description Only before anything happened to it: once materials are issued, money is received or it is
-         *     invoiced, it is cancelled (stage "cancelled") instead, so the records stay consistent.
+         * @description Only before anything happened to it: once money is received or it is invoiced, it is cancelled
+         *     (stage "cancelled") instead, so the records stay consistent.
          */
         delete: operations["delete_work_order_api_v1_work_orders__wo_id__delete"];
         options?: never;
@@ -1366,192 +1366,6 @@ export interface paths {
         put?: never;
         post?: never;
         delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/warehouses": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List Warehouses */
-        get: operations["list_warehouses_api_v1_warehouses_get"];
-        put?: never;
-        /** Create Warehouse */
-        post: operations["create_warehouse_api_v1_warehouses_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/warehouses/{wh_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /**
-         * Delete Warehouse
-         * @description Deleted when it never had a movement; otherwise deactivated (its movements are history).
-         */
-        delete: operations["delete_warehouse_api_v1_warehouses__wh_id__delete"];
-        options?: never;
-        head?: never;
-        /** Update Warehouse */
-        patch: operations["update_warehouse_api_v1_warehouses__wh_id__patch"];
-        trace?: never;
-    };
-    "/api/v1/inventory/balances": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Balances */
-        get: operations["balances_api_v1_inventory_balances_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/inventory/movements": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Movements */
-        get: operations["movements_api_v1_inventory_movements_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/inventory/adjustments": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Adjust
-         * @description Opening balance / stock count corrections.
-         */
-        post: operations["adjust_api_v1_inventory_adjustments_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/inventory/transfers": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List Transfers */
-        get: operations["list_transfers_api_v1_inventory_transfers_get"];
-        put?: never;
-        /** Create Transfer */
-        post: operations["create_transfer_api_v1_inventory_transfers_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/inventory/transfers/{t_id}/send": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Send Transfer */
-        post: operations["send_transfer_api_v1_inventory_transfers__t_id__send_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/inventory/transfers/{t_id}/receive": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Receive Transfer */
-        post: operations["receive_transfer_api_v1_inventory_transfers__t_id__receive_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/work-orders/{wo_id}/issue-materials": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Issue Materials
-         * @description Deduct the order's materials from its warehouse (also done automatically
-         *     when the order enters manufacturing with a warehouse set).
-         */
-        post: operations["issue_materials_api_v1_work_orders__wo_id__issue_materials_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/inventory/transfers/{t_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /**
-         * Delete Transfer
-         * @description Only a transfer that was not sent yet (nothing moved).
-         */
-        delete: operations["delete_transfer_api_v1_inventory_transfers__t_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1641,8 +1455,31 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Po Status */
+        /**
+         * Po Status
+         * @description Order from the supplier (only after the accounts approved it) or cancel.
+         */
         post: operations["po_status_api_v1_purchase_orders__po_id__status_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/purchase-orders/{po_id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approve Po
+         * @description The accounts confirm (or refuse) a purchase before anyone orders it from the supplier.
+         */
+        post: operations["approve_po_api_v1_purchase_orders__po_id__approve_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1658,7 +1495,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Receive */
+        /**
+         * Receive
+         * @description Record what arrived from the supplier (its cost counts in the company's purchases).
+         */
         post: operations["receive_api_v1_purchase_orders__po_id__receive_post"];
         delete?: never;
         options?: never;
@@ -2205,6 +2045,381 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/employees": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Employees */
+        get: operations["list_employees_api_v1_employees_get"];
+        put?: never;
+        /** Create Employee */
+        post: operations["create_employee_api_v1_employees_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/employees/brief": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Employee Names
+         * @description Active employees' names for choosing the salesperson of a sale (whoever can see quotations).
+         */
+        get: operations["employee_names_api_v1_employees_brief_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/employees/{eid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Employee */
+        get: operations["get_employee_api_v1_employees__eid__get"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete Employee
+         * @description Deleted when nothing points to them; with salaries, advances or sales they are marked as left instead.
+         */
+        delete: operations["delete_employee_api_v1_employees__eid__delete"];
+        options?: never;
+        head?: never;
+        /** Update Employee */
+        patch: operations["update_employee_api_v1_employees__eid__patch"];
+        trace?: never;
+    };
+    "/api/v1/employees/{eid}/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Employee Summary
+         * @description Leave taken this year and what is left of the annual leave, and advances still owed.
+         */
+        get: operations["employee_summary_api_v1_employees__eid__summary_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/employees/{eid}/sales": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Employee Sales
+         * @description المبيعات بتاعة الموظف: his quotations, work orders and invoices (a salesperson's profile).
+         */
+        get: operations["employee_sales_api_v1_employees__eid__sales_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/employees/{eid}/entries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Entries */
+        get: operations["list_entries_api_v1_employees__eid__entries_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/employee-entries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Entry */
+        post: operations["create_entry_api_v1_employee_entries_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/employee-entries/{entry_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete Entry
+         * @description A bonus or deduction not yet paid in a salary. An advance is money: reverse its payment in the treasury.
+         */
+        delete: operations["delete_entry_api_v1_employee_entries__entry_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/employees/{eid}/leaves": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Leaves */
+        get: operations["list_leaves_api_v1_employees__eid__leaves_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/employee-leaves": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Leave */
+        post: operations["create_leave_api_v1_employee_leaves_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/employee-leaves/{leave_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Leave */
+        delete: operations["delete_leave_api_v1_employee_leaves__leave_id__delete"];
+        options?: never;
+        head?: never;
+        /** Update Leave */
+        patch: operations["update_leave_api_v1_employee_leaves__leave_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/payroll-runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Runs */
+        get: operations["list_runs_api_v1_payroll_runs_get"];
+        put?: never;
+        /** Create Run */
+        post: operations["create_run_api_v1_payroll_runs_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payroll-runs/{run_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Run */
+        get: operations["get_run_api_v1_payroll_runs__run_id__get"];
+        put?: never;
+        post?: never;
+        /** Delete Run */
+        delete: operations["delete_run_api_v1_payroll_runs__run_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payroll-runs/{run_id}/recalculate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Recalculate Run */
+        post: operations["recalculate_run_api_v1_payroll_runs__run_id__recalculate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payroll-runs/{run_id}/pay": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Pay Run
+         * @description صرف المرتبات: one payment per employee from the cashbox; advances are taken back; the run is closed.
+         */
+        post: operations["pay_run_api_v1_payroll_runs__run_id__pay_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/employees/{eid}/payslips": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Employee Payslips */
+        get: operations["employee_payslips_api_v1_employees__eid__payslips_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/assets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Assets */
+        get: operations["list_assets_api_v1_assets_get"];
+        put?: never;
+        /** Create Asset */
+        post: operations["create_asset_api_v1_assets_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/assets/{asset_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete Asset
+         * @description For an entry made by mistake. A sold or scrapped asset is marked "disposed" (keeps the history).
+         */
+        delete: operations["delete_asset_api_v1_assets__asset_id__delete"];
+        options?: never;
+        head?: never;
+        /** Update Asset */
+        patch: operations["update_asset_api_v1_assets__asset_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/finance/profit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Profit
+         * @description ربحية الشركة: month by month for a year, and the year's total.
+         */
+        get: operations["profit_api_v1_finance_profit_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/capital": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Capital
+         * @description رأس المال = رأس المال الأساسي + الأصول + الأرباح المتراكمة.
+         */
+        get: operations["capital_api_v1_finance_capital_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2252,31 +2467,92 @@ export interface components {
             /** Condition */
             condition?: string | null;
         };
-        /** AdjustIn */
-        AdjustIn: {
+        /** ApproveIn */
+        ApproveIn: {
+            /** Version */
+            version: number;
             /**
-             * Warehouse Id
-             * Format: uuid
+             * Approve
+             * @default true
              */
-            warehouse_id: string;
-            /** Reason */
-            reason: string;
-            /** Lines */
-            lines: components["schemas"]["AdjustLine"][];
-        };
-        /** AdjustLine */
-        AdjustLine: {
-            /** Sku */
-            sku: string;
-            /** Qty */
-            qty: number | string;
-            /** Unit Cost */
-            unit_cost?: number | string | null;
+            approve: boolean;
             /**
              * Note
              * @default
              */
             note: string;
+        };
+        /** AssetIn */
+        AssetIn: {
+            /** Name */
+            name: string;
+            /**
+             * Category
+             * @default other
+             */
+            category: string;
+            /** Value */
+            value: number | string;
+            /** Purchase Date */
+            purchase_date?: string | null;
+            /** Branch Id */
+            branch_id?: string | null;
+            /**
+             * Notes
+             * @default
+             */
+            notes: string;
+        };
+        /** AssetOut */
+        AssetOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Version */
+            version: number;
+            /** Created At */
+            created_at?: string | null;
+            /** Updated At */
+            updated_at?: string | null;
+            /** Name */
+            name: string;
+            /** Category */
+            category: string;
+            /** Value */
+            value: string;
+            /** Purchase Date */
+            purchase_date: string | null;
+            /** Branch Id */
+            branch_id: string | null;
+            /** Status */
+            status: string;
+            /** Disposed Date */
+            disposed_date: string | null;
+            /** Notes */
+            notes: string;
+        };
+        /** AssetUpdate */
+        AssetUpdate: {
+            /** Version */
+            version: number;
+            /** Name */
+            name?: string | null;
+            /** Category */
+            category?: string | null;
+            /** Value */
+            value?: number | string | null;
+            /** Purchase Date */
+            purchase_date?: string | null;
+            /** Branch Id */
+            branch_id?: string | null;
+            /** Status */
+            status?: string | null;
+            /** Disposed Date */
+            disposed_date?: string | null;
+            /** Notes */
+            notes?: string | null;
         };
         /** Assignment */
         Assignment: {
@@ -2324,24 +2600,6 @@ export interface components {
             };
             /** Note */
             note: string | null;
-        };
-        /** BalanceOut */
-        BalanceOut: {
-            /**
-             * Warehouse Id
-             * Format: uuid
-             */
-            warehouse_id: string;
-            /** Sku */
-            sku: string;
-            /** Material Id */
-            material_id: string | null;
-            /** Unit */
-            unit: string;
-            /** Qty */
-            qty: string;
-            /** Avg Cost */
-            avg_cost: string | null;
         };
         /** Body_activate_api_v1_system_activation_post */
         Body_activate_api_v1_system_activation_post: {
@@ -2651,6 +2909,12 @@ export interface components {
              * @default EGP
              */
             currency: string;
+            /**
+             * Opening Capital
+             * @description رأس المال الأساسي (فلوس الشركة في البداية)
+             * @default 0
+             */
+            opening_capital: number | string;
             /**
              * Default Tax Pct
              * @default 0
@@ -2999,6 +3263,226 @@ export interface components {
             /** Condition */
             condition?: string | null;
         };
+        /**
+         * EmployeeBrief
+         * @description For pickers (e.g. the salesperson of a sale): no personal data beyond the name.
+         */
+        EmployeeBrief: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Code */
+            code: string;
+            /** Full Name */
+            full_name: string;
+            /** Department */
+            department: string;
+            /** Job Title */
+            job_title: string;
+            /**
+             * Branch Id
+             * Format: uuid
+             */
+            branch_id: string;
+            /** User Id */
+            user_id: string | null;
+            /** Status */
+            status: string;
+        };
+        /** EmployeeIn */
+        EmployeeIn: {
+            /** Code */
+            code?: string | null;
+            /** Full Name */
+            full_name: string;
+            /**
+             * Job Title
+             * @default
+             */
+            job_title: string;
+            /**
+             * Department
+             * @default other
+             */
+            department: string;
+            /**
+             * Branch Id
+             * Format: uuid
+             */
+            branch_id: string;
+            /** User Id */
+            user_id?: string | null;
+            /** Phone */
+            phone?: string | null;
+            /** National Id */
+            national_id?: string | null;
+            /** Address */
+            address?: string | null;
+            /** Hire Date */
+            hire_date?: string | null;
+            /**
+             * Base Salary
+             * @default 0
+             */
+            base_salary: number | string;
+            /**
+             * Annual Leave Days
+             * @default 21
+             */
+            annual_leave_days: number | string;
+            /**
+             * Notes
+             * @default
+             */
+            notes: string;
+        };
+        /** EmployeeOut */
+        EmployeeOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Version */
+            version: number;
+            /** Created At */
+            created_at?: string | null;
+            /** Updated At */
+            updated_at?: string | null;
+            /** Code */
+            code: string;
+            /** Full Name */
+            full_name: string;
+            /** Job Title */
+            job_title: string;
+            /** Department */
+            department: string;
+            /**
+             * Branch Id
+             * Format: uuid
+             */
+            branch_id: string;
+            /** User Id */
+            user_id: string | null;
+            /** Phone */
+            phone: string | null;
+            /** National Id */
+            national_id: string | null;
+            /** Address */
+            address: string | null;
+            /** Hire Date */
+            hire_date: string | null;
+            /** End Date */
+            end_date: string | null;
+            /** Status */
+            status: string;
+            /** Base Salary */
+            base_salary: string;
+            /** Annual Leave Days */
+            annual_leave_days: string;
+            /** Notes */
+            notes: string;
+        };
+        /** EmployeeUpdate */
+        EmployeeUpdate: {
+            /** Version */
+            version: number;
+            /** Full Name */
+            full_name?: string | null;
+            /** Job Title */
+            job_title?: string | null;
+            /** Department */
+            department?: string | null;
+            /** Branch Id */
+            branch_id?: string | null;
+            /** User Id */
+            user_id?: string | null;
+            /** Phone */
+            phone?: string | null;
+            /** National Id */
+            national_id?: string | null;
+            /** Address */
+            address?: string | null;
+            /** Hire Date */
+            hire_date?: string | null;
+            /** End Date */
+            end_date?: string | null;
+            /** Status */
+            status?: string | null;
+            /** Base Salary */
+            base_salary?: number | string | null;
+            /** Annual Leave Days */
+            annual_leave_days?: number | string | null;
+            /** Notes */
+            notes?: string | null;
+        };
+        /** EntryIn */
+        EntryIn: {
+            /**
+             * Employee Id
+             * Format: uuid
+             */
+            employee_id: string;
+            /** Kind */
+            kind: string;
+            /** Amount */
+            amount: number | string;
+            /** Entry Date */
+            entry_date?: string | null;
+            /** Month */
+            month?: string | null;
+            /** Installment */
+            installment?: number | string | null;
+            /** Cashbox Id */
+            cashbox_id?: string | null;
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+        };
+        /** EntryOut */
+        EntryOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Version */
+            version: number;
+            /** Created At */
+            created_at?: string | null;
+            /** Updated At */
+            updated_at?: string | null;
+            /**
+             * Employee Id
+             * Format: uuid
+             */
+            employee_id: string;
+            /** Kind */
+            kind: string;
+            /**
+             * Entry Date
+             * Format: date
+             */
+            entry_date: string;
+            /** Month */
+            month: string;
+            /** Amount */
+            amount: string;
+            /** Installment */
+            installment: string | null;
+            /** Repaid */
+            repaid: string;
+            /** Cash Transaction Id */
+            cash_transaction_id: string | null;
+            /** Payslip Id */
+            payslip_id: string | null;
+            /** Note */
+            note: string;
+        };
         /** EraseIn */
         EraseIn: {
             /** Reason */
@@ -3108,6 +3592,8 @@ export interface components {
             notes: string;
             /** Terms */
             terms?: string | null;
+            /** Salesperson Id */
+            salesperson_id?: string | null;
             /**
              * Lines
              * @default []
@@ -3143,6 +3629,8 @@ export interface components {
             work_order_id: string | null;
             /** Quotation Id */
             quotation_id: string | null;
+            /** Salesperson Id */
+            salesperson_id?: string | null;
             /** Status */
             status: string;
             /** Issue Date */
@@ -3194,6 +3682,8 @@ export interface components {
             notes?: string | null;
             /** Terms */
             terms?: string | null;
+            /** Salesperson Id */
+            salesperson_id?: string | null;
         };
         /** ItemOut */
         ItemOut: {
@@ -3384,6 +3874,84 @@ export interface components {
             longitude?: number | string | null;
             /** Notes */
             notes?: string | null;
+        };
+        /** LeaveIn */
+        LeaveIn: {
+            /**
+             * Employee Id
+             * Format: uuid
+             */
+            employee_id: string;
+            /** Kind */
+            kind: string;
+            /**
+             * Start Date
+             * Format: date
+             */
+            start_date: string;
+            /**
+             * End Date
+             * Format: date
+             */
+            end_date: string;
+            /** Days */
+            days?: number | string | null;
+            /**
+             * Status
+             * @default approved
+             */
+            status: string;
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+        };
+        /** LeaveOut */
+        LeaveOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Version */
+            version: number;
+            /** Created At */
+            created_at?: string | null;
+            /** Updated At */
+            updated_at?: string | null;
+            /**
+             * Employee Id
+             * Format: uuid
+             */
+            employee_id: string;
+            /** Kind */
+            kind: string;
+            /**
+             * Start Date
+             * Format: date
+             */
+            start_date: string;
+            /**
+             * End Date
+             * Format: date
+             */
+            end_date: string;
+            /** Days */
+            days: string;
+            /** Status */
+            status: string;
+            /** Note */
+            note: string;
+        };
+        /** LeaveUpdate */
+        LeaveUpdate: {
+            /** Version */
+            version: number;
+            /** Status */
+            status?: string | null;
+            /** Note */
+            note?: string | null;
         };
         /** LocationIn */
         LocationIn: {
@@ -3822,40 +4390,6 @@ export interface components {
             is_active?: boolean | null;
             definition?: components["schemas"]["Definition"] | null;
         };
-        /** MovementOut */
-        MovementOut: {
-            /**
-             * Id
-             * Format: uuid
-             */
-            id: string;
-            /**
-             * At
-             * Format: date-time
-             */
-            at: string;
-            /**
-             * Warehouse Id
-             * Format: uuid
-             */
-            warehouse_id: string;
-            /** Sku */
-            sku: string;
-            /** Qty */
-            qty: string;
-            /** Unit */
-            unit: string;
-            /** Unit Cost */
-            unit_cost: string | null;
-            /** Kind */
-            kind: string;
-            /** Ref Type */
-            ref_type: string | null;
-            /** Ref Id */
-            ref_id: string | null;
-            /** Note */
-            note: string;
-        };
         /** NeedOut */
         NeedOut: {
             /** Kind */
@@ -3878,11 +4412,6 @@ export interface components {
             pieces?: number | null;
             /** Unit Cost */
             unit_cost?: string | null;
-            /**
-             * In Stock
-             * @default 0
-             */
-            in_stock: string;
         };
         /** OpeningIn */
         OpeningIn: {
@@ -4051,11 +4580,6 @@ export interface components {
              * Format: uuid
              */
             branch_id: string;
-            /**
-             * Warehouse Id
-             * Format: uuid
-             */
-            warehouse_id: string;
             /** Order Date */
             order_date?: string | null;
             /**
@@ -4125,11 +4649,6 @@ export interface components {
              * Format: uuid
              */
             branch_id: string;
-            /**
-             * Warehouse Id
-             * Format: uuid
-             */
-            warehouse_id: string;
             /** Status */
             status: string;
             /** Order Date */
@@ -4146,6 +4665,15 @@ export interface components {
             work_order_id?: string | null;
             /** Customer Id */
             customer_id?: string | null;
+            /** Approved At */
+            approved_at?: string | null;
+            /** Approved By */
+            approved_by?: string | null;
+            /**
+             * Approval Note
+             * @default
+             */
+            approval_note: string;
             /**
              * Lines
              * @default []
@@ -4203,6 +4731,17 @@ export interface components {
             /** Offset */
             offset: number;
         };
+        /** Page[EmployeeOut] */
+        Page_EmployeeOut_: {
+            /** Items */
+            items: components["schemas"]["EmployeeOut"][];
+            /** Total */
+            total: number;
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+        };
         /** Page[InvoiceOut] */
         Page_InvoiceOut_: {
             /** Items */
@@ -4236,17 +4775,6 @@ export interface components {
             /** Offset */
             offset: number;
         };
-        /** Page[MovementOut] */
-        Page_MovementOut_: {
-            /** Items */
-            items: components["schemas"]["MovementOut"][];
-            /** Total */
-            total: number;
-            /** Limit */
-            limit: number;
-            /** Offset */
-            offset: number;
-        };
         /** Page[POOut] */
         Page_POOut_: {
             /** Items */
@@ -4262,6 +4790,17 @@ export interface components {
         Page_QuotationOut_: {
             /** Items */
             items: components["schemas"]["QuotationOut"][];
+            /** Total */
+            total: number;
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+        };
+        /** Page[RunOut] */
+        Page_RunOut_: {
+            /** Items */
+            items: components["schemas"]["RunOut"][];
             /** Total */
             total: number;
             /** Limit */
@@ -4350,6 +4889,72 @@ export interface components {
              * @default []
              */
             choices: components["schemas"]["Choice"][];
+        };
+        /** PayIn */
+        PayIn: {
+            /** Version */
+            version: number;
+            /**
+             * Cashbox Id
+             * Format: uuid
+             */
+            cashbox_id: string;
+            /**
+             * Method
+             * @default cash
+             */
+            method: string;
+        };
+        /** PayslipOut */
+        PayslipOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Employee Id
+             * Format: uuid
+             */
+            employee_id: string;
+            /**
+             * Month
+             * @default
+             */
+            month: string;
+            /**
+             * Employee Code
+             * @default
+             */
+            employee_code: string;
+            /**
+             * Employee Name
+             * @default
+             */
+            employee_name: string;
+            /**
+             * Job Title
+             * @default
+             */
+            job_title: string;
+            /** Base Salary */
+            base_salary: string;
+            /** Bonuses */
+            bonuses: string;
+            /** Deductions */
+            deductions: string;
+            /** Unpaid Leave Days */
+            unpaid_leave_days: string;
+            /** Unpaid Leave Deduction */
+            unpaid_leave_deduction: string;
+            /** Advance Repayment */
+            advance_repayment: string;
+            /** Gross */
+            gross: string;
+            /** Net */
+            net: string;
+            /** Cash Transaction Id */
+            cash_transaction_id: string | null;
         };
         /**
          * Piece
@@ -4555,6 +5160,8 @@ export interface components {
             notes: string;
             /** Terms */
             terms?: string | null;
+            /** Salesperson Id */
+            salesperson_id?: string | null;
             /**
              * Lines
              * @default []
@@ -4615,6 +5222,8 @@ export interface components {
             notes: string;
             /** Terms */
             terms: string;
+            /** Salesperson Id */
+            salesperson_id?: string | null;
             /**
              * Lines
              * @default []
@@ -4637,6 +5246,8 @@ export interface components {
             notes?: string | null;
             /** Terms */
             terms?: string | null;
+            /** Salesperson Id */
+            salesperson_id?: string | null;
         };
         /** ReceiveIn */
         ReceiveIn: {
@@ -4763,6 +5374,59 @@ export interface components {
              * @default
              */
             message: string;
+        };
+        /** RunIn */
+        RunIn: {
+            /** Month */
+            month: string;
+            /**
+             * Branch Id
+             * Format: uuid
+             */
+            branch_id: string;
+            /**
+             * Notes
+             * @default
+             */
+            notes: string;
+        };
+        /** RunOut */
+        RunOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Version */
+            version: number;
+            /** Created At */
+            created_at?: string | null;
+            /** Updated At */
+            updated_at?: string | null;
+            /** Number */
+            number: string;
+            /** Month */
+            month: string;
+            /**
+             * Branch Id
+             * Format: uuid
+             */
+            branch_id: string;
+            /** Status */
+            status: string;
+            /** Total */
+            total: string;
+            /** Cashbox Id */
+            cashbox_id: string | null;
+            /** Paid At */
+            paid_at: unknown | null;
+            /** Notes */
+            notes: string;
+            /**
+             * Payslips
+             * @default []
+             */
+            payslips: components["schemas"]["PayslipOut"][];
         };
         /** StageIn */
         StageIn: {
@@ -5237,69 +5901,6 @@ export interface components {
                 [key: string]: unknown;
             };
         };
-        /** TransferIn */
-        TransferIn: {
-            /**
-             * From Warehouse Id
-             * Format: uuid
-             */
-            from_warehouse_id: string;
-            /**
-             * To Warehouse Id
-             * Format: uuid
-             */
-            to_warehouse_id: string;
-            /** Lines */
-            lines: components["schemas"]["TransferLine"][];
-            /**
-             * Note
-             * @default
-             */
-            note: string;
-        };
-        /** TransferLine */
-        TransferLine: {
-            /** Sku */
-            sku: string;
-            /** Qty */
-            qty: number | string;
-        };
-        /** TransferOut */
-        TransferOut: {
-            /**
-             * Id
-             * Format: uuid
-             */
-            id: string;
-            /** Version */
-            version: number;
-            /** Created At */
-            created_at?: string | null;
-            /** Updated At */
-            updated_at?: string | null;
-            /** Number */
-            number: string;
-            /**
-             * From Warehouse Id
-             * Format: uuid
-             */
-            from_warehouse_id: string;
-            /**
-             * To Warehouse Id
-             * Format: uuid
-             */
-            to_warehouse_id: string;
-            /** Status */
-            status: string;
-            /** Lines */
-            lines: unknown[];
-            /** Note */
-            note: string;
-            /** Sent At */
-            sent_at: string | null;
-            /** Received At */
-            received_at: string | null;
-        };
         /** TxIn */
         TxIn: {
             /**
@@ -5526,52 +6127,6 @@ export interface components {
              */
             published_at: string;
         };
-        /** WarehouseIn */
-        WarehouseIn: {
-            /** Code */
-            code: string;
-            /** Name */
-            name: string;
-            /**
-             * Branch Id
-             * Format: uuid
-             */
-            branch_id: string;
-        };
-        /** WarehouseOut */
-        WarehouseOut: {
-            /**
-             * Id
-             * Format: uuid
-             */
-            id: string;
-            /** Version */
-            version: number;
-            /** Created At */
-            created_at?: string | null;
-            /** Updated At */
-            updated_at?: string | null;
-            /** Code */
-            code: string;
-            /** Name */
-            name: string;
-            /**
-             * Branch Id
-             * Format: uuid
-             */
-            branch_id: string;
-            /** Is Active */
-            is_active: boolean;
-        };
-        /** WarehouseUpdate */
-        WarehouseUpdate: {
-            /** Version */
-            version: number;
-            /** Name */
-            name?: string | null;
-            /** Is Active */
-            is_active?: boolean | null;
-        };
         /** WorkOrderIn */
         WorkOrderIn: {
             /**
@@ -5591,6 +6146,8 @@ export interface components {
              * @default
              */
             notes: string;
+            /** Salesperson Id */
+            salesperson_id?: string | null;
         };
         /** WorkOrderOut */
         WorkOrderOut: {
@@ -5619,8 +6176,8 @@ export interface components {
             branch_id: string;
             /** Quotation Id */
             quotation_id: string | null;
-            /** Warehouse Id */
-            warehouse_id: string | null;
+            /** Salesperson Id */
+            salesperson_id?: string | null;
             /** Stage */
             stage: string;
             /**
@@ -5638,8 +6195,6 @@ export interface components {
             due_date: string | null;
             /** Notes */
             notes: string;
-            /** Materials Issued */
-            materials_issued: boolean;
             /** Outputs Generated At */
             outputs_generated_at: unknown | null;
             /**
@@ -5674,8 +6229,8 @@ export interface components {
             notes?: string | null;
             /** Deposit Required */
             deposit_required?: number | string | null;
-            /** Warehouse Id */
-            warehouse_id?: string | null;
+            /** Salesperson Id */
+            salesperson_id?: string | null;
         };
         /** LineIn */
         app__modules__invoicing__router__LineIn: {
@@ -9413,421 +9968,6 @@ export interface operations {
             };
         };
     };
-    list_warehouses_api_v1_warehouses_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WarehouseOut"][];
-                };
-            };
-        };
-    };
-    create_warehouse_api_v1_warehouses_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["WarehouseIn"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WarehouseOut"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    delete_warehouse_api_v1_warehouses__wh_id__delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                wh_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DeleteResult"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    update_warehouse_api_v1_warehouses__wh_id__patch: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                wh_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["WarehouseUpdate"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WarehouseOut"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    balances_api_v1_inventory_balances_get: {
-        parameters: {
-            query: {
-                warehouse_id: string;
-                sku?: string | null;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BalanceOut"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    movements_api_v1_inventory_movements_get: {
-        parameters: {
-            query: {
-                warehouse_id: string;
-                sku?: string | null;
-                ref_id?: string | null;
-                limit?: number;
-                offset?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Page_MovementOut_"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    adjust_api_v1_inventory_adjustments_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AdjustIn"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    list_transfers_api_v1_inventory_transfers_get: {
-        parameters: {
-            query?: {
-                status?: string | null;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TransferOut"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    create_transfer_api_v1_inventory_transfers_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["TransferIn"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TransferOut"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    send_transfer_api_v1_inventory_transfers__t_id__send_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                t_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["VersionIn"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TransferOut"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    receive_transfer_api_v1_inventory_transfers__t_id__receive_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                t_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["VersionIn"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TransferOut"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    issue_materials_api_v1_work_orders__wo_id__issue_materials_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                wo_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    delete_transfer_api_v1_inventory_transfers__t_id__delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                t_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DeleteResult"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
     list_suppliers_api_v1_suppliers_get: {
         parameters: {
             query?: {
@@ -10102,6 +10242,41 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["POStatusIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["POOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    approve_po_api_v1_purchase_orders__po_id__approve_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                po_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApproveIn"];
             };
         };
         responses: {
@@ -11438,6 +11613,889 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     }[];
+                };
+            };
+        };
+    };
+    list_employees_api_v1_employees_get: {
+        parameters: {
+            query?: {
+                department?: string | null;
+                status?: string | null;
+                branch_id?: string | null;
+                q?: string | null;
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_EmployeeOut_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_employee_api_v1_employees_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EmployeeIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployeeOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    employee_names_api_v1_employees_brief_get: {
+        parameters: {
+            query?: {
+                department?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployeeBrief"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_employee_api_v1_employees__eid__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                eid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployeeOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_employee_api_v1_employees__eid__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                eid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeleteResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_employee_api_v1_employees__eid__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                eid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EmployeeUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployeeOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    employee_summary_api_v1_employees__eid__summary_get: {
+        parameters: {
+            query?: {
+                year?: number | null;
+            };
+            header?: never;
+            path: {
+                eid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    employee_sales_api_v1_employees__eid__sales_get: {
+        parameters: {
+            query?: {
+                year?: number | null;
+            };
+            header?: never;
+            path: {
+                eid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_entries_api_v1_employees__eid__entries_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                eid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EntryOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_entry_api_v1_employee_entries_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EntryIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EntryOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_entry_api_v1_employee_entries__entry_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entry_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeleteResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_leaves_api_v1_employees__eid__leaves_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                eid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaveOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_leave_api_v1_employee_leaves_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LeaveIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaveOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_leave_api_v1_employee_leaves__leave_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                leave_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeleteResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_leave_api_v1_employee_leaves__leave_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                leave_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LeaveUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaveOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_runs_api_v1_payroll_runs_get: {
+        parameters: {
+            query?: {
+                month?: string | null;
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_RunOut_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_run_api_v1_payroll_runs_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RunIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_run_api_v1_payroll_runs__run_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_run_api_v1_payroll_runs__run_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeleteResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    recalculate_run_api_v1_payroll_runs__run_id__recalculate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    pay_run_api_v1_payroll_runs__run_id__pay_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PayIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    employee_payslips_api_v1_employees__eid__payslips_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                eid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayslipOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_assets_api_v1_assets_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssetOut"][];
+                };
+            };
+        };
+    };
+    create_asset_api_v1_assets_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssetIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssetOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_asset_api_v1_assets__asset_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                asset_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeleteResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_asset_api_v1_assets__asset_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                asset_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssetUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssetOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    profit_api_v1_finance_profit_get: {
+        parameters: {
+            query?: {
+                year?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    capital_api_v1_finance_capital_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
         };

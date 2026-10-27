@@ -62,7 +62,9 @@ python -m pytest                                   # لازم كله يعدّي 
 - `app/auth` الدخول/التوكنز/الصلاحيات · `app/licensing` الترخيص بالوضعين + التوقيع Ed25519
 - `app/engine` لغة المعادلات (`expr.py`) والحساب (`compute.py`) — عام، مفيهوش أي تخصيم
 - `app/modules/library` المكتبة، النشر، الحساب، الحزم · `app/modules/org` · `app/modules/system`
-- `app/modules/{crm,sales,production,inventory,purchasing,treasury,privacy}` النواة الإدارية
+- `app/modules/{crm,sales,production,purchasing,treasury,invoicing,privacy}` النواة الإدارية (مفيش مخازن: اتشالت في 0011)
+- `app/modules/hr` الموظفين والحوافز والسلف والإجازات وكشوف المرتبات · `app/modules/finance` الأصول والربحية ورأس المال
+- `app/modules/field` الصيانة ومهام الفنيين والتتبع
 - `app/engine/cutting.py` تحسين التقطيع · `app/modules/production/manufacturing.py` مخرجات التصنيع
 - `app/ops` النسخ الاحتياطي، الأحداث اللحظية، الاكتشاف، الجدولة، التحديثات (`updater.py`)
 - `deploy/windows` خدمة ويندوز، `setup-server.ps1` (التسطيب)، `MYTechServer.iss` (Inno Setup)، `update.ps1`

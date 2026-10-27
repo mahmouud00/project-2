@@ -50,7 +50,7 @@ POST /auth/login     {company_code?, username, password, device_key, device_name
 كل endpoint محتاج صلاحية معينة (`GET /permissions` بيرجّع القايمة كاملة). الصلاحية بتتمنح بالدور، والدور بيتربط بالفرع، فالمستخدم مابيشوفش ولا بيعدّل غير في الفروع اللي ليه فيها الصلاحية.
 
 ### الترخيص
-- **الإضافة والحذف صلاحيات منفصلة** لكل قسم (`customers.create` / `customers.delete`، ...). كل `DELETE` بيرجّع `{"result": "deleted"}` أو `{"result": "deactivated"}` (للي ليه تاريخ)، أو `409` بسبب واضح (`QUOTE_IN_USE`، `WO_IN_USE`، `INVOICE_ISSUED`، `PO_NOT_DRAFT`، `TRANSFER_SENT`). الفلوس والمخزن عمرهم ما بيتمسحوا: حركة الخزينة بتتعكس (`treasury.delete`) والفاتورة الصادرة بتتلغي (`invoices.delete`).
+- **الإضافة والحذف صلاحيات منفصلة** لكل قسم (`customers.create` / `customers.delete`، ...). كل `DELETE` بيرجّع `{"result": "deleted"}` أو `{"result": "deactivated"}` (للي ليه تاريخ)، أو `409` بسبب واضح (`QUOTE_IN_USE`، `WO_IN_USE`، `INVOICE_ISSUED`، `PO_NOT_DRAFT`). الفلوس عمرها ما بتتمسح: حركة الخزينة بتتعكس (`treasury.delete`) والفاتورة الصادرة بتتلغي (`invoices.delete`).
 - لو الترخيص أو الاشتراك منتهي: فترة سماح، وبعدها السيستم بيبقى **قراءة بس** (`LICENSE_READ_ONLY` على أي POST/PUT/PATCH/DELETE).
 - لو الترخيص مش موجود أو متلاعب فيه: مفيش أي وصول، ما عدا رفع ترخيص جديد.
 
@@ -80,7 +80,7 @@ WS /api/v1/system/events?token=<access_token>
 ### org: الشركة والفروع والمستخدمين
 | | | |
 |---|---|---|
-| GET / PATCH | `/company` | بيانات الشركة وإعداداتها: العملة، الضريبة الافتراضية، نسبة العربون، صلاحية العرض، هالك التسعير، سلاح المنشار، تشذيب أطراف العود، أقل باقي يرجع المخزن، شروط العرض |
+| GET / PATCH | `/company` | بيانات الشركة وإعداداتها: العملة، الضريبة الافتراضية، نسبة العربون، صلاحية العرض، هالك التسعير، سلاح المنشار، تشذيب أطراف العود، أقل باقي يتشال، شروط العرض، `opening_capital` (رأس المال الأساسي: بيظهر بس لمين عنده `org.manage` أو `finance.read`) |
 | | | `branding` جوه الرد: الاسم المعروض، التليفونات، الإيميل، الموقع، العنوان، الرقم الضريبي، السجل التجاري، تذييل الفاتورة، لون الشركة، `logo_media_id`، `length_unit` (`cm` افتراضي) |
 | GET / POST | `/company/logo` | لوجو الشركة (multipart `file`، PNG/JPEG/WEBP). بيظهر في كل صفحات البرنامج والمطبوعات |
 | GET / POST / PATCH | `/branches`، `/branches/{id}` | الفروع (مصنع / مخزن / معرض / مكتب) |
@@ -144,29 +144,22 @@ WS /api/v1/system/events?token=<access_token>
 |---|---|---|
 | GET / POST | `/work-orders` | أمر بيبدأ من مرحلة المعاينة |
 | POST | `/work-orders/from-quotation` | من عرض سعر متوافق عليه (السطور بتتنسخ وتتجمّد) |
-| GET / PATCH | `/work-orders/{id}` | الملاحظات، ميعاد التسليم، العربون المطلوب، المخزن |
-| POST | `/work-orders/{id}/stage` | `{version, to}`: خطوة لقدام بس أو `cancelled`. للموافقة لازم العربون يكون اتدفع. دخول مرحلة التصنيع بيجمّد مخرجات التصنيع وبيصرف الخامات من المخزن |
+| GET / PATCH | `/work-orders/{id}` | الملاحظات، ميعاد التسليم، العربون المطلوب، البائع (`salesperson_id`) |
+| POST | `/work-orders/{id}/stage` | `{version, to}`: خطوة لقدام بس أو `cancelled`. للموافقة لازم العربون يكون اتدفع. دخول مرحلة التصنيع بيجمّد مخرجات التصنيع |
 | GET | `/work-orders/{id}/manufacturing` | كشف التقطيع لكل SKU، خطة الأعواد ونسبة الهالك، الزجاج، الإكسسوار، التكلفة الفعلية، بيانات الرسمة وصورة النموذج |
 | POST | `/work-orders/{id}/manufacturing/generate` | إعادة توليد المخرجات (قبل التصنيع بس) |
-| POST | `/work-orders/{id}/issue-materials` | صرف الخامات يدويًا |
 
-### inventory: المخازن
-| | | |
-|---|---|---|
-| GET / POST / PATCH | `/warehouses` | مخزن لكل فرع |
-| GET | `/inventory/balances?warehouse_id=` | الرصيد ومتوسط التكلفة |
-| GET | `/inventory/movements?warehouse_id=` | دفتر الحركات (مابيتعدلش) |
-| POST | `/inventory/adjustments` | رصيد افتتاحي أو جرد |
-| GET / POST | `/inventory/transfers` | تحويلات بين المخازن |
-| POST | `/inventory/transfers/{id}/send`، `/receive` | |
+مفيش مخازن (اتشالت بطلب صاحب المشروع، migration 0011): البضاعة بتتطلب لكل أمر من «طلبية بضاعة».
+كل بيعة ليها بائع: `salesperson_id` (موظف) على عرض السعر، وبيتنقل لأمر التصنيع والفاتورة. لو ماتبعتش، بيتاخد الموظف المربوط بحساب اللي عامل البيعة.
 
 ### purchasing: الموردين والمشتريات
 | | | |
 |---|---|---|
 | GET / POST / PATCH | `/suppliers` | |
 | GET / POST | `/purchase-orders` | |
-| POST | `/purchase-orders/{id}/status` | ordered / cancelled |
-| POST | `/purchase-orders/{id}/receive` | استلام جزئي أو كامل في المخزن. آخر سعر شراء بيبقى سعر الشركة |
+| POST | `/purchase-orders/{id}/approve` | `{version, approve, note}`: الحسابات بتأكد (`approved`) أو ترفض (`rejected`) أمر الشراء. صلاحية `purchasing.approve` |
+| POST | `/purchase-orders/{id}/status` | ordered (بعد تأكيد الحسابات بس، وإلا `PO_NOT_APPROVED`) / cancelled |
+| POST | `/purchase-orders/{id}/receive` | استلام جزئي أو كامل من المورد (بيدخل في مشتريات الربحية). آخر سعر شراء بيبقى سعر الشركة |
 
 ### treasury: الخزينة
 | | | |
@@ -175,6 +168,25 @@ WS /api/v1/system/events?token=<access_token>
 | GET / POST | `/cash-transactions` | قبض أو صرف (`in`/`out`)، مربوط بعميل وأمر تصنيع أو بمورد وأمر شراء |
 | POST | `/cash-transactions/{id}/reverse` | عكس الحركة (الحركات مابتتعدلش) |
 | GET | `/customers/{id}/statement`، `/suppliers/{id}/statement` | كشف حساب |
+
+
+### hr: الموارد البشرية
+| | | |
+|---|---|---|
+| GET / POST / PATCH / DELETE | `/employees`، `/employees/{id}` | الموظف: الوظيفة، القسم (`sales`، `production`، `installation`، ...)، الفرع، المرتب، الرقم القومي، رصيد الإجازات، وحسابه على البرنامج (`user_id`). قراءة بياناته الشخصية بتتسجل. اللي ليه مرتبات أو مبيعات بيتعلم إنه ساب الشغل بدل ما يتمسح |
+| GET | `/employees/brief` | الأسماء بس (لاختيار البائع) لمين يشوف عروض الأسعار |
+| GET | `/employees/{id}/summary`، `/sales`، `/payslips`، `/entries`، `/leaves` | باقي الإجازات والسلف، مبيعاته في السنة، مرتباته، حركاته، إجازاته |
+| POST / DELETE | `/employee-entries` | `bonus` حافز / `deduction` خصم على مرتب شهر، أو `advance` سلفة بتتصرف من خزينة (`cashbox_id`) وتتخصم على أقساط (`installment`). السلفة بتتلغي بعكس حركة صرفها |
+| POST / PATCH / DELETE | `/employee-leaves` | إجازة (اعتيادي، مرضي، من غير مرتب، أخرى). اللي من غير مرتب بتتخصم: المرتب ÷ 30 × الأيام |
+| GET / POST | `/payroll-runs` | كشف مرتبات شهر لفرع: لكل موظف الأساسي + الحوافز − الخصومات − الإجازات من غير مرتب = التكلفة، وناقص قسط السلفة = الصافي |
+| POST | `/payroll-runs/{id}/recalculate`، `/pay` | إعادة الحساب، والصرف من خزينة (حركة باسم كل موظف؛ الكشف بيتقفل ومابيتعكسش) |
+
+### finance: الأصول والربحية ورأس المال
+| | | |
+|---|---|---|
+| GET / POST / PATCH / DELETE | `/assets` | أصول الشركة بقيمتها (من غير إهلاك). المباع أو المتشال بيبقى `disposed` |
+| GET | `/finance/profit?year=` | لكل شهر: المبيعات (الفواتير الصادرة من غير ضريبة) − المشتريات (المستلم) − المرتبات (الكشوف المصروفة) − المصروفات (صرف الخزينة لطرف «أخرى») |
+| GET | `/finance/capital` | رأس المال الأساسي + الأصول الموجودة + الأرباح المتراكمة |
 
 ### invoicing: فواتير العملاء
 صلاحية `treasury.write` للتعديل و`treasury.read` للقراءة.

@@ -72,25 +72,13 @@ def test_full_cycle(platform, tenant_a, tenant_b, client):
                      json={"version": wo["version"], "to": "approved"}).json()
     assert wo["stage"] == "approved"
 
-    # warehouse with opening stock
-    wh = client.post("/api/v1/warehouses", headers=h, json={"code": "MAIN", "name": "مخزن", "branch_id": branch["id"]}).json()
     outputs = client.get(f"/api/v1/work-orders/{wo['id']}/manufacturing", headers=h).json()
     needed = {c["sku"]: D(c["qty"]) for c in outputs["costs"] if c["type"] != "glass"}
     assert set(needed) == {f"{code}-FRAME-W", f"{code}-SASH-W", f"{code}-HANDLE-W", f"{code}-WHEEL-W"}
-    r = client.post("/api/v1/inventory/adjustments", headers=h, json={
-        "warehouse_id": wh["id"], "reason": "رصيد افتتاحي",
-        "lines": [{"sku": sku, "qty": str(q * 2), "unit_cost": "100"} for sku, q in needed.items()]})
-    assert r.status_code == 201, r.text
-    wo = client.patch(f"/api/v1/work-orders/{wo['id']}", headers=h, json={"version": wo["version"],
-                                                                          "warehouse_id": wh["id"]}).json()
     wo = client.post(f"/api/v1/work-orders/{wo['id']}/stage", headers=h,
                      json={"version": wo["version"], "to": "manufacturing"})
-    assert wo.status_code == 200, wo.text
+    assert wo.status_code == 200, wo.text      # no warehouse: the goods are bought per order
     wo = wo.json()
-    assert wo["materials_issued"] is True
-    bal = {b["sku"]: D(b["qty"]) for b in client.get(f"/api/v1/inventory/balances?warehouse_id={wh['id']}",
-                                                       headers=h).json()}
-    assert all(bal[sku] == q for sku, q in needed.items())  # half consumed
 
     out = client.get(f"/api/v1/work-orders/{wo['id']}/manufacturing", headers=h).json()
     frame = next(c for c in out["cut_list"] if c["sku"] == f"{code}-FRAME-W")
@@ -120,28 +108,7 @@ def test_full_cycle(platform, tenant_a, tenant_b, client):
     assert client.get(f"/api/v1/quotations/{q['id']}", headers=hb).status_code == 404
     assert client.get(f"/api/v1/work-orders/{wo['id']}", headers=hb).status_code == 404
     assert client.get(f"/api/v1/work-orders/{wo['id']}/manufacturing", headers=hb).status_code == 404
-    assert client.get(f"/api/v1/inventory/balances?warehouse_id={wh['id']}", headers=hb).status_code == 404
     assert client.get("/api/v1/customers", headers=hb).json()["total"] == 0
-
-
-def test_insufficient_stock_blocks_manufacturing(platform, tenant_a, client):
-    code = "NOSTK"
-    lib, branch, pl, customer = _setup(client, platform, tenant_a, code)
-    h = tenant_a.h
-    q = client.post("/api/v1/quotations", headers=h, json={
-        "customer_id": customer["id"], "branch_id": branch["id"], "lines": [{
-            "model_id": lib["model"]["id"], "opening_width_mm": 1000, "opening_height_mm": 1000, "color_code": "W",
-            "glass_material_code": f"{code}-GLASS6"}]}).json()
-    q = client.post(f"/api/v1/quotations/{q['id']}/status", headers=h, json={"version": q["version"], "status": "accepted"}).json()
-    wo = client.post("/api/v1/work-orders/from-quotation", headers=h,
-                     json={"quotation_id": q["id"], "deposit_required": "0"}).json()
-    wh = client.post("/api/v1/warehouses", headers=h, json={"code": "W2", "name": "w", "branch_id": branch["id"]}).json()
-    wo = client.patch(f"/api/v1/work-orders/{wo['id']}", headers=h, json={"version": wo["version"],
-                                                                          "warehouse_id": wh["id"]}).json()
-    wo = client.post(f"/api/v1/work-orders/{wo['id']}/stage", headers=h, json={"version": wo["version"], "to": "approved"}).json()
-    r = client.post(f"/api/v1/work-orders/{wo['id']}/stage", headers=h, json={"version": wo["version"], "to": "manufacturing"})
-    assert r.status_code == 409 and r.json()["error"]["code"] == "INSUFFICIENT_STOCK"
-    assert client.get(f"/api/v1/work-orders/{wo['id']}", headers=h).json()["stage"] == "approved"
 
 
 def test_impossible_opening_rejected_in_quote(platform, tenant_a, client):
@@ -152,19 +119,23 @@ def test_impossible_opening_rejected_in_quote(platform, tenant_a, client):
     assert r.status_code == 422 and r.json()["error"]["code"] == "CALC_INVALID"
 
 
-def test_purchasing_transfers_and_treasury(platform, tenant_a, client):
+def test_purchasing_and_treasury(platform, tenant_a, client):
     code = "PUR"
     lib, branch, pl, customer = _setup(client, platform, tenant_a, code)
     h = tenant_a.h
-    b2 = client.post("/api/v1/branches", headers=h, json={"code": "SHOW", "name": "معرض", "kind": "showroom"}).json()
-    wh1 = client.post("/api/v1/warehouses", headers=h, json={"code": "PW1", "name": "1", "branch_id": branch["id"]}).json()
-    wh2 = client.post("/api/v1/warehouses", headers=h, json={"code": "PW2", "name": "2", "branch_id": b2["id"]}).json()
     sup = client.post("/api/v1/suppliers", headers=h, json={"name": "مورد القطاعات"}).json()
     sku = f"{code}-FRAME-W"
     po = client.post("/api/v1/purchase-orders", headers=h, json={
-        "supplier_id": sup["id"], "branch_id": branch["id"], "warehouse_id": wh1["id"],
+        "supplier_id": sup["id"], "branch_id": branch["id"],
         "lines": [{"sku": sku, "qty": "60", "unit_cost": "120"}]}).json()
-    assert D(po["total"]) == D("7200.00")
+    assert D(po["total"]) == D("7200.00") and po["status"] == "draft"
+    # nobody orders it before the accounts confirm it
+    r = client.post(f"/api/v1/purchase-orders/{po['id']}/status", headers=h, json={"version": po["version"],
+                                                                                   "status": "ordered"})
+    assert r.status_code == 409 and r.json()["error"]["code"] == "PO_NOT_APPROVED"
+    po = client.post(f"/api/v1/purchase-orders/{po['id']}/approve", headers=h,
+                     json={"version": po["version"], "note": "تمام"}).json()
+    assert po["status"] == "approved" and po["approved_at"] and po["approval_note"] == "تمام"
     po = client.post(f"/api/v1/purchase-orders/{po['id']}/status", headers=h, json={"version": po["version"],
                                                                                     "status": "ordered"}).json()
     po = client.post(f"/api/v1/purchase-orders/{po['id']}/receive", headers=h, json={
@@ -181,15 +152,6 @@ def test_purchasing_transfers_and_treasury(platform, tenant_a, client):
             "model_id": lib["model"]["id"], "opening_width_mm": 1000, "opening_height_mm": 1000, "color_code": "W",
             "glass_material_code": f"{code}-GLASS6"}]}).json()["lines"][0]["cost_breakdown"]["lines"]
     assert next(l for l in calc_cost if l["sku"] == sku)["unit_cost"] == "120.0000"
-
-    t = client.post("/api/v1/inventory/transfers", headers=h, json={
-        "from_warehouse_id": wh1["id"], "to_warehouse_id": wh2["id"], "lines": [{"sku": sku, "qty": "15"}]}).json()
-    t = client.post(f"/api/v1/inventory/transfers/{t['id']}/send", headers=h, json={"version": t["version"]}).json()
-    t = client.post(f"/api/v1/inventory/transfers/{t['id']}/receive", headers=h, json={"version": t["version"]}).json()
-    assert t["status"] == "received"
-    b1 = client.get(f"/api/v1/inventory/balances?warehouse_id={wh1['id']}", headers=h).json()
-    b2b = client.get(f"/api/v1/inventory/balances?warehouse_id={wh2['id']}", headers=h).json()
-    assert D(b1[0]["qty"]) == 25 and D(b2b[0]["qty"]) == 15
 
     box = client.post("/api/v1/cashboxes", headers=h, json={"code": "PB", "name": "b", "branch_id": branch["id"]}).json()
     r = client.post("/api/v1/cash-transactions", headers=h, json={

@@ -97,6 +97,29 @@ def test_upgrade_from_old_revision_keeps_data():
     before4 = _dump(engine)
     engine.dispose()
 
+    # 0011 drops the warehouse module (the owner's decision); purchase orders and work orders stay
+    migrate(url=url, revision="0010")
+    engine = create_engine(url)
+    with engine.begin() as c:
+        p["wh"], p["sup"], p["po"], p["wo"], p["wh_role"], p["acc_role"] = (uuid.uuid4() for _ in range(6))
+        c.execute(text("INSERT INTO warehouses (id, company_id, code, name, branch_id, is_active, version) "
+                       "VALUES (:wh, :c, 'W', 'Store', :b, true, 1)"), p)
+        c.execute(text("INSERT INTO stock_movements (id, company_id, at, warehouse_id, sku, qty, unit, kind, note) "
+                       "VALUES (gen_random_uuid(), :c, now(), :wh, 'X', 5, 'm', 'receipt', '')"), p)
+        c.execute(text("INSERT INTO suppliers (id, company_id, code, name, notes, version) "
+                       "VALUES (:sup, :c, 'SU-1', 'Supplier', '', 1)"), p)
+        c.execute(text("INSERT INTO purchase_orders (id, company_id, number, supplier_id, branch_id, warehouse_id, "
+                       "status, total, received_value, paid_amount, notes, version) VALUES (:po, :c, 'PO-1', :sup, :b, "
+                       ":wh, 'received', 600, 600, 0, 'old po', 2)"), p)
+        c.execute(text("INSERT INTO work_orders (id, company_id, number, customer_id, branch_id, warehouse_id, stage, "
+                       "total, deposit_required, paid_amount, notes, outputs, materials_issued, version) VALUES "
+                       "(:wo, :c, 'WO-1', :cust, :b, :wh, 'manufacturing', 300, 0, 0, '', '{}', true, 3)"), p)
+        c.execute(text("INSERT INTO roles (id, company_id, code, name, permissions, is_builtin, version) VALUES "
+                       "(:wh_role, :c, 'warehouse', 'مخازن', ARRAY['inventory.read','purchasing.read'], true, 1), "
+                       "(:acc_role, :c, 'accounts', 'حسابات', ARRAY['treasury.write','inventory.read'], true, 1)"), p)
+    before5 = _dump(engine)
+    engine.dispose()
+
     migrate(url=url)  # head
     engine = create_engine(url)
     after = _dump(engine)
@@ -118,15 +141,38 @@ def test_upgrade_from_old_revision_keeps_data():
     assert "maintenance.create" in set(after["roles"][str(p["sales_role"])]["permissions"])
     techs = [r for r in after["roles"].values() if r["code"] == "technician" and r["company_id"] == str(cid)]
     assert len(techs) == 1 and techs[0]["permissions"] == ["field.self"] and techs[0]["is_builtin"]
-    after["roles"] = {k: v for k, v in after["roles"].items() if v["code"] != "technician"}
-    for table, rows in {**before, **before2, **before3, **before4}.items():
+    # 0011: no warehouse tables or links; orders kept; inventory permissions gone; accounts confirm purchases
+    for t in ("warehouses", "stock_movements", "stock_balances", "stock_transfers"):
+        assert t not in after
+    po = after["purchase_orders"][str(p["po"])]
+    assert "warehouse_id" not in po and po["status"] == "received" and float(po["received_value"]) == 600
+    assert po["approval_note"] == "" and po["approved_at"] is None
+    wo = after["work_orders"][str(p["wo"])]
+    assert "materials_issued" not in wo and wo["stage"] == "manufacturing" and wo["salesperson_id"] is None
+    assert str(p["wh_role"]) not in after["roles"]           # unused built-in warehouse role removed
+    acc = set(after["roles"][str(p["acc_role"])]["permissions"])
+    assert {"purchasing.approve", "finance.read", "hr.read", "hr.payroll", "treasury.write"} <= acc
+    assert not any(x.startswith("inventory.") for r in after["roles"].values() for x in r["permissions"])
+    assert {"hr.create", "purchasing.approve"} <= set(after["roles"][str(p["admin_role"])]["permissions"])
+    hr = [r for r in after["roles"].values() if r["code"] == "hr" and r["company_id"] == str(cid)]
+    assert len(hr) == 1 and hr[0]["is_builtin"]
+    after["roles"] = {k: v for k, v in after["roles"].items() if v["code"] not in ("technician", "hr")}
+    for t in ("warehouses", "stock_movements"):
+        before5.pop(t)
+    before5["roles"] = {k: v for k, v in before5["roles"].items()
+                        if k != str(p["wh_role"]) and v["code"] != "technician"}
+    for table, rows in {**before, **before2, **before3, **before4, **before5}.items():
         assert set(after[table]) == set(rows), f"rows lost or added in {table}"
         for row_id, old in rows.items():
             new = after[table][row_id]
             # new columns may appear; every old value must be unchanged
-            if table == "roles":       # permissions only grow (0009); every permission a role had is kept
-                assert set(old["permissions"]) <= set(new["permissions"])
+            if table == "roles":       # permissions only grow (0009), except the removed inventory ones (0011)
+                assert {x for x in old["permissions"] if not x.startswith("inventory.")} <= set(new["permissions"])
                 old = {k: v for k, v in old.items() if k != "permissions"}
+            if table == "purchase_orders":
+                old = {k: v for k, v in old.items() if k != "warehouse_id"}
+            if table == "work_orders":
+                old = {k: v for k, v in old.items() if k not in ("warehouse_id", "materials_issued")}
             assert {k: new.get(k) for k in old} == old, f"data changed in {table} {row_id}"
 
 

@@ -42,8 +42,8 @@
 | 5 | شوف كشف التقطيع وخطة الأعواد والهالك والزجاج والإكسسوار والتكلفة | `GET /work-orders/{id}/manufacturing` |
 | 6 | جرّب توافق قبل دفع العربون (هيرفض) | `POST /work-orders/{id}/stage` ← `{"version": ..., "to": "approved"}` |
 | 7 | ادفع العربون في الخزينة | `POST /cash-transactions` ← `direction: in`، `party_type: customer`، `party_id`، `work_order_id`، `amount`، `cashbox_id` (من `GET /cashboxes`) |
-| 8 | اربط الأمر بالمخزن وابدأ التصنيع (الخامات بتتخصم أوتوماتيك) | `PATCH /work-orders/{id}` ← `warehouse_id` (من `GET /warehouses`)، وبعدين `stage` ← `approved` ← `manufacturing` |
-| 9 | شوف الرصيد بعد الصرف | `GET /inventory/balances?warehouse_id=...` |
+| 8 | ابدأ التصنيع | `POST /work-orders/{id}/stage` ← `approved` ← `manufacturing` |
+| 9 | اطلب البضاعة للأمر (الحسابات تأكد وبعدين تتطلب) | `GET /work-orders/{id}/material-needs` ← `POST /purchase-orders` ← `/approve` ← `/status` |
 | 10 | كمّل المراحل: تجميع، جودة، تسليم | `POST /work-orders/{id}/stage` |
 
 **ملاحظة:** أي تعديل (`PATCH` أو تغيير مرحلة) محتاج `version` بتاع السجل، وده بتلاقيه في آخر رد جالك. لو بعته قديم هيرجعلك `409`، وده مقصود: علشان تعديل حد مايمسحش تعديل حد تاني.

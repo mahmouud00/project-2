@@ -4,10 +4,10 @@ import { useTitle, type PageProps } from "../lib/title";
 import { useAction, useLoad, when } from "../lib/hooks";
 import { useSession } from "../state/session";
 import { useToast } from "../state/toast";
-import { Btn, Card, Check, Chip, Confirm, Dim, ErrorBox, Field, Len, Loading, Modal, Money, NumIn, PageHead, Pager, Qty, Select, Table, Tabs, TextIn } from "../components/ui";
+import { Btn, Card, Chip, Confirm, Dim, ErrorBox, Field, Len, Loading, Modal, Money, NumIn, PageHead, Pager, Qty, Select, Table, Tabs, TextIn } from "../components/ui";
 import { DeleteBtn } from "../components/actions";
 import { AssignJob, Progress } from "../components/field";
-import { BranchName, ColorName, CustomerName, ModelThumb, WarehouseSelect } from "../components/pickers";
+import { BranchName, ColorName, CustomerName, ModelThumb, SalespersonName, SalespersonSelect } from "../components/pickers";
 import { Issues, ParamLabels, type Issue } from "../components/items";
 import { Drawing, MediaImg, PrintPreview } from "../components/media";
 import { STAGES, STAGE_COLOR, STAGE_NAMES, UNITS, lookups } from "../lib/lookups";
@@ -108,11 +108,6 @@ function WorkOrderDetail({ id, tab }: { id: string; tab: string }) {
     await wo.reload();
     toast.ok("اتعملت مخرجات التصنيع من جديد.");
   });
-  const issue = () => run(async () => {
-    await api.post(`/work-orders/${id}/issue-materials`);
-    await wo.reload();
-    toast.ok("اتصرفت الخامات من المخزن.");
-  });
   const invoice = () => run(async () => {
     const inv = await api.post<S<"InvoiceOut">>("/invoices", { work_order_id: id });
     go(`invoices/${inv.id}`);
@@ -128,7 +123,7 @@ function WorkOrderDetail({ id, tab }: { id: string; tab: string }) {
           <div><div className="muted small">الإجمالي</div><b><Money v={w.total} /></b></div>
           <div><div className="muted small">العربون المطلوب</div><Money v={w.deposit_required} /></div>
           <div><div className="muted small">المدفوع</div><span className={Number(w.paid_amount) >= Number(w.deposit_required) ? "success-text bold" : "bold"}><Money v={w.paid_amount} /></span></div>
-          <div><div className="muted small">الخامات</div>{w.materials_issued ? <Chip color="green">اتصرفت</Chip> : <Chip>لسه</Chip>}</div>
+          <div><div className="muted small">البائع</div><SalespersonName id={w.salesperson_id} /></div>
           <div style={{ minWidth: 170 }}><div className="muted small">الإنجاز{w.expected_delivery ? ` · متوقع ${date(w.expected_delivery)}` : ""}</div>
             <Progress pct={w.progress_pct} late={w.late} /></div>
           <div className="end row wrap">
@@ -141,7 +136,7 @@ function WorkOrderDetail({ id, tab }: { id: string; tab: string }) {
             {s.can("invoices.create", w.branch_id) && w.stage !== "cancelled" && w.quotation_id && <Btn icon="invoice" busy={busy} onClick={invoice}>فاتورة</Btn>}
             {s.can("workorders.delete", w.branch_id) &&
               <DeleteBtn small={false} path={`/work-orders/${id}`} what={`أمر التصنيع ${w.number}`} onDone={() => go("work-orders")}
-                note="الأمر هيتمسح بس لو مفيش خامات اتصرفت ولا فلوس اتدفعت ولا فاتورة. غير كدا ألغيه من مراحل الأمر." />}
+                note="الأمر هيتمسح بس لو مفيش فلوس اتدفعت ولا فاتورة. غير كدا ألغيه من مراحل الأمر." />}
           </div>
         </div>
         <div className="mt"><Stepper stage={w.stage} /></div>
@@ -149,8 +144,6 @@ function WorkOrderDetail({ id, tab }: { id: string; tab: string }) {
           <div className="row mt wrap">
             <div style={{ width: 280 }}><TextIn value={note} onChange={setNote} placeholder="ملاحظة على النقل (اختياري)" /></div>
             {next && <Btn kind="primary" icon="arrow" busy={busy} onClick={() => move(next)}>نقل لـ {STAGE_NAMES[next]}</Btn>}
-            {w.stage === "approved" && !w.warehouse_id && <span className="muted small">حدد المخزن عشان الخامات تتصرف أوتوماتيك لما التصنيع يبدأ.</span>}
-            {frozen && !w.materials_issued && w.warehouse_id && <Btn icon="box" busy={busy} onClick={issue}>صرف الخامات</Btn>}
             <Btn kind="danger" icon="ban" className="end" onClick={() => setCancel(true)}>إلغاء الأمر</Btn>
           </div>
         )}
@@ -215,18 +208,18 @@ function ModelLabel({ id }: { id: string }) {
 function WorkOrderEdit({ wo, onClose, onSaved }: { wo: WO; onClose: () => void; onSaved: (w: WO) => void }) {
   const toast = useToast();
   const { busy, run } = useAction(toast.err);
-  const [d, setD] = useState({ due_date: wo.due_date ?? "", notes: wo.notes, deposit_required: wo.deposit_required, warehouse_id: wo.warehouse_id ?? "" });
+  const [d, setD] = useState({ due_date: wo.due_date ?? "", notes: wo.notes, deposit_required: wo.deposit_required,
+    salesperson_id: wo.salesperson_id ?? null });
   return (
     <Modal title="بيانات أمر التصنيع" onClose={onClose} footer={<><Btn kind="primary" busy={busy} onClick={() => run(async () => {
       onSaved(await api.patch<WO>(`/work-orders/${wo.id}`, { version: wo.version, due_date: d.due_date || null, notes: d.notes,
-        deposit_required: d.deposit_required, warehouse_id: d.warehouse_id || null }));
+        deposit_required: d.deposit_required, ...(d.salesperson_id ? { salesperson_id: d.salesperson_id } : {}) }));
       onClose();
     })}>حفظ</Btn><Btn onClick={onClose}>رجوع</Btn></>}>
       <div className="col">
         <Field label="تاريخ التسليم"><input type="date" className="input" value={d.due_date} onChange={(e) => setD((x) => ({ ...x, due_date: e.target.value }))} /></Field>
         <Field label="العربون المطلوب"><NumIn value={d.deposit_required} onChange={(v) => setD((x) => ({ ...x, deposit_required: v }))} /></Field>
-        <Field label="المخزن" hint="الخامات بتتصرف منه لما التصنيع يبدأ"><WarehouseSelect value={d.warehouse_id} branchId={wo.branch_id}
-          onChange={(v) => setD((x) => ({ ...x, warehouse_id: v }))} /></Field>
+        <Field label="البائع (السيلز)"><SalespersonSelect value={d.salesperson_id} onChange={(v) => setD((x) => ({ ...x, salesperson_id: v }))} /></Field>
         <Field label="ملاحظات"><TextIn value={d.notes} onChange={(v) => setD((x) => ({ ...x, notes: v }))} /></Field>
       </div>
     </Modal>
@@ -371,28 +364,24 @@ function GoodsOrder({ wo, onClose }: { wo: WO; onClose: () => void }) {
   const { busy, run } = useAction(toast.err);
   const [lines, setLines] = useState<Need[] | null>(null);
   const [supplier, setSupplier] = useState("");
-  const [warehouse, setWarehouse] = useState(wo.warehouse_id ?? "");
-  const [minusStock, setMinusStock] = useState(false);
   const sups = useLoad(() => lookups.suppliers(), []);
   useLoad(() => api.get<S<"NeedOut">[]>(`/work-orders/${wo.id}/material-needs`).then((n) => setLines(n.map((x) => ({ ...x, include: true })))), [wo.id]);
-  const qtyOf = (n: Need) => minusStock ? Math.max(Number(n.qty) - Math.max(Number(n.in_stock), 0), 0) : Number(n.qty);
+  const qtyOf = (n: Need) => Number(n.qty);
   const set = (i: number, patch: Partial<Need>) => setLines((x) => x!.map((l, j) => j === i ? { ...l, ...patch } : l));
   const chosen = (lines ?? []).filter((n) => n.include && qtyOf(n) > 0);
   const total = chosen.reduce((t, n) => t + qtyOf(n) * Number(n.unit_cost ?? 0), 0);
   return (
     <Modal title={`طلبية بضاعة · أمر ${wo.number}`} size="xwide" onClose={onClose} footer={<>
-      <Btn kind="primary" busy={busy} disabled={!supplier || !warehouse || !chosen.length} onClick={() => run(async () => {
-        const po = await api.post<S<"POOut">>("/purchase-orders", { supplier_id: supplier, branch_id: wo.branch_id, warehouse_id: warehouse,
+      <Btn kind="primary" busy={busy} disabled={!supplier || !chosen.length} onClick={() => run(async () => {
+        const po = await api.post<S<"POOut">>("/purchase-orders", { supplier_id: supplier, branch_id: wo.branch_id,
           work_order_id: wo.id, notes: `طلبية أمر التصنيع ${wo.number}`,
           lines: chosen.map((n) => ({ sku: n.sku, qty: String(qtyOf(n).toFixed(3)), unit_cost: String(n.unit_cost ?? 0) })) });
-        toast.ok(`اتعمل أمر الشراء ${po.number} (مسودة).`);
+        toast.ok(`اتعمل أمر الشراء ${po.number}، ومستني تأكيد الحسابات.`);
         go(`purchasing/${po.id}`);
-      })}>حفظ أمر شراء (مسودة)</Btn><Btn onClick={onClose}>رجوع</Btn></>}>
+      })}>حفظ أمر الشراء</Btn><Btn onClick={onClose}>رجوع</Btn></>}>
       <div className="grid g3 mb">
         <Field label="المورد"><Select value={supplier} onChange={setSupplier} placeholder="اختار المورد"
           options={(sups.data ?? []).map((x) => ({ value: x.id, label: x.name }))} /></Field>
-        <Field label="يستلم في مخزن"><WarehouseSelect value={warehouse} onChange={setWarehouse} /></Field>
-        <Field label=" "><Check checked={minusStock} onChange={setMinusStock} label="اطلب الناقص بس (اطرح الموجود في المخازن)" /></Field>
       </div>
       {!lines ? <Loading /> : (
         <Table rows={lines} rowKey={(n) => n.sku} empty="مفيش خامات (اتأكد إن الأمر فيه بنود محسوبة)" columns={[
@@ -402,7 +391,6 @@ function GoodsOrder({ wo, onClose }: { wo: WO; onClose: () => void }) {
           { key: "n", label: "الخامة", render: (n) => n.name },
           { key: "b", label: "التفاصيل", render: (n) => <span className="small muted">{n.bars ? `${n.bars} عود × ${Number(n.bar_length_mm) / 1000} م`
             : n.pieces ? `${n.pieces} لوح` : ""}</span> },
-          { key: "st", label: "في المخازن", num: true, render: (n) => <span className="num">{Number(n.in_stock)}</span> },
           { key: "q", label: "الكمية", num: true, render: (n) => <span className="num bold">{qtyOf(n).toLocaleString("en", { maximumFractionDigits: 3 })} {UNITS[n.unit] ?? n.unit}</span> },
           { key: "c", label: "سعر الوحدة", num: true, width: 130, render: (n, i) => <NumIn value={String(n.unit_cost ?? "")} onChange={(v) => set(i, { unit_cost: v || null })} /> },
         ]} />

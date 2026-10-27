@@ -6,7 +6,7 @@ from decimal import Decimal
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
-from sqlalchemy import func, select
+from sqlalchemy import select
 
 from app.api.common import DeleteResult, ORMModel, Page, PageParams, Record, VersionedUpdate, paginate
 from app.core.audit import apply_changes, audit, check_version, snapshot
@@ -33,6 +33,7 @@ class WorkOrderIn(BaseModel):
     branch_id: uuid.UUID
     due_date: date | None = None
     notes: str = ""
+    salesperson_id: uuid.UUID | None = None
 
 
 class FromQuotationIn(BaseModel):
@@ -46,7 +47,7 @@ class WorkOrderUpdate(VersionedUpdate):
     due_date: date | None = None
     notes: str | None = None
     deposit_required: Decimal | None = Field(None, ge=0)
-    warehouse_id: uuid.UUID | None = None
+    salesperson_id: uuid.UUID | None = None
 
 
 class ItemOut(ORMModel):
@@ -77,7 +78,7 @@ class WorkOrderOut(Record):
     customer_id: uuid.UUID
     branch_id: uuid.UUID
     quotation_id: uuid.UUID | None
-    warehouse_id: uuid.UUID | None
+    salesperson_id: uuid.UUID | None = None
     stage: str
     stage_name: str = ""
     total: Decimal
@@ -85,7 +86,6 @@ class WorkOrderOut(Record):
     paid_amount: Decimal
     due_date: date | None
     notes: str
-    materials_issued: bool
     outputs_generated_at: object | None
     items: list[ItemOut] = []
     stage_log: list[StageLogOut] = []
@@ -156,7 +156,11 @@ def create_work_order(body: WorkOrderIn, dc=Depends(require("workorders.create")
     ctx.require("workorders.create", body.branch_id)
     branch = get_or_404(db, Branch, body.branch_id)
     get_or_404(db, Customer, body.customer_id)
-    wo = WorkOrder(number=next_number(db, "wo", "WO", branch.code), stage="survey", **body.model_dump())
+    from app.modules.hr.router import salesperson_for
+
+    data = body.model_dump()
+    data["salesperson_id"] = salesperson_for(db, ctx, body.salesperson_id)
+    wo = WorkOrder(number=next_number(db, "wo", "WO", branch.code), stage="survey", **data)
     db.add(wo)
     db.flush()
     _log_stage(db, ctx, wo, None, "survey")
@@ -188,6 +192,7 @@ def from_quotation(body: FromQuotationIn, dc=Depends(require("workorders.create"
         db.flush()
         before_stage = None
     wo.quotation_id = q.id
+    wo.salesperson_id = q.salesperson_id or wo.salesperson_id
     wo.total = q.total
     wo.due_date = body.due_date or wo.due_date
     wo.deposit_required = body.deposit_required if body.deposit_required is not None else \
@@ -220,13 +225,9 @@ def update_work_order(wo_id: uuid.UUID, body: WorkOrderUpdate, dc=Depends(requir
     wo = _get_wo(db, ctx, wo_id, "workorders.write")
     check_version(wo, body.version)
     data = body.model_dump(exclude_unset=True, exclude={"version"})
-    if "warehouse_id" in data and wo.materials_issued:
-        raise Conflict("Materials already issued", code="MATERIALS_ISSUED")
-    if data.get("warehouse_id"):
-        from app.modules.inventory.models import Warehouse
-        wh = get_or_404(db, Warehouse, data["warehouse_id"])
-        if wh.branch_id != wo.branch_id:
-            raise ValidationFailed("Warehouse belongs to another branch", code="WAREHOUSE_BRANCH")
+    if data.get("salesperson_id"):
+        from app.modules.hr.router import salesperson_for
+        salesperson_for(db, ctx, data["salesperson_id"])
     before = snapshot(wo)
     apply_changes(wo, data)
     audit(db, wo, "update", before)
@@ -267,9 +268,6 @@ def change_stage(wo_id: uuid.UUID, body: StageIn, dc=Depends(require("workorders
             if errors:
                 raise ValidationFailed("Manufacturing outputs have errors", code="MANUFACTURING_ERRORS",
                                        details=errors)
-            if wo.warehouse_id and not wo.materials_issued:
-                from app.modules.inventory.service import issue_for_work_order
-                issue_for_work_order(db, ctx, wo)
     before = snapshot(wo)
     wo.stage = body.to
     _log_stage(db, ctx, wo, current, body.to, body.note)
@@ -313,14 +311,12 @@ class NeedOut(BaseModel):
     bar_length_mm: Decimal | None = None
     pieces: int | None = None     # glass panes
     unit_cost: Decimal | None = None
-    in_stock: Decimal = Decimal(0)
 
 
 @router.get("/work-orders/{wo_id}/material-needs", response_model=list[NeedOut])
 def material_needs(wo_id: uuid.UUID, dc=Depends(require("workorders.read"))):
     """What the order needs, from its deductions (cut list after optimisation), glass and each model's
     accessories: the lines of a goods order for this customer."""
-    from app.modules.inventory.models import StockBalance
     from app.modules.library.service import find_material
 
     db, ctx = dc
@@ -353,27 +349,24 @@ def material_needs(wo_id: uuid.UUID, dc=Depends(require("workorders.read"))):
         needs.append(NeedOut(kind="accessory", sku=a["sku"], material_code=a["material_code"],
                              name=a.get("material_name") or a["material_code"], unit=a.get("unit") or "pcs",
                              qty=Decimal(str(a["qty"]))))
-    stock = dict(db.execute(select(StockBalance.sku, func.sum(StockBalance.qty))
-                            .where(StockBalance.sku.in_([n.sku for n in needs])).group_by(StockBalance.sku)).all())
     for n in needs:
         n.unit_cost = cost.get(n.sku)
-        n.in_stock = Decimal(stock.get(n.sku) or 0)
         n.qty = n.qty.quantize(Decimal("0.001"))
     return needs
 
 
 @router.delete("/work-orders/{wo_id}", response_model=DeleteResult)
 def delete_work_order(wo_id: uuid.UUID, dc=Depends(require("workorders.delete"))):
-    """Only before anything happened to it: once materials are issued, money is received or it is
-    invoiced, it is cancelled (stage "cancelled") instead, so the records stay consistent."""
+    """Only before anything happened to it: once money is received or it is invoiced, it is cancelled
+    (stage "cancelled") instead, so the records stay consistent."""
     from app.modules.invoicing.models import Invoice
 
     db, ctx = dc
     wo = _get_wo(db, ctx, wo_id, "workorders.delete")
-    if wo.materials_issued or wo.paid_amount > 0 or db.scalar(
+    if wo.paid_amount > 0 or db.scalar(
             select(Invoice.id).where(Invoice.work_order_id == wo.id, Invoice.deleted_at.is_(None),
                                      Invoice.status != "cancelled")):
-        raise Conflict("Work order has materials, payments or an invoice", code="WO_IN_USE")
+        raise Conflict("Work order has payments or an invoice", code="WO_IN_USE")
     before = snapshot(wo)
     wo.deleted_at = utcnow()
     audit(db, wo, "delete", before)

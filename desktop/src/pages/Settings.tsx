@@ -5,7 +5,9 @@ import { useTitle, type PageProps } from "../lib/title";
 import { useAction, useLoad } from "../lib/hooks";
 import { useSession, type Company } from "../state/session";
 import { useToast } from "../state/toast";
-import { Btn, Card, Chip, Field, FilePick, Modal, NumIn, PageHead, Select, Table, Tabs, TextArea, TextIn } from "../components/ui";
+import { Btn, Card, Chip, Field, FilePick, KV, Modal, Money, NumIn, PageHead, Select, Table, Tabs, TextArea, TextIn } from "../components/ui";
+import { DeleteBtn } from "../components/actions";
+import { date } from "../lib/format";
 import { setQuery } from "../lib/router";
 
 import { STAGE_NAMES } from "../lib/lookups";
@@ -19,8 +21,10 @@ export default function Settings({ route }: PageProps) {
     <Card flush>
       <Tabs value={tab} onChange={(t) => setQuery({ tab: t })} tabs={[
         { id: "brand", label: "الاسم واللوجو" }, { id: "defaults", label: "الإعدادات الافتراضية" }, { id: "branches", label: "الفروع" },
+        { id: "assets", label: "الأصول ورأس المال" },
       ]} />
-      <div className="card-b">{tab === "brand" ? <Brand /> : tab === "defaults" ? <Defaults /> : <Branches />}</div>
+      <div className="card-b">{tab === "brand" ? <Brand /> : tab === "defaults" ? <Defaults /> : tab === "assets" ? <AssetsCapital />
+        : <Branches />}</div>
     </Card>
   );
 }
@@ -104,7 +108,7 @@ function Defaults() {
       <Field label="هالك التسعير"><NumIn value={d.quote_waste_pct as string} onChange={set("quote_waste_pct")} unit="%" /></Field>
       <Field label="سُمك سلاح المنشار"><NumIn value={d.saw_kerf_mm as string} onChange={set("saw_kerf_mm")} unit="مم" /></Field>
       <Field label="تشذيب طرف العود"><NumIn value={d.bar_trim_mm as string} onChange={set("bar_trim_mm")} unit="مم" /></Field>
-      <Field label="أقل باقي يرجع المخزن"><NumIn value={d.min_reusable_offcut_mm as string} onChange={set("min_reusable_offcut_mm")} unit="مم" /></Field>
+      <Field label="أقل باقي يتشال (مش هالك)"><NumIn value={d.min_reusable_offcut_mm as string} onChange={set("min_reusable_offcut_mm")} unit="مم" /></Field>
       <Field label="أقل مساحة بتتحسب للوحدة" hint="أي وحدة أصغر بتتحسب بالمساحة دي في سعر المتر"><NumIn value={d.min_billed_area_m2 as string} onChange={set("min_billed_area_m2")} unit="م²" /></Field>
       <Field label="نموذج الأرج الافتراضي" hint="بيتستخدم لما الوحدة يكون ليها ارتفاع كلي (أرج نص دايرة بحلق لوحده)" className="span-3">
         <ModelSelect value={d.default_arch_model_id} onChange={(id) => set("default_arch_model_id")(id || null)} /></Field>
@@ -154,5 +158,77 @@ function Branches() {
         </div>
       </Modal>}
     </div>
+  );
+}
+
+export const ASSET_CATEGORIES: Record<string, string> = { vehicle: "عربيات", machine: "ماكينات", building: "مباني وأراضي",
+  equipment: "معدات وعدد", furniture: "أثاث وأجهزة", other: "أخرى" };
+type Asset = S<"AssetOut">;
+
+/** أصول الشركة (بقيمتها، من غير إهلاك) ورأس المال = رأس المال الأساسي + الأصول + الأرباح المتراكمة. */
+function AssetsCapital() {
+  const s = useSession();
+  const { busy, save } = useCompanySave();
+  const [opening, setOpening] = useState(String(s.company.settings.opening_capital ?? "0"));
+  const [edit, setEdit] = useState<Partial<Asset> | null>(null);
+  const assets = useLoad(() => api.get<Asset[]>("/assets"), []);
+  const cap = useLoad(() => api.get<Record<string, string>>("/finance/capital"), [s.company.version]);
+  const reload = () => { assets.reload(); cap.reload(); };
+  return (
+    <div className="col" style={{ gap: 16 }}>
+      <div className="grid g2" style={{ alignItems: "start" }}>
+        <div className="col">
+          <Field label="رأس المال الأساسي" hint="الفلوس اللي الشركة بدأت بيها (من غير الأصول)">
+            <NumIn value={opening} onChange={setOpening} /></Field>
+          <div><Btn kind="primary" busy={busy} onClick={() => save({ opening_capital: opening || "0" })}>حفظ</Btn></div>
+        </div>
+        {cap.data && <KV items={[
+          ["رأس المال الأساسي", <Money v={cap.data.opening_capital} />],
+          ["الأصول", <Money v={cap.data.assets} />],
+          ["الأرباح المتراكمة", <b className={Number(cap.data.accumulated_profit) < 0 ? "danger-text" : "success-text"}><Money v={cap.data.accumulated_profit} /></b>],
+          ["رأس المال الحالي", <b><Money v={cap.data.capital} cur /></b>],
+        ]} />}
+      </div>
+      <PageHead title="الأصول"><Btn kind="primary" icon="plus" onClick={() => setEdit({ category: "machine" })}>أصل جديد</Btn></PageHead>
+      <Table rows={assets.data} loading={assets.loading} onRow={(a) => setEdit(a)} empty="مفيش أصول" columns={[
+        { key: "n", label: "الأصل", render: (a) => <b>{a.name}</b> },
+        { key: "c", label: "النوع", render: (a) => ASSET_CATEGORIES[a.category] ?? a.category },
+        { key: "d", label: "تاريخ الشراء", render: (a) => <span className="num">{date(a.purchase_date)}</span> },
+        { key: "s", label: "الحالة", render: (a) => a.status === "active" ? <Chip color="green">موجود</Chip>
+          : <Chip color="gray">اتباع / اتشال {a.disposed_date ? date(a.disposed_date) : ""}</Chip> },
+        { key: "v", label: "القيمة", num: true, render: (a) => <Money v={a.value} /> },
+        { key: "x", label: "", width: 80, render: (a) => <DeleteBtn path={`/assets/${a.id}`} what={`الأصل ${a.name}`} onDone={reload}
+          note="المسح للإدخال الغلط بس. لو الأصل اتباع أو اتشال غيّر حالته عشان التاريخ يفضل." /> },
+      ]} />
+      {edit && <AssetForm asset={edit} onClose={() => setEdit(null)} onSaved={reload} />}
+    </div>
+  );
+}
+
+function AssetForm({ asset, onClose, onSaved }: { asset: Partial<Asset>; onClose: () => void; onSaved: () => void }) {
+  const toast = useToast();
+  const { busy, run } = useAction(toast.err);
+  const [d, setD] = useState({ name: asset.name ?? "", category: asset.category ?? "other", value: asset.value ?? "",
+    purchase_date: asset.purchase_date ?? "", status: asset.status ?? "active", notes: asset.notes ?? "" });
+  const set = (k: keyof typeof d) => (v: string) => setD((x) => ({ ...x, [k]: v }));
+  return (
+    <Modal title={asset.id ? asset.name ?? "" : "أصل جديد"} onClose={onClose} footer={<><Btn kind="primary" busy={busy}
+      disabled={!d.name.trim() || d.value === ""} onClick={() => run(async () => {
+        const body = { name: d.name, category: d.category, value: d.value, purchase_date: d.purchase_date || null, notes: d.notes };
+        if (asset.id) await api.patch(`/assets/${asset.id}`, { ...body, version: asset.version, status: d.status });
+        else await api.post("/assets", body);
+        onSaved(); onClose();
+      })}>حفظ</Btn><Btn onClick={onClose}>رجوع</Btn></>}>
+      <div className="grid g2">
+        <Field label="الاسم" className="span-all"><TextIn value={d.name} onChange={set("name")} /></Field>
+        <Field label="النوع"><Select value={d.category} onChange={set("category")}
+          options={Object.entries(ASSET_CATEGORIES).map(([value, label]) => ({ value, label }))} /></Field>
+        <Field label="القيمة"><NumIn value={String(d.value)} onChange={set("value")} /></Field>
+        <Field label="تاريخ الشراء"><input type="date" className="input" value={d.purchase_date} onChange={(e) => set("purchase_date")(e.target.value)} /></Field>
+        {asset.id && <Field label="الحالة"><Select value={d.status} onChange={set("status")}
+          options={[{ value: "active", label: "موجود" }, { value: "disposed", label: "اتباع / اتشال" }]} /></Field>}
+        <Field label="ملاحظات" className="span-all"><TextArea value={d.notes} onChange={set("notes")} rows={2} /></Field>
+      </div>
+    </Modal>
   );
 }

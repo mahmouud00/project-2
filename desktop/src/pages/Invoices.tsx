@@ -5,7 +5,7 @@ import { useAction, useLoad } from "../lib/hooks";
 import { useDefaultBranch, useSession } from "../state/session";
 import { useToast } from "../state/toast";
 import { Btn, Card, Chip, Confirm, Dim, ErrorBox, Field, Loading, Modal, Money, NumIn, PageHead, Pager, Qty, Select, SizeIn, Table, TextArea, TextIn } from "../components/ui";
-import { BranchName, BranchSelect, ColorName, ColorSelect, CustomerName, CustomerPicker, GlassSelect, ModelSelect } from "../components/pickers";
+import { BranchName, BranchSelect, ColorName, ColorSelect, CustomerName, CustomerPicker, GlassSelect, ModelSelect, SalespersonName, SalespersonSelect } from "../components/pickers";
 import { Drawing, MediaImg, PrintPreview } from "../components/media";
 import { DeleteBtn } from "../components/actions";
 import { INVOICE_STATUS } from "../lib/lookups";
@@ -120,6 +120,7 @@ function InvoiceDetail({ id }: { id: string }) {
           <div><div className="muted small">العميل</div><a style={{ cursor: "pointer", fontWeight: 700 }} onClick={() => go(`customers/${v.customer_id}`)}><CustomerName id={v.customer_id} /></a></div>
           <div><div className="muted small">الحالة</div><Chip color={INVOICE_STATUS[v.status]?.[1]}>{INVOICE_STATUS[v.status]?.[0] ?? v.status}</Chip></div>
           <div><div className="muted small">الفرع</div><BranchName id={v.branch_id} /></div>
+          <div><div className="muted small">البائع</div><SalespersonName id={v.salesperson_id} /></div>
           <div><div className="muted small">التاريخ</div><span className="num">{date(v.issue_date)}</span></div>
           <div><div className="muted small">الاستحقاق</div><span className="num">{date(v.due_date)}</span></div>
           {v.work_order_id && <div><div className="muted small">أمر التصنيع</div><a style={{ cursor: "pointer" }} onClick={() => go(`work-orders/${v.work_order_id}`)}>فتح</a></div>}
@@ -242,16 +243,19 @@ function InvoiceHeader({ invoice, onClose, onSaved }: { invoice: Invoice; onClos
   const toast = useToast();
   const { busy, run } = useAction(toast.err);
   const [d, setD] = useState({ discount_amount: invoice.discount_amount, tax_pct: invoice.tax_pct, due_date: invoice.due_date ?? "",
-    notes: invoice.notes, terms: invoice.terms });
+    notes: invoice.notes, terms: invoice.terms, salesperson_id: invoice.salesperson_id ?? null });
   return (
     <Modal title="الخصم والضريبة والشروط" size="wide" onClose={onClose} footer={<><Btn kind="primary" busy={busy} onClick={() => run(async () => {
-      onSaved(await api.patch<Invoice>(`/invoices/${invoice.id}`, { version: invoice.version, ...d, due_date: d.due_date || null }));
+      const { salesperson_id, ...rest } = d;
+      onSaved(await api.patch<Invoice>(`/invoices/${invoice.id}`, { version: invoice.version, ...rest, due_date: d.due_date || null,
+        ...(salesperson_id ? { salesperson_id } : {}) }));
       onClose();
     })}>حفظ</Btn><Btn onClick={onClose}>رجوع</Btn></>}>
       <div className="grid g3">
         <Field label="خصم على الفاتورة (مبلغ)"><NumIn value={d.discount_amount} onChange={(v) => setD((x) => ({ ...x, discount_amount: v }))} /></Field>
         <Field label="الضريبة %"><NumIn value={d.tax_pct} onChange={(v) => setD((x) => ({ ...x, tax_pct: v }))} unit="%" /></Field>
         <Field label="تاريخ الاستحقاق"><input type="date" className="input" value={d.due_date} onChange={(e) => setD((x) => ({ ...x, due_date: e.target.value }))} /></Field>
+        <Field label="البائع (السيلز)"><SalespersonSelect value={d.salesperson_id} onChange={(v) => setD((x) => ({ ...x, salesperson_id: v }))} /></Field>
         <Field label="الشروط" className="span-all"><TextArea value={d.terms} onChange={(v) => setD((x) => ({ ...x, terms: v }))} /></Field>
         <Field label="ملاحظات" className="span-all"><TextArea value={d.notes} onChange={(v) => setD((x) => ({ ...x, notes: v }))} rows={2} /></Field>
       </div>

@@ -6,7 +6,7 @@ import Surveys from "./Surveys";
 import Quotations from "./Quotations";
 import Invoices from "./Invoices";
 import WorkOrders from "./WorkOrders";
-import Inventory from "./Inventory";
+import Hr from "./Hr";
 import Purchasing from "./Purchasing";
 import Treasury from "./Treasury";
 import Library from "./Library";
@@ -23,7 +23,7 @@ export const PAGES: Record<string, ComponentType<PageProps>> = {
   quotations: Quotations,
   invoices: Invoices,
   "work-orders": WorkOrders,
-  inventory: Inventory,
+  hr: Hr,
   purchasing: Purchasing,
   treasury: Treasury,
   library: Library,

@@ -15,6 +15,7 @@ from app.core.numbering import next_number
 from app.db.base import utcnow
 from app.modules.crm.models import Customer, SiteSurvey, SurveyOpening
 from app.modules.crm.router import branch_scope, get_or_404
+from app.modules.hr.router import salesperson_for
 from app.modules.library.models import ProductModel
 from app.modules.library.service import calculate_model, model_image
 from app.modules.org.models import Branch
@@ -197,6 +198,7 @@ class QuotationIn(BaseModel):
     valid_until: date | None = None
     notes: str = ""
     terms: str | None = None
+    salesperson_id: uuid.UUID | None = None
     lines: list[LineIn] = []
 
 
@@ -207,6 +209,7 @@ class QuotationUpdate(VersionedUpdate):
     valid_until: date | None = None
     notes: str | None = None
     terms: str | None = None
+    salesperson_id: uuid.UUID | None = None
 
 
 class QuotationOut(Record):
@@ -226,6 +229,7 @@ class QuotationOut(Record):
     total_cost: Decimal
     notes: str
     terms: str
+    salesperson_id: uuid.UUID | None = None
     lines: list[LineOut] = []
 
 
@@ -430,7 +434,8 @@ def create_quotation(body: QuotationIn, dc=Depends(require("quotes.create"))):
                   valid_until=body.valid_until or date.today() + timedelta(days=settings.quote_validity_days),
                   tax_pct=body.tax_pct if body.tax_pct is not None else settings.default_tax_pct,
                   discount_amount=body.discount_amount, notes=body.notes,
-                  terms=body.terms if body.terms is not None else settings.quote_terms)
+                  terms=body.terms if body.terms is not None else settings.quote_terms,
+                  salesperson_id=salesperson_for(db, ctx, body.salesperson_id))
     db.add(q)
     db.flush()
     pricer = Pricer(db, ctx, pl)
@@ -458,6 +463,8 @@ def update_quotation(quote_id: uuid.UUID, body: QuotationUpdate, dc=Depends(requ
         raise Conflict("Quotation is locked", code="QUOTE_LOCKED")
     before = snapshot(q)
     data = body.model_dump(exclude_unset=True, exclude={"version"})
+    if data.get("salesperson_id"):
+        salesperson_for(db, ctx, data["salesperson_id"])
     apply_changes(q, data)
     if "price_list_id" in data:
         pricer = Pricer(db, ctx, get_or_404(db, PriceList, q.price_list_id))

@@ -5,7 +5,7 @@ Creates, through the real API:
   - customer company: company "DEMO", user admin / Admin@12345 (all modules, 1 year)
   - an EXAMPLE library system "DEMO-SL" (status: trial). Its numbers are
     illustrative only, NOT real deductions; delete or replace it with real systems.
-  - price lists, warehouse with opening stock, cashbox, a customer, a survey and a quotation.
+  - price lists, a salesperson, an asset, cashbox, a customer, a survey and a quotation.
 Idempotent: does nothing if the DEMO company already exists.
 """
 from __future__ import annotations
@@ -209,13 +209,11 @@ def setup_demo() -> bool:
                                       ("CONTRACTOR", "مقاول", "contractor", "20")):
         _ok(client.post("/api/v1/price-lists", headers=a, json={"code": code, "name": name, "customer_type": ctype,
                                                                 "margin_pct": margin, "labor_cost_per_m2": "150"}))
-    wh = _ok(client.post("/api/v1/warehouses", headers=a, json={"code": "MAIN", "name": "المخزن الرئيسي",
-                                                                "branch_id": branch["id"]}))
-    lines = [{"sku": f"{c}-{col}", "qty": "120" if u == "m" else "200", "unit_cost": cost}
-             for c, _, kind, u, _, _, cost in materials if kind != "reinforcement" for col in ("W", "B")]
-    lines.append({"sku": "DEMO-STEEL", "qty": "120", "unit_cost": "40"})
-    _ok(client.post("/api/v1/inventory/adjustments", headers=a, json={
-        "warehouse_id": wh["id"], "reason": "رصيد افتتاحي تجريبي", "lines": lines}))
+    sales = _ok(client.post("/api/v1/employees", headers=a, json={
+        "full_name": "مندوب مبيعات تجريبي", "job_title": "مندوب مبيعات", "department": "sales",
+        "branch_id": branch["id"], "base_salary": "6000"}))
+    _ok(client.post("/api/v1/assets", headers=a, json={"name": "ماكينة لحام (مثال)", "category": "machine",
+                                                       "value": "150000"}))
     _ok(client.post("/api/v1/cashboxes", headers=a, json={"code": "MAIN", "name": "الخزينة الرئيسية",
                                                           "branch_id": branch["id"]}))
     _ok(client.post("/api/v1/suppliers", headers=a, json={"name": "مورد قطاعات (مثال)"}))
@@ -228,7 +226,8 @@ def setup_demo() -> bool:
             {"location": "مطبخ", "opening_width_mm": 1200, "opening_height_mm": 1000, "model_id": model["id"],
              "params": {"عدد_الضلف": 2}, "color_code": "B", "glass_material_code": "DEMO-GLASS6"}]}))
     quote = _ok(client.post("/api/v1/quotations", headers=a, json={
-        "customer_id": customer["id"], "branch_id": branch["id"], "survey_id": survey["id"], "discount_amount": "250"}))
+        "customer_id": customer["id"], "branch_id": branch["id"], "survey_id": survey["id"], "discount_amount": "250",
+        "salesperson_id": sales["id"]}))
     # a second, accepted quotation with its work order, deposit and an issued invoice
     q2 = _ok(client.post("/api/v1/quotations", headers=a, json={
         "customer_id": customer["id"], "branch_id": branch["id"], "survey_id": survey["id"]}))

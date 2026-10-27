@@ -72,7 +72,7 @@ class TxIn(BaseModel):
     direction: str = Field(pattern="^(in|out)$")
     amount: Decimal = Field(gt=0)
     method: str = Field("cash", pattern="^(cash|transfer|cheque|card)$")
-    party_type: str = Field(pattern="^(customer|supplier|other)$")
+    party_type: str = Field(pattern="^(customer|supplier|employee|other)$")
     party_id: uuid.UUID | None = None
     work_order_id: uuid.UUID | None = None
     purchase_order_id: uuid.UUID | None = None
@@ -123,6 +123,11 @@ def create_tx(body: TxIn, dc=Depends(require("treasury.create"))):
         if body.party_id is None:
             raise ValidationFailed("Supplier required", code="PARTY_REQUIRED")
         get_or_404(db, Supplier, body.party_id)
+    if body.party_type == "employee":
+        from app.modules.hr.models import Employee
+        if body.party_id is None:
+            raise ValidationFailed("Employee required", code="PARTY_REQUIRED")
+        get_or_404(db, Employee, body.party_id)
     if body.work_order_id:
         wo = get_or_404(db, WorkOrder, body.work_order_id)
         if body.party_type != "customer" or wo.customer_id != body.party_id:
@@ -140,16 +145,25 @@ def create_tx(body: TxIn, dc=Depends(require("treasury.create"))):
         po = get_or_404(db, PurchaseOrder, body.purchase_order_id)
         if body.party_type != "supplier" or po.supplier_id != body.party_id:
             raise ValidationFailed("Purchase order belongs to another supplier", code="PARTY_MISMATCH")
-    if body.direction == "out" and _balance(db, box.id) < body.amount and body.method == "cash":
-        raise Conflict("Not enough cash in the cashbox", code="INSUFFICIENT_CASH")
+    tx = post_cash(db, ctx, box, **body.model_dump(exclude={"cashbox_id"}))
+    db.commit()
+    return tx
+
+
+def post_cash(db, ctx, box: Cashbox, *, direction: str, amount: Decimal, party_type: str, method: str = "cash",
+              **fields) -> CashTransaction:
+    """Record money in / out of a cashbox (the caller checked permissions and the party). Not committed."""
+    if direction == "out" and _balance(db, box.id) < amount and method == "cash":
+        raise Conflict("Not enough cash in the cashbox", code="INSUFFICIENT_CASH",
+                       details={"cashbox": box.code, "balance": str(_balance(db, box.id)), "amount": str(amount)})
     branch = db.get(Branch, box.branch_id)
-    tx = CashTransaction(number=next_number(db, "cash", "CR" if body.direction == "in" else "CP", branch.code),
-                         user_id=ctx.user_id, **body.model_dump())
+    tx = CashTransaction(number=next_number(db, "cash", "CR" if direction == "in" else "CP", branch.code),
+                         cashbox_id=box.id, direction=direction, amount=amount, method=method, party_type=party_type,
+                         user_id=ctx.user_id, **fields)
     db.add(tx)
     db.flush()
     _apply_links(db, tx, 1)
     audit(db, tx, "create")
-    db.commit()
     return tx
 
 
@@ -168,6 +182,9 @@ def reverse_tx(tx_id: uuid.UUID, body: ReverseIn, dc=Depends(require("treasury.d
     ctx.require("treasury.delete", box.branch_id)     # the "delete" of money is a reversing transaction
     if tx.reversed or tx.reverses_id:
         raise Conflict("Already reversed", code="ALREADY_REVERSED")
+    if tx.party_type == "employee":
+        from app.modules.hr.router import on_cash_reversed
+        on_cash_reversed(db, tx)
     branch = db.get(Branch, box.branch_id)
     rev = CashTransaction(number=next_number(db, "cash", "RV", branch.code), cashbox_id=tx.cashbox_id,
                           direction="out" if tx.direction == "in" else "in", amount=tx.amount, method=tx.method,

@@ -31,7 +31,7 @@ from app.licensing.signing import (generate_keypair, load_private_key, load_publ
                                    reencrypt_private_key, sign_document, verify_document)
 
 APP_TITLE = "MYTech Licence Tool"
-MODULE_LABELS = {"core": "Core (sales, customers, treasury, inventory)", "manufacturing": "Manufacturing",
+MODULE_LABELS = {"core": "Core (sales, customers, treasury, HR)", "manufacturing": "Manufacturing",
                  "mfg.upvc": "UPVC", "mfg.shutter": "Shutter", "mfg.aluminum": "Aluminium"}
 BRAND = "#5048E5"
 

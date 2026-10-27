@@ -71,9 +71,8 @@ def test_goods_order_from_work_order(platform, tenant_a, client):
     assert by[f"{code}-GLASS6"]["kind"] == "glass" and by[f"{code}-GLASS6"]["pieces"] == 4
     assert D(by[f"{code}-HANDLE-W"]["qty"]) == 4 and D(by[f"{code}-WHEEL-W"]["qty"]) == 8   # accessories per model x qty
     sup = client.post("/api/v1/suppliers", headers=h, json={"name": "مورد قطاعات"}).json()
-    wh = client.post("/api/v1/warehouses", headers=h, json={"code": "GW", "name": "مخزن", "branch_id": branch["id"]}).json()
     po = client.post("/api/v1/purchase-orders", headers=h, json={
-        "supplier_id": sup["id"], "branch_id": branch["id"], "warehouse_id": wh["id"], "work_order_id": wo["id"],
+        "supplier_id": sup["id"], "branch_id": branch["id"], "work_order_id": wo["id"],
         "lines": [{"sku": n["sku"], "qty": n["qty"], "unit_cost": n["unit_cost"] or "0"} for n in needs.json()]})
     assert po.status_code == 201, po.text
     po = po.json()

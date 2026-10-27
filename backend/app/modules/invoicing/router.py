@@ -15,6 +15,7 @@ from app.core.numbering import next_number
 from app.db.base import utcnow
 from app.modules.crm.models import Customer
 from app.modules.crm.router import branch_scope, get_or_404
+from app.modules.hr.router import salesperson_for
 from app.modules.invoicing.models import Invoice, InvoiceLine
 from app.modules.library.models import ProductModel
 from app.modules.library.service import model_image
@@ -62,6 +63,7 @@ class InvoiceIn(BaseModel):
     due_days: int = Field(0, ge=0)
     notes: str = ""
     terms: str | None = None
+    salesperson_id: uuid.UUID | None = None
     lines: list[LineIn] = []
 
 
@@ -71,6 +73,7 @@ class InvoiceUpdate(VersionedUpdate):
     due_date: date | None = None
     notes: str | None = None
     terms: str | None = None
+    salesperson_id: uuid.UUID | None = None
 
 
 class LineOut(Record):
@@ -102,6 +105,7 @@ class InvoiceOut(Record):
     branch_id: uuid.UUID
     work_order_id: uuid.UUID | None
     quotation_id: uuid.UUID | None
+    salesperson_id: uuid.UUID | None = None
     status: str
     issue_date: date | None
     due_date: date | None
@@ -208,6 +212,7 @@ def create_invoice(body: InvoiceIn, dc=Depends(require("invoices.create"))):
     customer_id, branch_id, quotation_id = body.customer_id, body.branch_id, body.quotation_id
     tax = body.tax_pct
     discount = body.discount_amount
+    salesperson_id = body.salesperson_id
     if body.work_order_id:
         wo = get_or_404(db, WorkOrder, body.work_order_id)
         if wo.stage == "cancelled":
@@ -216,6 +221,7 @@ def create_invoice(body: InvoiceIn, dc=Depends(require("invoices.create"))):
                                            Invoice.deleted_at.is_(None))):
             raise Conflict("Work order already invoiced", code="ALREADY_INVOICED")
         customer_id, branch_id, quotation_id = wo.customer_id, wo.branch_id, wo.quotation_id
+        salesperson_id = salesperson_id or wo.salesperson_id
         if wo.quotation_id:
             q = db.get(Quotation, wo.quotation_id)
             tax = tax if tax is not None else q.tax_pct
@@ -232,6 +238,7 @@ def create_invoice(body: InvoiceIn, dc=Depends(require("invoices.create"))):
         if q.status != "accepted":
             raise Conflict("Quotation must be accepted", code="QUOTE_NOT_ACCEPTED")
         customer_id, branch_id = q.customer_id, q.branch_id
+        salesperson_id = salesperson_id or q.salesperson_id
         tax = tax if tax is not None else q.tax_pct
         discount = discount or q.discount_amount
         for l in db.scalars(select(QuotationLine).where(QuotationLine.quotation_id == q.id)
@@ -249,7 +256,8 @@ def create_invoice(body: InvoiceIn, dc=Depends(require("invoices.create"))):
                   quotation_id=quotation_id, discount_amount=discount,
                   tax_pct=tax if tax is not None else settings.default_tax_pct,
                   due_date=date.today() + timedelta(days=body.due_days) if body.due_days else None,
-                  notes=body.notes, terms=body.terms if body.terms is not None else settings.quote_terms)
+                  notes=body.notes, terms=body.terms if body.terms is not None else settings.quote_terms,
+                  salesperson_id=salesperson_for(db, ctx, salesperson_id))
     db.add(inv)
     db.flush()
     for i, l in enumerate(new_lines, 1):
@@ -289,7 +297,10 @@ def update_invoice(inv_id: uuid.UUID, body: InvoiceUpdate, dc=Depends(require(ED
     check_version(inv, body.version)
     _require_draft(inv)
     before = snapshot(inv)
-    apply_changes(inv, body.model_dump(exclude_unset=True, exclude={"version"}))
+    data = body.model_dump(exclude_unset=True, exclude={"version"})
+    if data.get("salesperson_id"):
+        salesperson_for(db, ctx, data["salesperson_id"])
+    apply_changes(inv, data)
     _totals(db, inv)
     audit(db, inv, "update", before)
     db.commit()

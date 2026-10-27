@@ -33,6 +33,7 @@ class CompanySettings(BaseModel):
     logo_media_id: str | None = None  # set through POST /company/logo
 
     currency: str = "EGP"
+    opening_capital: Decimal = Field(Decimal(0), ge=0, description="رأس المال الأساسي (فلوس الشركة في البداية)")
     default_tax_pct: Decimal = Field(Decimal(0), ge=0, le=100)
     quote_validity_days: int = Field(15, ge=1)
     quote_waste_pct: Decimal = Field(Decimal(0), ge=0, le=100, description="waste added to profile cost in quotes")
@@ -110,8 +111,11 @@ def _logo_response(db, company):
 def get_company(dc=Depends(get_db_and_ctx)):
     db, ctx = dc
     c = db.get(Company, ctx.company_id)
-    return {"id": str(c.id), "code": c.code, "name": c.name, "version": c.version,
-            "settings": get_company_settings(db, ctx.company_id).model_dump(mode="json"), "branding": branding(db, c)}
+    settings = get_company_settings(db, ctx.company_id).model_dump(mode="json")
+    if not (ctx.can("org.manage") or ctx.can("finance.read")):
+        settings.pop("opening_capital", None)    # the company's money is not for every user
+    return {"id": str(c.id), "code": c.code, "name": c.name, "version": c.version, "settings": settings,
+            "branding": branding(db, c)}
 
 
 class CompanyUpdate(BaseModel):

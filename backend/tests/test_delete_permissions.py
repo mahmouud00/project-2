@@ -70,13 +70,9 @@ def test_what_delete_does(platform, tenant_a, client):
     assert inv.status_code == 201, inv.text
     inv = inv.json()
     assert client.delete(f"/api/v1/invoices/{inv['id']}", headers=h).json()["result"] == "deleted"
-    # warehouses: unused deleted; suppliers soft-deleted; draft purchase orders deleted
-    wh = client.post("/api/v1/warehouses", headers=h, json={"code": "DW", "name": "مخزن", "branch_id": branch["id"]}).json()
-    assert client.delete(f"/api/v1/warehouses/{wh['id']}", headers=h).json()["result"] == "deleted"
+    # suppliers soft-deleted; draft purchase orders deleted
     sup = client.post("/api/v1/suppliers", headers=h, json={"name": "مورد"}).json()
-    wh2 = client.post("/api/v1/warehouses", headers=h, json={"code": "DW2", "name": "مخزن", "branch_id": branch["id"]}).json()
     po = client.post("/api/v1/purchase-orders", headers=h, json={"supplier_id": sup["id"], "branch_id": branch["id"],
-                                                               "warehouse_id": wh2["id"],
                                                                "lines": [{"sku": "DEL-FRAME-W", "qty": "1", "unit_cost": "5"}]}).json()
     assert client.delete(f"/api/v1/purchase-orders/{po['id']}", headers=h).json()["result"] == "deleted"
     assert client.delete(f"/api/v1/suppliers/{sup['id']}", headers=h).json()["result"] == "deleted"

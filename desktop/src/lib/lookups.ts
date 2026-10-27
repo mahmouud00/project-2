@@ -29,7 +29,7 @@ export const lookups = {
   colors: () => cached("colors", () => api.get<S<"ColorOut">[]>("/library/colors")),
   glass: () => cached("glass", () => api.get<S<"Page_MaterialOut_">>("/library/materials", { kind: "glass", limit: 500 }).then((p) => p.items)),
   priceLists: () => cached("priceLists", () => api.get<S<"PriceListOut">[]>("/price-lists")),
-  warehouses: () => cached("warehouses", () => api.get<S<"WarehouseOut">[]>("/warehouses")),
+  salespeople: () => cached("salespeople", () => api.get<S<"EmployeeBrief">[]>("/employees/brief")),
   cashboxes: () => cached("cashboxes", () => api.get<S<"CashboxOut">[]>("/cashboxes")),
   roles: () => cached("roles", () => api.get<S<"RoleOut">[]>("/roles")),
   permissions: () => cached("permissions", () => api.get<{ code: string; name: string }[]>("/permissions")),
@@ -55,7 +55,8 @@ export const INVOICE_STATUS: Record<string, [string, "blue" | "green" | "amber" 
   draft: ["مسودة", "gray"], issued: ["صادرة", "blue"], cancelled: ["ملغية", "red"],
 };
 export const PO_STATUS: Record<string, [string, "blue" | "green" | "amber" | "red" | "gray" | "violet"]> = {
-  draft: ["مسودة", "gray"], ordered: ["اتطلب", "blue"], partial: ["استلام جزئي", "amber"], received: ["اتستلم", "green"],
+  draft: ["مستني تأكيد الحسابات", "gray"], approved: ["الحسابات أكدت", "violet"], rejected: ["الحسابات رفضت", "red"],
+  ordered: ["اتطلب", "blue"], partial: ["استلام جزئي", "amber"], received: ["اتستلم", "green"],
   cancelled: ["ملغي", "red"],
 };
 export const SURVEY_STATUS: Record<string, [string, "blue" | "green" | "amber" | "red" | "gray" | "violet"]> = {

@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import uuid
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 
-from sqlalchemy import Date, ForeignKey, Integer, Numeric, String, Text, UniqueConstraint
+from sqlalchemy import Date, DateTime, ForeignKey, Integer, Numeric, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -33,8 +33,8 @@ class PurchaseOrder(Base, Entity, SoftDeleteMixin):
     number: Mapped[str] = mapped_column(String(40))
     supplier_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("suppliers.id"), index=True)
     branch_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("branches.id"), index=True)
-    warehouse_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("warehouses.id"))
-    status: Mapped[str] = mapped_column(String(20), default="draft")  # draft|ordered|partial|received|cancelled
+    # draft -> approved (accounts confirm it) -> ordered -> partial|received; rejected / cancelled
+    status: Mapped[str] = mapped_column(String(20), default="draft")
     order_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     total: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal(0))
     received_value: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal(0))
@@ -44,6 +44,9 @@ class PurchaseOrder(Base, Entity, SoftDeleteMixin):
     work_order_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("work_orders.id"),
                                                             nullable=True, index=True)
     customer_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("customers.id"), nullable=True)
+    approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    approved_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    approval_note: Mapped[str] = mapped_column(Text, default="", server_default="")
 
 
 class PurchaseOrderLine(Base, Entity):

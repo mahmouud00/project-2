@@ -5189,7 +5189,7 @@
      "production"
     ],
     "summary": "Delete Work Order",
-    "description": "Only before anything happened to it: once materials are issued, money is received or it is\ninvoiced, it is cancelled (stage \"cancelled\") instead, so the records stay consistent.",
+    "description": "Only before anything happened to it: once money is received or it is invoiced, it is cancelled\n(stage \"cancelled\") instead, so the records stay consistent.",
     "operationId": "delete_work_order_api_v1_work_orders__wo_id__delete",
     "security": [
      {
@@ -5420,716 +5420,6 @@
           "$ref": "#/components/schemas/NeedOut"
          },
          "title": "Response Material Needs Api V1 Work Orders  Wo Id  Material Needs Get"
-        }
-       }
-      }
-     },
-     "422": {
-      "description": "Validation Error",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      }
-     }
-    }
-   }
-  },
-  "/api/v1/warehouses": {
-   "get": {
-    "tags": [
-     "inventory"
-    ],
-    "summary": "List Warehouses",
-    "operationId": "list_warehouses_api_v1_warehouses_get",
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "items": {
-          "$ref": "#/components/schemas/WarehouseOut"
-         },
-         "type": "array",
-         "title": "Response List Warehouses Api V1 Warehouses Get"
-        }
-       }
-      }
-     }
-    },
-    "security": [
-     {
-      "OAuth2PasswordBearer": []
-     }
-    ]
-   },
-   "post": {
-    "tags": [
-     "inventory"
-    ],
-    "summary": "Create Warehouse",
-    "operationId": "create_warehouse_api_v1_warehouses_post",
-    "requestBody": {
-     "content": {
-      "application/json": {
-       "schema": {
-        "$ref": "#/components/schemas/WarehouseIn"
-       }
-      }
-     },
-     "required": true
-    },
-    "responses": {
-     "201": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/WarehouseOut"
-        }
-       }
-      }
-     },
-     "422": {
-      "description": "Validation Error",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      }
-     }
-    },
-    "security": [
-     {
-      "OAuth2PasswordBearer": []
-     }
-    ]
-   }
-  },
-  "/api/v1/warehouses/{wh_id}": {
-   "patch": {
-    "tags": [
-     "inventory"
-    ],
-    "summary": "Update Warehouse",
-    "operationId": "update_warehouse_api_v1_warehouses__wh_id__patch",
-    "security": [
-     {
-      "OAuth2PasswordBearer": []
-     }
-    ],
-    "parameters": [
-     {
-      "name": "wh_id",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "type": "string",
-       "format": "uuid",
-       "title": "Wh Id"
-      }
-     }
-    ],
-    "requestBody": {
-     "required": true,
-     "content": {
-      "application/json": {
-       "schema": {
-        "$ref": "#/components/schemas/WarehouseUpdate"
-       }
-      }
-     }
-    },
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/WarehouseOut"
-        }
-       }
-      }
-     },
-     "422": {
-      "description": "Validation Error",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      }
-     }
-    }
-   },
-   "delete": {
-    "tags": [
-     "inventory"
-    ],
-    "summary": "Delete Warehouse",
-    "description": "Deleted when it never had a movement; otherwise deactivated (its movements are history).",
-    "operationId": "delete_warehouse_api_v1_warehouses__wh_id__delete",
-    "security": [
-     {
-      "OAuth2PasswordBearer": []
-     }
-    ],
-    "parameters": [
-     {
-      "name": "wh_id",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "type": "string",
-       "format": "uuid",
-       "title": "Wh Id"
-      }
-     }
-    ],
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/DeleteResult"
-        }
-       }
-      }
-     },
-     "422": {
-      "description": "Validation Error",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      }
-     }
-    }
-   }
-  },
-  "/api/v1/inventory/balances": {
-   "get": {
-    "tags": [
-     "inventory"
-    ],
-    "summary": "Balances",
-    "operationId": "balances_api_v1_inventory_balances_get",
-    "security": [
-     {
-      "OAuth2PasswordBearer": []
-     }
-    ],
-    "parameters": [
-     {
-      "name": "warehouse_id",
-      "in": "query",
-      "required": true,
-      "schema": {
-       "type": "string",
-       "format": "uuid",
-       "title": "Warehouse Id"
-      }
-     },
-     {
-      "name": "sku",
-      "in": "query",
-      "required": false,
-      "schema": {
-       "anyOf": [
-        {
-         "type": "string"
-        },
-        {
-         "type": "null"
-        }
-       ],
-       "title": "Sku"
-      }
-     }
-    ],
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "type": "array",
-         "items": {
-          "$ref": "#/components/schemas/BalanceOut"
-         },
-         "title": "Response Balances Api V1 Inventory Balances Get"
-        }
-       }
-      }
-     },
-     "422": {
-      "description": "Validation Error",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      }
-     }
-    }
-   }
-  },
-  "/api/v1/inventory/movements": {
-   "get": {
-    "tags": [
-     "inventory"
-    ],
-    "summary": "Movements",
-    "operationId": "movements_api_v1_inventory_movements_get",
-    "security": [
-     {
-      "OAuth2PasswordBearer": []
-     }
-    ],
-    "parameters": [
-     {
-      "name": "warehouse_id",
-      "in": "query",
-      "required": true,
-      "schema": {
-       "type": "string",
-       "format": "uuid",
-       "title": "Warehouse Id"
-      }
-     },
-     {
-      "name": "sku",
-      "in": "query",
-      "required": false,
-      "schema": {
-       "anyOf": [
-        {
-         "type": "string"
-        },
-        {
-         "type": "null"
-        }
-       ],
-       "title": "Sku"
-      }
-     },
-     {
-      "name": "ref_id",
-      "in": "query",
-      "required": false,
-      "schema": {
-       "anyOf": [
-        {
-         "type": "string",
-         "format": "uuid"
-        },
-        {
-         "type": "null"
-        }
-       ],
-       "title": "Ref Id"
-      }
-     },
-     {
-      "name": "limit",
-      "in": "query",
-      "required": false,
-      "schema": {
-       "type": "integer",
-       "maximum": 500,
-       "minimum": 1,
-       "default": 50,
-       "title": "Limit"
-      }
-     },
-     {
-      "name": "offset",
-      "in": "query",
-      "required": false,
-      "schema": {
-       "type": "integer",
-       "minimum": 0,
-       "default": 0,
-       "title": "Offset"
-      }
-     }
-    ],
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/Page_MovementOut_"
-        }
-       }
-      }
-     },
-     "422": {
-      "description": "Validation Error",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      }
-     }
-    }
-   }
-  },
-  "/api/v1/inventory/adjustments": {
-   "post": {
-    "tags": [
-     "inventory"
-    ],
-    "summary": "Adjust",
-    "description": "Opening balance / stock count corrections.",
-    "operationId": "adjust_api_v1_inventory_adjustments_post",
-    "requestBody": {
-     "content": {
-      "application/json": {
-       "schema": {
-        "$ref": "#/components/schemas/AdjustIn"
-       }
-      }
-     },
-     "required": true
-    },
-    "responses": {
-     "201": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {}
-       }
-      }
-     },
-     "422": {
-      "description": "Validation Error",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      }
-     }
-    },
-    "security": [
-     {
-      "OAuth2PasswordBearer": []
-     }
-    ]
-   }
-  },
-  "/api/v1/inventory/transfers": {
-   "post": {
-    "tags": [
-     "inventory"
-    ],
-    "summary": "Create Transfer",
-    "operationId": "create_transfer_api_v1_inventory_transfers_post",
-    "security": [
-     {
-      "OAuth2PasswordBearer": []
-     }
-    ],
-    "requestBody": {
-     "required": true,
-     "content": {
-      "application/json": {
-       "schema": {
-        "$ref": "#/components/schemas/TransferIn"
-       }
-      }
-     }
-    },
-    "responses": {
-     "201": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/TransferOut"
-        }
-       }
-      }
-     },
-     "422": {
-      "description": "Validation Error",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      }
-     }
-    }
-   },
-   "get": {
-    "tags": [
-     "inventory"
-    ],
-    "summary": "List Transfers",
-    "operationId": "list_transfers_api_v1_inventory_transfers_get",
-    "security": [
-     {
-      "OAuth2PasswordBearer": []
-     }
-    ],
-    "parameters": [
-     {
-      "name": "status",
-      "in": "query",
-      "required": false,
-      "schema": {
-       "anyOf": [
-        {
-         "type": "string"
-        },
-        {
-         "type": "null"
-        }
-       ],
-       "title": "Status"
-      }
-     }
-    ],
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "type": "array",
-         "items": {
-          "$ref": "#/components/schemas/TransferOut"
-         },
-         "title": "Response List Transfers Api V1 Inventory Transfers Get"
-        }
-       }
-      }
-     },
-     "422": {
-      "description": "Validation Error",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      }
-     }
-    }
-   }
-  },
-  "/api/v1/inventory/transfers/{t_id}/send": {
-   "post": {
-    "tags": [
-     "inventory"
-    ],
-    "summary": "Send Transfer",
-    "operationId": "send_transfer_api_v1_inventory_transfers__t_id__send_post",
-    "security": [
-     {
-      "OAuth2PasswordBearer": []
-     }
-    ],
-    "parameters": [
-     {
-      "name": "t_id",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "type": "string",
-       "format": "uuid",
-       "title": "T Id"
-      }
-     }
-    ],
-    "requestBody": {
-     "required": true,
-     "content": {
-      "application/json": {
-       "schema": {
-        "$ref": "#/components/schemas/VersionIn"
-       }
-      }
-     }
-    },
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/TransferOut"
-        }
-       }
-      }
-     },
-     "422": {
-      "description": "Validation Error",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      }
-     }
-    }
-   }
-  },
-  "/api/v1/inventory/transfers/{t_id}/receive": {
-   "post": {
-    "tags": [
-     "inventory"
-    ],
-    "summary": "Receive Transfer",
-    "operationId": "receive_transfer_api_v1_inventory_transfers__t_id__receive_post",
-    "security": [
-     {
-      "OAuth2PasswordBearer": []
-     }
-    ],
-    "parameters": [
-     {
-      "name": "t_id",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "type": "string",
-       "format": "uuid",
-       "title": "T Id"
-      }
-     }
-    ],
-    "requestBody": {
-     "required": true,
-     "content": {
-      "application/json": {
-       "schema": {
-        "$ref": "#/components/schemas/VersionIn"
-       }
-      }
-     }
-    },
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/TransferOut"
-        }
-       }
-      }
-     },
-     "422": {
-      "description": "Validation Error",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      }
-     }
-    }
-   }
-  },
-  "/api/v1/work-orders/{wo_id}/issue-materials": {
-   "post": {
-    "tags": [
-     "inventory"
-    ],
-    "summary": "Issue Materials",
-    "description": "Deduct the order's materials from its warehouse (also done automatically\nwhen the order enters manufacturing with a warehouse set).",
-    "operationId": "issue_materials_api_v1_work_orders__wo_id__issue_materials_post",
-    "security": [
-     {
-      "OAuth2PasswordBearer": []
-     }
-    ],
-    "parameters": [
-     {
-      "name": "wo_id",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "type": "string",
-       "format": "uuid",
-       "title": "Wo Id"
-      }
-     }
-    ],
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {}
-       }
-      }
-     },
-     "422": {
-      "description": "Validation Error",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      }
-     }
-    }
-   }
-  },
-  "/api/v1/inventory/transfers/{t_id}": {
-   "delete": {
-    "tags": [
-     "inventory"
-    ],
-    "summary": "Delete Transfer",
-    "description": "Only a transfer that was not sent yet (nothing moved).",
-    "operationId": "delete_transfer_api_v1_inventory_transfers__t_id__delete",
-    "security": [
-     {
-      "OAuth2PasswordBearer": []
-     }
-    ],
-    "parameters": [
-     {
-      "name": "t_id",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "type": "string",
-       "format": "uuid",
-       "title": "T Id"
-      }
-     }
-    ],
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/DeleteResult"
         }
        }
       }
@@ -6629,6 +5919,7 @@
      "purchasing"
     ],
     "summary": "Po Status",
+    "description": "Order from the supplier (only after the accounts approved it) or cancel.",
     "operationId": "po_status_api_v1_purchase_orders__po_id__status_post",
     "security": [
      {
@@ -6681,12 +5972,72 @@
     }
    }
   },
+  "/api/v1/purchase-orders/{po_id}/approve": {
+   "post": {
+    "tags": [
+     "purchasing"
+    ],
+    "summary": "Approve Po",
+    "description": "The accounts confirm (or refuse) a purchase before anyone orders it from the supplier.",
+    "operationId": "approve_po_api_v1_purchase_orders__po_id__approve_post",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "po_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Po Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ApproveIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/POOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/v1/purchase-orders/{po_id}/receive": {
    "post": {
     "tags": [
      "purchasing"
     ],
     "summary": "Receive",
+    "description": "Record what arrived from the supplier (its cost counts in the company's purchases).",
     "operationId": "receive_api_v1_purchase_orders__po_id__receive_post",
     "security": [
      {
@@ -8965,6 +8316,1492 @@
      }
     ]
    }
+  },
+  "/api/v1/employees": {
+   "get": {
+    "tags": [
+     "hr"
+    ],
+    "summary": "List Employees",
+    "operationId": "list_employees_api_v1_employees_get",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "department",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Department"
+      }
+     },
+     {
+      "name": "status",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Status"
+      }
+     },
+     {
+      "name": "branch_id",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string",
+         "format": "uuid"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Branch Id"
+      }
+     },
+     {
+      "name": "q",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Q"
+      }
+     },
+     {
+      "name": "limit",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "maximum": 500,
+       "minimum": 1,
+       "default": 50,
+       "title": "Limit"
+      }
+     },
+     {
+      "name": "offset",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "minimum": 0,
+       "default": 0,
+       "title": "Offset"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Page_EmployeeOut_"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "post": {
+    "tags": [
+     "hr"
+    ],
+    "summary": "Create Employee",
+    "operationId": "create_employee_api_v1_employees_post",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/EmployeeIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/EmployeeOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/employees/brief": {
+   "get": {
+    "tags": [
+     "hr"
+    ],
+    "summary": "Employee Names",
+    "description": "Active employees' names for choosing the salesperson of a sale (whoever can see quotations).",
+    "operationId": "employee_names_api_v1_employees_brief_get",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "department",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Department"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/EmployeeBrief"
+         },
+         "title": "Response Employee Names Api V1 Employees Brief Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/employees/{eid}": {
+   "get": {
+    "tags": [
+     "hr"
+    ],
+    "summary": "Get Employee",
+    "operationId": "get_employee_api_v1_employees__eid__get",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "eid",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Eid"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/EmployeeOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "patch": {
+    "tags": [
+     "hr"
+    ],
+    "summary": "Update Employee",
+    "operationId": "update_employee_api_v1_employees__eid__patch",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "eid",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Eid"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/EmployeeUpdate"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/EmployeeOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "delete": {
+    "tags": [
+     "hr"
+    ],
+    "summary": "Delete Employee",
+    "description": "Deleted when nothing points to them; with salaries, advances or sales they are marked as left instead.",
+    "operationId": "delete_employee_api_v1_employees__eid__delete",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "eid",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Eid"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/DeleteResult"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/employees/{eid}/summary": {
+   "get": {
+    "tags": [
+     "hr"
+    ],
+    "summary": "Employee Summary",
+    "description": "Leave taken this year and what is left of the annual leave, and advances still owed.",
+    "operationId": "employee_summary_api_v1_employees__eid__summary_get",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "eid",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Eid"
+      }
+     },
+     {
+      "name": "year",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "integer"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Year"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/employees/{eid}/sales": {
+   "get": {
+    "tags": [
+     "hr"
+    ],
+    "summary": "Employee Sales",
+    "description": "المبيعات بتاعة الموظف: his quotations, work orders and invoices (a salesperson's profile).",
+    "operationId": "employee_sales_api_v1_employees__eid__sales_get",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "eid",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Eid"
+      }
+     },
+     {
+      "name": "year",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "integer"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Year"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/employees/{eid}/entries": {
+   "get": {
+    "tags": [
+     "hr"
+    ],
+    "summary": "List Entries",
+    "operationId": "list_entries_api_v1_employees__eid__entries_get",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "eid",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Eid"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/EntryOut"
+         },
+         "title": "Response List Entries Api V1 Employees  Eid  Entries Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/employee-entries": {
+   "post": {
+    "tags": [
+     "hr"
+    ],
+    "summary": "Create Entry",
+    "operationId": "create_entry_api_v1_employee_entries_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/EntryIn"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/EntryOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ]
+   }
+  },
+  "/api/v1/employee-entries/{entry_id}": {
+   "delete": {
+    "tags": [
+     "hr"
+    ],
+    "summary": "Delete Entry",
+    "description": "A bonus or deduction not yet paid in a salary. An advance is money: reverse its payment in the treasury.",
+    "operationId": "delete_entry_api_v1_employee_entries__entry_id__delete",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "entry_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Entry Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/DeleteResult"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/employees/{eid}/leaves": {
+   "get": {
+    "tags": [
+     "hr"
+    ],
+    "summary": "List Leaves",
+    "operationId": "list_leaves_api_v1_employees__eid__leaves_get",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "eid",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Eid"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/LeaveOut"
+         },
+         "title": "Response List Leaves Api V1 Employees  Eid  Leaves Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/employee-leaves": {
+   "post": {
+    "tags": [
+     "hr"
+    ],
+    "summary": "Create Leave",
+    "operationId": "create_leave_api_v1_employee_leaves_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/LeaveIn"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/LeaveOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ]
+   }
+  },
+  "/api/v1/employee-leaves/{leave_id}": {
+   "patch": {
+    "tags": [
+     "hr"
+    ],
+    "summary": "Update Leave",
+    "operationId": "update_leave_api_v1_employee_leaves__leave_id__patch",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "leave_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Leave Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/LeaveUpdate"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/LeaveOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "delete": {
+    "tags": [
+     "hr"
+    ],
+    "summary": "Delete Leave",
+    "operationId": "delete_leave_api_v1_employee_leaves__leave_id__delete",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "leave_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Leave Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/DeleteResult"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/payroll-runs": {
+   "get": {
+    "tags": [
+     "hr"
+    ],
+    "summary": "List Runs",
+    "operationId": "list_runs_api_v1_payroll_runs_get",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "month",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Month"
+      }
+     },
+     {
+      "name": "limit",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "maximum": 500,
+       "minimum": 1,
+       "default": 50,
+       "title": "Limit"
+      }
+     },
+     {
+      "name": "offset",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "minimum": 0,
+       "default": 0,
+       "title": "Offset"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Page_RunOut_"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "post": {
+    "tags": [
+     "hr"
+    ],
+    "summary": "Create Run",
+    "operationId": "create_run_api_v1_payroll_runs_post",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/RunIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/RunOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/payroll-runs/{run_id}": {
+   "get": {
+    "tags": [
+     "hr"
+    ],
+    "summary": "Get Run",
+    "operationId": "get_run_api_v1_payroll_runs__run_id__get",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "run_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Run Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/RunOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "delete": {
+    "tags": [
+     "hr"
+    ],
+    "summary": "Delete Run",
+    "operationId": "delete_run_api_v1_payroll_runs__run_id__delete",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "run_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Run Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/DeleteResult"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/payroll-runs/{run_id}/recalculate": {
+   "post": {
+    "tags": [
+     "hr"
+    ],
+    "summary": "Recalculate Run",
+    "operationId": "recalculate_run_api_v1_payroll_runs__run_id__recalculate_post",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "run_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Run Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/RunOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/payroll-runs/{run_id}/pay": {
+   "post": {
+    "tags": [
+     "hr"
+    ],
+    "summary": "Pay Run",
+    "description": "صرف المرتبات: one payment per employee from the cashbox; advances are taken back; the run is closed.",
+    "operationId": "pay_run_api_v1_payroll_runs__run_id__pay_post",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "run_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Run Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/PayIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/RunOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/employees/{eid}/payslips": {
+   "get": {
+    "tags": [
+     "hr"
+    ],
+    "summary": "Employee Payslips",
+    "operationId": "employee_payslips_api_v1_employees__eid__payslips_get",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "eid",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Eid"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/PayslipOut"
+         },
+         "title": "Response Employee Payslips Api V1 Employees  Eid  Payslips Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/assets": {
+   "get": {
+    "tags": [
+     "finance"
+    ],
+    "summary": "List Assets",
+    "operationId": "list_assets_api_v1_assets_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "items": {
+          "$ref": "#/components/schemas/AssetOut"
+         },
+         "type": "array",
+         "title": "Response List Assets Api V1 Assets Get"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ]
+   },
+   "post": {
+    "tags": [
+     "finance"
+    ],
+    "summary": "Create Asset",
+    "operationId": "create_asset_api_v1_assets_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/AssetIn"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/AssetOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ]
+   }
+  },
+  "/api/v1/assets/{asset_id}": {
+   "patch": {
+    "tags": [
+     "finance"
+    ],
+    "summary": "Update Asset",
+    "operationId": "update_asset_api_v1_assets__asset_id__patch",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "asset_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Asset Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/AssetUpdate"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/AssetOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "delete": {
+    "tags": [
+     "finance"
+    ],
+    "summary": "Delete Asset",
+    "description": "For an entry made by mistake. A sold or scrapped asset is marked \"disposed\" (keeps the history).",
+    "operationId": "delete_asset_api_v1_assets__asset_id__delete",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "asset_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Asset Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/DeleteResult"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/finance/profit": {
+   "get": {
+    "tags": [
+     "finance"
+    ],
+    "summary": "Profit",
+    "description": "ربحية الشركة: month by month for a year, and the year's total.",
+    "operationId": "profit_api_v1_finance_profit_get",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "year",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "integer"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Year"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/finance/capital": {
+   "get": {
+    "tags": [
+     "finance"
+    ],
+    "summary": "Capital",
+    "description": "رأس المال = رأس المال الأساسي + الأصول + الأرباح المتراكمة.",
+    "operationId": "capital_api_v1_finance_capital_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ]
+   }
   }
  },
  "components": {
@@ -9089,53 +9926,231 @@
     ],
     "title": "Accessory"
    },
-   "AdjustIn": {
+   "ApproveIn": {
     "properties": {
-     "warehouse_id": {
-      "type": "string",
-      "format": "uuid",
-      "title": "Warehouse Id"
+     "version": {
+      "type": "integer",
+      "title": "Version"
      },
-     "reason": {
-      "type": "string",
-      "minLength": 1,
-      "title": "Reason"
+     "approve": {
+      "type": "boolean",
+      "title": "Approve",
+      "default": true
      },
-     "lines": {
-      "items": {
-       "$ref": "#/components/schemas/AdjustLine"
-      },
-      "type": "array",
-      "minItems": 1,
-      "title": "Lines"
+     "note": {
+      "type": "string",
+      "title": "Note",
+      "default": ""
      }
     },
     "type": "object",
     "required": [
-     "warehouse_id",
-     "reason",
-     "lines"
+     "version"
     ],
-    "title": "AdjustIn"
+    "title": "ApproveIn"
    },
-   "AdjustLine": {
+   "AssetIn": {
     "properties": {
-     "sku": {
+     "name": {
       "type": "string",
-      "title": "Sku"
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Name"
      },
-     "qty": {
+     "category": {
+      "type": "string",
+      "pattern": "^(vehicle|machine|building|equipment|furniture|other)$",
+      "title": "Category",
+      "default": "other"
+     },
+     "value": {
       "anyOf": [
        {
-        "type": "number"
+        "type": "number",
+        "minimum": 0.0
        },
        {
         "type": "string"
        }
       ],
-      "title": "Qty"
+      "title": "Value"
      },
-     "unit_cost": {
+     "purchase_date": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Purchase Date"
+     },
+     "branch_id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "uuid"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Branch Id"
+     },
+     "notes": {
+      "type": "string",
+      "title": "Notes",
+      "default": ""
+     }
+    },
+    "type": "object",
+    "required": [
+     "name",
+     "value"
+    ],
+    "title": "AssetIn"
+   },
+   "AssetOut": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Id"
+     },
+     "version": {
+      "type": "integer",
+      "title": "Version"
+     },
+     "created_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Created At"
+     },
+     "updated_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Updated At"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "category": {
+      "type": "string",
+      "title": "Category"
+     },
+     "value": {
+      "type": "string",
+      "title": "Value"
+     },
+     "purchase_date": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Purchase Date"
+     },
+     "branch_id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "uuid"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Branch Id"
+     },
+     "status": {
+      "type": "string",
+      "title": "Status"
+     },
+     "disposed_date": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Disposed Date"
+     },
+     "notes": {
+      "type": "string",
+      "title": "Notes"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "version",
+     "name",
+     "category",
+     "value",
+     "purchase_date",
+     "branch_id",
+     "status",
+     "disposed_date",
+     "notes"
+    ],
+    "title": "AssetOut"
+   },
+   "AssetUpdate": {
+    "properties": {
+     "version": {
+      "type": "integer",
+      "title": "Version"
+     },
+     "name": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 200,
+        "minLength": 1
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Name"
+     },
+     "category": {
+      "anyOf": [
+       {
+        "type": "string",
+        "pattern": "^(vehicle|machine|building|equipment|furniture|other)$"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Category"
+     },
+     "value": {
       "anyOf": [
        {
         "type": "number",
@@ -9148,20 +10163,73 @@
         "type": "null"
        }
       ],
-      "title": "Unit Cost"
+      "title": "Value"
      },
-     "note": {
-      "type": "string",
-      "title": "Note",
-      "default": ""
+     "purchase_date": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Purchase Date"
+     },
+     "branch_id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "uuid"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Branch Id"
+     },
+     "status": {
+      "anyOf": [
+       {
+        "type": "string",
+        "pattern": "^(active|disposed)$"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Status"
+     },
+     "disposed_date": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Disposed Date"
+     },
+     "notes": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Notes"
      }
     },
     "type": "object",
     "required": [
-     "sku",
-     "qty"
+     "version"
     ],
-    "title": "AdjustLine"
+    "title": "AssetUpdate"
    },
    "Assignment": {
     "properties": {
@@ -9281,60 +10349,6 @@
      "note"
     ],
     "title": "AuditOut"
-   },
-   "BalanceOut": {
-    "properties": {
-     "warehouse_id": {
-      "type": "string",
-      "format": "uuid",
-      "title": "Warehouse Id"
-     },
-     "sku": {
-      "type": "string",
-      "title": "Sku"
-     },
-     "material_id": {
-      "anyOf": [
-       {
-        "type": "string",
-        "format": "uuid"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Material Id"
-     },
-     "unit": {
-      "type": "string",
-      "title": "Unit"
-     },
-     "qty": {
-      "type": "string",
-      "title": "Qty"
-     },
-     "avg_cost": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Avg Cost"
-     }
-    },
-    "type": "object",
-    "required": [
-     "warehouse_id",
-     "sku",
-     "material_id",
-     "unit",
-     "qty",
-     "avg_cost"
-    ],
-    "title": "BalanceOut"
    },
    "Body_activate_api_v1_system_activation_post": {
     "properties": {
@@ -10094,6 +11108,20 @@
       "type": "string",
       "title": "Currency",
       "default": "EGP"
+     },
+     "opening_capital": {
+      "anyOf": [
+       {
+        "type": "number",
+        "minimum": 0.0
+       },
+       {
+        "type": "string"
+       }
+      ],
+      "title": "Opening Capital",
+      "description": "رأس المال الأساسي (فلوس الشركة في البداية)",
+      "default": "0"
      },
      "default_tax_pct": {
       "anyOf": [
@@ -11147,6 +12175,753 @@
     ],
     "title": "DrawingElement"
    },
+   "EmployeeBrief": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Id"
+     },
+     "code": {
+      "type": "string",
+      "title": "Code"
+     },
+     "full_name": {
+      "type": "string",
+      "title": "Full Name"
+     },
+     "department": {
+      "type": "string",
+      "title": "Department"
+     },
+     "job_title": {
+      "type": "string",
+      "title": "Job Title"
+     },
+     "branch_id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Branch Id"
+     },
+     "user_id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "uuid"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "User Id"
+     },
+     "status": {
+      "type": "string",
+      "title": "Status"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "code",
+     "full_name",
+     "department",
+     "job_title",
+     "branch_id",
+     "user_id",
+     "status"
+    ],
+    "title": "EmployeeBrief",
+    "description": "For pickers (e.g. the salesperson of a sale): no personal data beyond the name."
+   },
+   "EmployeeIn": {
+    "properties": {
+     "code": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 40
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Code"
+     },
+     "full_name": {
+      "type": "string",
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Full Name"
+     },
+     "job_title": {
+      "type": "string",
+      "title": "Job Title",
+      "default": ""
+     },
+     "department": {
+      "type": "string",
+      "pattern": "^(sales|production|installation|survey|accounts|hr|admin|other)$",
+      "title": "Department",
+      "default": "other"
+     },
+     "branch_id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Branch Id"
+     },
+     "user_id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "uuid"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "User Id"
+     },
+     "phone": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Phone"
+     },
+     "national_id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 20
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "National Id"
+     },
+     "address": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Address"
+     },
+     "hire_date": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Hire Date"
+     },
+     "base_salary": {
+      "anyOf": [
+       {
+        "type": "number",
+        "minimum": 0.0
+       },
+       {
+        "type": "string"
+       }
+      ],
+      "title": "Base Salary",
+      "default": "0"
+     },
+     "annual_leave_days": {
+      "anyOf": [
+       {
+        "type": "number",
+        "minimum": 0.0
+       },
+       {
+        "type": "string"
+       }
+      ],
+      "title": "Annual Leave Days",
+      "default": "21"
+     },
+     "notes": {
+      "type": "string",
+      "title": "Notes",
+      "default": ""
+     }
+    },
+    "type": "object",
+    "required": [
+     "full_name",
+     "branch_id"
+    ],
+    "title": "EmployeeIn"
+   },
+   "EmployeeOut": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Id"
+     },
+     "version": {
+      "type": "integer",
+      "title": "Version"
+     },
+     "created_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Created At"
+     },
+     "updated_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Updated At"
+     },
+     "code": {
+      "type": "string",
+      "title": "Code"
+     },
+     "full_name": {
+      "type": "string",
+      "title": "Full Name"
+     },
+     "job_title": {
+      "type": "string",
+      "title": "Job Title"
+     },
+     "department": {
+      "type": "string",
+      "title": "Department"
+     },
+     "branch_id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Branch Id"
+     },
+     "user_id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "uuid"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "User Id"
+     },
+     "phone": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Phone"
+     },
+     "national_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "National Id"
+     },
+     "address": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Address"
+     },
+     "hire_date": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Hire Date"
+     },
+     "end_date": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "End Date"
+     },
+     "status": {
+      "type": "string",
+      "title": "Status"
+     },
+     "base_salary": {
+      "type": "string",
+      "title": "Base Salary"
+     },
+     "annual_leave_days": {
+      "type": "string",
+      "title": "Annual Leave Days"
+     },
+     "notes": {
+      "type": "string",
+      "title": "Notes"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "version",
+     "code",
+     "full_name",
+     "job_title",
+     "department",
+     "branch_id",
+     "user_id",
+     "phone",
+     "national_id",
+     "address",
+     "hire_date",
+     "end_date",
+     "status",
+     "base_salary",
+     "annual_leave_days",
+     "notes"
+    ],
+    "title": "EmployeeOut"
+   },
+   "EmployeeUpdate": {
+    "properties": {
+     "version": {
+      "type": "integer",
+      "title": "Version"
+     },
+     "full_name": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 200,
+        "minLength": 1
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Full Name"
+     },
+     "job_title": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Job Title"
+     },
+     "department": {
+      "anyOf": [
+       {
+        "type": "string",
+        "pattern": "^(sales|production|installation|survey|accounts|hr|admin|other)$"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Department"
+     },
+     "branch_id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "uuid"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Branch Id"
+     },
+     "user_id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "uuid"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "User Id"
+     },
+     "phone": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Phone"
+     },
+     "national_id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 20
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "National Id"
+     },
+     "address": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Address"
+     },
+     "hire_date": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Hire Date"
+     },
+     "end_date": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "End Date"
+     },
+     "status": {
+      "anyOf": [
+       {
+        "type": "string",
+        "pattern": "^(active|left)$"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Status"
+     },
+     "base_salary": {
+      "anyOf": [
+       {
+        "type": "number",
+        "minimum": 0.0
+       },
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Base Salary"
+     },
+     "annual_leave_days": {
+      "anyOf": [
+       {
+        "type": "number",
+        "minimum": 0.0
+       },
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Annual Leave Days"
+     },
+     "notes": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Notes"
+     }
+    },
+    "type": "object",
+    "required": [
+     "version"
+    ],
+    "title": "EmployeeUpdate"
+   },
+   "EntryIn": {
+    "properties": {
+     "employee_id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Employee Id"
+     },
+     "kind": {
+      "type": "string",
+      "pattern": "^(bonus|deduction|advance)$",
+      "title": "Kind"
+     },
+     "amount": {
+      "anyOf": [
+       {
+        "type": "number",
+        "exclusiveMinimum": 0.0
+       },
+       {
+        "type": "string"
+       }
+      ],
+      "title": "Amount"
+     },
+     "entry_date": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Entry Date"
+     },
+     "month": {
+      "anyOf": [
+       {
+        "type": "string",
+        "pattern": "^\\d{4}-(0[1-9]|1[0-2])$"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Month"
+     },
+     "installment": {
+      "anyOf": [
+       {
+        "type": "number",
+        "exclusiveMinimum": 0.0
+       },
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Installment"
+     },
+     "cashbox_id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "uuid"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Cashbox Id"
+     },
+     "note": {
+      "type": "string",
+      "title": "Note",
+      "default": ""
+     }
+    },
+    "type": "object",
+    "required": [
+     "employee_id",
+     "kind",
+     "amount"
+    ],
+    "title": "EntryIn"
+   },
+   "EntryOut": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Id"
+     },
+     "version": {
+      "type": "integer",
+      "title": "Version"
+     },
+     "created_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Created At"
+     },
+     "updated_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Updated At"
+     },
+     "employee_id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Employee Id"
+     },
+     "kind": {
+      "type": "string",
+      "title": "Kind"
+     },
+     "entry_date": {
+      "type": "string",
+      "format": "date",
+      "title": "Entry Date"
+     },
+     "month": {
+      "type": "string",
+      "title": "Month"
+     },
+     "amount": {
+      "type": "string",
+      "title": "Amount"
+     },
+     "installment": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Installment"
+     },
+     "repaid": {
+      "type": "string",
+      "title": "Repaid"
+     },
+     "cash_transaction_id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "uuid"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Cash Transaction Id"
+     },
+     "payslip_id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "uuid"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Payslip Id"
+     },
+     "note": {
+      "type": "string",
+      "title": "Note"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "version",
+     "employee_id",
+     "kind",
+     "entry_date",
+     "month",
+     "amount",
+     "installment",
+     "repaid",
+     "cash_transaction_id",
+     "payslip_id",
+     "note"
+    ],
+    "title": "EntryOut"
+   },
    "EraseIn": {
     "properties": {
      "reason": {
@@ -11447,6 +13222,18 @@
       ],
       "title": "Terms"
      },
+     "salesperson_id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "uuid"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Salesperson Id"
+     },
      "lines": {
       "items": {
        "$ref": "#/components/schemas/app__modules__invoicing__router__LineIn"
@@ -11538,6 +13325,18 @@
        }
       ],
       "title": "Quotation Id"
+     },
+     "salesperson_id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "uuid"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Salesperson Id"
      },
      "status": {
       "type": "string",
@@ -11716,6 +13515,18 @@
        }
       ],
       "title": "Terms"
+     },
+     "salesperson_id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "uuid"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Salesperson Id"
      }
     },
     "type": "object",
@@ -12304,6 +14115,181 @@
      "version"
     ],
     "title": "JobUpdate"
+   },
+   "LeaveIn": {
+    "properties": {
+     "employee_id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Employee Id"
+     },
+     "kind": {
+      "type": "string",
+      "pattern": "^(annual|sick|unpaid|other)$",
+      "title": "Kind"
+     },
+     "start_date": {
+      "type": "string",
+      "format": "date",
+      "title": "Start Date"
+     },
+     "end_date": {
+      "type": "string",
+      "format": "date",
+      "title": "End Date"
+     },
+     "days": {
+      "anyOf": [
+       {
+        "type": "number",
+        "exclusiveMinimum": 0.0
+       },
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Days"
+     },
+     "status": {
+      "type": "string",
+      "pattern": "^(requested|approved|rejected)$",
+      "title": "Status",
+      "default": "approved"
+     },
+     "note": {
+      "type": "string",
+      "title": "Note",
+      "default": ""
+     }
+    },
+    "type": "object",
+    "required": [
+     "employee_id",
+     "kind",
+     "start_date",
+     "end_date"
+    ],
+    "title": "LeaveIn"
+   },
+   "LeaveOut": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Id"
+     },
+     "version": {
+      "type": "integer",
+      "title": "Version"
+     },
+     "created_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Created At"
+     },
+     "updated_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Updated At"
+     },
+     "employee_id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Employee Id"
+     },
+     "kind": {
+      "type": "string",
+      "title": "Kind"
+     },
+     "start_date": {
+      "type": "string",
+      "format": "date",
+      "title": "Start Date"
+     },
+     "end_date": {
+      "type": "string",
+      "format": "date",
+      "title": "End Date"
+     },
+     "days": {
+      "type": "string",
+      "title": "Days"
+     },
+     "status": {
+      "type": "string",
+      "title": "Status"
+     },
+     "note": {
+      "type": "string",
+      "title": "Note"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "version",
+     "employee_id",
+     "kind",
+     "start_date",
+     "end_date",
+     "days",
+     "status",
+     "note"
+    ],
+    "title": "LeaveOut"
+   },
+   "LeaveUpdate": {
+    "properties": {
+     "version": {
+      "type": "integer",
+      "title": "Version"
+     },
+     "status": {
+      "anyOf": [
+       {
+        "type": "string",
+        "pattern": "^(requested|approved|rejected)$"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Status"
+     },
+     "note": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Note"
+     }
+    },
+    "type": "object",
+    "required": [
+     "version"
+    ],
+    "title": "LeaveUpdate"
    },
    "LocationIn": {
     "properties": {
@@ -13718,94 +15704,6 @@
     ],
     "title": "ModelUpdate"
    },
-   "MovementOut": {
-    "properties": {
-     "id": {
-      "type": "string",
-      "format": "uuid",
-      "title": "Id"
-     },
-     "at": {
-      "type": "string",
-      "format": "date-time",
-      "title": "At"
-     },
-     "warehouse_id": {
-      "type": "string",
-      "format": "uuid",
-      "title": "Warehouse Id"
-     },
-     "sku": {
-      "type": "string",
-      "title": "Sku"
-     },
-     "qty": {
-      "type": "string",
-      "title": "Qty"
-     },
-     "unit": {
-      "type": "string",
-      "title": "Unit"
-     },
-     "unit_cost": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Unit Cost"
-     },
-     "kind": {
-      "type": "string",
-      "title": "Kind"
-     },
-     "ref_type": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Ref Type"
-     },
-     "ref_id": {
-      "anyOf": [
-       {
-        "type": "string",
-        "format": "uuid"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Ref Id"
-     },
-     "note": {
-      "type": "string",
-      "title": "Note"
-     }
-    },
-    "type": "object",
-    "required": [
-     "id",
-     "at",
-     "warehouse_id",
-     "sku",
-     "qty",
-     "unit",
-     "unit_cost",
-     "kind",
-     "ref_type",
-     "ref_id",
-     "note"
-    ],
-    "title": "MovementOut"
-   },
    "NeedOut": {
     "properties": {
      "kind": {
@@ -13875,11 +15773,6 @@
        }
       ],
       "title": "Unit Cost"
-     },
-     "in_stock": {
-      "type": "string",
-      "title": "In Stock",
-      "default": "0"
      }
     },
     "type": "object",
@@ -14468,11 +16361,6 @@
       "format": "uuid",
       "title": "Branch Id"
      },
-     "warehouse_id": {
-      "type": "string",
-      "format": "uuid",
-      "title": "Warehouse Id"
-     },
      "order_date": {
       "anyOf": [
        {
@@ -14515,7 +16403,6 @@
     "required": [
      "supplier_id",
      "branch_id",
-     "warehouse_id",
      "lines"
     ],
     "title": "POIn"
@@ -14653,11 +16540,6 @@
       "format": "uuid",
       "title": "Branch Id"
      },
-     "warehouse_id": {
-      "type": "string",
-      "format": "uuid",
-      "title": "Warehouse Id"
-     },
      "status": {
       "type": "string",
       "title": "Status"
@@ -14714,6 +16596,35 @@
       ],
       "title": "Customer Id"
      },
+     "approved_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Approved At"
+     },
+     "approved_by": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "uuid"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Approved By"
+     },
+     "approval_note": {
+      "type": "string",
+      "title": "Approval Note",
+      "default": ""
+     },
      "lines": {
       "items": {
        "$ref": "#/components/schemas/POLineOut"
@@ -14730,7 +16641,6 @@
      "number",
      "supplier_id",
      "branch_id",
-     "warehouse_id",
      "status",
      "order_date",
      "total",
@@ -14883,6 +16793,37 @@
     ],
     "title": "Page[CustomerOut]"
    },
+   "Page_EmployeeOut_": {
+    "properties": {
+     "items": {
+      "items": {
+       "$ref": "#/components/schemas/EmployeeOut"
+      },
+      "type": "array",
+      "title": "Items"
+     },
+     "total": {
+      "type": "integer",
+      "title": "Total"
+     },
+     "limit": {
+      "type": "integer",
+      "title": "Limit"
+     },
+     "offset": {
+      "type": "integer",
+      "title": "Offset"
+     }
+    },
+    "type": "object",
+    "required": [
+     "items",
+     "total",
+     "limit",
+     "offset"
+    ],
+    "title": "Page[EmployeeOut]"
+   },
    "Page_InvoiceOut_": {
     "properties": {
      "items": {
@@ -14976,37 +16917,6 @@
     ],
     "title": "Page[MaterialOut]"
    },
-   "Page_MovementOut_": {
-    "properties": {
-     "items": {
-      "items": {
-       "$ref": "#/components/schemas/MovementOut"
-      },
-      "type": "array",
-      "title": "Items"
-     },
-     "total": {
-      "type": "integer",
-      "title": "Total"
-     },
-     "limit": {
-      "type": "integer",
-      "title": "Limit"
-     },
-     "offset": {
-      "type": "integer",
-      "title": "Offset"
-     }
-    },
-    "type": "object",
-    "required": [
-     "items",
-     "total",
-     "limit",
-     "offset"
-    ],
-    "title": "Page[MovementOut]"
-   },
    "Page_POOut_": {
     "properties": {
      "items": {
@@ -15068,6 +16978,37 @@
      "offset"
     ],
     "title": "Page[QuotationOut]"
+   },
+   "Page_RunOut_": {
+    "properties": {
+     "items": {
+      "items": {
+       "$ref": "#/components/schemas/RunOut"
+      },
+      "type": "array",
+      "title": "Items"
+     },
+     "total": {
+      "type": "integer",
+      "title": "Total"
+     },
+     "limit": {
+      "type": "integer",
+      "title": "Limit"
+     },
+     "offset": {
+      "type": "integer",
+      "title": "Offset"
+     }
+    },
+    "type": "object",
+    "required": [
+     "items",
+     "total",
+     "limit",
+     "offset"
+    ],
+    "title": "Page[RunOut]"
    },
    "Page_SupplierOut_": {
     "properties": {
@@ -15307,6 +17248,124 @@
      "name"
     ],
     "title": "Param"
+   },
+   "PayIn": {
+    "properties": {
+     "version": {
+      "type": "integer",
+      "title": "Version"
+     },
+     "cashbox_id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Cashbox Id"
+     },
+     "method": {
+      "type": "string",
+      "pattern": "^(cash|transfer|cheque|card)$",
+      "title": "Method",
+      "default": "cash"
+     }
+    },
+    "type": "object",
+    "required": [
+     "version",
+     "cashbox_id"
+    ],
+    "title": "PayIn"
+   },
+   "PayslipOut": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Id"
+     },
+     "employee_id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Employee Id"
+     },
+     "month": {
+      "type": "string",
+      "title": "Month",
+      "default": ""
+     },
+     "employee_code": {
+      "type": "string",
+      "title": "Employee Code",
+      "default": ""
+     },
+     "employee_name": {
+      "type": "string",
+      "title": "Employee Name",
+      "default": ""
+     },
+     "job_title": {
+      "type": "string",
+      "title": "Job Title",
+      "default": ""
+     },
+     "base_salary": {
+      "type": "string",
+      "title": "Base Salary"
+     },
+     "bonuses": {
+      "type": "string",
+      "title": "Bonuses"
+     },
+     "deductions": {
+      "type": "string",
+      "title": "Deductions"
+     },
+     "unpaid_leave_days": {
+      "type": "string",
+      "title": "Unpaid Leave Days"
+     },
+     "unpaid_leave_deduction": {
+      "type": "string",
+      "title": "Unpaid Leave Deduction"
+     },
+     "advance_repayment": {
+      "type": "string",
+      "title": "Advance Repayment"
+     },
+     "gross": {
+      "type": "string",
+      "title": "Gross"
+     },
+     "net": {
+      "type": "string",
+      "title": "Net"
+     },
+     "cash_transaction_id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "uuid"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Cash Transaction Id"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "employee_id",
+     "base_salary",
+     "bonuses",
+     "deductions",
+     "unpaid_leave_days",
+     "unpaid_leave_deduction",
+     "advance_repayment",
+     "gross",
+     "net",
+     "cash_transaction_id"
+    ],
+    "title": "PayslipOut"
    },
    "Piece": {
     "properties": {
@@ -15958,6 +18017,18 @@
       ],
       "title": "Terms"
      },
+     "salesperson_id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "uuid"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Salesperson Id"
+     },
      "lines": {
       "items": {
        "$ref": "#/components/schemas/app__modules__sales__router__LineIn"
@@ -16100,6 +18171,18 @@
       "type": "string",
       "title": "Terms"
      },
+     "salesperson_id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "uuid"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Salesperson Id"
+     },
      "lines": {
       "items": {
        "$ref": "#/components/schemas/app__modules__sales__router__LineOut"
@@ -16214,6 +18297,18 @@
        }
       ],
       "title": "Terms"
+     },
+     "salesperson_id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "uuid"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Salesperson Id"
      }
     },
     "type": "object",
@@ -16564,6 +18659,136 @@
      "expr"
     ],
     "title": "Rule"
+   },
+   "RunIn": {
+    "properties": {
+     "month": {
+      "type": "string",
+      "pattern": "^\\d{4}-(0[1-9]|1[0-2])$",
+      "title": "Month"
+     },
+     "branch_id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Branch Id"
+     },
+     "notes": {
+      "type": "string",
+      "title": "Notes",
+      "default": ""
+     }
+    },
+    "type": "object",
+    "required": [
+     "month",
+     "branch_id"
+    ],
+    "title": "RunIn"
+   },
+   "RunOut": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Id"
+     },
+     "version": {
+      "type": "integer",
+      "title": "Version"
+     },
+     "created_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Created At"
+     },
+     "updated_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Updated At"
+     },
+     "number": {
+      "type": "string",
+      "title": "Number"
+     },
+     "month": {
+      "type": "string",
+      "title": "Month"
+     },
+     "branch_id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Branch Id"
+     },
+     "status": {
+      "type": "string",
+      "title": "Status"
+     },
+     "total": {
+      "type": "string",
+      "title": "Total"
+     },
+     "cashbox_id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "uuid"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Cashbox Id"
+     },
+     "paid_at": {
+      "anyOf": [
+       {},
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Paid At"
+     },
+     "notes": {
+      "type": "string",
+      "title": "Notes"
+     },
+     "payslips": {
+      "items": {
+       "$ref": "#/components/schemas/PayslipOut"
+      },
+      "type": "array",
+      "title": "Payslips",
+      "default": []
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "version",
+     "number",
+     "month",
+     "branch_id",
+     "status",
+     "total",
+     "cashbox_id",
+     "paid_at",
+     "notes"
+    ],
+    "title": "RunOut"
    },
    "StageIn": {
     "properties": {
@@ -18060,168 +20285,6 @@
     ],
     "title": "TestCaseOut"
    },
-   "TransferIn": {
-    "properties": {
-     "from_warehouse_id": {
-      "type": "string",
-      "format": "uuid",
-      "title": "From Warehouse Id"
-     },
-     "to_warehouse_id": {
-      "type": "string",
-      "format": "uuid",
-      "title": "To Warehouse Id"
-     },
-     "lines": {
-      "items": {
-       "$ref": "#/components/schemas/TransferLine"
-      },
-      "type": "array",
-      "minItems": 1,
-      "title": "Lines"
-     },
-     "note": {
-      "type": "string",
-      "title": "Note",
-      "default": ""
-     }
-    },
-    "type": "object",
-    "required": [
-     "from_warehouse_id",
-     "to_warehouse_id",
-     "lines"
-    ],
-    "title": "TransferIn"
-   },
-   "TransferLine": {
-    "properties": {
-     "sku": {
-      "type": "string",
-      "title": "Sku"
-     },
-     "qty": {
-      "anyOf": [
-       {
-        "type": "number",
-        "exclusiveMinimum": 0.0
-       },
-       {
-        "type": "string"
-       }
-      ],
-      "title": "Qty"
-     }
-    },
-    "type": "object",
-    "required": [
-     "sku",
-     "qty"
-    ],
-    "title": "TransferLine"
-   },
-   "TransferOut": {
-    "properties": {
-     "id": {
-      "type": "string",
-      "format": "uuid",
-      "title": "Id"
-     },
-     "version": {
-      "type": "integer",
-      "title": "Version"
-     },
-     "created_at": {
-      "anyOf": [
-       {
-        "type": "string",
-        "format": "date-time"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Created At"
-     },
-     "updated_at": {
-      "anyOf": [
-       {
-        "type": "string",
-        "format": "date-time"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Updated At"
-     },
-     "number": {
-      "type": "string",
-      "title": "Number"
-     },
-     "from_warehouse_id": {
-      "type": "string",
-      "format": "uuid",
-      "title": "From Warehouse Id"
-     },
-     "to_warehouse_id": {
-      "type": "string",
-      "format": "uuid",
-      "title": "To Warehouse Id"
-     },
-     "status": {
-      "type": "string",
-      "title": "Status"
-     },
-     "lines": {
-      "items": {},
-      "type": "array",
-      "title": "Lines"
-     },
-     "note": {
-      "type": "string",
-      "title": "Note"
-     },
-     "sent_at": {
-      "anyOf": [
-       {
-        "type": "string",
-        "format": "date-time"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Sent At"
-     },
-     "received_at": {
-      "anyOf": [
-       {
-        "type": "string",
-        "format": "date-time"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Received At"
-     }
-    },
-    "type": "object",
-    "required": [
-     "id",
-     "version",
-     "number",
-     "from_warehouse_id",
-     "to_warehouse_id",
-     "status",
-     "lines",
-     "note",
-     "sent_at",
-     "received_at"
-    ],
-    "title": "TransferOut"
-   },
    "TxIn": {
     "properties": {
      "cashbox_id": {
@@ -18254,7 +20317,7 @@
      },
      "party_type": {
       "type": "string",
-      "pattern": "^(customer|supplier|other)$",
+      "pattern": "^(customer|supplier|employee|other)$",
       "title": "Party Type"
      },
      "party_id": {
@@ -18874,131 +20937,6 @@
     ],
     "title": "VersionOut"
    },
-   "WarehouseIn": {
-    "properties": {
-     "code": {
-      "type": "string",
-      "maxLength": 40,
-      "minLength": 1,
-      "title": "Code"
-     },
-     "name": {
-      "type": "string",
-      "title": "Name"
-     },
-     "branch_id": {
-      "type": "string",
-      "format": "uuid",
-      "title": "Branch Id"
-     }
-    },
-    "type": "object",
-    "required": [
-     "code",
-     "name",
-     "branch_id"
-    ],
-    "title": "WarehouseIn"
-   },
-   "WarehouseOut": {
-    "properties": {
-     "id": {
-      "type": "string",
-      "format": "uuid",
-      "title": "Id"
-     },
-     "version": {
-      "type": "integer",
-      "title": "Version"
-     },
-     "created_at": {
-      "anyOf": [
-       {
-        "type": "string",
-        "format": "date-time"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Created At"
-     },
-     "updated_at": {
-      "anyOf": [
-       {
-        "type": "string",
-        "format": "date-time"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Updated At"
-     },
-     "code": {
-      "type": "string",
-      "title": "Code"
-     },
-     "name": {
-      "type": "string",
-      "title": "Name"
-     },
-     "branch_id": {
-      "type": "string",
-      "format": "uuid",
-      "title": "Branch Id"
-     },
-     "is_active": {
-      "type": "boolean",
-      "title": "Is Active"
-     }
-    },
-    "type": "object",
-    "required": [
-     "id",
-     "version",
-     "code",
-     "name",
-     "branch_id",
-     "is_active"
-    ],
-    "title": "WarehouseOut"
-   },
-   "WarehouseUpdate": {
-    "properties": {
-     "version": {
-      "type": "integer",
-      "title": "Version"
-     },
-     "name": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Name"
-     },
-     "is_active": {
-      "anyOf": [
-       {
-        "type": "boolean"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Is Active"
-     }
-    },
-    "type": "object",
-    "required": [
-     "version"
-    ],
-    "title": "WarehouseUpdate"
-   },
    "WorkOrderIn": {
     "properties": {
      "customer_id": {
@@ -19027,6 +20965,18 @@
       "type": "string",
       "title": "Notes",
       "default": ""
+     },
+     "salesperson_id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "uuid"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Salesperson Id"
      }
     },
     "type": "object",
@@ -19097,7 +21047,7 @@
       ],
       "title": "Quotation Id"
      },
-     "warehouse_id": {
+     "salesperson_id": {
       "anyOf": [
        {
         "type": "string",
@@ -19107,7 +21057,7 @@
         "type": "null"
        }
       ],
-      "title": "Warehouse Id"
+      "title": "Salesperson Id"
      },
      "stage": {
       "type": "string",
@@ -19145,10 +21095,6 @@
      "notes": {
       "type": "string",
       "title": "Notes"
-     },
-     "materials_issued": {
-      "type": "boolean",
-      "title": "Materials Issued"
      },
      "outputs_generated_at": {
       "anyOf": [
@@ -19224,14 +21170,12 @@
      "customer_id",
      "branch_id",
      "quotation_id",
-     "warehouse_id",
      "stage",
      "total",
      "deposit_required",
      "paid_amount",
      "due_date",
      "notes",
-     "materials_issued",
      "outputs_generated_at"
     ],
     "title": "WorkOrderOut"
@@ -19280,7 +21224,7 @@
       ],
       "title": "Deposit Required"
      },
-     "warehouse_id": {
+     "salesperson_id": {
       "anyOf": [
        {
         "type": "string",
@@ -19290,7 +21234,7 @@
         "type": "null"
        }
       ],
-      "title": "Warehouse Id"
+      "title": "Salesperson Id"
      }
     },
     "type": "object",
