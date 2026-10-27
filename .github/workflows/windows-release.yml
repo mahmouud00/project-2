@@ -202,6 +202,7 @@ jobs:
           powershell -NoProfile -ExecutionPolicy Bypass -File "$root\scripts\setup-server.ps1" -Root $root -Version $v `
             -CompanyCode CI -CompanyName "مصنع اختبار" -AdminPasswordFile $pw
           if ($LASTEXITCODE -ne 0) { Get-Content "$root\logs\install.log"; Get-ChildItem "$root\logs" ; throw "setup failed" }
+          if (-not ((sc.exe qfailure MYTechServer | Out-String) -match "RESTART")) { throw "service recovery (restart on failure) not set" }
           $info = Invoke-RestMethod http://localhost:8000/api/v1/system/info
           if ($info.version -ne $v -or $info.mode -ne "offline") { throw "unexpected info $($info | ConvertTo-Json)" }
           foreach ($r in Get-NetFirewallRule -DisplayName "MYTech API", "MYTech Discovery") { if ($r.Profile -ne "Any") { throw "firewall rule $($r.DisplayName) is $($r.Profile), expected Any" } }
@@ -230,6 +231,7 @@ jobs:
           powershell -NoProfile -ExecutionPolicy Bypass -File "$root\scripts\stop-services.ps1" -Root $root
           if ($LASTEXITCODE -ne 0) { Get-Content "$root\logs\install.log" -Tail 30; throw "stop-services failed" }
           foreach ($n in "MYTechServer", "MYTechPostgreSQL") { if ((Get-Service $n).Status -ne "Stopped") { throw "$n not stopped" } }
+          if ((sc.exe qfailure MYTechServer | Out-String) -match "RESTART") { throw "automatic restart still on during the installation" }
           if (Get-Process mytech-server, postgres -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "$root*" }) { throw "processes left running" }
           # uninstall with both services RUNNING: nothing may be left running (it would lock the files)
           Start-Service MYTechServer

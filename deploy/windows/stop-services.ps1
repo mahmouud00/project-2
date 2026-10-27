@@ -24,15 +24,27 @@ function Wait-Stopped([string]$name, [int]$seconds) {
   }
   return $false
 }
+# Processes started from a folder. WMI gives the path of every process (also services running as another
+# account, and 64-bit processes seen from a 32-bit PowerShell), where Get-Process .Path can come back empty.
+function Running-Under([string[]]$names, [string]$folder) {
+  $want = $names | ForEach-Object { "$_.exe".ToLowerInvariant() }
+  @(Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object {
+      $_.ExecutablePath -and ($want -contains $_.Name.ToLowerInvariant()) -and
+      $_.ExecutablePath.StartsWith($folder, [StringComparison]::OrdinalIgnoreCase) })
+}
 function Kill-Under([string[]]$names, [string]$folder) {
-  foreach ($p in Get-Process -Name $names -ErrorAction SilentlyContinue) {
-    $path = $null
-    try { $path = $p.Path } catch { }
-    if ($path -and $path.StartsWith($folder, [StringComparison]::OrdinalIgnoreCase)) {
-      Log "killing $($p.ProcessName) ($($p.Id))"
-      Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
-    }
+  foreach ($p in Running-Under $names $folder) {
+    Log "killing $($p.Name) ($($p.ProcessId))"
+    Stop-Process -Id $p.ProcessId -Force -ErrorAction SilentlyContinue
+    if (Get-Process -Id $p.ProcessId -ErrorAction SilentlyContinue) { & taskkill.exe /F /T /PID $p.ProcessId 2>&1 | Out-Null }
   }
+}
+
+# 0) while the files are replaced nothing may start the server again (Windows restarts it after a failure)
+if ((Status "MYTechServer") -ne "Missing") {
+  & sc.exe --% failure MYTechServer reset= 0 actions= ""
+  if ($LASTEXITCODE -ne 0) { Log "sc failure (clear) exit $LASTEXITCODE" }
+  Log "MYTechServer automatic restart off during the installation"
 }
 
 # 1) MYTech server (WinSW + launcher + server)
@@ -67,18 +79,21 @@ if ((Status "MYTechPostgreSQL") -notin @("Stopped", "Missing")) {
 
 # 3) anything still running from this folder (e.g. a PostgreSQL left running after its service was
 #    removed, or one still shutting down) keeps its files locked: give it a moment, then end it
+$all = @("postgres", "pg_ctl", "mytech-server", "mytech-service", "MYTechServer")
 $deadline = (Get-Date).AddSeconds(20)
 while ((Get-Date) -lt $deadline) {
-  $left = Get-Process -Name "postgres", "pg_ctl", "mytech-server", "mytech-service" -ErrorAction SilentlyContinue |
-    Where-Object { try { $_.Path -and $_.Path.StartsWith($Root, [StringComparison]::OrdinalIgnoreCase) } catch { $false } }
-  if (-not $left) { break }
+  if (-not (Running-Under $all $Root)) { break }
   Start-Sleep -Seconds 1
 }
-Kill-Under @("postgres", "pg_ctl") (Join-Path $Root "pgsql")
-Kill-Under @("mytech-server") (Join-Path $Root "app")
-Kill-Under @("mytech-service", "MYTechServer") (Join-Path $Root "service")
+for ($i = 0; $i -lt 3 -and (Running-Under $all $Root); $i++) {
+  Kill-Under @("mytech-service", "MYTechServer") (Join-Path $Root "service")
+  Kill-Under @("mytech-server") (Join-Path $Root "app")
+  Kill-Under @("postgres", "pg_ctl") (Join-Path $Root "pgsql")
+  Start-Sleep -Seconds 2
+}
 
 $server, $pg = (Status "MYTechServer"), (Status "MYTechPostgreSQL")
-Log "MYTechServer: $server, MYTechPostgreSQL: $pg"
-if ($server -in @("Stopped", "Missing") -and $pg -in @("Stopped", "Missing")) { exit 0 }
+$left = Running-Under $all $Root
+Log "MYTechServer: $server, MYTechPostgreSQL: $pg, still running: $(@($left | ForEach-Object { $_.Name }) -join ', ')"
+if ($server -in @("Stopped", "Missing") -and $pg -in @("Stopped", "Missing") -and -not $left) { exit 0 }
 exit 1

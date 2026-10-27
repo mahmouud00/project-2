@@ -46,7 +46,8 @@ Name: "en"; MessagesFile: "compiler:Default.isl"
 Source: "{#Stage}\app\{#MyVersion}\*"; DestDir: "{app}\app\{#MyVersion}"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; PostgreSQL binaries are installed once: an upgrade of MYTech never rewrites them (they are the same build)
 Source: "{#Stage}\pgsql\*"; DestDir: "{app}\pgsql"; Flags: onlyifdoesntexist recursesubdirs createallsubdirs
-Source: "{#Stage}\service\*"; DestDir: "{app}\service"; Flags: ignoreversion recursesubdirs
+; restartreplace: if Windows still holds a service file, it is replaced at the next restart instead of failing
+Source: "{#Stage}\service\*"; DestDir: "{app}\service"; Flags: ignoreversion recursesubdirs restartreplace
 Source: "{#Stage}\scripts\*"; DestDir: "{app}\scripts"; Flags: ignoreversion
 Source: "{#Stage}\scripts\stop-services.ps1"; Flags: dontcopy
 Source: "{#Stage}\redist\vc_redist.x64.exe"; DestDir: "{tmp}"; Flags: deleteafterinstall

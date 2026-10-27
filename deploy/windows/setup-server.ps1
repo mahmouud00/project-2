@@ -152,6 +152,8 @@ DISCOVERY_UDP_PORT=$UdpPort
     & $serviceExe install | Out-Null
     Log "MYTech service installed"
   }
+  # restart after a failure (turned off by stop-services.ps1 while the files were replaced)
+  & sc.exe failure MYTechServer reset= 3600 actions= restart/10000/restart/30000 | Out-Null
   # Any network profile: factory Wi-Fi is often marked "Public" by Windows, and then the other PCs cannot
   # reach the server at all. Only the MYTech port and the discovery port are opened (owner's decision).
   # Older installs had Private/Domain only; their rules are widened here.
