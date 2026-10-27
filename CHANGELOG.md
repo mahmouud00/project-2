@@ -5,6 +5,7 @@ All notable changes are listed here. Versions follow Semantic Versioning (MAJOR.
 ## [Unreleased]
 ### Added
 - Formulas: a piece's name can be used in another piece's (or glass, accessory, check, drawing) expression and means that piece's length formula, exactly as if written in place (system unit, before rounding); pieces depending on each other in a circle are refused; the model editor lists piece names among the names available.
+- Company prices are shown: materials carry `company_prices` (the current company's price, discount and price after discount per colour); the library list has a «سعر شركتك» column and the material screen shows and edits the price per colour.
 ### Fixed
 - Model editor: the check's error messages were shown as empty red bars (the server sends plain text); they are shown again.
 ### Added

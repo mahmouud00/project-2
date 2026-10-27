@@ -227,6 +227,7 @@ function Materials({ system, editable }: { system: System; editable: boolean }) 
         { key: "bar", label: "طول العود", num: true, render: (m) => m.bar_length_mm ? <span className="num">{clean(m.bar_length_mm)} مم</span> : <span className="faint">—</span> },
         { key: "v", label: "الألوان", render: (m) => <span className="small">{(m.variants ?? []).map((v) => v.color_code).join("، ") || "—"}</span> },
         { key: "c", label: "تكلفة مرجعية", num: true, render: (m) => <Money v={m.reference_cost} /> },
+        ...(!s.isPlatform ? [{ key: "cp", label: "سعر شركتك", num: true, render: (m: Material) => <PriceRange m={m} /> }] : []),
         { key: "st", label: "الحالة", render: (m) => <>{m.status === "trial" && <Chip color="amber">تجربة</Chip>}{!m.is_active && <Chip color="red">متوقفة</Chip>}</> },
         ...(editable && deleter ? [{ key: "del", label: "", width: 80, render: (m: Material) => m.is_active &&
           <DeleteBtn path={`/library/materials/${m.id}`} what={`الخامة ${m.code}`} onDone={() => { invalidate("glass"); list.reload(); }}
@@ -234,13 +235,15 @@ function Materials({ system, editable }: { system: System; editable: boolean }) 
       ]} empty="مفيش خامات" />
       {!editable && !s.isPlatform && <div className="muted small">اضغط على خامة عشان تحط سعرها عند شركتك أو كودك الداخلي.</div>}
       {edit && <MaterialForm system={system} material={edit} onClose={() => setEdit(null)} onSaved={() => { invalidate("glass"); list.reload(); }} />}
-      {setting && <MaterialSetting material={setting} onClose={() => setSetting(null)} />}
+      {setting && <MaterialSetting material={setting} onClose={() => setSetting(null)} onSaved={list.reload} />}
     </div>
   );
 }
 
 function MaterialForm({ system, material, onClose, onSaved }: { system: System; material: Partial<Material>; onClose: () => void; onSaved: () => void }) {
+  const s = useSession();
   const toast = useToast();
+  const [prices, setPrices] = useState(() => priceRows(material));
   const { busy, run } = useAction(toast.err);
   const [d, setD] = useState<Partial<Material>>(material);
   const [variants, setVariants] = useState<S<"VariantIn">[]>((material.variants ?? []).map((v) => ({ color_code: v.color_code, sku: v.sku, name: v.name,
@@ -253,6 +256,7 @@ function MaterialForm({ system, material, onClose, onSaved }: { system: System; 
       image_id: d.image_id ?? null, status: d.status, variants: variants.map((v) => ({ ...v, reference_cost: v.reference_cost || null })) };
     if (material.id) await api.patch(`/library/materials/${material.id}`, { ...body, version: material.version, is_active: d.is_active });
     else await api.post("/library/materials", { ...body, code: d.code });
+    if (material.id && !s.isPlatform) await savePrices(material as Material, prices);
     toast.ok("اتحفظت الخامة.");
     onSaved();
     onClose();
@@ -289,27 +293,82 @@ function MaterialForm({ system, material, onClose, onSaved }: { system: System; 
         { key: "reference_cost", label: "تكلفة مرجعية", kind: "number" },
         { key: "is_active", label: "نشط", kind: "check", width: 50 },
       ]} />
+      {material.id && !s.isPlatform && <>
+        <h4 style={{ margin: "18px 0 8px" }}>أسعار شركتك</h4>
+        <CompanyPrices material={material as Material} rows={prices} onChange={setPrices} />
+      </>}
     </Modal>
   );
 }
 
-function MaterialSetting({ material, onClose }: { material: Material; onClose: () => void }) {
+type PriceRow = { color_code: string; unit_cost: string; discount_pct: string; internal_code: string; is_hidden: boolean; changed?: boolean };
+
+/** one row for "all colours" and one per colour, filled with what the company already saved */
+function priceRows(m: Partial<Material>): PriceRow[] {
+  const saved = new Map((m.company_prices ?? []).map((p) => [p.color_code, p]));
+  const codes = ["", ...(m.variants ?? []).map((v) => v.color_code), ...[...saved.keys()].filter((c) => c && !(m.variants ?? []).some((v) => v.color_code === c))];
+  return codes.map((c) => {
+    const p = saved.get(c);
+    return { color_code: c, unit_cost: p?.unit_cost != null ? clean(p.unit_cost) : "", discount_pct: p?.discount_pct != null ? clean(p.discount_pct) : "",
+      internal_code: p?.internal_code ?? "", is_hidden: p?.is_hidden ?? false };
+  });
+}
+
+function savePrices(m: Material, rows: PriceRow[]) {
+  return Promise.all(rows.filter((r) => r.changed).map((r) => api.put(`/library/materials/${m.id}/settings`, {
+    color_code: r.color_code, unit_cost: r.unit_cost || null, discount_pct: r.discount_pct || null, internal_code: r.internal_code || null, is_hidden: r.is_hidden })));
+}
+
+const afterDiscount = (r: PriceRow) => {
+  const p = parseFloat(r.unit_cost), d = parseFloat(r.discount_pct) || 0;
+  return Number.isFinite(p) ? (p * (1 - d / 100)).toFixed(2) : null;   // display only; the server computes the real cost in Decimal
+};
+
+/** the company's prices of a material in the list: one number, or the lowest – highest across colours */
+function PriceRange({ m }: { m: Material }) {
+  const costs = (m.company_prices ?? []).map((p) => p.cost).filter((c): c is string => c != null).map(Number);
+  if (!costs.length) return <span className="faint">—</span>;
+  const lo = Math.min(...costs), hi = Math.max(...costs);
+  return lo === hi ? <Money v={lo} /> : <span><Money v={lo} /> – <Money v={hi} /></span>;
+}
+
+function CompanyPrices({ material, rows, onChange }: { material: Material; rows: PriceRow[]; onChange: (r: PriceRow[]) => void }) {
+  const set = (i: number, patch: Partial<PriceRow>) => onChange(rows.map((r, j) => j === i ? { ...r, ...patch, changed: true } : r));
+  const sku = (c: string) => (material.variants ?? []).find((v) => v.color_code === c)?.sku;
+  return (
+    <div className="col">
+      <table className="editor-table">
+        <thead><tr><th>اللون</th><th>السعر قبل الخصم</th><th>خصم المورد %</th><th>بعد الخصم</th></tr></thead>
+        <tbody>{rows.map((r, i) => (
+          <tr key={r.color_code || "*"}>
+            <td>{r.color_code ? <><span className="code">{r.color_code}</span> <span className="faint small">{sku(r.color_code)}</span></> : <b>كل الألوان</b>}</td>
+            <td><NumIn value={r.unit_cost} onChange={(v) => set(i, { unit_cost: v })} /></td>
+            <td><NumIn value={r.discount_pct} onChange={(v) => set(i, { discount_pct: v })} unit="%" /></td>
+            <td className="num">{afterDiscount(r) ?? <span className="faint">—</span>}</td>
+          </tr>))}
+        </tbody>
+      </table>
+      <div className="muted small">سعر اللون بيتقدم على سعر "كل الألوان". الخصم الفاضي = خصم نوع القطاع من بيانات الشركة. السعر بالوحدة اللي الحساب بيستخدمها (المتر للقطاعات).</div>
+    </div>
+  );
+}
+
+function MaterialSetting({ material, onClose, onSaved }: { material: Material; onClose: () => void; onSaved: () => void }) {
   const toast = useToast();
   const { busy, run } = useAction(toast.err);
-  const [d, setD] = useState({ color_code: "", unit_cost: "", discount_pct: "", internal_code: "", is_hidden: false });
+  const [rows, setRows] = useState(() => priceRows(material));
+  const all = rows[0];
+  const setAll = (patch: Partial<PriceRow>) => setRows((x) => x.map((r, i) => i === 0 ? { ...r, ...patch, changed: true } : r));
   return (
-    <Modal title={`إعداد ${material.name} عند شركتك`} onClose={onClose} footer={<><Btn kind="primary" busy={busy} onClick={() => run(async () => {
-      await api.put(`/library/materials/${material.id}/settings`, { ...d, unit_cost: d.unit_cost || null, discount_pct: d.discount_pct || null, internal_code: d.internal_code || null });
-      toast.ok("اتحفظ."); onClose();
+    <Modal title={`أسعار ${material.code} · ${material.name} عند شركتك`} size="wide" onClose={onClose} footer={<><Btn kind="primary" busy={busy} onClick={() => run(async () => {
+      await savePrices(material, rows);
+      toast.ok("اتحفظ."); onSaved(); onClose();
     })}>حفظ</Btn><Btn onClick={onClose}>رجوع</Btn></>}>
       <div className="col">
-        <div className="notice info">ده بيتحفظ عند شركتك بس ومش بيغيّر المكتبة. التسعير بيستخدم تكلفتك بدل التكلفة المرجعية.</div>
-        <Field label="اللون" hint="فاضي = كل الألوان"><Select value={d.color_code} onChange={(v) => setD((x) => ({ ...x, color_code: v }))} placeholder="كل الألوان"
-          options={(material.variants ?? []).map((v) => ({ value: v.color_code, label: `${v.color_code} · ${v.sku}` }))} /></Field>
-        <Field label="تكلفة الوحدة عندك"><NumIn value={d.unit_cost} onChange={(v) => setD((x) => ({ ...x, unit_cost: v }))} /></Field>
-        <Field label="خصم المورد %" hint="فاضي = خصم نوع القطاع من بيانات الشركة"><NumIn value={d.discount_pct} onChange={(v) => setD((x) => ({ ...x, discount_pct: v }))} unit="%" /></Field>
-        <Field label="كودك الداخلي"><TextIn value={d.internal_code} onChange={(v) => setD((x) => ({ ...x, internal_code: v }))} code /></Field>
-        <label className="check"><input type="checkbox" checked={d.is_hidden} onChange={(e) => setD((x) => ({ ...x, is_hidden: e.target.checked }))} />إخفاء الخامة عند شركتي</label>
+        <div className="notice info">ده بيتحفظ عند شركتك بس ومش بيغيّر المكتبة. التسعير بيستخدم سعرك بعد الخصم بدل التكلفة المرجعية.</div>
+        <CompanyPrices material={material} rows={rows} onChange={setRows} />
+        <Field label="كودك الداخلي"><TextIn value={all.internal_code} onChange={(v) => setAll({ internal_code: v })} code /></Field>
+        <label className="check"><input type="checkbox" checked={all.is_hidden} onChange={(e) => setAll({ is_hidden: e.target.checked })} />إخفاء الخامة عند شركتي</label>
       </div>
     </Modal>
   );

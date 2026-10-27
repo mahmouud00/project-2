@@ -88,6 +88,9 @@ def test_company_prices_library_material_without_changing_it(platform, tenant_a,
     assert r.json()["materials"]["library"] == 1 and r.json()["materials"]["new"] == 0
     m = client.get("/api/v1/library/materials?q=XLB-FRAME", headers=tenant_a.h).json()["items"][0]
     assert m["name"] != "اسم الشركة"                                    # the library row is MYTech's
+    assert [(p["color_code"], p["cost"]) for p in m["company_prices"]] == [("W", "99.0000")]   # shown to the company
+    other = client.get("/api/v1/library/materials?q=XLB-FRAME", headers=tenant_b.h).json()["items"][0]
+    assert other["company_prices"] == []                                                       # never to another one
     from app.db.session import tenant_session
     from app.modules.sales.pricing import CostResolver
     with tenant_session(tenant_a.id) as db:

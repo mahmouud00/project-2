@@ -171,6 +171,16 @@ class MaterialUpdate(VersionedUpdate):
     variants: list[VariantIn] | None = None
 
 
+class CompanyPriceOut(BaseModel):
+    """The company's own price of a material in a colour ("" = all colours), and after the supplier discount."""
+    color_code: str
+    unit_cost: Decimal | None
+    discount_pct: Decimal | None
+    cost: Decimal | None = None
+    internal_code: str | None = None
+    is_hidden: bool = False
+
+
 class MaterialOut(Record):
     company_id: uuid.UUID
     system_id: uuid.UUID | None
@@ -187,6 +197,7 @@ class MaterialOut(Record):
     status: str
     is_active: bool
     variants: list[VariantOut] = []
+    company_prices: list[CompanyPriceOut] = []   # the current company's prices (never another company's)
 
 
 # ---------------------------------------------------------------- model definition

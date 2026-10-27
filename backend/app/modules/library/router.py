@@ -284,6 +284,14 @@ def _material_out(db, m: Material) -> S.MaterialOut:
     out = S.MaterialOut.model_validate(m)
     out.variants = [S.VariantOut.model_validate(v) for v in db.scalars(
         select(MaterialVariant).where(MaterialVariant.material_id == m.id).order_by(MaterialVariant.color_code))]
+    for row in db.scalars(select(CompanyMaterialSetting).where(CompanyMaterialSetting.material_id == m.id)
+                          .order_by(CompanyMaterialSetting.color_code)):
+        cost = None
+        if row.unit_cost is not None:
+            cost = (row.unit_cost * (1 - (row.discount_pct or Decimal(0)) / 100)).quantize(Decimal("0.0001"))
+        out.company_prices.append(S.CompanyPriceOut(color_code=row.color_code, unit_cost=row.unit_cost,
+                                                    discount_pct=row.discount_pct, cost=cost,
+                                                    internal_code=row.internal_code, is_hidden=row.is_hidden))
     return out
 
 

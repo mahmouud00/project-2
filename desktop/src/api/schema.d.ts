@@ -3015,6 +3015,27 @@ export interface components {
             /** Is Active */
             is_active?: boolean | null;
         };
+        /**
+         * CompanyPriceOut
+         * @description The company's own price of a material in a colour ("" = all colours), and after the supplier discount.
+         */
+        CompanyPriceOut: {
+            /** Color Code */
+            color_code: string;
+            /** Unit Cost */
+            unit_cost: string | null;
+            /** Discount Pct */
+            discount_pct: string | null;
+            /** Cost */
+            cost?: string | null;
+            /** Internal Code */
+            internal_code?: string | null;
+            /**
+             * Is Hidden
+             * @default false
+             */
+            is_hidden: boolean;
+        };
         /** CompanySettings */
         CompanySettings: {
             /**
@@ -4370,6 +4391,11 @@ export interface components {
              * @default []
              */
             variants: components["schemas"]["VariantOut"][];
+            /**
+             * Company Prices
+             * @default []
+             */
+            company_prices: components["schemas"]["CompanyPriceOut"][];
         };
         /** MaterialSettingIn */
         MaterialSettingIn: {

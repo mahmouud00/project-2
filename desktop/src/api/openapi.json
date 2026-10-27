@@ -11550,6 +11550,71 @@
     ],
     "title": "ColorUpdate"
    },
+   "CompanyPriceOut": {
+    "properties": {
+     "color_code": {
+      "type": "string",
+      "title": "Color Code"
+     },
+     "unit_cost": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Unit Cost"
+     },
+     "discount_pct": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Discount Pct"
+     },
+     "cost": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Cost"
+     },
+     "internal_code": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Internal Code"
+     },
+     "is_hidden": {
+      "type": "boolean",
+      "title": "Is Hidden",
+      "default": false
+     }
+    },
+    "type": "object",
+    "required": [
+     "color_code",
+     "unit_cost",
+     "discount_pct"
+    ],
+    "title": "CompanyPriceOut",
+    "description": "The company's own price of a material in a colour (\"\" = all colours), and after the supplier discount."
+   },
    "CompanySettings": {
     "properties": {
      "display_name": {
@@ -15632,6 +15697,14 @@
       },
       "type": "array",
       "title": "Variants",
+      "default": []
+     },
+     "company_prices": {
+      "items": {
+       "$ref": "#/components/schemas/CompanyPriceOut"
+      },
+      "type": "array",
+      "title": "Company Prices",
       "default": []
      }
     },
