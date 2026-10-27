@@ -1,4 +1,4 @@
-// البواقي: leftovers of 40 cm and more kept after cutting. Orders cut from them first; the rest is scrap.
+// الفُضل (offcuts): leftovers of 40 cm and more kept after cutting. Orders cut from them first; the rest is scrap.
 import { useState } from "react";
 import { api, type S } from "../api/client";
 import { useTitle, type PageProps } from "../lib/title";
@@ -14,7 +14,7 @@ const STATUS: Record<string, [string, "green" | "blue" | "gray"]> = {
   available: ["موجود", "green"], used: ["اتقطع منه", "blue"], scrapped: ["اتشال هالك", "gray"] };
 
 export default function Offcuts(_: PageProps) {
-  useTitle("البواقي");
+  useTitle("الفُضل");
   const s = useSession();
   const toast = useToast();
   const { run } = useAction(toast.err);
@@ -35,9 +35,9 @@ export default function Offcuts(_: PageProps) {
             options={Object.entries(STATUS).map(([value, [label]]) => ({ value, label }))} /></div>
           {s.can("workorders.write") && <Btn kind="primary" icon="plus" onClick={() => setAdding(true)}>باقي موجود</Btn>}
         </PageHead>
-        <div className="muted small">البواقي من <Len mm={minimum} /> وأطول بتتشال بعد التقطيع، والأوامر الجاية بتقطع منها الأول قبل الأعواد الجديدة.
+        <div className="muted small">الفُضل من <Len mm={minimum} /> وأطول بتتشال بعد التقطيع، والأوامر الجاية بتقطع منها الأول قبل الأعواد الجديدة.
           الأقصر هالك. (الحد من «بيانات الشركة ← الإعدادات الافتراضية»)</div>
-        <Table rows={list.data?.items} loading={list.loading} empty="مفيش بواقي" columns={[
+        <Table rows={list.data?.items} loading={list.loading} empty="مفيش فُضل" columns={[
           { key: "s", label: "القطاع", render: (o) => <span className="code">{o.sku}</span> },
           { key: "l", label: "الطول", num: true, render: (o) => <b><Len mm={o.length_mm} /></b> },
           { key: "b", label: "الفرع", render: (o) => <BranchName id={o.branch_id} /> },

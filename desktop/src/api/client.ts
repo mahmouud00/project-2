@@ -291,7 +291,7 @@ const MESSAGES: Record<string, string> = {
   IMPORT_ERRORS: "في سطور فيها أخطاء في الملف، ومفيش حاجة اتستوردت. صلّحها وجرّب تاني.",
   BAD_EXCEL: "الملف ده مش ملف إكسيل (.xlsx).",
   OFFCUT_TOO_SHORT: "الباقي أقصر من أقل طول بيتشال، يعني هالك.",
-  NOT_A_PROFILE: "البواقي بتكون قطاعات بس.",
+  NOT_A_PROFILE: "الفُضل بتكون قطاعات بس.",
   SALE_NOT_APPROVED: "الحسابات لازم تأكد البيعة الأول.",
   PACKAGE_MISSING: "ملف الحزمة مش موجود. افتحها تاني.",
   PACKAGE_INVALID: "ملف الحزمة بايظ.",

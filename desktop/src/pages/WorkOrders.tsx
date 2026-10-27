@@ -352,7 +352,7 @@ function BarPlans({ o }: { o: Outputs }) {
                   </div>
                 </div>
               ))}
-              {!!m.reusable_offcuts_mm?.length && <div className="muted small">بواقي هتتشال (٤٠ سم وأكتر): <span className="num">{m.reusable_offcuts_mm.map((x) => s.len(x)).join("، ")}</span></div>}
+              {!!m.reusable_offcuts_mm?.length && <div className="muted small">فُضل هتتشال (٤٠ سم وأكتر): <span className="num">{m.reusable_offcuts_mm.map((x) => s.len(x)).join("، ")}</span></div>}
             </div>
           </div>
         );

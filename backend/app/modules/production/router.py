@@ -443,7 +443,7 @@ def delete_work_order(wo_id: uuid.UUID, dc=Depends(require("workorders.delete"))
     return DeleteResult(result="deleted")
 
 
-# ---------------------------------------------------------------- offcuts (البواقي)
+# ---------------------------------------------------------------- offcuts (الفُضل)
 class OffcutIn(BaseModel):
     branch_id: uuid.UUID
     sku: str = Field(min_length=1)
