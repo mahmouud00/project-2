@@ -3,6 +3,8 @@
 All notable changes are listed here. Versions follow Semantic Versioning (MAJOR.MINOR.PATCH).
 
 ## [Unreleased]
+### Fixed
+- Model editor: the check's error messages were shown as empty red bars (the server sends plain text); they are shown again.
 ### Added
 - Materials import from Excel (`POST /library/import-excel?apply=`, template `GET /library/import-excel/template`, "استيراد من إكسيل" tab in the library): colours, profile systems and materials in their colours with the supplier price, preview first and then all or nothing; existing codes are updated, nothing is deleted. MYTech imports into the shared library (reference prices); a company imports its own materials and its prices for library materials without changing them. Prices per bar and per kg (with a weight per metre) become prices per metre.
 - Supplier discount (migration 0014): per material and colour (`discount_pct` in the company's material settings and the Excel column «خصم المورد %») or per profile system (company setting `supplier_discounts`); costs use the price after the discount.

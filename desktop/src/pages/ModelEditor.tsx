@@ -93,7 +93,8 @@ export default function ModelEditor({ systemId, modelId, tab }: { systemId: stri
           </div>
         </div>
         {errors && (errors.length
-          ? <div className="col mt" style={{ gap: 6 }}>{errors.map((e, i) => <div key={i} className="notice err"><span className="code">{e.where ?? e.code}</span> {e.message}</div>)}</div>
+          ? <div className="col mt" style={{ gap: 6 }}>{errors.map((e, i) => <div key={i} className="notice err">{typeof e === "string" ? e
+            : <><span className="code">{e.where ?? e.code}</span> {e.message}</>}</div>)}</div>
           : <div className="notice ok mt">الفحص سليم: كل المعادلات والقطع صحيحة.</div>)}
         {dirty && editable && <div className="notice warn mt">فيه تعديلات لسه متحفظتش.</div>}
       </Card>
