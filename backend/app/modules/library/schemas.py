@@ -372,6 +372,7 @@ class SystemAdjustments(BaseModel):
 class MaterialSettingIn(BaseModel):
     color_code: str = ""
     unit_cost: Decimal | None = None
+    discount_pct: Decimal | None = Field(None, ge=0, le=100)
     internal_code: str | None = None
     is_hidden: bool = False
 

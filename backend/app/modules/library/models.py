@@ -194,6 +194,8 @@ class CompanyMaterialSetting(Base, Entity):
     material_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("materials.id"), index=True)
     color_code: Mapped[str] = mapped_column(String(20), default="")  # "" = all colours
     unit_cost: Mapped[Decimal | None] = mapped_column(Numeric(14, 4), nullable=True)
+    # خصم المورد على الخامة دي (بيتغير): the cost used is unit_cost × (1 − discount / 100)
+    discount_pct: Mapped[Decimal | None] = mapped_column(Numeric(6, 3), nullable=True)
     internal_code: Mapped[str | None] = mapped_column(String(80), nullable=True)
     is_hidden: Mapped[bool] = mapped_column(Boolean, default=False)
 

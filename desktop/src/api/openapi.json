@@ -2428,6 +2428,88 @@
     }
    }
   },
+  "/api/v1/library/import-excel": {
+   "post": {
+    "tags": [
+     "library"
+    ],
+    "summary": "Import Excel",
+    "description": "استيراد الخامات من إكسيل: `apply=false` shows what would change (nothing saved), `apply=true` imports\neverything or nothing. See `excel_import` for the columns.",
+    "operationId": "import_excel_api_v1_library_import_excel_post",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "apply",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "boolean",
+       "default": false,
+       "title": "Apply"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "multipart/form-data": {
+       "schema": {
+        "$ref": "#/components/schemas/Body_import_excel_api_v1_library_import_excel_post"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/library/import-excel/template": {
+   "get": {
+    "tags": [
+     "library"
+    ],
+    "summary": "Import Template",
+    "description": "An empty workbook with the sheets and columns the import reads.",
+    "operationId": "import_template_api_v1_library_import_excel_template_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ]
+   }
+  },
   "/api/v1/library/models": {
    "get": {
     "tags": [
@@ -10778,6 +10860,20 @@
     ],
     "title": "Body_activate_api_v1_system_activation_post"
    },
+   "Body_import_excel_api_v1_library_import_excel_post": {
+    "properties": {
+     "file": {
+      "type": "string",
+      "contentMediaType": "application/octet-stream",
+      "title": "File"
+     }
+    },
+    "type": "object",
+    "required": [
+     "file"
+    ],
+    "title": "Body_import_excel_api_v1_library_import_excel_post"
+   },
    "Body_preview_library_package_api_v1_library_packages_preview_post": {
     "properties": {
      "file": {
@@ -11522,6 +11618,20 @@
       "type": "string",
       "title": "Currency",
       "default": "EGP"
+     },
+     "supplier_discounts": {
+      "additionalProperties": {
+       "anyOf": [
+        {
+         "type": "number"
+        },
+        {
+         "type": "string"
+        }
+       ]
+      },
+      "type": "object",
+      "title": "Supplier Discounts"
      },
      "opening_capital": {
       "anyOf": [
@@ -15566,6 +15676,22 @@
        }
       ],
       "title": "Unit Cost"
+     },
+     "discount_pct": {
+      "anyOf": [
+       {
+        "type": "number",
+        "maximum": 100.0,
+        "minimum": 0.0
+       },
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Discount Pct"
      },
      "internal_code": {
       "anyOf": [

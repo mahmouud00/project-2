@@ -33,6 +33,8 @@ class CompanySettings(BaseModel):
     logo_media_id: str | None = None  # set through POST /company/logo
 
     currency: str = "EGP"
+    # خصم المورد لكل نوع قطاع (كود السيستم -> %)، لو الخامة نفسها مالهاش خصم
+    supplier_discounts: dict[str, Decimal] = Field(default_factory=dict)
     opening_capital: Decimal = Field(Decimal(0), ge=0, description="رأس المال الأساسي (فلوس الشركة في البداية)")
     default_tax_pct: Decimal = Field(Decimal(0), ge=0, le=100)
     quote_validity_days: int = Field(15, ge=1)

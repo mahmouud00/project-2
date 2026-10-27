@@ -32,7 +32,7 @@ def nuitka_args(out: Path, version: str, icon: Path | None, jobs: int | None) ->
         "--include-package=psycopg", "--include-package=psycopg_binary",
         "--include-package=sqlalchemy.dialects.postgresql",
         "--include-package=apscheduler", "--include-distribution-metadata=apscheduler",
-        "--include-package=zeroconf", "--include-package=segno", "--include-package=multipart", "--include-package=python_multipart",
+        "--include-package=zeroconf", "--include-package=segno", "--include-package=openpyxl", "--include-package=multipart", "--include-package=python_multipart",
         "--nofollow-import-to=pytest,_pytest,tests,openpyxl.tests",
         "--python-flag=no_docstrings", "--python-flag=no_asserts",
         "--product-name=MYTech Solutions Server", "--company-name=MYTech Solutions",

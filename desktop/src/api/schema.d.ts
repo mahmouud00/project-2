@@ -669,6 +669,47 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/library/import-excel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Import Excel
+         * @description استيراد الخامات من إكسيل: `apply=false` shows what would change (nothing saved), `apply=true` imports
+         *     everything or nothing. See `excel_import` for the columns.
+         */
+        post: operations["import_excel_api_v1_library_import_excel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/library/import-excel/template": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Import Template
+         * @description An empty workbook with the sheets and columns the import reads.
+         */
+        get: operations["import_template_api_v1_library_import_excel_template_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/library/models": {
         parameters: {
             query?: never;
@@ -2725,6 +2766,11 @@ export interface components {
             /** File */
             file: string;
         };
+        /** Body_import_excel_api_v1_library_import_excel_post */
+        Body_import_excel_api_v1_library_import_excel_post: {
+            /** File */
+            file: string;
+        };
         /** Body_preview_library_package_api_v1_library_packages_preview_post */
         Body_preview_library_package_api_v1_library_packages_preview_post: {
             /** File */
@@ -3028,6 +3074,10 @@ export interface components {
              * @default EGP
              */
             currency: string;
+            /** Supplier Discounts */
+            supplier_discounts?: {
+                [key: string]: number | string;
+            };
             /**
              * Opening Capital
              * @description رأس المال الأساسي (فلوس الشركة في البداية)
@@ -4330,6 +4380,8 @@ export interface components {
             color_code: string;
             /** Unit Cost */
             unit_cost?: number | string | null;
+            /** Discount Pct */
+            discount_pct?: number | string | null;
             /** Internal Code */
             internal_code?: string | null;
             /**
@@ -8377,6 +8429,61 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    import_excel_api_v1_library_import_excel_post: {
+        parameters: {
+            query?: {
+                apply?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_import_excel_api_v1_library_import_excel_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    import_template_api_v1_library_import_excel_template_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
         };

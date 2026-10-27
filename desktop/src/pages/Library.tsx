@@ -33,17 +33,20 @@ export default function Library({ route }: PageProps) {
   const [, systemId, sub, modelId] = route.path;
   if (systemId === "colors") return <LibraryShell tab="colors"><Colors /></LibraryShell>;
   if (systemId === "packages") return <LibraryShell tab="packages"><Packages /></LibraryShell>;
+  if (systemId === "import") return <LibraryShell tab="import"><ExcelImport /></LibraryShell>;
   if (systemId && sub === "models" && modelId) return <ModelEditor systemId={systemId} modelId={modelId} tab={route.query.tab ?? "info"} />;
   return <LibraryShell tab="systems"><Systems selected={systemId} tab={route.query.tab ?? "info"} /></LibraryShell>;
 }
 
 function LibraryShell({ tab, children }: { tab: string; children: ReactNode }) {
   useTitle("مكتبة القطاعات");
+  const { author } = useAuthor();
   return (
     <div className="col" style={{ gap: 14 }}>
       <Card flush>
         <Tabs value={tab} onChange={(t) => go(t === "systems" ? "library" : `library/${t}`)} tabs={[
           { id: "systems", label: "القطاعات والخامات والنماذج" }, { id: "colors", label: "الألوان" }, { id: "packages", label: "حزم التحديث" },
+          { id: "import", label: "استيراد من إكسيل", hidden: !author },
         ]} />
       </Card>
       {children}
@@ -293,10 +296,10 @@ function MaterialForm({ system, material, onClose, onSaved }: { system: System; 
 function MaterialSetting({ material, onClose }: { material: Material; onClose: () => void }) {
   const toast = useToast();
   const { busy, run } = useAction(toast.err);
-  const [d, setD] = useState({ color_code: "", unit_cost: "", internal_code: "", is_hidden: false });
+  const [d, setD] = useState({ color_code: "", unit_cost: "", discount_pct: "", internal_code: "", is_hidden: false });
   return (
     <Modal title={`إعداد ${material.name} عند شركتك`} onClose={onClose} footer={<><Btn kind="primary" busy={busy} onClick={() => run(async () => {
-      await api.put(`/library/materials/${material.id}/settings`, { ...d, unit_cost: d.unit_cost || null, internal_code: d.internal_code || null });
+      await api.put(`/library/materials/${material.id}/settings`, { ...d, unit_cost: d.unit_cost || null, discount_pct: d.discount_pct || null, internal_code: d.internal_code || null });
       toast.ok("اتحفظ."); onClose();
     })}>حفظ</Btn><Btn onClick={onClose}>رجوع</Btn></>}>
       <div className="col">
@@ -304,6 +307,7 @@ function MaterialSetting({ material, onClose }: { material: Material; onClose: (
         <Field label="اللون" hint="فاضي = كل الألوان"><Select value={d.color_code} onChange={(v) => setD((x) => ({ ...x, color_code: v }))} placeholder="كل الألوان"
           options={(material.variants ?? []).map((v) => ({ value: v.color_code, label: `${v.color_code} · ${v.sku}` }))} /></Field>
         <Field label="تكلفة الوحدة عندك"><NumIn value={d.unit_cost} onChange={(v) => setD((x) => ({ ...x, unit_cost: v }))} /></Field>
+        <Field label="خصم المورد %" hint="فاضي = خصم نوع القطاع من بيانات الشركة"><NumIn value={d.discount_pct} onChange={(v) => setD((x) => ({ ...x, discount_pct: v }))} unit="%" /></Field>
         <Field label="كودك الداخلي"><TextIn value={d.internal_code} onChange={(v) => setD((x) => ({ ...x, internal_code: v }))} code /></Field>
         <label className="check"><input type="checkbox" checked={d.is_hidden} onChange={(e) => setD((x) => ({ ...x, is_hidden: e.target.checked }))} />إخفاء الخامة عند شركتي</label>
       </div>
@@ -565,3 +569,73 @@ function Packages() {
   );
 }
 
+
+type ImportReport = { systems: { new: number; updated: number }; colors: { new: number };
+  materials: { new: number; updated: number; library: number }; variants: { new: number; updated: number }; prices: number;
+  rows: number; errors: { where: string; message: string }[]; error_count: number };
+
+/** استيراد السيستمات والألوان والخامات بألوانها وأسعار المورد من ملف إكسيل: معاينة الأول، وبعدين استيراد. */
+function ExcelImport() {
+  const s = useSession();
+  const toast = useToast();
+  const { busy, run } = useAction(toast.err);
+  const [file, setFile] = useState<File | null>(null);
+  const [report, setReport] = useState<ImportReport | null>(null);
+  const [done, setDone] = useState(false);
+  const check = (f: File) => run(async () => {
+    setFile(f); setDone(false);
+    setReport(await api.upload<ImportReport>("/library/import-excel?apply=false", f));
+  });
+  const apply = () => run(async () => {
+    try {
+      setReport(await api.upload<ImportReport>("/library/import-excel?apply=true", file!));
+      setDone(true);
+      toast.ok("اتستوردت الخامات.");
+    } catch (e) {
+      const d = (e as { details?: ImportReport }).details;
+      if (d?.errors) setReport(d);
+      throw e;
+    }
+  });
+  const template = () => run(async () => {
+    const url = URL.createObjectURL(await api.blob("/library/import-excel/template"));
+    const a = document.createElement("a");
+    a.href = url; a.download = "قالب-الخامات.xlsx"; a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+  });
+  const r = report;
+  return (
+    <Card title="استيراد الخامات من إكسيل">
+      <div className="col">
+        <div className="notice info">
+          الملف فيه شيت «الألوان»، وشيت «السيستمات»، وشيت أو أكتر للخامات (كل سطر = خامة بلون واحد بسعرها). الخامة اللي كودها موجود بتتحدث، والجديدة بتتضاف،
+          ومفيش حاجة بتتمسح. {s.isPlatform ? "الأسعار بتبقى الأسعار المرجعية في مكتبة MYTech." : "الأسعار والخصم بيتحفظوا كأسعار شركتك، وخامات مكتبة MYTech نفسها مابتتغيرش."}
+          سعر العود بيتحول لسعر المتر، والسعر بالكيلو بيتحول لسعر المتر لو وزن المتر مكتوب.
+        </div>
+        <div className="row wrap" style={{ gap: 8 }}>
+          <FilePick accept=".xlsx" onFile={check} busy={busy}>اختار ملف الإكسيل</FilePick>
+          <Btn icon="download" onClick={template}>تحميل قالب فاضي</Btn>
+          {file && <span className="muted small">{file.name}</span>}
+        </div>
+        {r && <>
+          <div className="grid g4">
+            <div className="card kpi"><div className="label">سطور</div><div className="value num">{r.rows}</div></div>
+            <div className="card kpi"><div className="label">خامات جديدة / بتتحدث</div><div className="value num">{r.materials.new} / {r.materials.updated}</div></div>
+            <div className="card kpi"><div className="label">ألوان الخامات (أصناف)</div><div className="value num">{r.variants.new + r.variants.updated}</div></div>
+            <div className="card kpi"><div className="label">أسعار</div><div className="value num">{r.prices}</div></div>
+          </div>
+          <div className="muted small">سيستمات جديدة: <b className="num">{r.systems.new}</b> · ألوان جديدة: <b className="num">{r.colors.new}</b>
+            {r.materials.library > 0 && <> · خامات من مكتبة MYTech (السعر بس): <b className="num">{r.materials.library}</b></>}</div>
+          {r.error_count > 0 ? <>
+            <div className="notice warn">في <b className="num">{r.error_count}</b> سطر فيهم أخطاء. صلّحهم في الملف واختاره تاني (الاستيراد بيتم كله أو مفيش).</div>
+            <Table rows={r.errors} rowKey={(e) => e.where + e.message} columns={[
+              { key: "w", label: "المكان", render: (e) => <span className="num">{e.where}</span> },
+              { key: "m", label: "المشكلة", render: (e) => e.message },
+            ]} />
+          </> : done ? <div className="notice ok">اتستوردت كل الخامات.</div>
+            : <div><Btn kind="primary" busy={busy} onClick={apply}>استيراد ({r.rows} سطر)</Btn></div>}
+        </>}
+      </div>
+    </Card>
+  );
+}

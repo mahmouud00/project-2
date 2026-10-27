@@ -117,6 +117,11 @@ def test_upgrade_from_old_revision_keeps_data():
         c.execute(text("INSERT INTO roles (id, company_id, code, name, permissions, is_builtin, version) VALUES "
                        "(:wh_role, :c, 'warehouse', 'مخازن', ARRAY['inventory.read','purchasing.read'], true, 1), "
                        "(:acc_role, :c, 'accounts', 'حسابات', ARRAY['treasury.write','inventory.read'], true, 1)"), p)
+        p["mat"], p["cms"] = uuid.uuid4(), uuid.uuid4()
+        c.execute(text("INSERT INTO materials (id, company_id, code, name, category, kind, unit, status, is_active, version) "
+                       "VALUES (:mat, :c, 'OWN-1', 'Own profile', '', 'profile', 'm', 'approved', true, 1)"), p)
+        c.execute(text("INSERT INTO company_material_settings (id, company_id, material_id, color_code, unit_cost, "
+                       "is_hidden, version) VALUES (:cms, :c, :mat, '', 123.5, false, 1)"), p)
     before5 = _dump(engine)
     engine.dispose()
 
@@ -156,6 +161,9 @@ def test_upgrade_from_old_revision_keeps_data():
     assert {"hr.create", "purchasing.approve"} <= set(after["roles"][str(p["admin_role"])]["permissions"])
     hr = [r for r in after["roles"].values() if r["code"] == "hr" and r["company_id"] == str(cid)]
     assert len(hr) == 1 and hr[0]["is_builtin"]
+    # 0014: an existing company price keeps no discount
+    cms = after["company_material_settings"][str(p["cms"])]
+    assert cms["discount_pct"] is None and float(cms["unit_cost"]) == 123.5
     # 0012: orders already in production count as confirmed sales; accounts confirm sales; manager roles
     assert wo["sale_status"] == "approved" and wo["sale_approval_note"] == "قبل تأكيد الحسابات"
     assert {"sales.approve", "notify.accounts"} <= acc

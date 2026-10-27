@@ -3,9 +3,12 @@
 Unit cost of a material for a company, first found wins:
   company setting for (material, colour) -> company setting for (material, all colours)
   -> library variant reference cost -> library material reference cost.
+A company price is reduced by the supplier discount: the one set on the material (colour, then all colours), else
+the company's discount for the material's profile system (settings `supplier_discounts`).
 """
 from __future__ import annotations
 
+import uuid
 from decimal import ROUND_HALF_UP, Decimal
 
 from sqlalchemy import select
@@ -26,6 +29,18 @@ class CostResolver:
         self.db = db
         self._cache: dict[tuple[str, str], tuple[Decimal | None, str, Material | None]] = {}
 
+    def _system_discount(self, system_id) -> Decimal | None:
+        """The company's supplier discount for this profile system (company settings), if any."""
+        from app.modules.library.models import ProfileSystem
+        from app.modules.org.settings import get_company_settings
+
+        if not hasattr(self, "_discounts"):
+            from sqlalchemy import text
+            company_id = self.db.scalar(text("SELECT NULLIF(current_setting('app.company_id', true), '')"))
+            self._discounts = get_company_settings(self.db, uuid.UUID(company_id)).supplier_discounts if company_id else {}
+        system = self.db.get(ProfileSystem, system_id)
+        return self._discounts.get(system.code) if system else None
+
     def resolve(self, code: str, color: str | None) -> tuple[Decimal | None, str, Material | None]:
         """-> (unit cost, sku, material)"""
         key = (code, color or "")
@@ -42,10 +57,17 @@ class CostResolver:
         settings = {s.color_code: s for s in self.db.scalars(
             select(CompanyMaterialSetting).where(CompanyMaterialSetting.material_id == material.id))}
         cost = None
+        discount = None
         for candidate in (settings.get(color or "\0"), settings.get("")):
-            if candidate is not None and candidate.unit_cost is not None:
+            if candidate is not None and discount is None and candidate.discount_pct is not None:
+                discount = candidate.discount_pct
+            if candidate is not None and candidate.unit_cost is not None and cost is None:
                 cost = candidate.unit_cost
-                break
+        if cost is not None:
+            if discount is None and material.system_id is not None:
+                discount = self._system_discount(material.system_id)
+            if discount:
+                cost = (cost * (1 - Decimal(discount) / 100)).quantize(Decimal("0.0001"))
         if cost is None and variant is not None and variant.reference_cost is not None:
             cost = variant.reference_cost
         if cost is None:

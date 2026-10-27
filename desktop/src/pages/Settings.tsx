@@ -10,7 +10,7 @@ import { DeleteBtn } from "../components/actions";
 import { date } from "../lib/format";
 import { setQuery } from "../lib/router";
 
-import { STAGE_NAMES } from "../lib/lookups";
+import { STAGE_NAMES, lookups } from "../lib/lookups";
 const WORK_STAGES = ["survey", "quotation", "approved", "manufacturing", "assembly", "quality"] as const;
 const BRANCH_KINDS: Record<string, string> = { factory: "مصنع", warehouse: "مخزن", showroom: "معرض", office: "مكتب" };
 
@@ -91,7 +91,14 @@ function Defaults() {
     quote_waste_pct: st.quote_waste_pct, deposit_pct: st.deposit_pct, saw_kerf_mm: st.saw_kerf_mm, bar_trim_mm: st.bar_trim_mm,
     min_reusable_offcut_mm: st.min_reusable_offcut_mm, quote_terms: st.quote_terms, length_unit: st.length_unit ?? "cm",
     min_billed_area_m2: st.min_billed_area_m2, default_arch_model_id: st.default_arch_model_id ?? null,
-    stage_durations_days: { ...(st.stage_durations_days ?? {}) } });
+    stage_durations_days: { ...(st.stage_durations_days ?? {}) }, supplier_discounts: { ...(st.supplier_discounts ?? {}) } });
+  const systems = useLoad(() => lookups.systems().catch(() => []), []);
+  const discounts = (d.supplier_discounts ?? {}) as Record<string, string | number>;
+  const setDiscount = (code: string) => (v: string) => setD((x) => {
+    const next = { ...(x.supplier_discounts ?? {}) } as Record<string, string>;
+    if (v === "") delete next[code]; else next[code] = v;
+    return { ...x, supplier_discounts: next as Settings["supplier_discounts"] };
+  });
   const durations = (d.stage_durations_days ?? {}) as Record<string, string | number>;
   const setDuration = (stage: string) => (v: string) =>
     setD((x) => ({ ...x, stage_durations_days: { ...(x.stage_durations_days ?? {}), [stage]: v || "0" } as Settings["stage_durations_days"] }));
@@ -119,6 +126,13 @@ function Defaults() {
       </div>
       {WORK_STAGES.map((k) => (
         <Field key={k} label={STAGE_NAMES[k]}><NumIn value={String(durations[k] ?? "")} onChange={setDuration(k)} unit="يوم" /></Field>
+      ))}
+      <div className="span-all">
+        <h4 style={{ margin: "8px 0 2px" }}>خصم المورد لكل نوع قطاع (%)</h4>
+        <div className="muted small">التكلفة = سعر المورد ناقص الخصم. الخصم اللي على الخامة نفسها (من المكتبة أو ملف الإكسيل) بيتقدّم على ده.</div>
+      </div>
+      {(systems.data ?? []).map((x) => (
+        <Field key={x.id} label={x.name}><NumIn value={String(discounts[x.code] ?? "")} onChange={setDiscount(x.code)} unit="%" /></Field>
       ))}
       <Field label="شروط عرض السعر الافتراضية" className="span-all"><TextArea value={d.quote_terms} onChange={set("quote_terms")} /></Field>
       <div className="span-all"><Btn kind="primary" busy={busy} onClick={() => save(d)}>حفظ</Btn></div>

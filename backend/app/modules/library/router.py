@@ -374,6 +374,55 @@ def set_material_settings(material_id: uuid.UUID, body: S.MaterialSettingIn, dc=
     db.commit()
 
 
+@router.post("/library/import-excel")
+async def import_excel(file: UploadFile, apply: bool = False, dc=Depends(get_db_and_ctx)):
+    """استيراد الخامات من إكسيل: `apply=false` shows what would change (nothing saved), `apply=true` imports
+    everything or nothing. See `excel_import` for the columns."""
+    from app.modules.library.excel_import import import_workbook
+
+    db, ctx = dc
+    svc.require_author(ctx)
+    data = await file.read()
+    if len(data) > 20 * 1024 * 1024:
+        raise ValidationFailed("File too large", code="FILE_TOO_LARGE")
+    out = import_workbook(db, ctx, data, apply)
+    if apply:
+        db.commit()
+    else:
+        db.rollback()
+    return out
+
+
+@router.get("/library/import-excel/template")
+def import_template(dc=Depends(require("library.read"))):
+    """An empty workbook with the sheets and columns the import reads."""
+    import io
+
+    from fastapi.responses import StreamingResponse
+    from openpyxl import Workbook
+
+    from app.modules.library.excel_import import HEAD
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title, ws.sheet_view.rightToLeft = "الألوان", True
+    ws.append(["الكود", "اللون", "اللون (hex)"])
+    ws.append(["WH", "أبيض", "#FFFFFF"])
+    s = wb.create_sheet("السيستمات")
+    s.sheet_view.rightToLeft = True
+    s.append(["الكود", "الاسم", "النوع", "ملاحظات"])
+    s.append(["SYS1", "اسم السيستم", "upvc", ""])
+    m = wb.create_sheet("الخامات")
+    m.sheet_view.rightToLeft = True
+    m.append(list(HEAD))
+    m.append(["SYS1", "P-001", "حلق مفصلي", "قطاع", "متر", 6000, "مفصلي", "أبيض", "P-001-WH", 150, "المتر", "", "", 5])
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    return StreamingResponse(buf, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                             headers={"Content-Disposition": "attachment; filename=materials-template.xlsx"})
+
+
 @router.delete("/library/materials/{material_id}", response_model=DeleteResult)
 def delete_material(material_id: uuid.UUID, dc=Depends(get_db_and_ctx)):
     """Refused while a model still uses it; deactivated when it was published or has stock/orders; else deleted."""
