@@ -1,5 +1,7 @@
 from decimal import Decimal as D
 
+from app.modules.sales.pricing import money
+
 from tests.library_helpers import build_library
 
 
@@ -15,11 +17,21 @@ def _setup(client, platform, tenant, code):
         "min_reusable_offcut_mm": "500", "quote_waste_pct": "10"}})
     assert r.status_code == 200, r.text
     branch = client.get("/api/v1/branches", headers=h).json()["items"][0]
-    pl = client.post("/api/v1/price-lists", headers=h, json={"code": "END", "name": "عميل نهائي",
-                                                            "customer_type": "end", "margin_pct": "25"}).json()
+    pl = None                              # price lists are gone: the salesperson types the price
     customer = client.post("/api/v1/customers", headers=h, json={"name": "أحمد محمد", "phone": "01012345678",
                                                                 "address": "القاهرة"}).json()
     return lib, branch, pl, customer
+
+
+def price_at_top(client, h, q):
+    """The salesperson types a price on every line without one: the top of the guide."""
+    for line in q["lines"]:
+        if not line["priced"]:
+            r = client.patch(f"/api/v1/quotation-lines/{line['id']}", headers=h,
+                             json={"version": line["version"], "manual_unit_price": line["top_unit_price"]})
+            assert r.status_code == 200, r.text
+            q = r.json()
+    return q
 
 
 def test_full_cycle(platform, tenant_a, tenant_b, client):
@@ -41,14 +53,24 @@ def test_full_cycle(platform, tenant_a, tenant_b, client):
         "customer_id": customer["id"], "branch_id": branch["id"], "survey_id": survey["id"]})
     assert q.status_code == 201, q.text
     q = q.json()
-    assert len(q["lines"]) == 2 and q["price_list_id"] == pl["id"]
+    assert len(q["lines"]) == 2 and q["price_list_id"] is None
     line = q["lines"][0]
     assert D(line["unit_cost"]) > 0 and line["cost_breakdown"]["missing_costs"] == []
-    assert D(line["unit_price"]) == (D(line["unit_cost"]) * D("1.25")).quantize(D("0.01"))
-    assert D(q["tax_pct"]) == 14 and D(q["total"]) == (D(q["subtotal"]) * D("1.14")).quantize(D("0.01"))
+    # the guide: fair = cost + 20 %, top = cost + 30 %; no price until the salesperson types one
+    assert D(line["fair_unit_price"]) == money(D(line["unit_cost"]) * D("1.2"))
+    assert D(line["top_unit_price"]) == money(D(line["unit_cost"]) * D("1.3"))
+    assert D(line["unit_price"]) == 0 and not line["priced"] and q["unpriced_lines"] == 2
+    r = client.post(f"/api/v1/quotations/{q['id']}/status", headers=h, json={"version": q["version"], "status": "sent"})
+    assert r.status_code == 409 and r.json()["error"]["code"] == "QUOTE_UNPRICED"
+    q = price_at_top(client, h, q)
+    line = q["lines"][0]
+    assert D(line["unit_price"]) == D(line["top_unit_price"]) and D(q["top_total"]) == D(q["subtotal"])
+    assert D(q["tax_pct"]) == 14 and D(q["total"]) == money(D(q["subtotal"]) * D("1.14"))
     assert line["formula_set_version_id"] == lib["version"]["id"]
 
+    q = price_at_top(client, h, q)
     q = client.post(f"/api/v1/quotations/{q['id']}/status", headers=h, json={"version": q["version"], "status": "sent"}).json()
+    q = price_at_top(client, h, q)
     q = client.post(f"/api/v1/quotations/{q['id']}/status", headers=h,
                     json={"version": q["version"], "status": "accepted"}).json()
     assert client.post(f"/api/v1/quotations/{q['id']}/lines", headers=h, json={

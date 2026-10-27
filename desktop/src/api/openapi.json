@@ -4106,185 +4106,6 @@
     }
    }
   },
-  "/api/v1/price-lists": {
-   "get": {
-    "tags": [
-     "sales"
-    ],
-    "summary": "List Price Lists",
-    "operationId": "list_price_lists_api_v1_price_lists_get",
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "items": {
-          "$ref": "#/components/schemas/PriceListOut"
-         },
-         "type": "array",
-         "title": "Response List Price Lists Api V1 Price Lists Get"
-        }
-       }
-      }
-     }
-    },
-    "security": [
-     {
-      "OAuth2PasswordBearer": []
-     }
-    ]
-   },
-   "post": {
-    "tags": [
-     "sales"
-    ],
-    "summary": "Create Price List",
-    "operationId": "create_price_list_api_v1_price_lists_post",
-    "requestBody": {
-     "content": {
-      "application/json": {
-       "schema": {
-        "$ref": "#/components/schemas/PriceListIn"
-       }
-      }
-     },
-     "required": true
-    },
-    "responses": {
-     "201": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/PriceListOut"
-        }
-       }
-      }
-     },
-     "422": {
-      "description": "Validation Error",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      }
-     }
-    },
-    "security": [
-     {
-      "OAuth2PasswordBearer": []
-     }
-    ]
-   }
-  },
-  "/api/v1/price-lists/{pl_id}": {
-   "patch": {
-    "tags": [
-     "sales"
-    ],
-    "summary": "Update Price List",
-    "operationId": "update_price_list_api_v1_price_lists__pl_id__patch",
-    "security": [
-     {
-      "OAuth2PasswordBearer": []
-     }
-    ],
-    "parameters": [
-     {
-      "name": "pl_id",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "type": "string",
-       "format": "uuid",
-       "title": "Pl Id"
-      }
-     }
-    ],
-    "requestBody": {
-     "required": true,
-     "content": {
-      "application/json": {
-       "schema": {
-        "$ref": "#/components/schemas/PriceListUpdate"
-       }
-      }
-     }
-    },
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/PriceListOut"
-        }
-       }
-      }
-     },
-     "422": {
-      "description": "Validation Error",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      }
-     }
-    }
-   },
-   "delete": {
-    "tags": [
-     "sales"
-    ],
-    "summary": "Delete Price List",
-    "description": "Deleted when nothing uses it; a list that quotations or customers use is deactivated instead.",
-    "operationId": "delete_price_list_api_v1_price_lists__pl_id__delete",
-    "security": [
-     {
-      "OAuth2PasswordBearer": []
-     }
-    ],
-    "parameters": [
-     {
-      "name": "pl_id",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "type": "string",
-       "format": "uuid",
-       "title": "Pl Id"
-      }
-     }
-    ],
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/DeleteResult"
-        }
-       }
-      }
-     },
-     "422": {
-      "description": "Validation Error",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      }
-     }
-    }
-   }
-  },
   "/api/v1/quotations": {
    "get": {
     "tags": [
@@ -4804,6 +4625,114 @@
     }
    }
   },
+  "/api/v1/quotations/{quote_id}/request-price-approval": {
+   "post": {
+    "tags": [
+     "sales"
+    ],
+    "summary": "Request Price Approval",
+    "description": "The salesperson asks the sales manager to approve a price under the fair price (a notification).",
+    "operationId": "request_price_approval_api_v1_quotations__quote_id__request_price_approval_post",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "quote_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Quote Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/QuotationOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/quotations/{quote_id}/approve-price": {
+   "post": {
+    "tags": [
+     "sales"
+    ],
+    "summary": "Approve Price",
+    "description": "The sales manager approves the quotation's current total under the fair price. Lowering it again needs\nanother approval; raising it does not.",
+    "operationId": "approve_price_api_v1_quotations__quote_id__approve_price_post",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "quote_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Quote Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/PriceApprovalIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/QuotationOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/v1/quotations/{quote_id}/recalculate": {
    "post": {
     "tags": [
@@ -4918,7 +4847,7 @@
      "sales"
     ],
     "summary": "Survey Pricing",
-    "description": "Suggested price per m² for a survey, from the real cost of each opening at its sizes (openings with\na model only). Each unit bills at least the company's minimum area.",
+    "description": "دليل المبيعات: the company's cost of the survey's openings (with a model) at their sizes, and two prices on\nit: the fair price (cost + fair margin) and the top price (cost + top margin). Each unit bills at least the\ncompany's minimum area for the price per m².",
     "operationId": "survey_pricing_api_v1_surveys__survey_id__pricing_get",
     "security": [
      {
@@ -4934,23 +4863,6 @@
        "type": "string",
        "format": "uuid",
        "title": "Survey Id"
-      }
-     },
-     {
-      "name": "price_list_id",
-      "in": "query",
-      "required": false,
-      "schema": {
-       "anyOf": [
-        {
-         "type": "string",
-         "format": "uuid"
-        },
-        {
-         "type": "null"
-        }
-       ],
-       "title": "Price List Id"
       }
      }
     ],
@@ -11747,6 +11659,50 @@
       "description": "waste added to profile cost in quotes",
       "default": "0"
      },
+     "labor_cost_per_m2": {
+      "anyOf": [
+       {
+        "type": "number",
+        "minimum": 0.0
+       },
+       {
+        "type": "string"
+       }
+      ],
+      "title": "Labor Cost Per M2",
+      "description": "تكلفة التشغيل للمتر المربع",
+      "default": "0"
+     },
+     "fair_margin_pct": {
+      "anyOf": [
+       {
+        "type": "number",
+        "maximum": 1000.0,
+        "minimum": 0.0
+       },
+       {
+        "type": "string"
+       }
+      ],
+      "title": "Fair Margin Pct",
+      "description": "هامش السعر العادل %",
+      "default": "20"
+     },
+     "top_margin_pct": {
+      "anyOf": [
+       {
+        "type": "number",
+        "maximum": 1000.0,
+        "minimum": 0.0
+       },
+       {
+        "type": "string"
+       }
+      ],
+      "title": "Top Margin Pct",
+      "description": "أعلى هامش مقترح %",
+      "default": "30"
+     },
      "deposit_pct": {
       "anyOf": [
        {
@@ -12204,18 +12160,6 @@
       ],
       "title": "Branch Id"
      },
-     "price_list_id": {
-      "anyOf": [
-       {
-        "type": "string",
-        "format": "uuid"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Price List Id"
-     },
      "notes": {
       "anyOf": [
        {
@@ -12359,18 +12303,6 @@
       ],
       "title": "Branch Id"
      },
-     "price_list_id": {
-      "anyOf": [
-       {
-        "type": "string",
-        "format": "uuid"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Price List Id"
-     },
      "notes": {
       "anyOf": [
        {
@@ -12401,7 +12333,6 @@
      "national_id",
      "tax_number",
      "branch_id",
-     "price_list_id",
      "notes",
      "anonymized"
     ],
@@ -12513,18 +12444,6 @@
        }
       ],
       "title": "Branch Id"
-     },
-     "price_list_id": {
-      "anyOf": [
-       {
-        "type": "string",
-        "format": "uuid"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Price List Id"
      },
      "notes": {
       "anyOf": [
@@ -17085,7 +17004,7 @@
       ],
       "title": "Billed Area M2"
      },
-     "suggested_unit_price": {
+     "unit_cost": {
       "anyOf": [
        {
         "type": "string"
@@ -17094,9 +17013,9 @@
         "type": "null"
        }
       ],
-      "title": "Suggested Unit Price"
+      "title": "Unit Cost"
      },
-     "suggested_price_per_m2": {
+     "fair_unit_price": {
       "anyOf": [
        {
         "type": "string"
@@ -17105,7 +17024,26 @@
         "type": "null"
        }
       ],
-      "title": "Suggested Price Per M2"
+      "title": "Fair Unit Price"
+     },
+     "top_unit_price": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Top Unit Price"
+     },
+     "missing_costs": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Missing Costs",
+      "default": []
      },
      "error": {
       "anyOf": [
@@ -18356,396 +18294,23 @@
     ],
     "title": "PointOut"
    },
-   "PriceListIn": {
-    "properties": {
-     "code": {
-      "type": "string",
-      "maxLength": 40,
-      "minLength": 1,
-      "title": "Code"
-     },
-     "name": {
-      "type": "string",
-      "title": "Name"
-     },
-     "customer_type": {
-      "anyOf": [
-       {
-        "type": "string",
-        "pattern": "^(end|dealer|contractor)$"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Customer Type"
-     },
-     "margin_pct": {
-      "anyOf": [
-       {
-        "type": "number"
-       },
-       {
-        "type": "string"
-       }
-      ],
-      "title": "Margin Pct",
-      "default": "0"
-     },
-     "labor_cost_per_m2": {
-      "anyOf": [
-       {
-        "type": "number",
-        "minimum": 0.0
-       },
-       {
-        "type": "string"
-       }
-      ],
-      "title": "Labor Cost Per M2",
-      "default": "0"
-     },
-     "min_unit_price": {
-      "anyOf": [
-       {
-        "type": "number",
-        "minimum": 0.0
-       },
-       {
-        "type": "string"
-       }
-      ],
-      "title": "Min Unit Price",
-      "default": "0"
-     },
-     "items": {
-      "items": {
-       "$ref": "#/components/schemas/PriceListItemIn"
-      },
-      "type": "array",
-      "title": "Items",
-      "default": []
-     }
-    },
-    "type": "object",
-    "required": [
-     "code",
-     "name"
-    ],
-    "title": "PriceListIn"
-   },
-   "PriceListItemIn": {
-    "properties": {
-     "model_id": {
-      "anyOf": [
-       {
-        "type": "string",
-        "format": "uuid"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Model Id"
-     },
-     "system_id": {
-      "anyOf": [
-       {
-        "type": "string",
-        "format": "uuid"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "System Id"
-     },
-     "margin_pct": {
-      "anyOf": [
-       {
-        "type": "number"
-       },
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Margin Pct"
-     },
-     "price_per_m2": {
-      "anyOf": [
-       {
-        "type": "number",
-        "minimum": 0.0
-       },
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Price Per M2"
-     }
-    },
-    "type": "object",
-    "title": "PriceListItemIn"
-   },
-   "PriceListItemOut": {
-    "properties": {
-     "model_id": {
-      "anyOf": [
-       {
-        "type": "string",
-        "format": "uuid"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Model Id"
-     },
-     "system_id": {
-      "anyOf": [
-       {
-        "type": "string",
-        "format": "uuid"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "System Id"
-     },
-     "margin_pct": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Margin Pct"
-     },
-     "price_per_m2": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Price Per M2"
-     }
-    },
-    "type": "object",
-    "required": [
-     "model_id",
-     "system_id",
-     "margin_pct",
-     "price_per_m2"
-    ],
-    "title": "PriceListItemOut"
-   },
-   "PriceListOut": {
-    "properties": {
-     "id": {
-      "type": "string",
-      "format": "uuid",
-      "title": "Id"
-     },
-     "version": {
-      "type": "integer",
-      "title": "Version"
-     },
-     "created_at": {
-      "anyOf": [
-       {
-        "type": "string",
-        "format": "date-time"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Created At"
-     },
-     "updated_at": {
-      "anyOf": [
-       {
-        "type": "string",
-        "format": "date-time"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Updated At"
-     },
-     "code": {
-      "type": "string",
-      "title": "Code"
-     },
-     "name": {
-      "type": "string",
-      "title": "Name"
-     },
-     "customer_type": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Customer Type"
-     },
-     "margin_pct": {
-      "type": "string",
-      "title": "Margin Pct"
-     },
-     "labor_cost_per_m2": {
-      "type": "string",
-      "title": "Labor Cost Per M2"
-     },
-     "min_unit_price": {
-      "type": "string",
-      "title": "Min Unit Price"
-     },
-     "is_active": {
-      "type": "boolean",
-      "title": "Is Active"
-     },
-     "items": {
-      "items": {
-       "$ref": "#/components/schemas/PriceListItemOut"
-      },
-      "type": "array",
-      "title": "Items",
-      "default": []
-     }
-    },
-    "type": "object",
-    "required": [
-     "id",
-     "version",
-     "code",
-     "name",
-     "customer_type",
-     "margin_pct",
-     "labor_cost_per_m2",
-     "min_unit_price",
-     "is_active"
-    ],
-    "title": "PriceListOut"
-   },
-   "PriceListUpdate": {
+   "PriceApprovalIn": {
     "properties": {
      "version": {
       "type": "integer",
       "title": "Version"
      },
-     "name": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Name"
-     },
-     "customer_type": {
-      "anyOf": [
-       {
-        "type": "string",
-        "pattern": "^(end|dealer|contractor)$"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Customer Type"
-     },
-     "margin_pct": {
-      "anyOf": [
-       {
-        "type": "number"
-       },
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Margin Pct"
-     },
-     "labor_cost_per_m2": {
-      "anyOf": [
-       {
-        "type": "number"
-       },
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Labor Cost Per M2"
-     },
-     "min_unit_price": {
-      "anyOf": [
-       {
-        "type": "number"
-       },
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Min Unit Price"
-     },
-     "is_active": {
-      "anyOf": [
-       {
-        "type": "boolean"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Is Active"
-     },
-     "items": {
-      "anyOf": [
-       {
-        "items": {
-         "$ref": "#/components/schemas/PriceListItemIn"
-        },
-        "type": "array"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Items"
+     "note": {
+      "type": "string",
+      "title": "Note",
+      "default": ""
      }
     },
     "type": "object",
     "required": [
      "version"
     ],
-    "title": "PriceListUpdate"
+    "title": "PriceApprovalIn"
    },
    "PricePerM2In": {
     "properties": {
@@ -18797,18 +18362,6 @@
       "type": "string",
       "format": "uuid",
       "title": "Branch Id"
-     },
-     "price_list_id": {
-      "anyOf": [
-       {
-        "type": "string",
-        "format": "uuid"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Price List Id"
      },
      "survey_id": {
       "anyOf": [
@@ -18969,8 +18522,15 @@
       "title": "Survey Id"
      },
      "price_list_id": {
-      "type": "string",
-      "format": "uuid",
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "uuid"
+       },
+       {
+        "type": "null"
+       }
+      ],
       "title": "Price List Id"
      },
      "status": {
@@ -19045,6 +18605,57 @@
       ],
       "title": "Salesperson Id"
      },
+     "fair_total": {
+      "type": "string",
+      "title": "Fair Total"
+     },
+     "top_total": {
+      "type": "string",
+      "title": "Top Total"
+     },
+     "net_total": {
+      "type": "string",
+      "title": "Net Total",
+      "default": "0"
+     },
+     "price_approved_total": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Price Approved Total"
+     },
+     "price_approved_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Price Approved At"
+     },
+     "price_approval_note": {
+      "type": "string",
+      "title": "Price Approval Note",
+      "default": ""
+     },
+     "needs_price_approval": {
+      "type": "boolean",
+      "title": "Needs Price Approval",
+      "default": false
+     },
+     "unpriced_lines": {
+      "type": "integer",
+      "title": "Unpriced Lines",
+      "default": 0
+     },
      "lines": {
       "items": {
        "$ref": "#/components/schemas/app__modules__sales__router__LineOut"
@@ -19062,7 +18673,6 @@
      "customer_id",
      "branch_id",
      "survey_id",
-     "price_list_id",
      "status",
      "issue_date",
      "valid_until",
@@ -19073,7 +18683,9 @@
      "total",
      "total_cost",
      "notes",
-     "terms"
+     "terms",
+     "fair_total",
+     "top_total"
     ],
     "title": "QuotationOut"
    },
@@ -19082,18 +18694,6 @@
      "version": {
       "type": "integer",
       "title": "Version"
-     },
-     "price_list_id": {
-      "anyOf": [
-       {
-        "type": "string",
-        "format": "uuid"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Price List Id"
      },
      "tax_pct": {
       "anyOf": [
@@ -20401,12 +20001,27 @@
       "format": "uuid",
       "title": "Survey Id"
      },
-     "price_list_id": {
+     "fair_margin_pct": {
       "type": "string",
-      "format": "uuid",
-      "title": "Price List Id"
+      "title": "Fair Margin Pct"
      },
-     "price_per_m2": {
+     "top_margin_pct": {
+      "type": "string",
+      "title": "Top Margin Pct"
+     },
+     "cost_total": {
+      "type": "string",
+      "title": "Cost Total"
+     },
+     "fair_total": {
+      "type": "string",
+      "title": "Fair Total"
+     },
+     "top_total": {
+      "type": "string",
+      "title": "Top Total"
+     },
+     "fair_price_per_m2": {
       "anyOf": [
        {
         "type": "string"
@@ -20415,11 +20030,18 @@
         "type": "null"
        }
       ],
-      "title": "Price Per M2"
+      "title": "Fair Price Per M2"
      },
-     "suggested_total": {
-      "type": "string",
-      "title": "Suggested Total"
+     "top_price_per_m2": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Top Price Per M2"
      },
      "area_m2": {
       "type": "string",
@@ -20437,6 +20059,14 @@
       "type": "integer",
       "title": "Unpriced"
      },
+     "missing_costs": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Missing Costs",
+      "default": []
+     },
      "openings": {
       "items": {
        "$ref": "#/components/schemas/OpeningPrice"
@@ -20448,9 +20078,13 @@
     "type": "object",
     "required": [
      "survey_id",
-     "price_list_id",
-     "price_per_m2",
-     "suggested_total",
+     "fair_margin_pct",
+     "top_margin_pct",
+     "cost_total",
+     "fair_total",
+     "top_total",
+     "fair_price_per_m2",
+     "top_price_per_m2",
      "area_m2",
      "billed_area_m2",
      "priced",
@@ -22926,7 +22560,7 @@
       ],
       "title": "Model Image Id"
      },
-     "suggested_unit_price": {
+     "fair_unit_price": {
       "anyOf": [
        {
         "type": "string"
@@ -22935,9 +22569,9 @@
         "type": "null"
        }
       ],
-      "title": "Suggested Unit Price"
+      "title": "Fair Unit Price"
      },
-     "suggested_price_per_m2": {
+     "top_unit_price": {
       "anyOf": [
        {
         "type": "string"
@@ -22946,7 +22580,34 @@
         "type": "null"
        }
       ],
-      "title": "Suggested Price Per M2"
+      "title": "Top Unit Price"
+     },
+     "fair_price_per_m2": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Fair Price Per M2"
+     },
+     "top_price_per_m2": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Top Price Per M2"
+     },
+     "priced": {
+      "type": "boolean",
+      "title": "Priced",
+      "default": true
      }
     },
     "type": "object",

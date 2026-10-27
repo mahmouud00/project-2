@@ -4,12 +4,12 @@ import { useTitle, type PageProps } from "../lib/title";
 import { useAction, useLoad } from "../lib/hooks";
 import { useDefaultBranch, useSession } from "../state/session";
 import { useToast } from "../state/toast";
-import { Btn, Card, Chip, Confirm, Dim, ErrorBox, Field, Len, Loading, Modal, Money, NumIn, PageHead, Pager, Select, Table, TextArea } from "../components/ui";
+import { Btn, Card, Chip, Confirm, Dim, ErrorBox, Field, Len, Loading, Modal, Money, NumIn, PageHead, Pager, Select, Table, TextArea, TextIn } from "../components/ui";
 import { BranchName, BranchSelect, ColorName, CustomerName, CustomerPicker, SalespersonName, SalespersonSelect } from "../components/pickers";
 import { ItemForm, ParamLabels, type ItemDraft } from "../components/items";
 import { Drawing, MediaImg, PrintPreview } from "../components/media";
 import { DeleteBtn } from "../components/actions";
-import { QUOTE_STATUS, lookups } from "../lib/lookups";
+import { QUOTE_STATUS } from "../lib/lookups";
 import { go } from "../lib/router";
 import { date, mulMoney, sumMoney } from "../lib/format";
 
@@ -62,15 +62,14 @@ function NewQuotation({ customerId, surveyId }: { customerId?: string; surveyId?
   const toast = useToast();
   const { busy, run } = useAction(toast.err);
   const branch = useDefaultBranch("quotes.create");
-  const [d, setD] = useState<{ customer_id?: string | null; branch_id?: string | null; price_list_id?: string; survey_id?: string;
+  const [d, setD] = useState<{ customer_id?: string | null; branch_id?: string | null; survey_id?: string;
     salesperson_id?: string | null }>(
     { customer_id: customerId ?? null, branch_id: branch, survey_id: surveyId });
-  const priceLists = useLoad(() => lookups.priceLists().catch(() => []), []);
   const surveys = useLoad(() => d.customer_id ? api.get<S<"Page_SurveyOut_">>("/surveys", { customer_id: d.customer_id, limit: 50 }).then((p) => p.items)
     : Promise.resolve([]), [d.customer_id]);
   const create = () => run(async () => {
     const q = await api.post<Quote>("/quotations", { customer_id: d.customer_id, branch_id: d.branch_id,
-      price_list_id: d.price_list_id || null, survey_id: d.survey_id || null, salesperson_id: d.salesperson_id || null });
+      survey_id: d.survey_id || null, salesperson_id: d.salesperson_id || null });
     go(`quotations/${q.id}`);
   });
   return (
@@ -78,9 +77,6 @@ function NewQuotation({ customerId, surveyId }: { customerId?: string; surveyId?
       <div className="grid g2" style={{ maxWidth: 820 }}>
         <Field label="العميل" className="span-all"><CustomerPicker value={d.customer_id} onChange={(id) => setD((x) => ({ ...x, customer_id: id, survey_id: undefined }))} /></Field>
         <Field label="الفرع"><BranchSelect value={d.branch_id} onChange={(v) => setD((x) => ({ ...x, branch_id: v }))} perm="quotes.create" /></Field>
-        <Field label="قائمة الأسعار" hint="لو فاضية بتتاخد قائمة العميل أو نوعه">
-          <Select value={d.price_list_id ?? ""} onChange={(v) => setD((x) => ({ ...x, price_list_id: v }))} placeholder="حسب العميل"
-            options={(priceLists.data ?? []).filter((p) => p.is_active).map((p) => ({ value: p.id, label: p.name }))} /></Field>
         <Field label="البائع (السيلز)" hint="لو فاضي: الموظف المربوط بحسابك"><SalespersonSelect value={d.salesperson_id}
           onChange={(v) => setD((x) => ({ ...x, salesperson_id: v }))} /></Field>
         <Field label="من معاينة" hint="فتحات المعاينة اللي ليها نموذج بتتنقل للعرض">
@@ -222,8 +218,9 @@ function QuotationDetail({ id }: { id: string }) {
             <div className="r"><span>قبل الضريبة</span><Money v={quote.subtotal} /></div>
             <div className="r"><span>الضريبة <span className="num">{Number(quote.tax_pct)}%</span></span><Money v={quote.tax_amount} /></div>
             <div className="r big"><span>الإجمالي</span><Money v={quote.total} cur /></div>
-            {s.can("pricelists.manage") && <div className="r small muted"><span>التكلفة التقديرية</span><Money v={quote.total_cost} /></div>}
+            {s.can("finance.read") && <div className="r small muted"><span>التكلفة التقديرية</span><Money v={quote.total_cost} /></div>}
           </div>
+          <PriceGuide quote={quote} onSaved={(x) => q.set(x)} />
         </Card>
       </div>
 
@@ -241,6 +238,53 @@ function QuotationDetail({ id }: { id: string }) {
   );
 }
 
+/** دليل المبيعات: the fair price (lowest without the sales manager) and the top price, and the approval. */
+function PriceGuide({ quote, onSaved }: { quote: Quote; onSaved: (q: Quote) => void }) {
+  const s = useSession();
+  const toast = useToast();
+  const { busy, run } = useAction(toast.err);
+  const [approve, setApprove] = useState(false);
+  const [note, setNote] = useState("");
+  if (Number(quote.fair_total) <= 0) return null;
+  const open = ["draft", "sent"].includes(quote.status);
+  const ask = () => run(async () => {
+    onSaved(await api.post<Quote>(`/quotations/${quote.id}/request-price-approval`));
+    toast.ok("اتبعت لمدير المبيعات.");
+  });
+  const yes = () => run(async () => {
+    onSaved(await api.post<Quote>(`/quotations/${quote.id}/approve-price`, { version: quote.version, note }));
+    setApprove(false);
+    toast.ok("اتوافق على السعر.");
+  });
+  return (
+    <div className="col mt" style={{ gap: 8 }}>
+      <div className="totals" style={{ width: "100%" }}>
+        <div className="r small"><span>السعر العادل (أقل سعر)</span><Money v={quote.fair_total} /></div>
+        <div className="r small"><span>أعلى سعر مقترح</span><Money v={quote.top_total} /></div>
+      </div>
+      {quote.unpriced_lines > 0 && <div className="notice warn small">فيه {quote.unpriced_lines} بند لسه من غير سعر. اكتب السعر قبل ما تبعت العرض.</div>}
+      {quote.needs_price_approval && open && (
+        <div className="notice warn small col" style={{ gap: 6 }}>
+          <span>السعر بعد الخصم <b><Money v={quote.net_total} /></b> أقل من السعر العادل. لازم مدير المبيعات يوافق قبل ما العرض يتبعت أو يتأكد.</span>
+          <div className="row wrap" style={{ gap: 6 }}>
+            {s.can("quotes.write", quote.branch_id) && <Btn small busy={busy} onClick={ask}>اطلب موافقة مدير المبيعات</Btn>}
+            {s.can("quotes.approve_price", quote.branch_id) && <Btn small kind="success" onClick={() => setApprove(true)}>موافقة على السعر</Btn>}
+          </div>
+        </div>)}
+      {quote.price_approved_total && !quote.needs_price_approval && (
+        <div className="notice info small">مدير المبيعات وافق على <b><Money v={quote.price_approved_total} /></b>
+          {quote.price_approval_note && <span> · {quote.price_approval_note}</span>}</div>)}
+      {approve && <Modal title="موافقة على سعر أقل من العادل" onClose={() => setApprove(false)}
+        footer={<><Btn kind="success" busy={busy} onClick={yes}>موافقة</Btn><Btn onClick={() => setApprove(false)}>رجوع</Btn></>}>
+        <div className="col">
+          <div className="notice info">السعر بعد الخصم <b><Money v={quote.net_total} /></b> والسعر العادل <b><Money v={quote.fair_total} /></b>. لو السعر نزل تاني بعد موافقتك هيحتاج موافقة جديدة.</div>
+          <Field label="ملاحظة"><TextIn value={note} onChange={setNote} /></Field>
+        </div>
+      </Modal>}
+    </div>
+  );
+}
+
 function ArchNote({ arch }: { arch: Line }) {
   return (
     <div className="row small" style={{ gap: 6, marginTop: 4 }}>
@@ -252,7 +296,7 @@ function ArchNote({ arch }: { arch: Line }) {
   );
 }
 
-/** Price per m² typed for one line; the suggestion (cost + margin from the price list) under it. */
+/** Price per m² typed for one line; the guide (fair and top price per m² on the company's cost) under it. */
 function PpmCell({ line, editable, busy, onSave }: { line: Line; editable: boolean; busy: boolean; onSave: (v: string | null) => void }) {
   const [v, setV] = useState(line.price_per_m2 ?? "");
   useEffect(() => { setV(line.price_per_m2 ?? ""); }, [line.version, line.price_per_m2]);
@@ -264,13 +308,18 @@ function PpmCell({ line, editable, busy, onSave }: { line: Line; editable: boole
     <div className="col" style={{ gap: 2 }}>
       {editable
         ? <NumIn value={v} onChange={setV} onBlur={commit} onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
-            placeholder={line.suggested_price_per_m2 ?? ""} disabled={busy} />
+            placeholder={line.fair_price_per_m2 ?? ""} disabled={busy} />
         : line.price_per_m2 ? <Money v={line.price_per_m2} /> : <span className="faint">—</span>}
-      {line.suggested_price_per_m2 && (
-        <span className="small muted">مقترح <a style={{ cursor: editable ? "pointer" : "default" }} onClick={() => editable && onSave(line.suggested_price_per_m2!)}>
-          <Money v={line.suggested_price_per_m2} /></a></span>
+      {line.fair_price_per_m2 && line.top_price_per_m2 && (
+        <span className="small muted">
+          العادل <a style={{ cursor: editable ? "pointer" : "default" }} onClick={() => editable && onSave(line.fair_price_per_m2!)}><Money v={line.fair_price_per_m2} /></a>
+          {" · "}الأعلى <a style={{ cursor: editable ? "pointer" : "default" }} onClick={() => editable && onSave(line.top_price_per_m2!)}><Money v={line.top_price_per_m2} /></a>
+        </span>
       )}
       {line.price_per_m2 === null && line.manual_unit_price && <span className="small"><Chip color="amber">سعر وحدة يدوي</Chip></span>}
+      {!line.priced && <span className="small"><Chip color="red">لسه مفيش سعر</Chip></span>}
+      {line.priced && line.fair_unit_price && Number(line.unit_price) < Number(line.fair_unit_price) &&
+        <span className="small"><Chip color="amber">أقل من العادل</Chip></span>}
     </div>
   );
 }
@@ -278,13 +327,14 @@ function PpmCell({ line, editable, busy, onSave }: { line: Line; editable: boole
 function AllPricePerM2({ quote, onClose, onSaved }: { quote: Quote; onClose: () => void; onSaved: (q: Quote) => void }) {
   const toast = useToast();
   const { busy, run } = useAction(toast.err);
-  const pricing = useLoad(() => quote.survey_id ? api.get<S<"SurveyPricing">>(`/surveys/${quote.survey_id}/pricing`, { price_list_id: quote.price_list_id }).catch(() => null)
-    : Promise.resolve(null), [quote.survey_id]);
+  // the guide per m² of the whole quotation: its fair / top total over its billed area
+  const area = sumMoney((quote.lines ?? []).filter((l) => !l.parent_line_id).map((l) => mulMoney(l.billed_area_m2, l.qty)));
+  const perM2 = (total: string) => Number(area) > 0 ? (Number(total) / Number(area)).toFixed(2) : null;
+  const fair = perM2(quote.fair_total), top = perM2(quote.top_total);
   const [v, setV] = useState("");
-  useEffect(() => { if (!v && pricing.data?.price_per_m2) setV(pricing.data.price_per_m2); }, [pricing.data]); // eslint-disable-line react-hooks/exhaustive-deps
   const apply = (value: string | null) => run(async () => {
     onSaved(await api.post<Quote>(`/quotations/${quote.id}/price-per-m2`, { version: quote.version, price_per_m2: value }));
-    toast.ok(value ? "اتطبق سعر المتر على كل البنود." : "رجعت أسعار البنود لقائمة الأسعار.");
+    toast.ok(value ? "اتطبق سعر المتر على كل البنود." : "اتمسح سعر المتر من البنود.");
     onClose();
   });
   return (
@@ -295,7 +345,9 @@ function AllPricePerM2({ quote, onClose, onSaved }: { quote: Quote; onClose: () 
       <div className="col">
         <Field label="سعر المتر" hint="كل بند = مساحة الفتحة (بحد أدنى المساحة المحددة في الإعدادات) × سعر المتر × العدد">
           <NumIn value={v} onChange={setV} autoFocus /></Field>
-        {pricing.data?.price_per_m2 && <div className="notice info small">سعر المتر المقترح للمعاينة: <b><Money v={pricing.data.price_per_m2} /></b></div>}
+        {fair && top && Number(quote.fair_total) > 0 && <div className="notice info small">
+          دليل سعر المتر للعرض ده: العادل <a style={{ cursor: "pointer" }} onClick={() => setV(fair)}><b><Money v={fair} /></b></a>
+          {" "}· الأعلى <a style={{ cursor: "pointer" }} onClick={() => setV(top)}><b><Money v={top} /></b></a></div>}
       </div>
     </Modal>
   );
@@ -305,8 +357,7 @@ function QuoteHeader({ quote, onClose, onSaved }: { quote: Quote; onClose: () =>
   const toast = useToast();
   const { busy, run } = useAction(toast.err);
   const [d, setD] = useState({ discount_amount: quote.discount_amount, tax_pct: quote.tax_pct, valid_until: quote.valid_until ?? "",
-    notes: quote.notes, terms: quote.terms, price_list_id: quote.price_list_id, salesperson_id: quote.salesperson_id ?? null });
-  const priceLists = useLoad(() => lookups.priceLists().catch(() => []), []);
+    notes: quote.notes, terms: quote.terms, salesperson_id: quote.salesperson_id ?? null });
   const save = () => run(async () => {
     const { salesperson_id, ...rest } = d;
     onSaved(await api.patch<Quote>(`/quotations/${quote.id}`, { version: quote.version, ...rest, valid_until: d.valid_until || null,
@@ -319,9 +370,6 @@ function QuoteHeader({ quote, onClose, onSaved }: { quote: Quote; onClose: () =>
         <Field label="الخصم (مبلغ)"><NumIn value={d.discount_amount} onChange={(v) => setD((x) => ({ ...x, discount_amount: v }))} /></Field>
         <Field label="الضريبة %"><NumIn value={d.tax_pct} onChange={(v) => setD((x) => ({ ...x, tax_pct: v }))} /></Field>
         <Field label="صالح لحد"><input type="date" className="input" value={d.valid_until} onChange={(e) => setD((x) => ({ ...x, valid_until: e.target.value }))} /></Field>
-        <Field label="قائمة الأسعار" hint="تغييرها بيعيد حساب الأسعار">
-          <Select value={d.price_list_id} onChange={(v) => setD((x) => ({ ...x, price_list_id: v }))}
-            options={(priceLists.data ?? []).map((p) => ({ value: p.id, label: p.name }))} /></Field>
         <Field label="البائع (السيلز)"><SalespersonSelect value={d.salesperson_id} onChange={(v) => setD((x) => ({ ...x, salesperson_id: v }))} /></Field>
         <Field label="الشروط" className="span-all"><TextArea value={d.terms} onChange={(v) => setD((x) => ({ ...x, terms: v }))} /></Field>
         <Field label="ملاحظات" className="span-all"><TextArea value={d.notes} onChange={(v) => setD((x) => ({ ...x, notes: v }))} rows={2} /></Field>

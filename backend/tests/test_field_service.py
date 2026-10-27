@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 from decimal import Decimal as D
 from types import SimpleNamespace
 
-from tests.test_business_flow import _setup
+from tests.test_business_flow import _setup, price_at_top
 from tests.test_org_permissions_locking import _make_user
 
 
@@ -13,6 +13,7 @@ def _accepted_order(client, h, lib, branch, customer, code):
             "glass_material_code": f"{code}-GLASS6", "qty": 2}
     q = client.post("/api/v1/quotations", headers=h, json={"customer_id": customer["id"], "branch_id": branch["id"],
                                                          "lines": [line]}).json()
+    q = price_at_top(client, h, q)
     q = client.post(f"/api/v1/quotations/{q['id']}/status", headers=h, json={"version": q["version"], "status": "accepted"}).json()
     return client.post("/api/v1/work-orders/from-quotation", headers=h, json={"quotation_id": q["id"]}).json()
 

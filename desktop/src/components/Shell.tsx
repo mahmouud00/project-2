@@ -33,7 +33,6 @@ export const NAV: [string, NavItem[]][] = [
   ]],
   ["الإعداد", [
     { id: "library", icon: "layers", label: "مكتبة القطاعات", perm: ["library.read", "platform.library.author"] },
-    { id: "price-lists", icon: "tag", label: "قوائم الأسعار", perm: ["pricelists.manage", "pricelists.create", "pricelists.delete"], hideForPlatform: true },
     { id: "users", icon: "shield", label: "المستخدمين والصلاحيات", perm: "users.manage" },
     { id: "settings", icon: "gear", label: "بيانات الشركة", perm: "org.manage", hideForPlatform: true },
     { id: "system", icon: "key", label: "الترخيص والنسخ", perm: ["system.manage", "platform.library.author"] },

@@ -1,7 +1,7 @@
 from decimal import Decimal as D
 
 from tests.library_helpers import PNG
-from tests.test_business_flow import _setup
+from tests.test_business_flow import _setup, price_at_top
 
 
 def _order(client, platform, tenant, code):
@@ -13,6 +13,7 @@ def _order(client, platform, tenant, code):
              "qty": 2, "color_code": "W", "glass_material_code": f"{code}-GLASS6", "params": {"leaf_count": 2}},
             {"location": "مطبخ", "model_id": lib["model"]["id"], "opening_width_mm": 1200, "opening_height_mm": 1000,
              "color_code": "W", "glass_material_code": f"{code}-GLASS6"}]}).json()
+    q = price_at_top(client, h, q)
     q = client.post(f"/api/v1/quotations/{q['id']}/status", headers=h, json={"version": q["version"], "status": "accepted"}).json()
     wo = client.post("/api/v1/work-orders/from-quotation", headers=h, json={"quotation_id": q["id"]}).json()
     return lib, branch, customer, q, wo

@@ -1,7 +1,7 @@
 """Separate add / delete permissions, and what "delete" means for each kind of record."""
 from decimal import Decimal as D
 
-from tests.test_business_flow import _setup
+from tests.test_business_flow import _setup, price_at_top
 from tests.test_org_permissions_locking import _make_user
 
 
@@ -43,6 +43,7 @@ def test_what_delete_does(platform, tenant_a, client):
     # a quotation with a work order stays; the work order with a payment stays (cancel it instead)
     q = client.post("/api/v1/quotations", headers=h, json={"customer_id": customer["id"], "branch_id": branch["id"],
                                                          "lines": [line]}).json()
+    q = price_at_top(client, h, q)
     q = client.post(f"/api/v1/quotations/{q['id']}/status", headers=h, json={"version": q["version"], "status": "accepted"}).json()
     wo = client.post("/api/v1/work-orders/from-quotation", headers=h, json={"quotation_id": q["id"]}).json()
     r = client.delete(f"/api/v1/quotations/{q['id']}", headers=h)
@@ -59,10 +60,6 @@ def test_what_delete_does(platform, tenant_a, client):
     assert rev.status_code == 201 and rev.json()["direction"] == "out" and D(rev.json()["amount"]) == 100
     empty = client.post("/api/v1/cashboxes", headers=h, json={"code": "DB2", "name": "x", "branch_id": branch["id"]}).json()
     assert client.delete(f"/api/v1/cashboxes/{empty['id']}", headers=h).json()["result"] == "deleted"
-    # a price list used by quotations is deactivated, an unused one deleted
-    assert client.delete(f"/api/v1/price-lists/{pl['id']}", headers=h).json()["result"] == "deactivated"
-    pl2 = client.post("/api/v1/price-lists", headers=h, json={"code": "TMP", "name": "مؤقتة"}).json()
-    assert client.delete(f"/api/v1/price-lists/{pl2['id']}", headers=h).json()["result"] == "deleted"
     # invoices: a draft is deleted, an issued one must be cancelled
     inv = client.post("/api/v1/invoices", headers=h, json={"customer_id": customer["id"], "branch_id": branch["id"],
                                                           "lines": [{"kind": "service", "description": "تركيب", "qty": "1",

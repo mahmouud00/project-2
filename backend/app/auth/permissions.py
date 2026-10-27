@@ -25,9 +25,7 @@ PERMISSIONS: dict[str, str] = {
     "quotes.create": "إضافة عروض أسعار",
     "quotes.write": "تعديل عروض الأسعار",
     "quotes.delete": "حذف عروض الأسعار",
-    "pricelists.create": "إضافة قوائم أسعار",
-    "pricelists.manage": "تعديل قوائم الأسعار",
-    "pricelists.delete": "حذف قوائم الأسعار",
+    "quotes.approve_price": "الموافقة على سعر أقل من السعر العادل (مدير المبيعات)",
     "workorders.read": "عرض أوامر التصنيع",
     "workorders.create": "إضافة أوامر تصنيع",
     "workorders.write": "تعديل أوامر التصنيع",
@@ -88,13 +86,12 @@ DEFAULT_ROLES: dict[str, dict] = {
         "workorders.stage", "surveys.read"]},
     "accounts": {"name": "حسابات", "permissions": [
         "customers.read", "quotes.read", "workorders.read", "purchasing.read", "purchasing.create", "purchasing.write",
-        "treasury.read", "treasury.create", "treasury.write", "invoices.create", "pricelists.create",
-        "pricelists.manage", "purchasing.approve", "finance.read", "hr.read", "hr.payroll", "sales.approve",
+        "treasury.read", "treasury.create", "treasury.write", "invoices.create", "purchasing.approve", "finance.read", "hr.read", "hr.payroll", "sales.approve",
         "notify.accounts"]},
     "sales_manager": {"name": "مدير مبيعات", "permissions": [
         "library.read", "engine.calculate", "customers.read", "customers.create", "customers.write", "surveys.read",
-        "surveys.create", "surveys.write", "quotes.read", "quotes.create", "quotes.write", "workorders.read",
-        "workorders.create", "invoices.create", "treasury.read", "maintenance.read", "maintenance.create",
+        "surveys.create", "surveys.write", "quotes.read", "quotes.create", "quotes.write", "quotes.approve_price",
+        "workorders.read", "workorders.create", "invoices.create", "treasury.read", "maintenance.read", "maintenance.create",
         "maintenance.write", "field.read", "notify.sales"]},
     "production_manager": {"name": "مدير تصنيع", "permissions": [
         "library.read", "engine.calculate", "workorders.read", "workorders.create", "workorders.write",

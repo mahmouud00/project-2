@@ -1081,45 +1081,6 @@ export interface paths {
         patch: operations["update_survey_api_v1_surveys__survey_id__patch"];
         trace?: never;
     };
-    "/api/v1/price-lists": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List Price Lists */
-        get: operations["list_price_lists_api_v1_price_lists_get"];
-        put?: never;
-        /** Create Price List */
-        post: operations["create_price_list_api_v1_price_lists_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/price-lists/{pl_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /**
-         * Delete Price List
-         * @description Deleted when nothing uses it; a list that quotations or customers use is deactivated instead.
-         */
-        delete: operations["delete_price_list_api_v1_price_lists__pl_id__delete"];
-        options?: never;
-        head?: never;
-        /** Update Price List */
-        patch: operations["update_price_list_api_v1_price_lists__pl_id__patch"];
-        trace?: never;
-    };
     "/api/v1/quotations": {
         parameters: {
             query?: never;
@@ -1212,6 +1173,47 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/quotations/{quote_id}/request-price-approval": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Request Price Approval
+         * @description The salesperson asks the sales manager to approve a price under the fair price (a notification).
+         */
+        post: operations["request_price_approval_api_v1_quotations__quote_id__request_price_approval_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quotations/{quote_id}/approve-price": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approve Price
+         * @description The sales manager approves the quotation's current total under the fair price. Lowering it again needs
+         *     another approval; raising it does not.
+         */
+        post: operations["approve_price_api_v1_quotations__quote_id__approve_price_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/quotations/{quote_id}/recalculate": {
         parameters: {
             query?: never;
@@ -1261,8 +1263,9 @@ export interface paths {
         };
         /**
          * Survey Pricing
-         * @description Suggested price per m² for a survey, from the real cost of each opening at its sizes (openings with
-         *     a model only). Each unit bills at least the company's minimum area.
+         * @description دليل المبيعات: the company's cost of the survey's openings (with a model) at their sizes, and two prices on
+         *     it: the fair price (cost + fair margin) and the top price (cost + top margin). Each unit bills at least the
+         *     company's minimum area for the price per m².
          */
         get: operations["survey_pricing_api_v1_surveys__survey_id__pricing_get"];
         put?: never;
@@ -3122,6 +3125,24 @@ export interface components {
              */
             quote_waste_pct: number | string;
             /**
+             * Labor Cost Per M2
+             * @description تكلفة التشغيل للمتر المربع
+             * @default 0
+             */
+            labor_cost_per_m2: number | string;
+            /**
+             * Fair Margin Pct
+             * @description هامش السعر العادل %
+             * @default 20
+             */
+            fair_margin_pct: number | string;
+            /**
+             * Top Margin Pct
+             * @description أعلى هامش مقترح %
+             * @default 30
+             */
+            top_margin_pct: number | string;
+            /**
              * Deposit Pct
              * @default 0
              */
@@ -3273,8 +3294,6 @@ export interface components {
             tax_number?: string | null;
             /** Branch Id */
             branch_id?: string | null;
-            /** Price List Id */
-            price_list_id?: string | null;
             /** Notes */
             notes?: string | null;
         };
@@ -3311,8 +3330,6 @@ export interface components {
             tax_number: string | null;
             /** Branch Id */
             branch_id: string | null;
-            /** Price List Id */
-            price_list_id: string | null;
             /** Notes */
             notes: string | null;
             /** Anonymized */
@@ -3340,8 +3357,6 @@ export interface components {
             tax_number?: string | null;
             /** Branch Id */
             branch_id?: string | null;
-            /** Price List Id */
-            price_list_id?: string | null;
             /** Notes */
             notes?: string | null;
         };
@@ -4820,10 +4835,17 @@ export interface components {
             area_m2?: string | null;
             /** Billed Area M2 */
             billed_area_m2?: string | null;
-            /** Suggested Unit Price */
-            suggested_unit_price?: string | null;
-            /** Suggested Price Per M2 */
-            suggested_price_per_m2?: string | null;
+            /** Unit Cost */
+            unit_cost?: string | null;
+            /** Fair Unit Price */
+            fair_unit_price?: string | null;
+            /** Top Unit Price */
+            top_unit_price?: string | null;
+            /**
+             * Missing Costs
+             * @default []
+             */
+            missing_costs: string[];
             /** Error */
             error?: string | null;
         };
@@ -5304,108 +5326,15 @@ export interface components {
             /** Accuracy M */
             accuracy_m?: string | null;
         };
-        /** PriceListIn */
-        PriceListIn: {
-            /** Code */
-            code: string;
-            /** Name */
-            name: string;
-            /** Customer Type */
-            customer_type?: string | null;
-            /**
-             * Margin Pct
-             * @default 0
-             */
-            margin_pct: number | string;
-            /**
-             * Labor Cost Per M2
-             * @default 0
-             */
-            labor_cost_per_m2: number | string;
-            /**
-             * Min Unit Price
-             * @default 0
-             */
-            min_unit_price: number | string;
-            /**
-             * Items
-             * @default []
-             */
-            items: components["schemas"]["PriceListItemIn"][];
-        };
-        /** PriceListItemIn */
-        PriceListItemIn: {
-            /** Model Id */
-            model_id?: string | null;
-            /** System Id */
-            system_id?: string | null;
-            /** Margin Pct */
-            margin_pct?: number | string | null;
-            /** Price Per M2 */
-            price_per_m2?: number | string | null;
-        };
-        /** PriceListItemOut */
-        PriceListItemOut: {
-            /** Model Id */
-            model_id: string | null;
-            /** System Id */
-            system_id: string | null;
-            /** Margin Pct */
-            margin_pct: string | null;
-            /** Price Per M2 */
-            price_per_m2: string | null;
-        };
-        /** PriceListOut */
-        PriceListOut: {
-            /**
-             * Id
-             * Format: uuid
-             */
-            id: string;
+        /** PriceApprovalIn */
+        PriceApprovalIn: {
             /** Version */
             version: number;
-            /** Created At */
-            created_at?: string | null;
-            /** Updated At */
-            updated_at?: string | null;
-            /** Code */
-            code: string;
-            /** Name */
-            name: string;
-            /** Customer Type */
-            customer_type: string | null;
-            /** Margin Pct */
-            margin_pct: string;
-            /** Labor Cost Per M2 */
-            labor_cost_per_m2: string;
-            /** Min Unit Price */
-            min_unit_price: string;
-            /** Is Active */
-            is_active: boolean;
             /**
-             * Items
-             * @default []
+             * Note
+             * @default
              */
-            items: components["schemas"]["PriceListItemOut"][];
-        };
-        /** PriceListUpdate */
-        PriceListUpdate: {
-            /** Version */
-            version: number;
-            /** Name */
-            name?: string | null;
-            /** Customer Type */
-            customer_type?: string | null;
-            /** Margin Pct */
-            margin_pct?: number | string | null;
-            /** Labor Cost Per M2 */
-            labor_cost_per_m2?: number | string | null;
-            /** Min Unit Price */
-            min_unit_price?: number | string | null;
-            /** Is Active */
-            is_active?: boolean | null;
-            /** Items */
-            items?: components["schemas"]["PriceListItemIn"][] | null;
+            note: string;
         };
         /** PricePerM2In */
         PricePerM2In: {
@@ -5434,8 +5363,6 @@ export interface components {
              * Format: uuid
              */
             branch_id: string;
-            /** Price List Id */
-            price_list_id?: string | null;
             /** Survey Id */
             survey_id?: string | null;
             /** Tax Pct */
@@ -5489,11 +5416,8 @@ export interface components {
             branch_id: string;
             /** Survey Id */
             survey_id: string | null;
-            /**
-             * Price List Id
-             * Format: uuid
-             */
-            price_list_id: string;
+            /** Price List Id */
+            price_list_id?: string | null;
             /** Status */
             status: string;
             /** Issue Date */
@@ -5518,6 +5442,34 @@ export interface components {
             terms: string;
             /** Salesperson Id */
             salesperson_id?: string | null;
+            /** Fair Total */
+            fair_total: string;
+            /** Top Total */
+            top_total: string;
+            /**
+             * Net Total
+             * @default 0
+             */
+            net_total: string;
+            /** Price Approved Total */
+            price_approved_total?: string | null;
+            /** Price Approved At */
+            price_approved_at?: string | null;
+            /**
+             * Price Approval Note
+             * @default
+             */
+            price_approval_note: string;
+            /**
+             * Needs Price Approval
+             * @default false
+             */
+            needs_price_approval: boolean;
+            /**
+             * Unpriced Lines
+             * @default 0
+             */
+            unpriced_lines: number;
             /**
              * Lines
              * @default []
@@ -5528,8 +5480,6 @@ export interface components {
         QuotationUpdate: {
             /** Version */
             version: number;
-            /** Price List Id */
-            price_list_id?: string | null;
             /** Tax Pct */
             tax_pct?: number | string | null;
             /** Discount Amount */
@@ -5954,15 +5904,20 @@ export interface components {
              * Format: uuid
              */
             survey_id: string;
-            /**
-             * Price List Id
-             * Format: uuid
-             */
-            price_list_id: string;
-            /** Price Per M2 */
-            price_per_m2: string | null;
-            /** Suggested Total */
-            suggested_total: string;
+            /** Fair Margin Pct */
+            fair_margin_pct: string;
+            /** Top Margin Pct */
+            top_margin_pct: string;
+            /** Cost Total */
+            cost_total: string;
+            /** Fair Total */
+            fair_total: string;
+            /** Top Total */
+            top_total: string;
+            /** Fair Price Per M2 */
+            fair_price_per_m2: string | null;
+            /** Top Price Per M2 */
+            top_price_per_m2: string | null;
             /** Area M2 */
             area_m2: string;
             /** Billed Area M2 */
@@ -5971,6 +5926,11 @@ export interface components {
             priced: number;
             /** Unpriced */
             unpriced: number;
+            /**
+             * Missing Costs
+             * @default []
+             */
+            missing_costs: string[];
             /** Openings */
             openings: components["schemas"]["OpeningPrice"][];
         };
@@ -6803,10 +6763,19 @@ export interface components {
             model_code: string;
             /** Model Image Id */
             model_image_id?: string | null;
-            /** Suggested Unit Price */
-            suggested_unit_price?: string | null;
-            /** Suggested Price Per M2 */
-            suggested_price_per_m2?: string | null;
+            /** Fair Unit Price */
+            fair_unit_price?: string | null;
+            /** Top Unit Price */
+            top_unit_price?: string | null;
+            /** Fair Price Per M2 */
+            fair_price_per_m2?: string | null;
+            /** Top Price Per M2 */
+            top_price_per_m2?: string | null;
+            /**
+             * Priced
+             * @default true
+             */
+            priced: boolean;
         };
         /** LineUpdate */
         app__modules__sales__router__LineUpdate: {
@@ -9509,125 +9478,6 @@ export interface operations {
             };
         };
     };
-    list_price_lists_api_v1_price_lists_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PriceListOut"][];
-                };
-            };
-        };
-    };
-    create_price_list_api_v1_price_lists_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PriceListIn"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PriceListOut"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    delete_price_list_api_v1_price_lists__pl_id__delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                pl_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DeleteResult"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    update_price_list_api_v1_price_lists__pl_id__patch: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                pl_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PriceListUpdate"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PriceListOut"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
     list_quotations_api_v1_quotations_get: {
         parameters: {
             query?: {
@@ -9930,6 +9780,72 @@ export interface operations {
             };
         };
     };
+    request_price_approval_api_v1_quotations__quote_id__request_price_approval_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                quote_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuotationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    approve_price_api_v1_quotations__quote_id__approve_price_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                quote_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PriceApprovalIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuotationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     recalculate_api_v1_quotations__quote_id__recalculate_post: {
         parameters: {
             query?: never;
@@ -9998,9 +9914,7 @@ export interface operations {
     };
     survey_pricing_api_v1_surveys__survey_id__pricing_get: {
         parameters: {
-            query?: {
-                price_list_id?: string | null;
-            };
+            query?: never;
             header?: never;
             path: {
                 survey_id: string;

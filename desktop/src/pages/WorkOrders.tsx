@@ -314,7 +314,7 @@ function Manufacturing({ o }: { o: Outputs }) {
           ]} />
         </Card>
       </div>
-      {s.can("pricelists.manage") && (
+      {s.can("finance.read") && (
         <Card title="تكلفة الخامات" flush actions={<b><Money v={o.material_cost_total} cur /></b>}>
           {!!o.missing_costs?.length && <div className="card-b"><div className="notice warn">خامات من غير تكلفة: {o.missing_costs.join("، ")}</div></div>}
           <Table rows={o.costs} rowKey={(_, i) => String(i)} columns={[

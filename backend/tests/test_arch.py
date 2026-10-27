@@ -2,7 +2,7 @@
 from decimal import Decimal as D
 
 from app.engine.expr import compile_expr
-from tests.test_business_flow import _setup
+from tests.test_business_flow import _setup, price_at_top
 
 ARCH = {
     "params": [], "formulas": [{"key": "curve", "label": "طول القوس", "expr": "arc_length(width, height)"}],
@@ -84,6 +84,7 @@ def test_arch_unit_survey_quote_and_work_order(platform, tenant_a, client):
     assert "أرج نصف دائري" in html and html.count("<td class=\"num\"><b>ARCH") == 0
 
     # work order: the arch is a unit to make (own frame)
+    q = price_at_top(client, h, q)
     q = client.post(f"/api/v1/quotations/{q['id']}/status", headers=h, json={"version": q["version"], "status": "accepted"}).json()
     wo = client.post("/api/v1/work-orders/from-quotation", headers=h, json={"quotation_id": q["id"]}).json()
     assert [i["model_id"] for i in wo["items"]] == [lib["model"]["id"], arch["id"]]

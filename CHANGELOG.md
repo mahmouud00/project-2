@@ -4,6 +4,9 @@ All notable changes are listed here. Versions follow Semantic Versioning (MAJOR.
 
 ## [Unreleased]
 ### Added
+- Sales guide instead of price lists (migration 0015): each line and each survey shows the company's cost of the job (materials after the supplier discount + waste + labour per m²) with two prices on it, the fair price (cost + 20 %) and the top price (cost + 30 %); margins and labour per m² are company settings. The salesperson types the price; a line without one stays unpriced and the quotation cannot be sent or accepted. A total after the discount under the fair total needs the sales manager's approval (`quotes.approve_price`, `POST /quotations/{id}/request-price-approval` and `/approve-price`); lowering it again needs another approval.
+### Removed
+- Price lists (`/price-lists`, the «قوائم الأسعار» page, the customer's price list and the `pricelists.*` permissions). The tables stay for old quotations, whose line prices are kept even when recalculated.
 - Formulas: a piece's name can be used in another piece's (or glass, accessory, check, drawing) expression and means that piece's length formula, exactly as if written in place (system unit, before rounding); pieces depending on each other in a circle are refused; the model editor lists piece names among the names available.
 - Company prices are shown: materials carry `company_prices` (the current company's price, discount and price after discount per colour); the library list has a «سعر شركتك» column and the material screen shows and edits the price per colour.
 ### Fixed

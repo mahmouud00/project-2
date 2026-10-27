@@ -188,12 +188,12 @@ export function ItemForm({ title, initial, onClose, onSave, withPrice, requireMo
           <Field label="المكان"><TextIn value={d.location} onChange={(v) => setD((x) => ({ ...x, location: v }))} placeholder="صالة، مطبخ…" /></Field>
           <Field label="العدد"><NumIn value={String(d.qty ?? "")} onChange={(v) => setD((x) => ({ ...x, qty: v.replace(/\D/g, "") }))} /></Field>
           {withPrice && (
-            <Field label="سعر المتر" hint="المساحة (بحد أدنى) × سعر المتر. فاضي = حسب قائمة الأسعار">
+            <Field label="سعر المتر" hint="المساحة (بحد أدنى) × سعر المتر. الدليل (العادل والأعلى) ظاهر في البند بعد الحفظ">
               <NumIn value={d.price_per_m2 ?? ""} onChange={(v) => setD((x) => ({ ...x, price_per_m2: v || null }))} />
             </Field>
           )}
           {withPrice && !d.price_per_m2 && (
-            <Field label="أو سعر يدوي للوحدة" hint="سيبه فاضي عشان السعر يتحسب من قائمة الأسعار">
+            <Field label="أو سعر للوحدة" hint="لو مكتبتش سعر، البند بيفضل من غير سعر">
               <NumIn value={d.manual_unit_price ?? ""} onChange={(v) => setD((x) => ({ ...x, manual_unit_price: v || null }))} />
             </Field>
           )}

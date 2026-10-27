@@ -164,6 +164,11 @@ def test_upgrade_from_old_revision_keeps_data():
     # 0014: an existing company price keeps no discount
     cms = after["company_material_settings"][str(p["cms"])]
     assert cms["discount_pct"] is None and float(cms["unit_cost"]) == 123.5
+    # 0015: old quotations keep their price list and price, and need no approval; admin approves low prices
+    qt = after["quotations"][str(ids["q"])]
+    assert qt["fair_total"] == 0 and qt["price_approved_total"] is None and qt["price_list_id"] is not None
+    assert "quotes.approve_price" in set(after["roles"][str(p["admin_role"])]["permissions"])
+    assert not any(x.startswith("pricelists.") for r in after["roles"].values() for x in r["permissions"])
     # 0012: orders already in production count as confirmed sales; accounts confirm sales; manager roles
     assert wo["sale_status"] == "approved" and wo["sale_approval_note"] == "قبل تأكيد الحسابات"
     assert {"sales.approve", "notify.accounts"} <= acc
@@ -181,8 +186,10 @@ def test_upgrade_from_old_revision_keeps_data():
         for row_id, old in rows.items():
             new = after[table][row_id]
             # new columns may appear; every old value must be unchanged
-            if table == "roles":       # permissions only grow (0009), except the removed inventory ones (0011)
-                assert {x for x in old["permissions"] if not x.startswith("inventory.")} <= set(new["permissions"])
+            if table == "roles":       # permissions only grow (0009), except the removed inventory (0011) and
+                # price list (0015) ones
+                assert {x for x in old["permissions"] if not x.startswith(("inventory.", "pricelists."))} <= \
+                    set(new["permissions"])
                 old = {k: v for k, v in old.items() if k != "permissions"}
             if table == "companies":   # 0013: companies that never set it keep offcuts of 40 cm
                 assert new["settings"]["min_reusable_offcut_mm"] == "400"

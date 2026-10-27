@@ -124,19 +124,23 @@ WS /api/v1/system/events?token=<access_token>
 |---|---|---|
 | GET / POST / GET / PATCH | `/customers` | العملاء (end/dealer/contractor). أي عرض أو تعديل للبيانات الشخصية بيتسجل |
 | GET / POST / GET / PATCH | `/surveys` | المعاينات (`kind`: `window` شبابيك وأبواب أو `shutter` شيش، و`floor` الدور، و`technician` الفني) و`openings`: مقاس الفتحة كما اتقاس، و`total_height_mm` الارتفاع الكلي، والنموذج (رقم الوحدة) ومتغيراته، واللون (`color_code` من المكتبة أو `color_text` زي ما اتكتب)، و`unit_kind` (`sliding` جرار / `hinged` مفصلي)، و`glass_layers` (`single` / `double`) و`glass_color`، و`screen_type` السلك (`sliding` / `pleated` بليسيه / `hinged` ض.ض / `fixed`)، و`location` نوع الغرفة أو مكان الوحدة، و`application` التطبيق؛ وللشيش `installation_method` و`motor_type` |
-| GET | `/surveys/{id}/pricing` | سعر المتر المقترح للمعاينة كلها (متوسط) = إجمالي السعر المقترح ÷ المساحة المحسوبة. كل فتحة ليها نموذج بتتحسب بتكلفتها الحقيقية بالتخصيمات + قائمة الأسعار، والمساحة = العرض × الارتفاع الكلي لو مكتوب، وإلا العرض × الارتفاع، وأي وحدة أقل من `min_billed_area_m2` (افتراضي 1 م²) بتتحسب بيه |
+| GET | `/surveys/{id}/pricing` | دليل المبيعات للمعاينة: `cost_total` (تكلفة العملية = الخامات بالتخصيمات + `labor_cost_per_m2` × المساحة)، و`fair_total` (السعر العادل = التكلفة + `fair_margin_pct`، افتراضي 20%) و`top_total` (التكلفة + `top_margin_pct`، افتراضي 30%)، وسعر المتر لكل واحد = الإجمالي ÷ المساحة المحسوبة، و`missing_costs` (خامات من غير سعر). المساحة = العرض × الارتفاع الكلي لو مكتوب، وإلا العرض × الارتفاع، وأي وحدة أقل من `min_billed_area_m2` (افتراضي 1 م²) بتتحسب بيه |
 | GET | `/surveys/{id}/print` | ورقة المعاينة (A4 بالعرض) بنفس أعمدة الورقة، وأقل حاجة 10 صفوف عشان المعاينة الفاضية تتطبع فورمة للفني |
 
-### sales: قوائم الأسعار وعروض الأسعار
+### sales: عروض الأسعار
+موظف المبيعات بيكتب السعر بإيده. السيستم بيدّيله دليل: السعر العادل (التكلفة + 20%) وأعلى سعر (التكلفة + 30%)، والنسب في إعدادات الشركة.
+لو الإجمالي بعد الخصم أقل من `fair_total` لازم مدير المبيعات (`quotes.approve_price`) يوافق قبل ما العرض يتبعت أو يتقبل.
+قوائم الأسعار اتشالت (الجداول فاضلة عشان العروض القديمة، وأسعار سطورها القديمة بتفضل زي ما هي حتى لو اتعمل إعادة حساب).
 | | | |
 |---|---|---|
-| GET / POST / PATCH | `/price-lists` | الهامش، والعمالة لكل م²، وأقل سعر، و`items` (هامش أو سعر للمتر لنموذج أو لسيستم) |
 | GET / POST / GET / PATCH | `/quotations` | لو بعت `survey_id` من غير سطور، العرض بيتعمل أوتوماتيك من المعاينة. كل سطر بيتحسب ويتسعّر |
-| POST | `/quotations/{id}/lines` | إضافة سطر. `price_per_m2` (سعر المتر اللي بيكتبه المستخدم) ليه الأولوية: سعر الوحدة = `billed_area_m2` (المساحة بحد أدنى؛ العرض × `total_height_mm` لو مكتوب) × سعر المتر؛ وبعده `manual_unit_price`، وبعده قائمة الأسعار. كل سطر بيرجّع `suggested_unit_price` و`suggested_price_per_m2` و`model_code` |
+| POST | `/quotations/{id}/lines` | إضافة سطر. `price_per_m2` (سعر المتر اللي بيكتبه المستخدم) ليه الأولوية: سعر الوحدة = `billed_area_m2` (المساحة بحد أدنى؛ العرض × `total_height_mm` لو مكتوب) × سعر المتر؛ وبعده `manual_unit_price`. لو مفيش سعر مكتوب السطر بيفضل `priced=false` وسعره صفر. كل سطر بيرجّع `fair_unit_price` و`top_unit_price` و`fair_price_per_m2` و`top_price_per_m2` و`model_code`. العرض بيرجّع `fair_total` و`top_total` و`net_total` و`needs_price_approval` و`unpriced_lines` |
 | | أرج | لو `total_height_mm` أكبر من `opening_height_mm`: فيه أرج نص دايرة فوق الوحدة، وحدة لوحدها بحلقها. بيتحسب بنموذج `top_model_id` (أو `default_arch_model_id` في إعدادات الشركة)، عرضه عرض الوحدة وارتفاعه = الكلي − الارتفاع. بيطلع سطر تابع (`parent_line_id`) سعره صفر، لأن تكلفته داخلة في الوحدة. بيتعدل ويتمسح مع وحدته بس (`ARCH_LINE_MANAGED`)، وبيتنقل لأمر التصنيع كوحدة. لو مفيش نموذج أرج: `ARCH_MODEL_REQUIRED` |
 | POST | `/quotations/{id}/price-per-m2` | سعر متر واحد لكل السطور (`null` = يرجع لسعر كل سطر) |
 | PATCH / DELETE | `/quotation-lines/{id}` | |
-| POST | `/quotations/{id}/status` | draft ← sent ← accepted/rejected/expired |
+| POST | `/quotations/{id}/status` | draft ← sent ← accepted/rejected/expired. لـ sent وaccepted: `QUOTE_UNPRICED` لو فيه سطر من غير سعر، و`PRICE_APPROVAL_REQUIRED` لو تحت السعر العادل من غير موافقة |
+| POST | `/quotations/{id}/request-price-approval` | الموظف بيطلب الموافقة: إشعار لمديري المبيعات في الفرع |
+| POST | `/quotations/{id}/approve-price` | مدير المبيعات بيوافق على الإجمالي الحالي (`version`, `note`). لو الإجمالي نزل تاني تحت اللي اتوافق عليه بيحتاج موافقة جديدة |
 | POST | `/quotations/{id}/recalculate` | إعادة الحساب بالمعادلات والأسعار الحالية (لازم تتطلب صراحةً) |
 
 ### production: أوامر التصنيع

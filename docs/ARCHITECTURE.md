@@ -81,7 +81,7 @@ backend/
       engine/                # محرك المعادلات: parser، evaluator، templates، calibration، validation
       manufacturing/         # أوامر الشغل، كشف التقطيع، التحسين، الزجاج، الإكسسوار، التكلفة، الرسمة
       crm/                   # العملاء، المعاينات والمقاسات
-      sales/                 # عروض الأسعار، قوائم الأسعار
+      sales/                 # عروض الأسعار ودليل السعر (العادل والأعلى) وموافقة مدير المبيعات
       hr/ finance/            # الموارد البشرية والمرتبات · الأصول والربحية (المخازن اتشالت في 0011)
       purchasing/            # الموردين، أوامر الشراء، الاستلام
       treasury/              # الخزينة: مقبوضات ومدفوعات
@@ -177,7 +177,7 @@ data/
 | `company_overrides` | تعديلات الشركة على صنف/ثابت في المكتبة (سعر، كود داخلي، قيمة ثابت) — منفصلة تمامًا عن صفوف المكتبة |
 
 **النواة الإدارية**
-`customers` (+ بيانات شخصية معلّمة)، `site_surveys` + `survey_openings` (مقاس الفتحة من المعاينة + خلوص التركيب + مقاس التصنيع المحسوب — الاتنين متسجلين)، `price_lists` (عميل نهائي/تاجر/مقاول) + `price_list_items`، `quotations` + `quotation_lines`، `work_orders` + `work_order_items` + `work_order_stages`، `warehouses`، `stock_items`، `stock_movements` (دفتر حركات، الرصيد = مجموع الحركات)، `stock_transfers`، `suppliers`، `purchase_orders` + `purchase_receipts`، `cashboxes`، `cash_transactions`.
+`customers` (+ بيانات شخصية معلّمة)، `site_surveys` + `survey_openings` (مقاس الفتحة من المعاينة + خلوص التركيب + مقاس التصنيع المحسوب — الاتنين متسجلين)، `price_lists` + `price_list_items` (مبقتش مستخدمة من 0015، فاضلة للعروض القديمة)، `quotations` (+ السعر العادل والأعلى وموافقة مدير المبيعات) + `quotation_lines`، `work_orders` + `work_order_items` + `work_order_stages`، `warehouses`، `stock_items`، `stock_movements` (دفتر حركات، الرصيد = مجموع الحركات)، `stock_transfers`، `suppliers`، `purchase_orders` + `purchase_receipts`، `cashboxes`، `cash_transactions`.
 
 **مخرجات التصنيع** (متخزنة مع أمر الشغل، مش بتتحسب تاني)
 `wo_calc_results` (المدخلات + `formula_set_version_id` + المعايرة المستخدمة + المخرجات JSON)، `cut_lists`، `cut_plans` (العيدان والقطع والهالك)، `glass_lists`، `accessory_lists`، `material_costs`، `drawing_data` (JSON).

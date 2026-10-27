@@ -1,5 +1,7 @@
-"""Survey sheet columns, suggested price per m² of a survey, and the price per m² typed in a quotation."""
+"""Survey sheet columns, the guide prices of a survey (fair and top), and the price per m² typed in a quotation."""
 from decimal import Decimal as D
+
+from app.modules.sales.pricing import money
 
 from tests.test_arch import _arch_model
 from tests.test_business_flow import _setup
@@ -32,16 +34,23 @@ def test_survey_sheet_and_price_per_m2(platform, tenant_a, client):
                                                                       "screen_type": "magic"}]})
     assert r.status_code == 422
 
-    # suggested price per m² of the survey: suggested total / billed area (each unit at least 1 m²)
+    # the guide of the survey: cost, fair (+20 %) and top (+30 %), per m² of the billed area (each unit ≥ 1 m²)
     p = client.get(f"/api/v1/surveys/{sv['id']}/pricing", headers=h).json()
     assert p["priced"] == 2 and p["unpriced"] == 1 and p["openings"][2]["error"] == "OPENING_WITHOUT_MODEL"
+    assert (D(p["fair_margin_pct"]), D(p["top_margin_pct"])) == (20, 30)
     big, small = p["openings"][0], p["openings"][1]
     # width × total height (1.5 × 1.8) when the total height is written, else width × height
     assert D(big["area_m2"]) == D("2.7") and D(big["billed_area_m2"]) == D("2.7")
     assert D(small["area_m2"]) == D("0.72") and D(small["billed_area_m2"]) == 1          # minimum 1 m²
-    total = D(big["suggested_unit_price"]) * 2 + D(small["suggested_unit_price"])
-    assert D(p["suggested_total"]) == total and D(p["billed_area_m2"]) == D("6.4")
-    assert D(p["price_per_m2"]) == (total / D("6.4")).quantize(D("0.01"))
+    for o in (big, small):
+        assert D(o["fair_unit_price"]) == money(D(o["unit_cost"]) * D("1.2"))
+        assert D(o["top_unit_price"]) == money(D(o["unit_cost"]) * D("1.3"))
+    fair = D(big["fair_unit_price"]) * 2 + D(small["fair_unit_price"])
+    top = D(big["top_unit_price"]) * 2 + D(small["top_unit_price"])
+    assert D(p["fair_total"]) == fair and D(p["top_total"]) == top and D(p["billed_area_m2"]) == D("6.4")
+    assert D(p["cost_total"]) == D(big["unit_cost"]) * 2 + D(small["unit_cost"])
+    assert D(p["fair_price_per_m2"]) == (fair / D("6.4")).quantize(D("0.01"))
+    assert D(p["top_price_per_m2"]) == (top / D("6.4")).quantize(D("0.01"))
     q = client.post("/api/v1/quotations", headers=h, json={"customer_id": customer["id"], "branch_id": branch["id"],
                                                          "survey_id": sv["id"]})
     assert q.status_code == 422 and q.json()["error"]["code"] == "OPENING_WITHOUT_MODEL"
@@ -52,7 +61,7 @@ def test_survey_sheet_and_price_per_m2(platform, tenant_a, client):
     assert D(q["lines"][0]["total_height_mm"]) == 1800 and D(q["lines"][0]["billed_area_m2"]) == D("2.7")
     assert D(q["lines"][0]["opening_height_mm"]) == 1200          # the unit is still made at the opening size
 
-    # quotation: price per m² typed by the user wins; the suggestion stays visible
+    # quotation: price per m² typed by the user; the guide stays visible
     q = client.post("/api/v1/quotations", headers=h, json={"customer_id": customer["id"], "branch_id": branch["id"],
         "lines": [{"model_id": model_id, "opening_width_mm": 1500, "opening_height_mm": 1200, "qty": 2,
                    "color_code": "W", "glass_material_code": glass, "price_per_m2": "1000"},
@@ -60,8 +69,8 @@ def test_survey_sheet_and_price_per_m2(platform, tenant_a, client):
                    "glass_material_code": glass}]}).json()
     a, b = q["lines"]
     assert D(a["unit_price"]) == D("1800.00") and D(a["line_total"]) == D("3600.00") and a["model_code"]
-    assert D(b["billed_area_m2"]) == 1 and D(b["unit_price"]) == D(b["suggested_unit_price"])
-    assert D(b["suggested_price_per_m2"]) == D(b["suggested_unit_price"])      # billed area is 1 m²
+    assert D(b["billed_area_m2"]) == 1 and D(b["unit_price"]) == 0 and not b["priced"]
+    assert D(b["fair_price_per_m2"]) == D(b["fair_unit_price"])      # billed area is 1 m²
 
     q = client.post(f"/api/v1/quotations/{q['id']}/price-per-m2", headers=h,
                     json={"version": q["version"], "price_per_m2": "1250"}).json()

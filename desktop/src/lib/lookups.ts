@@ -28,7 +28,6 @@ export const lookups = {
   model: async (id: string) => (await lookups.allModels()).find((m) => m.id === id),
   colors: () => cached("colors", () => api.get<S<"ColorOut">[]>("/library/colors")),
   glass: () => cached("glass", () => api.get<S<"Page_MaterialOut_">>("/library/materials", { kind: "glass", limit: 500 }).then((p) => p.items)),
-  priceLists: () => cached("priceLists", () => api.get<S<"PriceListOut">[]>("/price-lists")),
   salespeople: () => cached("salespeople", () => api.get<S<"EmployeeBrief">[]>("/employees/brief")),
   cashboxes: () => cached("cashboxes", () => api.get<S<"CashboxOut">[]>("/cashboxes")),
   roles: () => cached("roles", () => api.get<S<"RoleOut">[]>("/roles")),

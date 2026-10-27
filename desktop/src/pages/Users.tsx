@@ -113,7 +113,7 @@ function RoleList() {
 }
 
 const GROUP_NAMES: Record<string, string> = { org: "الشركة", users: "المستخدمين", library: "مكتبة القطاعات", engine: "الحسابات",
-  customers: "العملاء", surveys: "المعاينات", quotes: "عروض الأسعار", pricelists: "قوائم الأسعار", workorders: "أوامر التصنيع",
+  customers: "العملاء", surveys: "المعاينات", quotes: "عروض الأسعار", workorders: "أوامر التصنيع",
   invoices: "الفواتير", notify: "الإشعارات", sales: "المبيعات", hr: "الموارد البشرية", finance: "الربحية ورأس المال", purchasing: "المشتريات", treasury: "الخزينة", privacy: "البيانات الشخصية",
   audit: "سجل التعديلات", system: "السيستم", maintenance: "الصيانة", field: "الفنيين والتتبع" };
 // read, then add, edit, delete: the order a factory owner thinks in

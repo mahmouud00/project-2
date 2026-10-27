@@ -11,7 +11,6 @@ import Offcuts from "./Offcuts";
 import Purchasing from "./Purchasing";
 import Treasury from "./Treasury";
 import Library from "./Library";
-import PriceLists from "./PriceLists";
 import Users from "./Users";
 import Settings from "./Settings";
 import System from "./System";
@@ -29,7 +28,6 @@ export const PAGES: Record<string, ComponentType<PageProps>> = {
   purchasing: Purchasing,
   treasury: Treasury,
   library: Library,
-  "price-lists": PriceLists,
   users: Users,
   settings: Settings,
   system: System,

@@ -1,16 +1,16 @@
 from __future__ import annotations
 
 import uuid
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 
-from app.api.common import DeleteResult, ORMModel, Page, PageParams, Record, VersionedUpdate, paginate
+from app.api.common import DeleteResult, Page, PageParams, Record, VersionedUpdate, paginate
 from app.core.audit import apply_changes, audit, check_version, snapshot
-from app.core.errors import Conflict, NotFound, ValidationFailed
+from app.core.errors import Conflict, ValidationFailed
 from app.core.numbering import next_number
 from app.db.base import utcnow
 from app.modules.crm.models import Customer, SiteSurvey, SurveyOpening
@@ -20,109 +20,11 @@ from app.modules.library.models import ProductModel
 from app.modules.library.service import calculate_model, model_image
 from app.modules.org.models import Branch
 from app.modules.org.settings import get_company_settings
-from app.modules.sales.models import PriceList, PriceListItem, Quotation, QuotationLine
-from app.modules.sales.pricing import CostResolver, cost_of_calc, money, unit_price
+from app.modules.sales.models import Quotation, QuotationLine
+from app.modules.sales.pricing import CostResolver, cost_of_calc, guide_prices, money
 from app.tenancy.context import require
 
 router = APIRouter(tags=["sales"])
-
-
-# ---------------------------------------------------------------- price lists
-class PriceListItemIn(BaseModel):
-    model_id: uuid.UUID | None = None
-    system_id: uuid.UUID | None = None
-    margin_pct: Decimal | None = None
-    price_per_m2: Decimal | None = Field(None, ge=0)
-
-
-class PriceListIn(BaseModel):
-    code: str = Field(min_length=1, max_length=40)
-    name: str
-    customer_type: str | None = Field(None, pattern="^(end|dealer|contractor)$")
-    margin_pct: Decimal = Decimal(0)
-    labor_cost_per_m2: Decimal = Field(Decimal(0), ge=0)
-    min_unit_price: Decimal = Field(Decimal(0), ge=0)
-    items: list[PriceListItemIn] = []
-
-
-class PriceListUpdate(VersionedUpdate):
-    name: str | None = None
-    customer_type: str | None = Field(None, pattern="^(end|dealer|contractor)$")
-    margin_pct: Decimal | None = None
-    labor_cost_per_m2: Decimal | None = None
-    min_unit_price: Decimal | None = None
-    is_active: bool | None = None
-    items: list[PriceListItemIn] | None = None
-
-
-class PriceListItemOut(ORMModel):
-    model_id: uuid.UUID | None
-    system_id: uuid.UUID | None
-    margin_pct: Decimal | None
-    price_per_m2: Decimal | None
-
-
-class PriceListOut(Record):
-    code: str
-    name: str
-    customer_type: str | None
-    margin_pct: Decimal
-    labor_cost_per_m2: Decimal
-    min_unit_price: Decimal
-    is_active: bool
-    items: list[PriceListItemOut] = []
-
-
-def _pl_out(db, pl) -> PriceListOut:
-    out = PriceListOut.model_validate(pl)
-    out.items = [PriceListItemOut.model_validate(i) for i in
-                 db.scalars(select(PriceListItem).where(PriceListItem.price_list_id == pl.id))]
-    return out
-
-
-def _set_pl_items(db, pl, items: list[PriceListItemIn]) -> None:
-    for old in db.scalars(select(PriceListItem).where(PriceListItem.price_list_id == pl.id)):
-        db.delete(old)
-    db.flush()
-    for i in items:
-        if (i.model_id is None) == (i.system_id is None):
-            raise ValidationFailed("Each item needs exactly one of model_id / system_id", code="PRICE_ITEM_TARGET")
-        db.add(PriceListItem(price_list_id=pl.id, **i.model_dump()))
-
-
-@router.get("/price-lists", response_model=list[PriceListOut])
-def list_price_lists(dc=Depends(require("quotes.read"))):
-    db, _ = dc
-    return [_pl_out(db, p) for p in db.scalars(select(PriceList).order_by(PriceList.code))]
-
-
-@router.post("/price-lists", response_model=PriceListOut, status_code=201)
-def create_price_list(body: PriceListIn, dc=Depends(require("pricelists.create"))):
-    db, _ = dc
-    if db.scalar(select(PriceList).where(PriceList.code == body.code)):
-        raise Conflict("Price list code exists", code="DUPLICATE_CODE")
-    pl = PriceList(**body.model_dump(exclude={"items"}))
-    db.add(pl)
-    db.flush()
-    _set_pl_items(db, pl, body.items)
-    audit(db, pl, "create")
-    db.commit()
-    return _pl_out(db, pl)
-
-
-@router.patch("/price-lists/{pl_id}", response_model=PriceListOut)
-def update_price_list(pl_id: uuid.UUID, body: PriceListUpdate, dc=Depends(require("pricelists.manage"))):
-    db, _ = dc
-    pl = get_or_404(db, PriceList, pl_id)
-    check_version(pl, body.version)
-    before = snapshot(pl)
-    apply_changes(pl, body.model_dump(exclude_unset=True, exclude={"version", "items"}))
-    if body.items is not None:
-        _set_pl_items(db, pl, body.items)
-        pl.updated_at = utcnow()
-    audit(db, pl, "update", before)
-    db.commit()
-    return _pl_out(db, pl)
 
 
 # ---------------------------------------------------------------- quotations
@@ -184,14 +86,17 @@ class LineOut(Record):
     model_name: str = ""
     model_code: str = ""
     model_image_id: uuid.UUID | None = None
-    suggested_unit_price: Decimal | None = None      # from the price list, whatever price was typed
-    suggested_price_per_m2: Decimal | None = None
+    # دليل المبيعات for one unit: the fair price (cost + fair margin) and the top price (cost + top margin)
+    fair_unit_price: Decimal | None = None
+    top_unit_price: Decimal | None = None
+    fair_price_per_m2: Decimal | None = None
+    top_price_per_m2: Decimal | None = None
+    priced: bool = True                              # False: the salesperson has not typed a price yet
 
 
 class QuotationIn(BaseModel):
     customer_id: uuid.UUID
     branch_id: uuid.UUID
-    price_list_id: uuid.UUID | None = None
     survey_id: uuid.UUID | None = None
     tax_pct: Decimal | None = Field(None, ge=0, le=100)
     discount_amount: Decimal = Field(Decimal(0), ge=0)
@@ -203,7 +108,6 @@ class QuotationIn(BaseModel):
 
 
 class QuotationUpdate(VersionedUpdate):
-    price_list_id: uuid.UUID | None = None
     tax_pct: Decimal | None = Field(None, ge=0, le=100)
     discount_amount: Decimal | None = Field(None, ge=0)
     valid_until: date | None = None
@@ -217,7 +121,7 @@ class QuotationOut(Record):
     customer_id: uuid.UUID
     branch_id: uuid.UUID
     survey_id: uuid.UUID | None
-    price_list_id: uuid.UUID
+    price_list_id: uuid.UUID | None = None
     status: str
     issue_date: date | None
     valid_until: date | None
@@ -230,6 +134,14 @@ class QuotationOut(Record):
     notes: str
     terms: str
     salesperson_id: uuid.UUID | None = None
+    fair_total: Decimal
+    top_total: Decimal
+    net_total: Decimal = Decimal(0)                  # before tax: subtotal − discount
+    price_approved_total: Decimal | None = None
+    price_approved_at: datetime | None = None
+    price_approval_note: str = ""
+    needs_price_approval: bool = False               # under the fair price and not approved by the sales manager
+    unpriced_lines: int = 0
     lines: list[LineOut] = []
 
 
@@ -248,24 +160,43 @@ def _quote_out(db, q: Quotation, with_calc: bool = True) -> QuotationOut:
         model = db.get(ProductModel, line.model_id)
         lo.model_name, lo.model_code = (model.name, model.code) if model else ("", "")
         lo.model_image_id = model_image(model, line.color_code)
-        suggested = (line.cost_breakdown or {}).get("suggested_unit_price")
-        if suggested is not None:
-            lo.suggested_unit_price = Decimal(suggested)
+        guide = line.cost_breakdown or {}
+        if guide.get("fair_unit_price") is not None:
+            lo.fair_unit_price, lo.top_unit_price = Decimal(guide["fair_unit_price"]), Decimal(guide["top_unit_price"])
             if line.billed_area_m2:
-                lo.suggested_price_per_m2 = money(Decimal(suggested) / line.billed_area_m2)
+                lo.fair_price_per_m2 = money(lo.fair_unit_price / line.billed_area_m2)
+                lo.top_price_per_m2 = money(lo.top_unit_price / line.billed_area_m2)
+        lo.priced = line.parent_line_id is not None or _is_priced(line)
         if not with_calc:
             lo.calc = {}
         lines.append(lo)
     out.lines = lines
+    out.net_total = _net(q)
+    out.unpriced_lines = sum(1 for l in lines if not l.priced)
+    out.needs_price_approval = _needs_price_approval(q)
     return out
 
 
-class Pricer:
-    """Price of one opening from the published model, the company's costs and a price list."""
+def _is_priced(line: QuotationLine) -> bool:
+    return line.price_per_m2 is not None or line.manual_unit_price is not None or \
+        "fair_unit_price" not in (line.cost_breakdown or {})         # priced before the guide (price lists)
 
-    def __init__(self, db, ctx, price_list: PriceList):
-        self.db, self.ctx, self.pl = db, ctx, price_list
-        self.items = list(db.scalars(select(PriceListItem).where(PriceListItem.price_list_id == price_list.id)))
+
+def _net(q: Quotation) -> Decimal:
+    return max(q.subtotal - q.discount_amount, Decimal(0))
+
+
+def _needs_price_approval(q: Quotation) -> bool:
+    """The total after the discount is under the fair total and the sales manager has not approved that much."""
+    net = _net(q)
+    return net < q.fair_total and (q.price_approved_total is None or net < q.price_approved_total)
+
+
+class Pricer:
+    """Cost of one opening from the published model and the company's costs, and the guide prices on it."""
+
+    def __init__(self, db, ctx):
+        self.db, self.ctx = db, ctx
         self.settings = get_company_settings(db, ctx.company_id)
         self.resolver = CostResolver(db)
         default_arch = self.settings.default_arch_model_id
@@ -304,16 +235,19 @@ class Pricer:
             arch_cost = cost_of_calc(self.resolver, arch_calc, color, glass, self.settings.quote_waste_pct)
             unit_cost += arch_cost["total"]
             arch = {"model_id": arch_model, "height_mm": arch_h, "calc": arch_calc, "breakdown": arch_cost}
-        model = self.db.get(ProductModel, model_id)
         area = (width_mm * price_height / Decimal(1_000_000)).quantize(Decimal("0.0001"))
+        unit_cost = money(unit_cost + self.settings.labor_cost_per_m2 * area)
+        fair, top = guide_prices(unit_cost, self.settings.fair_margin_pct, self.settings.top_margin_pct)
         return {"calc": calc, "breakdown": breakdown, "arch": arch, "unit_cost": unit_cost, "area": area,
-                "billed_area": self.billed_area(area),
-                "suggested": unit_price(self.pl, self.items, model.id, model.system_id, area, unit_cost)}
+                "billed_area": self.billed_area(area), "fair": fair, "top": top}
 
 
 def _price_line(db, ctx, q: Quotation, line: QuotationLine, pricer: Pricer) -> None:
     if line.parent_line_id is not None:
         raise Conflict("The arch line follows its unit", code="ARCH_LINE_MANAGED")
+    if line.price_per_m2 is None and line.manual_unit_price is None and line.unit_price and \
+            "fair_unit_price" not in (line.cost_breakdown or {}):
+        line.manual_unit_price = line.unit_price        # a price from an old price list stays the line's price
     r = pricer.price(line.model_id, line.opening_width_mm, line.opening_height_mm, line.params, line.color_code,
                      line.glass_material_code, line.location, line.total_height_mm, line.top_model_id)
     calc, breakdown, arch = r["calc"], r["breakdown"], r["arch"]
@@ -325,14 +259,15 @@ def _price_line(db, ctx, q: Quotation, line: QuotationLine, pricer: Pricer) -> N
     cost_lines = breakdown["lines"] + ([{**l, "part": "arch"} for l in arch["breakdown"]["lines"]] if arch else [])
     missing = sorted(set(breakdown["missing_costs"]) | set(arch["breakdown"]["missing_costs"] if arch else []))
     line.cost_breakdown = {"total": str(r["unit_cost"]), "lines": cost_lines, "missing_costs": missing,
-                           "suggested_unit_price": str(r["suggested"])}
-    # the user's price per m² wins, then a typed unit price, then the price list
+                           "labor": str(money(pricer.settings.labor_cost_per_m2 * r["area"])),
+                           "fair_unit_price": str(r["fair"]), "top_unit_price": str(r["top"])}
+    # the salesperson's price: per m², or for the unit; none typed yet = 0 (the quotation cannot be sent)
     if line.price_per_m2 is not None:
         line.unit_price = money(r["billed_area"] * line.price_per_m2)
     elif line.manual_unit_price is not None:
         line.unit_price = line.manual_unit_price
     else:
-        line.unit_price = r["suggested"]
+        line.unit_price = Decimal(0)
     line.line_total = money(line.unit_price * line.qty)
     _sync_arch_line(db, q, line, arch)
 
@@ -372,20 +307,14 @@ def _totals(db, q: Quotation) -> None:
     lines = list(db.scalars(select(QuotationLine).where(QuotationLine.quotation_id == q.id)))
     q.subtotal = money(sum((l.line_total for l in lines), Decimal(0)))
     q.total_cost = money(sum((l.unit_cost * l.qty for l in lines), Decimal(0)))
+    guide = [((l.cost_breakdown or {}).get("fair_unit_price"), (l.cost_breakdown or {}).get("top_unit_price"), l.qty)
+             for l in lines if l.parent_line_id is None]
+    q.fair_total = money(sum((Decimal(f) * n for f, _, n in guide if f is not None), Decimal(0)))
+    q.top_total = money(sum((Decimal(t) * n for _, t, n in guide if t is not None), Decimal(0)))
     taxable = max(q.subtotal - q.discount_amount, Decimal(0))
     q.tax_amount = money(taxable * q.tax_pct / 100)
     q.total = money(taxable + q.tax_amount)
     q.updated_at = utcnow()
-
-
-def _default_price_list(db, customer: Customer) -> PriceList:
-    if customer.price_list_id:
-        return db.get(PriceList, customer.price_list_id)
-    pl = db.scalar(select(PriceList).where(PriceList.customer_type == customer.customer_type, PriceList.is_active)
-                   .order_by(PriceList.code))
-    if pl is None:
-        raise ValidationFailed("No price list for this customer type", code="NO_PRICE_LIST")
-    return pl
 
 
 def _get_quote(db, ctx, quote_id, permission="quotes.read") -> Quotation:
@@ -414,7 +343,6 @@ def create_quotation(body: QuotationIn, dc=Depends(require("quotes.create"))):
     branch = get_or_404(db, Branch, body.branch_id)
     customer = get_or_404(db, Customer, body.customer_id)
     settings = get_company_settings(db, ctx.company_id)
-    pl = get_or_404(db, PriceList, body.price_list_id) if body.price_list_id else _default_price_list(db, customer)
     lines = list(body.lines)
     if body.survey_id:
         survey = get_or_404(db, SiteSurvey, body.survey_id)
@@ -430,7 +358,7 @@ def create_quotation(body: QuotationIn, dc=Depends(require("quotes.create"))):
                                     opening_height_mm=o.opening_height_mm, params=o.params, color_code=o.color_code,
                                     glass_material_code=o.glass_material_code, qty=o.qty, notes=o.notes))
     q = Quotation(number=next_number(db, "quote", "QT", branch.code), customer_id=customer.id, branch_id=branch.id,
-                  survey_id=body.survey_id, price_list_id=pl.id, issue_date=date.today(),
+                  survey_id=body.survey_id, issue_date=date.today(),
                   valid_until=body.valid_until or date.today() + timedelta(days=settings.quote_validity_days),
                   tax_pct=body.tax_pct if body.tax_pct is not None else settings.default_tax_pct,
                   discount_amount=body.discount_amount, notes=body.notes,
@@ -438,7 +366,7 @@ def create_quotation(body: QuotationIn, dc=Depends(require("quotes.create"))):
                   salesperson_id=salesperson_for(db, ctx, body.salesperson_id))
     db.add(q)
     db.flush()
-    pricer = Pricer(db, ctx, pl)
+    pricer = Pricer(db, ctx)
     for i, l in enumerate(lines, 1):
         line = QuotationLine(quotation_id=q.id, position=i, **l.model_dump())
         _price_line(db, ctx, q, line, pricer)       # adds the line (and its arch line)
@@ -466,10 +394,6 @@ def update_quotation(quote_id: uuid.UUID, body: QuotationUpdate, dc=Depends(requ
     if data.get("salesperson_id"):
         salesperson_for(db, ctx, data["salesperson_id"])
     apply_changes(q, data)
-    if "price_list_id" in data:
-        pricer = Pricer(db, ctx, get_or_404(db, PriceList, q.price_list_id))
-        for line in db.scalars(select(QuotationLine).where(QuotationLine.quotation_id == q.id, UNITS)):
-            _price_line(db, ctx, q, line, pricer)
     _totals(db, q)
     audit(db, q, "update", before)
     db.commit()
@@ -484,7 +408,7 @@ def add_line(quote_id: uuid.UUID, body: LineIn, dc=Depends(require("quotes.write
         raise Conflict("Quotation is locked", code="QUOTE_LOCKED")
     last = db.scalar(select(func.max(QuotationLine.position)).where(QuotationLine.quotation_id == q.id)) or 0
     line = QuotationLine(quotation_id=q.id, position=last + 1, **body.model_dump())
-    _price_line(db, ctx, q, line, Pricer(db, ctx, db.get(PriceList, q.price_list_id)))
+    _price_line(db, ctx, q, line, Pricer(db, ctx))
     _totals(db, q)
     db.commit()
     return _quote_out(db, q)
@@ -500,7 +424,7 @@ def update_line(line_id: uuid.UUID, body: LineUpdate, dc=Depends(require("quotes
     check_version(line, body.version)
     before = snapshot(line)
     apply_changes(line, body.model_dump(exclude_unset=True, exclude={"version"}))
-    _price_line(db, ctx, q, line, Pricer(db, ctx, db.get(PriceList, q.price_list_id)))
+    _price_line(db, ctx, q, line, Pricer(db, ctx))
     _totals(db, q)
     audit(db, line, "update", before)
     db.commit()
@@ -539,6 +463,14 @@ def set_status(quote_id: uuid.UUID, body: StatusIn, dc=Depends(require("quotes.w
     check_version(q, body.version)
     if body.status not in TRANSITIONS.get(q.status, set()):
         raise Conflict(f"Cannot go from {q.status} to {body.status}", code="INVALID_TRANSITION")
+    if body.status in ("sent", "accepted"):
+        if any(not _is_priced(l) for l in db.scalars(select(QuotationLine).where(QuotationLine.quotation_id == q.id,
+                                                                                  UNITS))):
+            raise Conflict("Some lines have no price yet", code="QUOTE_UNPRICED")
+        if _needs_price_approval(q):
+            raise Conflict("The price is under the fair price: the sales manager must approve it",
+                           code="PRICE_APPROVAL_REQUIRED",
+                           details={"net_total": str(_net(q)), "fair_total": str(q.fair_total)})
     before = snapshot(q)
     q.status = body.status
     audit(db, q, "update", before)
@@ -550,6 +482,51 @@ def set_status(quote_id: uuid.UUID, body: StatusIn, dc=Depends(require("quotes.w
     return _quote_out(db, q, with_calc=False)
 
 
+class PriceApprovalIn(BaseModel):
+    version: int
+    note: str = ""
+
+
+@router.post("/quotations/{quote_id}/request-price-approval", response_model=QuotationOut)
+def request_price_approval(quote_id: uuid.UUID, dc=Depends(require("quotes.write"))):
+    """The salesperson asks the sales manager to approve a price under the fair price (a notification)."""
+    from app.modules.notifications.router import alert, customer_name, recipients
+
+    db, ctx = dc
+    q = _get_quote(db, ctx, quote_id, "quotes.write")
+    if not _needs_price_approval(q):
+        raise Conflict("The price does not need approval", code="PRICE_APPROVAL_NOT_NEEDED")
+    alert(db, ctx, "sales", q.branch_id, f"عرض السعر {q.number} محتاج موافقتك على السعر",
+          f"{customer_name(db, q.customer_id)} · {_net(q)} والسعر العادل {q.fair_total}", f"quotations/{q.id}",
+          users=recipients(db, "quotes.approve_price", q.branch_id))
+    db.commit()
+    return _quote_out(db, q, with_calc=False)
+
+
+@router.post("/quotations/{quote_id}/approve-price", response_model=QuotationOut)
+def approve_price(quote_id: uuid.UUID, body: PriceApprovalIn, dc=Depends(require("quotes.approve_price"))):
+    """The sales manager approves the quotation's current total under the fair price. Lowering it again needs
+    another approval; raising it does not."""
+    from app.modules.notifications.router import alert, customer_name
+
+    db, ctx = dc
+    q = _get_quote(db, ctx, quote_id, "quotes.approve_price")
+    check_version(q, body.version)
+    if q.status not in EDITABLE:
+        raise Conflict("Quotation is locked", code="QUOTE_LOCKED")
+    if not _needs_price_approval(q):
+        raise Conflict("The price does not need approval", code="PRICE_APPROVAL_NOT_NEEDED")
+    before = snapshot(q)
+    q.price_approved_total, q.price_approved_at, q.price_approved_by = _net(q), utcnow(), ctx.user_id
+    q.price_approval_note = body.note
+    q.updated_at = utcnow()
+    audit(db, q, "update", before)
+    alert(db, ctx, "sales", q.branch_id, f"مدير المبيعات وافق على سعر عرض {q.number}",
+          customer_name(db, q.customer_id), f"quotations/{q.id}", users={q.created_by} if q.created_by else set())
+    db.commit()
+    return _quote_out(db, q, with_calc=False)
+
+
 @router.post("/quotations/{quote_id}/recalculate", response_model=QuotationOut)
 def recalculate(quote_id: uuid.UUID, dc=Depends(require("quotes.write"))):
     """Re-run every line with the CURRENT published formulas and prices (explicit action)."""
@@ -557,7 +534,7 @@ def recalculate(quote_id: uuid.UUID, dc=Depends(require("quotes.write"))):
     q = _get_quote(db, ctx, quote_id, "quotes.write")
     if q.status not in EDITABLE:
         raise Conflict("Quotation is locked", code="QUOTE_LOCKED")
-    pricer = Pricer(db, ctx, db.get(PriceList, q.price_list_id))
+    pricer = Pricer(db, ctx)
     for line in db.scalars(select(QuotationLine).where(QuotationLine.quotation_id == q.id, UNITS)):
         _price_line(db, ctx, q, line, pricer)
     _totals(db, q)
@@ -579,7 +556,7 @@ def set_price_per_m2(quote_id: uuid.UUID, body: PricePerM2In, dc=Depends(require
     if q.status not in EDITABLE:
         raise Conflict("Quotation is locked", code="QUOTE_LOCKED")
     before = snapshot(q)
-    pricer = Pricer(db, ctx, db.get(PriceList, q.price_list_id))
+    pricer = Pricer(db, ctx)
     for line in db.scalars(select(QuotationLine).where(QuotationLine.quotation_id == q.id, UNITS)):
         line.price_per_m2 = body.price_per_m2
         _price_line(db, ctx, q, line, pricer)
@@ -589,43 +566,50 @@ def set_price_per_m2(quote_id: uuid.UUID, body: PricePerM2In, dc=Depends(require
     return _quote_out(db, q)
 
 
-# ---------------------------------------------------------------- suggested price of a survey
+# ---------------------------------------------------------------- guide prices of a survey
 class OpeningPrice(BaseModel):
     position: int
     location: str
     qty: int
     area_m2: Decimal | None = None
     billed_area_m2: Decimal | None = None
-    suggested_unit_price: Decimal | None = None
-    suggested_price_per_m2: Decimal | None = None
+    unit_cost: Decimal | None = None
+    fair_unit_price: Decimal | None = None
+    top_unit_price: Decimal | None = None
+    missing_costs: list[str] = []
     error: str | None = None
 
 
 class SurveyPricing(BaseModel):
     survey_id: uuid.UUID
-    price_list_id: uuid.UUID
-    price_per_m2: Decimal | None          # average of the survey: suggested total / billed area
-    suggested_total: Decimal
+    fair_margin_pct: Decimal
+    top_margin_pct: Decimal
+    cost_total: Decimal
+    fair_total: Decimal                   # the lowest without the sales manager
+    top_total: Decimal
+    fair_price_per_m2: Decimal | None     # total / billed area
+    top_price_per_m2: Decimal | None
     area_m2: Decimal
     billed_area_m2: Decimal
     priced: int
     unpriced: int
+    missing_costs: list[str] = []         # materials without a price: the cost is short of them
     openings: list[OpeningPrice]
 
 
 @router.get("/surveys/{survey_id}/pricing", response_model=SurveyPricing)
-def survey_pricing(survey_id: uuid.UUID, price_list_id: uuid.UUID | None = None, dc=Depends(require("quotes.read"))):
-    """Suggested price per m² for a survey, from the real cost of each opening at its sizes (openings with
-    a model only). Each unit bills at least the company's minimum area."""
+def survey_pricing(survey_id: uuid.UUID, dc=Depends(require("quotes.read"))):
+    """دليل المبيعات: the company's cost of the survey's openings (with a model) at their sizes, and two prices on
+    it: the fair price (cost + fair margin) and the top price (cost + top margin). Each unit bills at least the
+    company's minimum area for the price per m²."""
     from app.core.errors import AppError
 
     db, ctx = dc
     survey = get_or_404(db, SiteSurvey, survey_id)
     ctx.require("surveys.read", survey.branch_id)
-    customer = get_or_404(db, Customer, survey.customer_id)
-    pl = get_or_404(db, PriceList, price_list_id) if price_list_id else _default_price_list(db, customer)
-    pricer = Pricer(db, ctx, pl)
-    rows, total, area_sum, billed_sum = [], Decimal(0), Decimal(0), Decimal(0)
+    pricer = Pricer(db, ctx)
+    rows, missing = [], set()
+    cost = fair = top = area_sum = billed_sum = Decimal(0)
     for o in db.scalars(select(SurveyOpening).where(SurveyOpening.survey_id == survey.id)
                         .order_by(SurveyOpening.position)):
         row = OpeningPrice(position=o.position, location=o.location, qty=o.qty)
@@ -638,16 +622,25 @@ def survey_pricing(survey_id: uuid.UUID, price_list_id: uuid.UUID | None = None,
             except AppError as e:
                 row.error = e.code
             else:
-                row.area_m2, row.billed_area_m2, row.suggested_unit_price = r["area"], r["billed_area"], r["suggested"]
-                row.suggested_price_per_m2 = money(r["suggested"] / r["billed_area"]) if r["billed_area"] else None
-                total += r["suggested"] * o.qty
+                row.area_m2, row.billed_area_m2, row.unit_cost = r["area"], r["billed_area"], r["unit_cost"]
+                row.fair_unit_price, row.top_unit_price = r["fair"], r["top"]
+                row.missing_costs = sorted(set(r["breakdown"]["missing_costs"]) |
+                                           set(r["arch"]["breakdown"]["missing_costs"] if r["arch"] else []))
+                missing |= set(row.missing_costs)
+                cost += r["unit_cost"] * o.qty
+                fair += r["fair"] * o.qty
+                top += r["top"] * o.qty
                 area_sum += r["area"] * o.qty
                 billed_sum += r["billed_area"] * o.qty
         rows.append(row)
     priced = sum(1 for r in rows if r.error is None)
-    return SurveyPricing(survey_id=survey.id, price_list_id=pl.id, suggested_total=money(total),
-                         price_per_m2=money(total / billed_sum) if billed_sum else None, area_m2=area_sum,
-                         billed_area_m2=billed_sum, priced=priced, unpriced=len(rows) - priced, openings=rows)
+    st = pricer.settings
+    return SurveyPricing(survey_id=survey.id, fair_margin_pct=st.fair_margin_pct, top_margin_pct=st.top_margin_pct,
+                         cost_total=money(cost), fair_total=money(fair), top_total=money(top),
+                         fair_price_per_m2=money(fair / billed_sum) if billed_sum else None,
+                         top_price_per_m2=money(top / billed_sum) if billed_sum else None,
+                         area_m2=area_sum, billed_area_m2=billed_sum, priced=priced, unpriced=len(rows) - priced,
+                         missing_costs=sorted(missing), openings=rows)
 
 
 # ---------------------------------------------------------------- delete
@@ -667,26 +660,5 @@ def delete_quotation(quote_id: uuid.UUID, dc=Depends(require("quotes.delete"))):
     before = snapshot(q)
     q.deleted_at = utcnow()
     audit(db, q, "delete", before)
-    db.commit()
-    return DeleteResult(result="deleted")
-
-
-@router.delete("/price-lists/{pl_id}", response_model=DeleteResult)
-def delete_price_list(pl_id: uuid.UUID, dc=Depends(require("pricelists.delete"))):
-    """Deleted when nothing uses it; a list that quotations or customers use is deactivated instead."""
-    db, _ = dc
-    pl = get_or_404(db, PriceList, pl_id)
-    before = snapshot(pl)
-    if db.scalar(select(Quotation.id).where(Quotation.price_list_id == pl.id).limit(1)) or \
-            db.scalar(select(Customer.id).where(Customer.price_list_id == pl.id, Customer.deleted_at.is_(None)).limit(1)):
-        pl.is_active = False
-        audit(db, pl, "update", before)
-        db.commit()
-        return DeleteResult(result="deactivated")
-    for item in db.scalars(select(PriceListItem).where(PriceListItem.price_list_id == pl.id)):
-        db.delete(item)
-    db.delete(pl)
-    db.flush()
-    audit(db, pl, "delete", before)
     db.commit()
     return DeleteResult(result="deleted")

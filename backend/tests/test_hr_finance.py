@@ -3,7 +3,7 @@ approval, assets, profit and capital."""
 from datetime import date
 from decimal import Decimal as D
 
-from tests.test_business_flow import _setup
+from tests.test_business_flow import _setup, price_at_top
 from tests.test_field_service import _accepted_order
 from tests.test_org_permissions_locking import _make_user
 
@@ -81,6 +81,7 @@ def test_salesperson_follows_the_sale(platform, tenant_a, client):
     q = client.post("/api/v1/quotations", headers=h, json={"customer_id": customer["id"], "branch_id": branch["id"],
                                                          "salesperson_id": e["id"], "lines": [line]}).json()
     assert q["salesperson_id"] == e["id"]
+    q = price_at_top(client, h, q)
     q = client.post(f"/api/v1/quotations/{q['id']}/status", headers=h, json={"version": q["version"],
                                                                               "status": "accepted"}).json()
     wo = client.post("/api/v1/work-orders/from-quotation", headers=h, json={"quotation_id": q["id"]}).json()

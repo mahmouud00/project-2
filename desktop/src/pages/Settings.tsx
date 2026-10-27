@@ -90,7 +90,8 @@ function Defaults() {
   const [d, setD] = useState<Partial<Settings>>({ currency: st.currency, default_tax_pct: st.default_tax_pct, quote_validity_days: st.quote_validity_days,
     quote_waste_pct: st.quote_waste_pct, deposit_pct: st.deposit_pct, saw_kerf_mm: st.saw_kerf_mm, bar_trim_mm: st.bar_trim_mm,
     min_reusable_offcut_mm: st.min_reusable_offcut_mm, quote_terms: st.quote_terms, length_unit: st.length_unit ?? "cm",
-    min_billed_area_m2: st.min_billed_area_m2, default_arch_model_id: st.default_arch_model_id ?? null,
+    min_billed_area_m2: st.min_billed_area_m2, labor_cost_per_m2: st.labor_cost_per_m2, fair_margin_pct: st.fair_margin_pct,
+    top_margin_pct: st.top_margin_pct, default_arch_model_id: st.default_arch_model_id ?? null,
     stage_durations_days: { ...(st.stage_durations_days ?? {}) }, supplier_discounts: { ...(st.supplier_discounts ?? {}) } });
   const systems = useLoad(() => lookups.systems().catch(() => []), []);
   const discounts = (d.supplier_discounts ?? {}) as Record<string, string | number>;
@@ -113,6 +114,9 @@ function Defaults() {
       <Field label="نسبة العربون"><NumIn value={d.deposit_pct as string} onChange={set("deposit_pct")} unit="%" /></Field>
       <Field label="صلاحية عرض السعر (يوم)"><NumIn value={String(d.quote_validity_days ?? "")} onChange={(v) => set("quote_validity_days")(Number(v) || 0)} /></Field>
       <Field label="هالك التسعير"><NumIn value={d.quote_waste_pct as string} onChange={set("quote_waste_pct")} unit="%" /></Field>
+      <Field label="تكلفة التشغيل للمتر" hint="بتتضاف على تكلفة الخامات عشان تكلفة العملية (مصنعية وتركيب وغيره)"><NumIn value={d.labor_cost_per_m2 as string} onChange={set("labor_cost_per_m2")} unit="/ م²" /></Field>
+      <Field label="هامش السعر العادل" hint="أقل سعر من غير موافقة مدير المبيعات = التكلفة + الهامش ده"><NumIn value={d.fair_margin_pct as string} onChange={set("fair_margin_pct")} unit="%" /></Field>
+      <Field label="أعلى هامش مقترح" hint="أعلى سعر في دليل المبيعات = التكلفة + الهامش ده"><NumIn value={d.top_margin_pct as string} onChange={set("top_margin_pct")} unit="%" /></Field>
       <Field label="سُمك سلاح المنشار"><NumIn value={d.saw_kerf_mm as string} onChange={set("saw_kerf_mm")} unit="مم" /></Field>
       <Field label="تشذيب طرف العود"><NumIn value={d.bar_trim_mm as string} onChange={set("bar_trim_mm")} unit="مم" /></Field>
       <Field label="أقل باقي يتشال (مش هالك)"><NumIn value={d.min_reusable_offcut_mm as string} onChange={set("min_reusable_offcut_mm")} unit="مم" /></Field>

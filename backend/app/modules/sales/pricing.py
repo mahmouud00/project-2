@@ -117,12 +117,7 @@ def cost_of_calc(resolver: CostResolver, calc: dict, color: str | None, glass_co
     return {"total": money(total), "lines": lines, "missing_costs": sorted(missing)}
 
 
-def unit_price(price_list, items: list, model_id, system_id, area_m2: Decimal, unit_cost: Decimal) -> Decimal:
-    item = next((i for i in items if i.model_id == model_id), None) or \
-        next((i for i in items if i.system_id == system_id and i.model_id is None), None)
-    if item is not None and item.price_per_m2 is not None:
-        price = area_m2 * item.price_per_m2
-    else:
-        margin = item.margin_pct if item is not None and item.margin_pct is not None else price_list.margin_pct
-        price = (unit_cost + price_list.labor_cost_per_m2 * area_m2) * (1 + margin / 100)
-    return money(max(price, price_list.min_unit_price))
+def guide_prices(cost: Decimal, fair_margin_pct: Decimal, top_margin_pct: Decimal) -> tuple[Decimal, Decimal]:
+    """دليل المبيعات: (fair price, top price) of a cost. The fair price is the lowest a salesperson may give
+    without the sales manager; the salesperson types the real price."""
+    return money(cost * (1 + fair_margin_pct / 100)), money(cost * (1 + top_margin_pct / 100))

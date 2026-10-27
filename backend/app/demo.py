@@ -111,6 +111,15 @@ def _ok(r, expected=(200, 201)):
     return r.json() if r.content else None
 
 
+def _priced(client, a, q):
+    """The salesperson types a price on each line: the top of the guide."""
+    for line in q["lines"]:
+        if not line["priced"]:
+            q = _ok(client.patch(f"/api/v1/quotation-lines/{line['id']}", headers=a, json={
+                "version": line["version"], "manual_unit_price": line["top_unit_price"]}))
+    return q
+
+
 def setup_demo() -> bool:
     from fastapi.testclient import TestClient
 
@@ -199,16 +208,12 @@ def setup_demo() -> bool:
         "display_name": "مصنع النور للشبابيك (تجريبي)", "phone": "0223456789", "phone2": "01000000000",
         "address": "المنطقة الصناعية - القاهرة", "tax_number": "000-000-000", "commercial_register": "00000",
         "invoice_footer": "شكرًا لثقتكم · الضمان 5 سنوات على القطاعات", "accent_color": "#5048E5",
-        "default_tax_pct": "14", "deposit_pct": "30", "quote_waste_pct": "10", "saw_kerf_mm": "4",
+        "default_tax_pct": "14", "deposit_pct": "30", "quote_waste_pct": "10", "labor_cost_per_m2": "150", "saw_kerf_mm": "4",
         "bar_trim_mm": "10", "min_reusable_offcut_mm": "500", "quote_validity_days": 15,
         "quote_terms": "الأسعار سارية 15 يوم. التسليم خلال 21 يوم من دفع العربون.",
         "default_arch_model_id": arch["id"]}}))
     _ok(client.post("/api/v1/company/logo", headers=a, files={"file": ("logo.png", _png(240, 160), "image/png")}))
     branch = _ok(client.get("/api/v1/branches", headers=a))["items"][0]
-    for code, name, ctype, margin in (("END", "عميل نهائي", "end", "30"), ("DEALER", "تاجر", "dealer", "15"),
-                                      ("CONTRACTOR", "مقاول", "contractor", "20")):
-        _ok(client.post("/api/v1/price-lists", headers=a, json={"code": code, "name": name, "customer_type": ctype,
-                                                                "margin_pct": margin, "labor_cost_per_m2": "150"}))
     sales = _ok(client.post("/api/v1/employees", headers=a, json={
         "full_name": "مندوب مبيعات تجريبي", "job_title": "مندوب مبيعات", "department": "sales",
         "branch_id": branch["id"], "base_salary": "6000"}))
@@ -228,9 +233,11 @@ def setup_demo() -> bool:
     quote = _ok(client.post("/api/v1/quotations", headers=a, json={
         "customer_id": customer["id"], "branch_id": branch["id"], "survey_id": survey["id"], "discount_amount": "250",
         "salesperson_id": sales["id"]}))
+    quote = _priced(client, a, quote)
     # a second, accepted quotation with its work order, deposit and an issued invoice
     q2 = _ok(client.post("/api/v1/quotations", headers=a, json={
         "customer_id": customer["id"], "branch_id": branch["id"], "survey_id": survey["id"]}))
+    q2 = _priced(client, a, q2)
     q2 = _ok(client.post(f"/api/v1/quotations/{q2['id']}/status", headers=a,
                          json={"version": q2["version"], "status": "accepted"}))
     wo = _ok(client.post("/api/v1/work-orders/from-quotation", headers=a, json={"quotation_id": q2["id"]}))

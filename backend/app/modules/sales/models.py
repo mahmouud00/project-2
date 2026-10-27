@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import uuid
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 
-from sqlalchemy import Boolean, Date, ForeignKey, Integer, Numeric, String, Text, UniqueConstraint
+from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Integer, Numeric, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -20,7 +20,8 @@ class DocumentSequence(Base, IdMixin, TenantMixin):
 
 
 class PriceList(Base, Entity):
-    """قائمة أسعار (عميل نهائي / تاجر / مقاول): cost-plus margin, optional per-m² prices."""
+    """قائمة أسعار — no longer used (prices are typed by the salesperson, with the fair / top price of the company's
+    cost as a guide). Kept so the lists companies made and the quotations that point to them stay as they were."""
     __tablename__ = "price_lists"
     __table_args__ = (UniqueConstraint("company_id", "code"),)
 
@@ -55,7 +56,8 @@ class Quotation(Base, Entity, SoftDeleteMixin):
     customer_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("customers.id"), index=True)
     branch_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("branches.id"), index=True)
     survey_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("site_surveys.id"), nullable=True)
-    price_list_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("price_lists.id"))
+    price_list_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("price_lists.id"),
+                                                           nullable=True)          # old quotations only
     status: Mapped[str] = mapped_column(String(20), default="draft")  # draft|sent|accepted|rejected|expired
     issue_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     valid_until: Mapped[date | None] = mapped_column(Date, nullable=True)
@@ -69,6 +71,14 @@ class Quotation(Base, Entity, SoftDeleteMixin):
     terms: Mapped[str] = mapped_column(Text, default="")
     salesperson_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("employees.id"),
                                                              nullable=True, index=True)
+    # السعر العادل (cost + the company's fair margin) and the top of the range (cost + top margin), all units.
+    # A total after the discount under the fair total needs the sales manager's approval.
+    fair_total: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal(0), server_default="0")
+    top_total: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal(0), server_default="0")
+    price_approved_total: Mapped[Decimal | None] = mapped_column(Numeric(14, 2), nullable=True)   # lowest approved
+    price_approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    price_approved_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    price_approval_note: Mapped[str] = mapped_column(Text, default="", server_default="")
 
 
 class QuotationLine(Base, Entity):

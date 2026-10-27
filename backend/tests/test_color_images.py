@@ -1,6 +1,6 @@
 """A model can have a picture per colour; quotes, invoices and documents use the picture of the line's colour."""
 from tests.library_helpers import PNG
-from tests.test_business_flow import _setup
+from tests.test_business_flow import _setup, price_at_top
 
 
 def test_picture_follows_the_colour(platform, tenant_a, client):
@@ -18,6 +18,7 @@ def test_picture_follows_the_colour(platform, tenant_a, client):
                   {"model_id": model["id"], "opening_width_mm": 1000, "opening_height_mm": 1000, "color_code": "W",
                    "glass_material_code": "CLR-GLASS6"}]}).json()
     assert [l["model_image_id"] for l in q["lines"]] == [beige["id"], lib["image"]["id"]]
+    q = price_at_top(client, h, q)
     q = client.post(f"/api/v1/quotations/{q['id']}/status", headers=h, json={"version": q["version"], "status": "accepted"}).json()
     inv = client.post("/api/v1/invoices", headers=h, json={"quotation_id": q["id"]}).json()
     assert [l["model_image_id"] for l in inv["lines"]] == [beige["id"], lib["image"]["id"]]

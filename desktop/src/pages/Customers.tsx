@@ -67,11 +67,10 @@ export function CustomerForm({ customer, onClose, onSaved }:
   const { busy, run } = useAction(toast.err);
   const [d, setD] = useState<CustomerDraft>(customer ?? { customer_type: "end", branch_id: s.branchId ?? s.branches[0]?.id });
   const set = (k: keyof CustomerDraft) => (v: string) => setD((x) => ({ ...x, [k]: v }));
-  const priceLists = useLoad(() => api.get<S<"PriceListOut">[]>("/price-lists").catch(() => []), []);
   const save = () => run(async () => {
     const body = { name: d.name, customer_type: d.customer_type, phone: d.phone || null, phone2: d.phone2 || null,
       email: d.email || null, address: d.address || null, national_id: d.national_id || null, tax_number: d.tax_number || null,
-      branch_id: d.branch_id || null, price_list_id: d.price_list_id || null, notes: d.notes || null };
+      branch_id: d.branch_id || null, notes: d.notes || null };
     const c = customer
       ? await api.patch<S<"CustomerOut">>(`/customers/${customer.id}`, { ...body, version: customer.version })
       : await api.post<S<"CustomerOut">>("/customers", { ...body, code: d.code || null });
@@ -96,9 +95,6 @@ export function CustomerForm({ customer, onClose, onSaved }:
         <Field label="الرقم القومي"><TextIn value={d.national_id} onChange={set("national_id")} code /></Field>
         <Field label="الرقم الضريبي"><TextIn value={d.tax_number} onChange={set("tax_number")} code /></Field>
         <Field label="الفرع"><BranchSelect value={d.branch_id} onChange={set("branch_id")} perm={customer ? "customers.write" : "customers.create"} /></Field>
-        <Field label="قائمة الأسعار" hint="لو فاضية بيتاخد قائمة نوع العميل">
-          <Select value={d.price_list_id ?? ""} onChange={set("price_list_id")} placeholder="حسب نوع العميل"
-            options={(priceLists.data ?? []).map((p) => ({ value: p.id, label: p.name }))} /></Field>
         <Field label="ملاحظات" className="span-all"><TextArea value={d.notes} onChange={set("notes")} rows={2} /></Field>
       </div>
     </Modal>
@@ -181,7 +177,7 @@ function CustomerDetail({ id, tab: tabQuery }: { id: string; tab?: string }) {
           { key: "d", label: "التاريخ", render: (x) => <span className="num">{date(x.survey_date ?? x.created_at)}</span> },
           { key: "o", label: "الوحدات", num: true, render: (x) => <span className="num">{x.openings?.length ?? 0}</span> },
           { key: "s", label: "الحالة", render: (x) => <Chip color={SURVEY_STATUS[x.status]?.[1]}>{SURVEY_STATUS[x.status]?.[0] ?? x.status}</Chip> },
-          ...(s.can("quotes.read") ? [{ key: "p", label: "سعر المتر المقترح", num: true,
+          ...(s.can("quotes.read") ? [{ key: "p", label: "دليل سعر المتر (العادل – الأعلى)", num: true,
             render: (x: S<"SurveyOut">) => <SuggestedPrice surveyId={x.id} version={x.version} compact /> }] : []),
         ]} />}
         {tab === "quotes" && <Table rows={quotes.data?.items} loading={quotes.loading} onRow={(q) => go(`quotations/${q.id}`)} columns={[

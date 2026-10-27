@@ -52,7 +52,6 @@ class CustomerIn(BaseModel):
     national_id: str | None = Field(None, max_length=20)
     tax_number: str | None = None
     branch_id: uuid.UUID | None = None
-    price_list_id: uuid.UUID | None = None
     notes: str | None = None
 
 
@@ -66,7 +65,6 @@ class CustomerUpdate(VersionedUpdate):
     national_id: str | None = None
     tax_number: str | None = None
     branch_id: uuid.UUID | None = None
-    price_list_id: uuid.UUID | None = None
     notes: str | None = None
 
 
@@ -81,7 +79,6 @@ class CustomerOut(Record):
     national_id: str | None
     tax_number: str | None
     branch_id: uuid.UUID | None
-    price_list_id: uuid.UUID | None
     notes: str | None
     anonymized: bool
 

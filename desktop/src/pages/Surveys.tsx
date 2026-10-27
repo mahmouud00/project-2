@@ -181,14 +181,14 @@ function SurveyDetail({ id }: { id: string }) {
         <SurveySheet kind={survey.kind as SurveyKind} rows={rows} editable={editable} onChange={(r) => setRows(withBlank(r))}
           onDetails={(i) => setDetails(i)} />
         <div className="card-b small muted">
-          المقاسات بالسنتيمتر · العرض قبل الارتفاع · «رقم الوحدة» هو النموذج من المكتبة (لازم عشان السعر المقترح وعرض السعر) · زرار التعديل في آخر الصف للعدد والزجاج وخيارات النموذج.
+          المقاسات بالسنتيمتر · العرض قبل الارتفاع · «رقم الوحدة» هو النموذج من المكتبة (لازم عشان دليل السعر وعرض السعر) · زرار التعديل في آخر الصف للعدد والزجاج وخيارات النموذج.
         </div>
       </Card>
 
       {s.can("quotes.read") && (
         <div className="grid" style={{ gridTemplateColumns: "minmax(0,1fr) 380px" }}>
           <Card title="ملاحظات">{survey.notes ? <div style={{ whiteSpace: "pre-wrap" }}>{survey.notes}</div> : <span className="faint">—</span>}</Card>
-          <Card title="التسعير">
+          <Card title="دليل السعر للمبيعات">
             {dirty ? <div className="notice info small">احفظ المعاينة عشان السعر يتحسب بآخر التعديلات.</div> : null}
             <SuggestedPrice surveyId={survey.id} version={survey.version} />
           </Card>
