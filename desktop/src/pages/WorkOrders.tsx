@@ -340,15 +340,15 @@ function BarPlans({ o }: { o: Outputs }) {
           <div key={m.sku} className="card">
             <div className="card-h"><h3>{names[m.sku] ?? m.sku}</h3><span className="code">{m.sku}</span>
               <span className="end muted small">العود <Len mm={m.bar_length_mm} /> {s.unit === "cm" ? "سم" : "مم"} · <b className="num">{m.bars_count}</b> عود جديد
-                {!!m.offcuts_used?.length && <> + <b className="num">{m.offcuts_used.length}</b> باقي من المخزون</>} · الهالك <b className="num">{Number(m.waste_pct)}%</b></span></div>
+                {!!m.offcuts_used?.length && <> + <b className="num">{m.offcuts_used.length}</b> فُضلة من المخزون</>} · الهالك <b className="num">{Number(m.waste_pct)}%</b></span></div>
             <div className="card-b col" style={{ gap: 6 }}>
               {m.bars.map((b) => (
                 <div key={b.bar_no} className="row">
-                  <span className="num muted small" style={{ width: 24 }} title={b.from_offcut ? "باقي من المخزون" : ""}>{b.from_offcut ? "♻" : b.bar_no}</span>
+                  <span className="num muted small" style={{ width: 24 }} title={b.from_offcut ? "فُضلة من المخزون" : ""}>{b.from_offcut ? "♻" : b.bar_no}</span>
                   <div className="bar-plan" style={{ width: `${(Number(b.length_mm ?? bar) / bar) * 100}%` }}>
                     {b.pieces.map((p, i) => <span key={i} style={{ width: `${(Number(p.length_mm) / Number(b.length_mm ?? bar)) * 100}%` }} title={`${p.label ?? ""} ${s.len(p.length_mm)}`}>{s.len(p.length_mm)}</span>)}
                     {Number(b.offcut_mm) > 0 && <span className={b.offcut_reusable ? "off" : "waste"} style={{ width: `${(Number(b.offcut_mm) / Number(b.length_mm ?? bar)) * 100}%` }}
-                      title={(b.offcut_reusable ? "باقي يتشال " : "هالك ") + s.len(b.offcut_mm)}>{s.len(b.offcut_mm)}</span>}
+                      title={(b.offcut_reusable ? "فُضلة تتشال " : "هالك ") + s.len(b.offcut_mm)}>{s.len(b.offcut_mm)}</span>}
                   </div>
                 </div>
               ))}
@@ -358,7 +358,7 @@ function BarPlans({ o }: { o: Outputs }) {
         );
       })}
       <div className="row small muted"><span className="swatch" style={{ background: "var(--primary-soft)" }} /> قطع
-        <span className="swatch" style={{ background: "var(--success-soft)" }} /> باقي يرجع المخزن
+        <span className="swatch" style={{ background: "var(--success-soft)" }} /> فُضلة ترجع المخزن
         <span className="swatch" style={{ background: "var(--danger-soft)" }} /> هالك</div>
     </div>
   );
@@ -401,7 +401,7 @@ function GoodsOrder({ wo, onClose }: { wo: WO; onClose: () => void }) {
           { key: "s", label: "الكود", render: (n) => <span className="code">{n.sku}</span> },
           { key: "n", label: "الخامة", render: (n) => n.name },
           { key: "b", label: "التفاصيل", render: (n) => <span className="small muted">{n.bars ? `${n.bars} عود × ${Number(n.bar_length_mm) / 1000} م`
-            : n.pieces ? `${n.pieces} لوح` : ""}{n.offcuts_used ? ` · + ${n.offcuts_used} باقي من المخزون` : ""}</span> },
+            : n.pieces ? `${n.pieces} لوح` : ""}{n.offcuts_used ? ` · + ${n.offcuts_used} فُضلة من المخزون` : ""}</span> },
           { key: "q", label: "الكمية", num: true, render: (n) => <span className="num bold">{qtyOf(n).toLocaleString("en", { maximumFractionDigits: 3 })} {UNITS[n.unit] ?? n.unit}</span> },
           { key: "c", label: "سعر الوحدة", num: true, width: 130, render: (n, i) => <NumIn value={String(n.unit_cost ?? "")} onChange={(v) => set(i, { unit_cost: v || null })} /> },
         ]} />

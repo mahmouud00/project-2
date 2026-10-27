@@ -25,7 +25,7 @@
   {% endfor %}
 </table>
 {% for plan in outputs.optimisation if plan.sku == c.sku %}
-<div class="small" style="margin:4px 0">خطة الأعواد: <b class="num">{{ plan.bars_count }}</b> عود جديد × <span class="num">{{ plan.bar_length_mm | cm }}</span> سم{% if plan.offcuts_used %} + <b class="num">{{ plan.offcuts_used | length }}</b> باقي من المخزون (♻){% endif %} · الهالك <b class="num">{{ plan.waste_pct }}%</b></div>
+<div class="small" style="margin:4px 0">خطة الأعواد: <b class="num">{{ plan.bars_count }}</b> عود جديد × <span class="num">{{ plan.bar_length_mm | cm }}</span> سم{% if plan.offcuts_used %} + <b class="num">{{ plan.offcuts_used | length }}</b> فُضلة من المخزون (♻){% endif %} · الهالك <b class="num">{{ plan.waste_pct }}%</b></div>
 {% for bar in plan.bars %}{% set blen = (bar.length_mm or plan.bar_length_mm)|float %}
 <div style="display:flex;direction:ltr;height:16px;border:1px solid #CBD5E1;margin:2px 0;font-size:9px;width:{{ blen / (plan.bar_length_mm|float) * 100 }}%">
   {% if bar.from_offcut %}<div style="padding:0 3px;background:#FEF3C7">♻ {{ blen | cm }}</div>{% endif %}

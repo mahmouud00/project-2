@@ -33,7 +33,7 @@ export default function Offcuts(_: PageProps) {
           <div style={{ width: 220 }}><SearchBox value={q} onChange={(v) => { setQ(v); setOffset(0); }} placeholder="كود القطاع…" /></div>
           <div style={{ width: 160 }}><Select value={status} onChange={(v) => { setStatus(v); setOffset(0); }} placeholder="الكل"
             options={Object.entries(STATUS).map(([value, [label]]) => ({ value, label }))} /></div>
-          {s.can("workorders.write") && <Btn kind="primary" icon="plus" onClick={() => setAdding(true)}>باقي موجود</Btn>}
+          {s.can("workorders.write") && <Btn kind="primary" icon="plus" onClick={() => setAdding(true)}>فُضلة موجودة</Btn>}
         </PageHead>
         <div className="muted small">الفُضل من <Len mm={minimum} /> وأطول بتتشال بعد التقطيع، والأوامر الجاية بتقطع منها الأول قبل الأعواد الجديدة.
           الأقصر هالك. (الحد من «بيانات الشركة ← الإعدادات الافتراضية»)</div>
@@ -65,7 +65,7 @@ function AddOffcut({ onClose, onSaved }: { onClose: () => void; onSaved: () => v
   const branch = useDefaultBranch("workorders.write");
   const [d, setD] = useState({ branch_id: branch ?? "", sku: "", length_mm: "", note: "" });
   return (
-    <Modal title="باقي موجود في المصنع" onClose={onClose} footer={<><Btn kind="primary" busy={busy} disabled={!d.sku || !d.length_mm || !d.branch_id}
+    <Modal title="فُضلة موجودة في المصنع" onClose={onClose} footer={<><Btn kind="primary" busy={busy} disabled={!d.sku || !d.length_mm || !d.branch_id}
       onClick={() => run(async () => { await api.post("/offcuts", d); onSaved(); onClose(); })}>حفظ</Btn><Btn onClick={onClose}>رجوع</Btn></>}>
       <div className="col">
         <Field label="القطاع (الكود باللون)"><SkuIn value={d.sku} onChange={(v) => setD((x) => ({ ...x, sku: v }))} /></Field>
