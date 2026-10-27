@@ -1,5 +1,9 @@
 """Database backups (pg_dump custom format) with checksum, retention and restore.
 
+Pictures (model images, logos) are files in MEDIA_DIR, named by their content hash: every backup also copies
+the new ones to <backup dir>/media. `export_bundle` / `import_bundle` put the database and the pictures in one
+file to move an installation to another server (factory PC -> cloud VPS).
+
 Backups run as the owner role (BYPASSRLS) so they contain every company.
 Restore replaces the whole schema, then re-grants the runtime roles.
 """
@@ -83,6 +87,10 @@ def run_backup(label: str = "daily", dest: Path | None = None, url: str | None =
         _write_status(dest, ok=False, label=label, error=proc.stderr.strip()[-500:])
         raise BackupError(f"pg_dump failed: {proc.stderr.strip()[-500:]}")
     tmp.replace(path)
+    try:
+        sync_media(dest / "media")
+    except OSError as e:   # the database backup is still good; say the pictures were not copied
+        log.error("media not copied to the backup folder: %s", e)
     meta = {"file": path.name, "sha256": _sha256(path), "size": path.stat().st_size, "label": label,
             "app_version": s.version, "revision": current_revision(url),
             "created_at": datetime.now(timezone.utc).isoformat()}
@@ -91,6 +99,64 @@ def run_backup(label: str = "daily", dest: Path | None = None, url: str | None =
     _write_status(dest, ok=True, label=label, file=path.name)
     log.info("backup written %s", path.name)
     return path
+
+
+def sync_media(target: Path, source: Path | None = None) -> int:
+    """Copy pictures that are not there yet (names are content hashes, files never change)."""
+    source = Path(source or get_settings().media_dir)
+    if not source.exists():
+        return 0
+    copied = 0
+    for f in source.rglob("*"):
+        if f.is_file() and not f.name.startswith("."):
+            to = target / f.relative_to(source)
+            if not to.exists():
+                to.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(f, to)
+                copied += 1
+    return copied
+
+
+def export_bundle(out: Path, url: str | None = None) -> Path:
+    """One .zip with the whole installation's data: database + pictures (to move to another server)."""
+    import tempfile
+    import zipfile
+
+    out = Path(out)
+    with tempfile.TemporaryDirectory() as tmp:
+        dump = run_backup(label="export", dest=Path(tmp), url=url)
+        with zipfile.ZipFile(out, "w", compression=zipfile.ZIP_DEFLATED) as z:
+            z.write(dump, "database.dump")
+            z.write(dump.with_suffix(".json"), "database.json")
+            media = Path(get_settings().media_dir)
+            if media.exists():
+                for f in media.rglob("*"):
+                    if f.is_file() and not f.name.startswith("."):
+                        z.write(f, "media/" + f.relative_to(media).as_posix())
+    log.info("export written %s", out.name)
+    return out
+
+
+def import_bundle(path: Path, url: str | None = None) -> dict:
+    """Restore an export on this server (the service must be stopped): database, then pictures."""
+    import tempfile
+    import zipfile
+
+    with tempfile.TemporaryDirectory() as tmp, zipfile.ZipFile(path) as z:
+        root = Path(tmp).resolve()
+        for name in z.namelist():   # never write outside the temporary folder
+            if not (root / name).resolve().is_relative_to(root):
+                raise BackupError(f"unsafe path in bundle: {name}")
+        z.extractall(root)
+        dump = root / "mytech_import.dump"
+        (root / "database.dump").replace(dump)
+        (root / "database.json").replace(dump.with_suffix(".json"))
+        meta = json.loads(dump.with_suffix(".json").read_text(encoding="utf-8"))
+        meta["file"] = dump.name
+        dump.with_suffix(".json").write_text(json.dumps(meta), encoding="utf-8")
+        meta = restore(dump, url=url)
+        meta["pictures"] = sync_media(Path(get_settings().media_dir), root / "media")
+    return meta
 
 
 def _write_status(dest: Path, **info) -> None:

@@ -17,11 +17,11 @@ export function mapUrl(p: Place): string | null {
   return null;
 }
 
-/** Opens Google Maps in the browser (the desktop app hands it to Windows). */
+/** Opens Google Maps (or the phone dialer for tel:) outside the app. */
 export async function openMap(url: string) {
   if (inDesktop()) {
-    const { invoke } = await import("@tauri-apps/api/core");
-    await invoke("open_map", { url });
+    const { openUrl } = await import("@tauri-apps/plugin-opener");
+    await openUrl(url);
   } else {
     window.open(url, "_blank", "noopener");
   }

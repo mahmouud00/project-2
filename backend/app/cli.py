@@ -112,6 +112,10 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--label", default="manual")
     p = sub.add_parser("restore", help="restore a backup file (stops nothing: stop the service first)")
     p.add_argument("file")
+    p = sub.add_parser("export", help="database + pictures in one .zip, to move to another server")
+    p.add_argument("--out", required=True)
+    p = sub.add_parser("import", help="load an export on this server (stop the service first)")
+    p.add_argument("file")
     p = sub.add_parser("update", help="apply a signed update file (*.mtu)")
     p.add_argument("package")
     p.add_argument("--root", default=os.environ.get("MYTECH_ROOT", "C:\\MYTech"))
@@ -144,6 +148,14 @@ def main(argv: list[str] | None = None) -> int:
         from pathlib import Path
         from app.ops.backup import restore
         print(json.dumps(restore(Path(args.file)), ensure_ascii=False, default=str))
+    elif args.cmd == "export":
+        from pathlib import Path
+        from app.ops.backup import export_bundle
+        print(export_bundle(Path(args.out)))
+    elif args.cmd == "import":
+        from pathlib import Path
+        from app.ops.backup import import_bundle
+        print(json.dumps(import_bundle(Path(args.file)), ensure_ascii=False, default=str))
     elif args.cmd == "update":
         from app.ops.updater import main as update_main
         return update_main([args.package, "--root", args.root, "--service", args.service, "--port", str(args.port)])

@@ -145,3 +145,42 @@ def test_cli_recovers_utf8_arguments():
     raw = "مصنع".encode("utf-8").decode("ascii", "surrogateescape")   # how a C-locale shell hands it over
     assert raw != "مصنع"
     assert _utf8_args([raw, "ACME"]) == ["مصنع", "ACME"]
+
+
+def test_move_to_another_server(backup_db_url, tmp_path, monkeypatch):
+    """export (database + pictures) on the factory PC, import on the cloud server: everything comes back."""
+    from app.ops.backup import export_bundle, import_bundle
+
+    s = get_settings()
+    old_media, new_media = tmp_path / "old_media", tmp_path / "new_media"
+    (old_media / "ab").mkdir(parents=True)
+    (old_media / "ab" / "abcdef").write_bytes(b"\x89PNG model picture")
+    monkeypatch.setattr(s, "media_dir", old_media)
+    monkeypatch.setattr(s, "backup_dir", tmp_path / "backups")
+    engine = create_engine(backup_db_url)
+    with engine.begin() as c:
+        c.execute(text("DELETE FROM companies WHERE code = 'MOVE'"))
+        c.execute(text("INSERT INTO companies (id, company_id, code, name, is_active, settings, version) "
+                       "VALUES (:i, :i, 'MOVE', 'Moving Co', true, '{}', 1)"), {"i": uuid.uuid4()})
+    bundle = export_bundle(tmp_path / "move.zip", url=backup_db_url)
+    with engine.begin() as c:
+        c.execute(text("DELETE FROM companies WHERE code = 'MOVE'"))
+    engine.dispose()
+    monkeypatch.setattr(s, "media_dir", new_media)          # the new server: empty picture folder
+    meta = import_bundle(bundle, url=backup_db_url)
+    assert meta["pictures"] == 1 and (new_media / "ab" / "abcdef").read_bytes() == b"\x89PNG model picture"
+    engine = create_engine(backup_db_url)
+    with engine.connect() as c:
+        assert c.execute(text("SELECT name FROM companies WHERE code = 'MOVE'")).scalar() == "Moving Co"
+    engine.dispose()
+
+
+def test_backup_copies_pictures(backup_db_url, tmp_path, monkeypatch):
+    from app.ops.backup import run_backup
+
+    media = tmp_path / "media"
+    (media / "cd").mkdir(parents=True)
+    (media / "cd" / "cdef").write_bytes(b"logo")
+    monkeypatch.setattr(get_settings(), "media_dir", media)
+    run_backup("manual", dest=tmp_path / "b", url=backup_db_url)
+    assert (tmp_path / "b" / "media" / "cd" / "cdef").read_bytes() == b"logo"

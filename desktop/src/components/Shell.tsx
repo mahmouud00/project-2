@@ -48,6 +48,7 @@ export function Shell({ page, title, crumbs, children, onLogout }:
   const s = useSession();
   const theme = useTheme();
   const [menu, setMenu] = useState(false);
+  const [drawer, setDrawer] = useState(false);   // phones: the side menu slides in
   const [pwd, setPwd] = useState(false);
   const name = s.company.branding?.name || s.company.name;
   const lic = s.license;
@@ -66,7 +67,8 @@ export function Shell({ page, title, crumbs, children, onLogout }:
   };
 
   return (
-    <div className="app">
+    <div className={"app" + (drawer ? " nav-open" : "")}>
+      {drawer && <div className="nav-backdrop" onClick={() => setDrawer(false)} />}
       <aside className="sidebar">
         <div className="co-brand" title={name}>
           <div className={"co-logo" + (s.logoUrl ? "" : " empty")}>{s.logoUrl ? <img src={s.logoUrl} alt="" /> : name.slice(0, 1)}</div>
@@ -83,7 +85,7 @@ export function Shell({ page, title, crumbs, children, onLogout }:
               <div key={group || "main"}>
                 {group && <div className="nav-group">{group}</div>}
                 {visible.map((i) => (
-                  <a key={i.id} className={page === i.id ? "active" : ""} onClick={() => go(i.id)}>
+                  <a key={i.id} className={page === i.id ? "active" : ""} onClick={() => { setDrawer(false); go(i.id); }}>
                     <Icon name={i.icon} /><span>{i.label}</span>
                   </a>
                 ))}
@@ -104,25 +106,26 @@ export function Shell({ page, title, crumbs, children, onLogout }:
         {!lic.can_write && lic.can_read && <div className="banner warn">الترخيص منتهي أو غير صالح: البرنامج شغال قراءة بس. كلّم MYTech لتجديد الترخيص.</div>}
         {lic.status === "grace" && <div className="banner warn">الترخيص في فترة السماح. جدّد الترخيص قبل ما البرنامج يتحول لقراءة بس.</div>}
         <header className="topbar">
+          <button className="icon-btn menu-btn" onClick={() => setDrawer(true)} aria-label="القايمة"><Icon name="menu" /></button>
           <div className="grow" ref={top}>
             {crumbs && <div className="crumbs">{crumbs}</div>}
             <div className="page-title">{title}</div>
           </div>
           {s.branches.length > 1 && (
-            <select className="input" style={{ width: "auto", minWidth: 150 }} value={s.branchId ?? ""}
+            <select className="input hide-phone" style={{ width: "auto", minWidth: 150 }} value={s.branchId ?? ""}
               onChange={(e) => s.setBranchId(e.target.value || null)} title="الفرع">
               <option value="">كل الفروع</option>
               {s.branches.filter((b) => b.is_active).map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
             </select>
           )}
-          <button className="icon-btn" onClick={printPage} title="طباعة الصفحة / حفظ PDF"><Icon name="print" /></button>
+          <button className="icon-btn hide-phone" onClick={printPage} title="طباعة الصفحة / حفظ PDF"><Icon name="print" /></button>
           <button className="icon-btn" onClick={theme.toggle} title={theme.isDark ? "الوضع الفاتح" : "الوضع الغامق"}>
             <Icon name={theme.isDark ? "sun" : "moon"} />
           </button>
           <div style={{ position: "relative" }}>
             <button className="user btn ghost" style={{ color: "var(--text)" }} onClick={() => setMenu((m) => !m)}>
               <div className="avatar">{s.me.full_name.slice(0, 1)}</div>
-              <div style={{ textAlign: "start" }}><b>{s.me.full_name}</b><small>{s.me.username}</small></div>
+              <div className="hide-phone" style={{ textAlign: "start" }}><b>{s.me.full_name}</b><small>{s.me.username}</small></div>
             </button>
             {menu && (
               <div className="card" style={{ position: "absolute", left: 0, top: 44, minWidth: 210, zIndex: 30, padding: 6 }}

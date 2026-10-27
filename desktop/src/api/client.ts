@@ -208,10 +208,12 @@ export async function logout() {
 
 function platformName() {
   const ua = navigator.userAgent;
-  return /Windows/i.test(ua) ? "windows" : /Mac/i.test(ua) ? "mac" : /Linux/i.test(ua) ? "linux" : "other";
+  return /Android/i.test(ua) ? "android" : /iPhone|iPad/i.test(ua) ? "ios" : /Windows/i.test(ua) ? "windows"
+    : /Mac/i.test(ua) ? "mac" : /Linux/i.test(ua) ? "linux" : "other";
 }
 function deviceName() {
-  return "MYTech Desktop (" + platformName() + ")";
+  const p = platformName();
+  return (p === "android" || p === "ios" ? "MYTech Mobile (" : "MYTech Desktop (") + p + ")";
 }
 
 /** Arabic message for an API error. */

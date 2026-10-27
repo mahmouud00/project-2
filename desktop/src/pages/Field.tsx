@@ -10,7 +10,8 @@ import { useSession } from "../state/session";
 import { useToast } from "../state/toast";
 import { Btn, Card, Chip, Confirm, Modal, PageHead, Select, Table, Tabs } from "../components/ui";
 import { DeleteBtn } from "../components/actions";
-import { MapBtn, openMap } from "../components/field";
+import { MapBtn, mapUrl, openMap } from "../components/field";
+import { watchPosition, type Fix } from "../lib/geo";
 import { CustomerName } from "../components/pickers";
 import { JOB_KINDS, JOB_STATUS } from "../lib/lookups";
 import { go, setQuery } from "../lib/router";
@@ -20,9 +21,14 @@ type Job = S<"JobOut">;
 type Tech = S<"TechnicianOut">;
 
 export default function FieldPage({ route }: PageProps) {
+  const s = useSession();
+  if (!s.can("field.read") && !s.can("field.manage") && s.can("field.self")) return <MyJobs />;
+  return <Office tab={route.query.tab ?? "map"} />;
+}
+
+function Office({ tab }: { tab: string }) {
   useTitle("الفنيين");
   const s = useSession();
-  const tab = route.query.tab ?? "map";
   return (
     <div className="col" style={{ gap: 14 }}>
       <PhoneLink />
@@ -43,12 +49,11 @@ function PhoneLink() {
   const secure = url.startsWith("https://");
   return (
     <div className={"notice " + (secure ? "info" : "warn")}>
-      <b>تطبيق الفني على الموبايل:</b> افتح <span className="num code">{url}</span> على موبايل الفني، وادخل باسم مستخدم بدور «فني»،
-      وبعدين «إضافة للشاشة الرئيسية» من قايمة المتصفح.{" "}
+      <b>الفنيين على الموبايل:</b> تطبيق MYTech على الموبايل (نفس البرنامج) بيدخل بمستخدم دوره «فني» ويفتح على مهامه.
+      أو من المتصفح: <span className="num code">{url}</span>{" "}
       <Btn small icon="copy" onClick={() => { navigator.clipboard?.writeText(url); toast.ok("اتنسخ اللينك."); }}>نسخ</Btn>
-      {!secure && <div className="small mt">تنبيه: الموبايل مش بيدّي المكان (GPS) غير على اتصال آمن <span className="num">https</span>.
-        السيرفر ده شغال <span className="num">http</span> على شبكة المصنع، فالمهام هتشتغل من الموبايل لكن المكان مش هيظهر،
-        ولما الفني يخرج من المصنع مش هيوصل للسيرفر. التتبع بيحتاج السيرفر يبقى أونلاين بـ https.</div>}
+      {!secure && <div className="small mt">السيرفر ده على شبكة المصنع بس: الفني برا المصنع مش هيوصل له، فالمهام والتتبع برا المصنع
+        بيشتغلوا لما السيرفر يبقى أونلاين.</div>}
     </div>
   );
 }
@@ -185,5 +190,72 @@ function Track({ job, onClose }: { job: Job; onClose: () => void }) {
       <div ref={box} className="tech-map" />
       {points.data && !points.data.length && <div className="muted small mt">مفيش نقط: الموبايل مابعتش مكانه (محتاج https وإذن الموقع).</div>}
     </Modal>
+  );
+}
+
+/** The technician's own screen (phone app): today's jobs as cards; the position is sent only during a job. */
+function MyJobs() {
+  useTitle("مهامي");
+  const toast = useToast();
+  const { busy, run } = useAction(toast.err);
+  const jobs = useLoad(() => api.get<Job[]>("/field/jobs", { mine: true }), []);
+  const [gps, setGps] = useState<"off" | "on" | string>("off");
+  const active = (jobs.data ?? []).some((j) => j.status === "on_way" || j.status === "arrived");
+  useEffect(() => { const t = setInterval(jobs.reload, 60000); return () => clearInterval(t); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!active) { setGps("off"); return; }
+    let stop: (() => void) | null = null, last = 0, alive = true;
+    const send = (f: Fix) => {
+      if (Date.now() - last < 30000) return;
+      last = Date.now();
+      api.post("/field/locations", { latitude: f.latitude.toFixed(6), longitude: f.longitude.toFixed(6),
+        accuracy_m: f.accuracy != null ? Math.round(f.accuracy) : null }).then(() => setGps("on")).catch(() => jobs.reload());
+    };
+    watchPosition(send, (msg) => setGps(msg)).then((s) => { if (alive) stop = s; else s(); });
+    return () => { alive = false; stop?.(); };
+  }, [active]); // eslint-disable-line react-hooks/exhaustive-deps
+  const move = (j: Job, to: string) => run(async () => {
+    const note = to === "done" ? (window.prompt("اكتب ملاحظة عن اللي اتعمل (اختياري):", "") ?? "") : "";
+    await api.post(`/field/jobs/${j.id}/status`, { status: to, note });
+    jobs.reload();
+  });
+  const next: Record<string, [string, string, "primary" | "success" | undefined][]> = {
+    scheduled: [["on_way", "أنا في الطريق", undefined], ["arrived", "وصلت", "primary"]],
+    on_way: [["arrived", "وصلت", "primary"]], arrived: [["done", "خلصت المهمة", "success"]] };
+  return (
+    <div className="col" style={{ gap: 12, maxWidth: 640, marginInline: "auto" }}>
+      {active && <div className={"notice " + (gps === "on" ? "ok" : "warn")}>
+        {gps === "on" ? "📍 مكانك بيتبعت للمكتب لحد ما تخلّص المهمة." : gps === "off" ? "بيجهّز المكان…" : gps}</div>}
+      {jobs.loading && !jobs.data && <div className="empty"><span className="spinner" /></div>}
+      {jobs.data && !jobs.data.length && <div className="empty">مفيش مهام ليك دلوقتي 👌</div>}
+      {(jobs.data ?? []).map((j) => {
+        const map = mapUrl(j);
+        return (
+          <Card key={j.id}>
+            <div className="row" style={{ gap: 6 }}>
+              <Chip color="violet">{JOB_KINDS[j.kind] ?? j.kind}</Chip>
+              <Chip color={JOB_STATUS[j.status]?.[1]}>{JOB_STATUS[j.status]?.[0] ?? j.status}</Chip>
+              <span className="end muted small num">{j.reference}</span>
+            </div>
+            <h3 style={{ margin: "8px 0 4px" }}>{j.customer_name}</h3>
+            <div className="muted small" style={{ lineHeight: 1.8 }}>
+              🕒 <span className="num">{dateTime(j.scheduled_at)}</span><br />
+              {j.address && <>📌 {j.address}<br /></>}
+              {j.notes && <>📝 {j.notes}</>}
+            </div>
+            <div className="row wrap mt" style={{ gap: 8 }}>
+              {j.customer_phone && <Btn icon="phone" onClick={() => openMap(`tel:${j.customer_phone}`).catch(() => undefined)}>
+                <span className="num">{j.customer_phone}</span></Btn>}
+              {map && <Btn icon="map" onClick={() => openMap(map).catch(() => toast.err("ماقدرتش أفتح الخريطة."))}>الخريطة</Btn>}
+            </div>
+            {(next[j.status] ?? []).length > 0 && <div className="row wrap mt" style={{ gap: 8 }}>
+              {next[j.status].map(([to, label, kind]) => (
+                <Btn key={to} kind={kind} busy={busy} className="grow" onClick={() => move(j, to)}>{label}</Btn>
+              ))}
+            </div>}
+          </Card>
+        );
+      })}
+    </div>
   );
 }

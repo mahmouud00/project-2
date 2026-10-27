@@ -2,6 +2,7 @@
 #   MYTech-Desktop-Setup-<v>.exe     desktop program (Tauri, every PC in the factory)
 #   MYTech-Server-Setup-<v>.exe      server installer (compiled server + PostgreSQL + Windows services)
 #   MYTech-License-Tool-<v>.exe      MYTech licence tool (vendor only, never give it to customers)
+#   MYTech-Mobile-<v>.apk            the same program for Android phones (signed with the ANDROID_KEYSTORE_B64 secret)
 # The server and the licence tool are compiled to native code with Nuitka (no Python sources ship).
 name: windows-release
 
@@ -59,6 +60,73 @@ jobs:
         with:
           name: desktop
           path: out/*.exe
+
+  android:
+    # the same program for phones (technicians and staff): Android APK from the same code as the desktop app
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      HAS_KEY: ${{ secrets.ANDROID_KEYSTORE_B64 != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: desktop/package-lock.json
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android,armv7-linux-androideabi
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: desktop/src-tauri
+      - name: Install and test
+        working-directory: desktop
+        run: |
+          npm ci
+          npm test
+          npm run typecheck
+      - name: Signing key
+        working-directory: desktop/src-tauri/gen/android
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          if [ "$HAS_KEY" = "true" ]; then
+            echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/mytech.jks"
+            pass="$KEYSTORE_PASSWORD"
+          else
+            # no key in the repository secrets yet: a throw-away key (each test build must be reinstalled)
+            pass=$(openssl rand -hex 16)
+            keytool -genkeypair -v -keystore "$RUNNER_TEMP/mytech.jks" -alias mytech -keyalg RSA -keysize 2048 -validity 10000 \
+              -storepass "$pass" -keypass "$pass" -dname "CN=MYTech Solutions, O=MYTech Solutions, C=EG"
+            echo "::warning::ANDROID_KEYSTORE_B64 secret not set: the APK is signed with a temporary key"
+          fi
+          printf 'keyAlias=mytech\npassword=%s\nstoreFile=%s\n' "$pass" "$RUNNER_TEMP/mytech.jks" > keystore.properties
+      - name: Build APK
+        working-directory: desktop
+        run: |
+          export NDK_HOME="$ANDROID_NDK_LATEST_HOME"
+          code=$((100000 + ${{ github.run_number }}))   # every build installs over the previous one
+          npx tauri android build --apk --ci --target aarch64 --target armv7 \
+            --config "{\"bundle\":{\"android\":{\"versionCode\":$code}}}"
+      - name: Collect
+        run: |
+          v=$(cat VERSION)
+          mkdir -p out
+          apk=$(find desktop/src-tauri/gen/android/app/build/outputs/apk -name "*release*.apk" | head -n 1)
+          test -n "$apk"
+          cp "$apk" "out/MYTech-Mobile-$v.apk"
+          rm -f desktop/src-tauri/gen/android/keystore.properties
+          ls -la out
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android
+          path: out/*.apk
 
   server:
     runs-on: windows-latest
@@ -242,7 +310,7 @@ jobs:
           path: out/*.exe
 
   publish:
-    needs: [desktop, server, license-tool]
+    needs: [desktop, server, license-tool, android]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -257,6 +325,6 @@ jobs:
           v=$(cat VERSION)
           tag="v$v-build.${{ github.run_number }}"
           ls -la dist
-          gh release create "$tag" dist/*.exe dist/*.zip --prerelease --target "${{ github.sha }}" \
+          gh release create "$tag" dist/*.exe dist/*.zip dist/*.apk --prerelease --target "${{ github.sha }}" \
             --title "MYTech Solutions $v (build ${{ github.run_number }})" \
-            --notes "Windows build of ${{ github.sha }}. Desktop program for every PC; server installer for the server PC; licence tool for MYTech only."
+            --notes "Build of ${{ github.sha }}. Desktop program for every PC; Android app (MYTech-Mobile) for phones; server installer for the server PC; licence tool for MYTech only."

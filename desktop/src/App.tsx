@@ -91,6 +91,7 @@ function Main({ onLogout }: { onLogout: () => void }) {
 
 function defaultPage(s: ReturnType<typeof useSession>): string {
   if (s.isPlatform) return "library";
+  if (s.can("field.self") && !s.can("customers.read")) return "field";   // technicians open on their jobs
   return "dashboard";
 }
 
