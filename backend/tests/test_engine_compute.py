@@ -107,3 +107,40 @@ def test_element_and_side_pass_through():
     r = calculate(s, opening_width_mm=1000, opening_height_mm=1200)
     sides = {p["key"]: (p["element"], p["side"]) for p in r.pieces}
     assert sides == {"top": ("حلق", "width"), "side": ("حلق", "height")}
+
+
+def _piece_snapshot(pieces):
+    return {"system": {"unit": "mm"}, "constants": {"install_clearance_width": {"value": "0"},
+                                                    "install_clearance_height": {"value": "0"}},
+            "materials": {"F": {"name": "F", "kind": "profile"}, "S": {"name": "S", "kind": "reinforcement"}},
+            "model": {"params": [], "formulas": [], "pieces": pieces}}
+
+
+def test_a_piece_can_use_another_piece_length():
+    from app.engine.compute import calculate, check_definition
+    pieces = [
+        {"key": "حديد_الحلق", "material_code": "S", "length_expr": "الحلق_عرض - 13", "qty_expr": "2"},
+        {"key": "الحلق_عرض", "material_code": "F", "length_expr": "عرض_الفتحة", "qty_expr": "2"},
+        {"key": "تراك", "material_code": "S", "length_expr": "الحلق_عرض - 10", "qty_expr": "1",
+         "condition": "حديد_الحلق > 5000"},          # not made, but its length is known
+    ]
+    snap = _piece_snapshot(pieces)
+    assert check_definition(snap) == []
+    r = calculate(snap, opening_width_mm="1500", opening_height_mm="1200")
+    got = {p["key"]: p["length_mm"] for p in r.pieces}
+    assert got == {"حديد_الحلق": D("1487"), "الحلق_عرض": D("1500")}   # same order as defined, track not made
+    # the same as writing the formula in place
+    inline = _piece_snapshot([{"key": "حديد_الحلق", "material_code": "S", "length_expr": "عرض_الفتحة - 13", "qty_expr": "2"}])
+    assert calculate(inline, opening_width_mm="1500", opening_height_mm="1200").pieces[0]["length_mm"] == D("1487")
+
+
+def test_pieces_using_each_other_in_a_circle_are_refused():
+    from app.engine.compute import CalcError, calculate, check_definition
+    snap = _piece_snapshot([{"key": "أ", "material_code": "F", "length_expr": "ب + 1", "qty_expr": "1"},
+                            {"key": "ب", "material_code": "F", "length_expr": "أ - 1", "qty_expr": "1"}])
+    assert any("دايرة" in e for e in check_definition(snap))
+    try:
+        calculate(snap, opening_width_mm="1000", opening_height_mm="1000")
+        raise AssertionError("cycle not refused")
+    except CalcError as e:
+        assert e.code == "PIECE_CYCLE"

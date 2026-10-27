@@ -193,7 +193,10 @@ export default function ModelEditor({ systemId, modelId, tab }: { systemId: stri
             {(constants.data ?? []).map((c) => <span key={c.name} className="code" title={`${c.label} = ${clean(c.value)}`}>{BUILTIN_AR[c.name] ?? c.name}</span>)}
             {def.params.map((p) => <span key={p.name} className="code" style={{ color: "var(--violet)" }} title={p.label}>{p.name}</span>)}
             {def.formulas.map((f) => <span key={f.key} className="code" style={{ color: "var(--success)" }} title={f.label}>{f.key}</span>)}
+            {def.pieces.filter((p) => p.key).map((p) => <span key={"p-" + p.key} className="code" style={{ color: "var(--warning)" }}
+              title="طول القطعة دي (زي ما تكون كاتب معادلتها)">{p.key}</span>)}
           </div>
+          <div className="muted small mt">اسم القطعة في معادلة قطعة تانية (أو زجاج، إكسسوار، تحقق، رسمة) = طول القطعة دي.</div>
         </Card>
       )}
     </div>

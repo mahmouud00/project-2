@@ -3,6 +3,8 @@
 All notable changes are listed here. Versions follow Semantic Versioning (MAJOR.MINOR.PATCH).
 
 ## [Unreleased]
+### Added
+- Formulas: a piece's name can be used in another piece's (or glass, accessory, check, drawing) expression and means that piece's length formula, exactly as if written in place (system unit, before rounding); pieces depending on each other in a circle are refused; the model editor lists piece names among the names available.
 ### Fixed
 - Model editor: the check's error messages were shown as empty red bars (the server sends plain text); they are shown again.
 ### Added

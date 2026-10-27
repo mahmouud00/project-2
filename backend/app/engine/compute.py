@@ -8,6 +8,8 @@ module only knows the generic rules:
 * manufacturing size = opening size - installation clearance (both recorded);
 * constants = library value (or company override) + company calibration delta;
 * formulas are evaluated in dependency order; cycles/unknown names are errors;
+* a piece's key can be used in another piece's (or glass, accessory, check, drawing) expression: it means that
+  piece's length formula, exactly as if it were written there (system unit, before any rounding);
 * generic sanity checks on every cut piece and glass pane.
 
 Snapshot layout (see app/modules/library/publish.py):
@@ -151,10 +153,17 @@ def check_definition(snapshot: dict) -> list[str]:
         seen.add(name)
         if name in RESERVED and name not in constants:
             errors.append(f"الاسم {name} محجوز (اسم جاهز في البرنامج)")
-    known = set(constants) | set(params) | set(formula_keys) | RESERVED
+    known_formulas = set(constants) | set(params) | set(formula_keys) | RESERVED
+    piece_keys = [p.get("key") for p in model.get("pieces", []) if p.get("key")]
+    for key in piece_keys:
+        if key in known_formulas:
+            errors.append(f"اسم القطعة {key} هو نفس اسم ثابت أو متغير أو قيمة مساعدة")
+    if len(set(piece_keys)) != len(piece_keys):
+        errors.append("في قطعتين ليهم نفس الاسم: " + "، ".join(sorted({k for k in piece_keys if piece_keys.count(k) > 1})))
+    known = known_formulas | set(piece_keys)
     materials = snapshot.get("materials", {})
 
-    def chk(source, where, required=True):
+    def chk(source, where, required=True, names=None):
         if source in (None, "") and not required:
             return
         try:
@@ -162,16 +171,19 @@ def check_definition(snapshot: dict) -> list[str]:
         except ExprError as ex:
             errors.append(f"{where}: {ex}")
             return
-        missing = e.names - known
+        missing = e.names - (known if names is None else names)
         if missing:
             errors.append(f"{where}: أسامي مش معروفة: {'، '.join(sorted(missing))}")
 
     for f in model.get("formulas", []):
-        chk(f.get("expr"), f"المعادلة {f['key']}")
+        chk(f.get("expr"), f"المعادلة {f['key']}", names=known_formulas)   # pieces come after the formulas
     try:
         _formula_order(model.get("formulas", []))
     except CalcError as e:
         errors.append(str(e))
+    cycle = _piece_cycle(model.get("pieces", []))
+    if cycle:
+        errors.append(cycle)
     for section, exprs in (("pieces", ("length_expr", "qty_expr", "angle_left", "angle_right")),
                            ("glass", ("width_expr", "height_expr", "qty_expr")),
                            ("accessories", ("qty_expr",))):
@@ -193,6 +205,44 @@ def check_definition(snapshot: dict) -> list[str]:
         for k in ("x", "y", "w", "h"):
             chk(d.get(k, "0"), f"الرسمة رقم {i + 1}، {k}")
     return errors
+
+
+def _piece_cycle(pieces: list[dict]) -> str | None:
+    try:
+        _piece_order(pieces)
+    except CalcError as e:
+        return str(e)
+    return None
+
+
+def _piece_order(pieces: list[dict]) -> list[str]:
+    """Piece keys in the order their lengths can be worked out (a piece after the pieces it uses).
+    A piece whose formula does not compile is left out (its own error is reported where it is evaluated)."""
+    exprs = {}
+    for p in pieces:
+        if p.get("key") and p.get("length_expr"):
+            try:
+                exprs[p["key"]] = compile_expr(p["length_expr"])
+            except ExprError:
+                pass
+    order: list[str] = []
+    state: dict[str, int] = {}
+
+    def visit(key: str, stack: list[str]):
+        if state.get(key) == 2:
+            return
+        if state.get(key) == 1:
+            raise CalcError("قطع بتعتمد على بعض في دايرة: " + " ← ".join(stack + [key]), code="PIECE_CYCLE")
+        state[key] = 1
+        for dep in sorted(exprs[key].names):
+            if dep in exprs:
+                visit(dep, stack + [key])
+        state[key] = 2
+        order.append(key)
+
+    for key in exprs:
+        visit(key, [])
+    return order
 
 
 def _formula_order(formulas: list[dict]) -> list[tuple[dict, Expression]]:
@@ -320,11 +370,40 @@ def calculate(snapshot: dict, *, opening_width_mm, opening_height_mm, params: di
 
     result = Result(inputs, consts, values, issues=issues)
 
+    # each piece's length (system unit, exact) under its key, so other expressions can use it: worked out for the
+    # pieces that are made and for any piece another expression names (even if it is not made itself)
+    pieces = {p["key"]: p for p in model.get("pieces", [])}
+    clash = set(pieces) & (set(env) | set(values))
+    if clash:
+        raise CalcError(f"اسم القطعة هو نفس اسم ثابت أو متغير أو قيمة مساعدة: {'، '.join(sorted(clash))}",
+                        code="NAME_CLASH")
+    used = set()
+    for section in ("pieces", "glass", "accessories", "validations", "drawing"):
+        for item in model.get(section, []):
+            for k in ("length_expr", "qty_expr", "angle_left", "angle_right", "condition", "width_expr", "height_expr",
+                      "area_expr", "expr", "x", "y", "w", "h"):
+                if item.get(k) not in (None, ""):
+                    try:
+                        used |= compile_expr(item[k]).names & set(pieces)
+                    except ExprError:
+                        pass
+    try:
+        order = _piece_order(model.get("pieces", []))
+    except CalcError as e:
+        raise CalcError(str(e), code=e.code)
+    for key in order:
+        item = pieces[key]
+        where = f"القطعة {key}"
+        if key in used or cond(item, where + "، الشرط"):
+            env[key] = to_decimal(_eval(_compile(item["length_expr"], where), env, where))
+
     for item in model.get("pieces", []):
         where = f"القطعة {item['key']}"
         if not cond(item, where + "، الشرط"):
             continue
-        exact = to_decimal(_eval(_compile(item["length_expr"], where), env, where)) * factor
+        if item["key"] not in env:      # its formula did not compile: report it here
+            env[item["key"]] = to_decimal(_eval(_compile(item["length_expr"], where), env, where))
+        exact = to_decimal(env[item["key"]]) * factor
         qty = _int_qty(_eval(_compile(item["qty_expr"], where), env, where), where, issues)
         if qty == 0:
             continue
