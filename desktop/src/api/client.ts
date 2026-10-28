@@ -351,6 +351,8 @@ const MESSAGES: Record<string, string> = {
   NOT_PUBLISHED: "القطاع لسه مش منشور.",
   NOTHING_TO_PUBLISH: "مفيش نماذج للنشر.",
   PUBLISH_FAILED: "النشر اترفض: فيه نموذج فيه غلط أو اختبار مرجعي مش مطابق.",
+  DELETION_NOT_PENDING: "الحذف ده مبقاش مستني (اتحذف أو اتلغى).",
+  DELETE_KIND_UNKNOWN: "مش عارف أحذف الحاجة دي.",
   QUOTE_UNPRICED: "فيه بنود لسه من غير سعر. اكتب سعر كل بند الأول.",
   PRICE_APPROVAL_REQUIRED: "السعر أقل من السعر العادل: لازم مدير المبيعات يوافق الأول.",
   PRICE_APPROVAL_NOT_NEEDED: "السعر مش أقل من السعر العادل، ومش محتاج موافقة.",

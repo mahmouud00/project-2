@@ -14,6 +14,7 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 from sqlalchemy import extract, func, select
 
+from app.modules.deletions.router import deletable
 from app.api.common import DeleteResult, Record, VersionedUpdate
 from app.core.audit import apply_changes, audit, check_version, snapshot
 from app.db.base import utcnow
@@ -97,7 +98,7 @@ def update_asset(asset_id: uuid.UUID, body: AssetUpdate, dc=Depends(require("org
     return a
 
 
-@router.delete("/assets/{asset_id}", response_model=DeleteResult)
+@deletable(router, "/assets/{asset_id}", "assets", ("الأصل", CompanyAsset, "name"))
 def delete_asset(asset_id: uuid.UUID, dc=Depends(require("org.manage"))):
     """For an entry made by mistake. A sold or scrapped asset is marked "disposed" (keeps the history)."""
     db, _ = dc

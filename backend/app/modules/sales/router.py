@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 
+from app.modules.deletions.router import deletable
 from app.api.common import DeleteResult, Page, PageParams, Record, VersionedUpdate, paginate
 from app.core.audit import apply_changes, audit, check_version, snapshot
 from app.core.errors import Conflict, ValidationFailed
@@ -92,6 +93,7 @@ class LineOut(Record):
     fair_price_per_m2: Decimal | None = None
     top_price_per_m2: Decimal | None = None
     priced: bool = True                              # False: the salesperson has not typed a price yet
+    model_deleted: bool = False                      # its model was deleted from the library: replace it
 
 
 class QuotationIn(BaseModel):
@@ -160,6 +162,7 @@ def _quote_out(db, q: Quotation, with_calc: bool = True) -> QuotationOut:
         model = db.get(ProductModel, line.model_id)
         lo.model_name, lo.model_code = (model.name, model.code) if model else ("", "")
         lo.model_image_id = model_image(model, line.color_code)
+        lo.model_deleted = model is not None and model.deleted_at is not None
         guide = line.cost_breakdown or {}
         if guide.get("fair_unit_price") is not None:
             lo.fair_unit_price, lo.top_unit_price = Decimal(guide["fair_unit_price"]), Decimal(guide["top_unit_price"])
@@ -644,7 +647,7 @@ def survey_pricing(survey_id: uuid.UUID, dc=Depends(require("quotes.read"))):
 
 
 # ---------------------------------------------------------------- delete
-@router.delete("/quotations/{quote_id}", response_model=DeleteResult)
+@deletable(router, "/quotations/{quote_id}", "quotations", ("عرض السعر", Quotation, "number"))
 def delete_quotation(quote_id: uuid.UUID, dc=Depends(require("quotes.delete"))):
     """A quotation that became a work order or an invoice stays (cancel those first)."""
     from app.modules.invoicing.models import Invoice

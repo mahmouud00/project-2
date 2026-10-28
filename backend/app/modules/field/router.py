@@ -16,6 +16,7 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 from sqlalchemy import any_, func, literal, select
 
+from app.modules.deletions.router import deletable
 from app.api.common import DeleteResult, Page, PageParams, Record, VersionedUpdate, paginate
 from app.core.audit import apply_changes, audit, check_version, snapshot
 from app.core.errors import Conflict, Forbidden, ValidationFailed
@@ -149,7 +150,7 @@ def update_maintenance(mid: uuid.UUID, body: MaintenanceUpdate, dc=Depends(requi
     return m
 
 
-@router.delete("/maintenance/{mid}", response_model=DeleteResult)
+@deletable(router, "/maintenance/{mid}", "maintenance", ("طلب الصيانة", MaintenanceRequest, "number"))
 def delete_maintenance(mid: uuid.UUID, dc=Depends(require("maintenance.delete"))):
     db, ctx = dc
     m = _maintenance(db, ctx, mid, "maintenance.delete")
@@ -376,7 +377,7 @@ def job_status(job_id: uuid.UUID, body: JobStatusIn, dc=Depends(get_db_and_ctx))
     return _job_out(db, job)
 
 
-@router.delete("/field/jobs/{job_id}", response_model=DeleteResult)
+@deletable(router, "/field/jobs/{job_id}", "field/jobs", ("مهمة فني", FieldJob, None))
 def delete_job(job_id: uuid.UUID, dc=Depends(require("field.delete"))):
     db, ctx = dc
     job = get_or_404(db, FieldJob, job_id)

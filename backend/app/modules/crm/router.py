@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 from sqlalchemy import or_, select
 
+from app.modules.deletions.router import deletable
 from app.api.common import DeleteResult, ORMModel, Page, PageParams, Record, VersionedUpdate, paginate
 from app.core.maps import fill_location
 from app.core.audit import apply_changes, audit, check_version, snapshot
@@ -179,6 +180,7 @@ class OpeningIn(BaseModel):
 
 class OpeningOut(ORMModel):
     id: uuid.UUID
+    model_deleted: bool = False          # its model (or arch model) was deleted from the library: replace it
     position: int
     location: str
     opening_width_mm: Decimal
@@ -258,7 +260,16 @@ def _survey_out(db, survey) -> SurveyOut:
     out = SurveyOut.model_validate(survey)
     out.openings = [OpeningOut.model_validate(o) for o in db.scalars(
         select(SurveyOpening).where(SurveyOpening.survey_id == survey.id).order_by(SurveyOpening.position))]
+    _mark_deleted_models(db, out.openings)
     return out
+
+
+def _mark_deleted_models(db, openings: list[OpeningOut]) -> None:
+    from app.modules.library.service import deleted_models
+
+    gone = deleted_models(db, [x for o in openings for x in (o.model_id, o.top_model_id)])
+    for o in openings:
+        o.model_deleted = bool({o.model_id, o.top_model_id} & gone)
 
 
 def _set_openings(db, survey, openings: list[OpeningIn]) -> None:
@@ -285,6 +296,7 @@ def list_surveys(customer_id: uuid.UUID | None = None, status: str | None = None
         for o in db.scalars(select(SurveyOpening).where(SurveyOpening.survey_id.in_([s.id for s in page["items"]]))
                             .order_by(SurveyOpening.position)):
             by_survey.setdefault(o.survey_id, []).append(OpeningOut.model_validate(o))
+    _mark_deleted_models(db, [o for rows in by_survey.values() for o in rows])
     for item in page["items"]:
         item.openings = by_survey.get(item.id, [])
     return page
@@ -341,7 +353,7 @@ def update_survey(survey_id: uuid.UUID, body: SurveyUpdate, dc=Depends(require("
 
 
 # ---------------------------------------------------------------- delete (soft: history keeps pointing to them)
-@router.delete("/customers/{customer_id}", response_model=DeleteResult)
+@deletable(router, "/customers/{customer_id}", "customers", ("العميل", Customer, "code"))
 def delete_customer(customer_id: uuid.UUID, dc=Depends(require("customers.delete"))):
     db, ctx = dc
     customer = _visible_customer(db, ctx, customer_id, "customers.delete")
@@ -353,7 +365,7 @@ def delete_customer(customer_id: uuid.UUID, dc=Depends(require("customers.delete
     return DeleteResult(result="deleted")
 
 
-@router.delete("/surveys/{survey_id}", response_model=DeleteResult)
+@deletable(router, "/surveys/{survey_id}", "surveys", ("المعاينة", SiteSurvey, "number"))
 def delete_survey(survey_id: uuid.UUID, dc=Depends(require("surveys.delete"))):
     db, ctx = dc
     survey = get_or_404(db, SiteSurvey, survey_id)

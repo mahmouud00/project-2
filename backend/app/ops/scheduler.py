@@ -48,6 +48,18 @@ def _purge_locations_job() -> None:
         db.close()
 
 
+def _deletions_job() -> None:
+    """Erase what waited its 30 days (طلبات الحذف)."""
+    from app.modules.deletions.router import run_due_deletions
+
+    try:
+        n = run_due_deletions()
+        if n:
+            log.info("erased %d deleted records after their 30 days", n)
+    except Exception as e:
+        log.error("deletions job failed: %s", type(e).__name__)
+
+
 def start_scheduler():
     from apscheduler.schedulers.background import BackgroundScheduler
 
@@ -57,5 +69,6 @@ def start_scheduler():
                   misfire_grace_time=6 * 3600)
     sched.add_job(_purge_locations_job, "cron", hour=3, minute=30, id="purge_locations", coalesce=True,
                   misfire_grace_time=12 * 3600)
+    sched.add_job(_deletions_job, "interval", hours=1, id="due_deletions", coalesce=True)
     sched.start()
     return sched

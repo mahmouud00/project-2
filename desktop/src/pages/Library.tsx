@@ -231,7 +231,7 @@ function Materials({ system, editable }: { system: System; editable: boolean }) 
         { key: "st", label: "الحالة", render: (m) => <>{m.status === "trial" && <Chip color="amber">تجربة</Chip>}{!m.is_active && <Chip color="red">متوقفة</Chip>}</> },
         ...(editable && deleter ? [{ key: "del", label: "", width: 80, render: (m: Material) => m.is_active &&
           <DeleteBtn path={`/library/materials/${m.id}`} what={`الخامة ${m.code}`} onDone={() => { invalidate("glass"); list.reload(); }}
-            note="لو الخامة مستخدمة في نموذج لازم تشيلها منه الأول. لو اتنشرت أو عليها مخزون أو أوامر شراء هتتوقف بس، غير كدا هتتمسح." /> }] : []),
+            note="النماذج اللي مستخدمة الخامة دي هيوصل لأصحابها إشعار يغيّروها. أوامر الشراء القديمة بتفضل زي ما هي." /> }] : []),
       ]} empty="مفيش خامات" />
       {!editable && !s.isPlatform && <div className="muted small">اضغط على خامة عشان تحط سعرها عند شركتك أو كودك الداخلي.</div>}
       {edit && <MaterialForm system={system} material={edit} onClose={() => setEdit(null)} onSaved={() => { invalidate("glass"); list.reload(); }} />}
@@ -397,7 +397,7 @@ function Models({ system, editable }: { system: System; editable: boolean }) {
           {editable && deleter && m.is_active && (
             <div className="no-print" style={{ position: "absolute", top: 8, left: 8 }}>
               <DeleteBtn label="" path={`/library/models/${m.id}`} what={`النموذج ${m.name}`} onDone={() => { invalidate("models"); list.reload(); }}
-                note="لو النموذج اتنشر قبل كدا أو مستخدم في عروض أو أوامر هيتوقف ويختفي بس (الأوامر القديمة بتفضل زي ما هي). لو عمره ما اتنشر هيتمسح." />
+                note="العروض والأوامر المقفولة بتفضل بنسختها زي ما هي. المعاينات والعروض والأوامر المفتوحة اللي مستخدماه هيوصلها إشعار تغيّره." />
             </div>
           )}
           </div>

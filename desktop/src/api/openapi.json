@@ -1823,7 +1823,7 @@
      "library"
     ],
     "summary": "Delete System",
-    "description": "Deleted with its constants, materials and models when it was never published; otherwise deactivated\n(published versions are frozen: work orders were calculated with them).",
+    "description": "يطلب الحذف: بيتحذف نهائي بعد ٣٠ يوم، أو فورًا بصلاحية الحذف النهائي. Deleted with its constants, materials and models. When it was published or old work uses it, it is hidden\ninstead (with its models and materials): the frozen versions and the old orders keep their copy.",
     "operationId": "delete_system_api_v1_library_systems__system_id__delete",
     "security": [
      {
@@ -2333,7 +2333,7 @@
      "library"
     ],
     "summary": "Delete Material",
-    "description": "Refused while a model still uses it; deactivated when it was published or has stock/orders; else deleted.",
+    "description": "يطلب الحذف: بيتحذف نهائي بعد ٣٠ يوم، أو فورًا بصلاحية الحذف النهائي. Erased, or hidden when old purchases point to it. Models that still use its code are reported by the\ndeletion (they need another material) and fail their check until changed.",
     "operationId": "delete_material_api_v1_library_materials__material_id__delete",
     "security": [
      {
@@ -2724,7 +2724,7 @@
      "library"
     ],
     "summary": "Delete Model",
-    "description": "Deactivated when it was published or quotations/orders use it (they keep their history); else deleted.",
+    "description": "يطلب الحذف: بيتحذف نهائي بعد ٣٠ يوم، أو فورًا بصلاحية الحذف النهائي. Erased, or hidden when surveys, quotations or orders use it (the closed ones keep their copy; the open ones\nare told to replace it by the deletion).",
     "operationId": "delete_model_api_v1_library_models__model_id__delete",
     "security": [
      {
@@ -3776,6 +3776,7 @@
      "crm"
     ],
     "summary": "Delete Customer",
+    "description": "يطلب الحذف: بيتحذف نهائي بعد ٣٠ يوم، أو فورًا بصلاحية الحذف النهائي.",
     "operationId": "delete_customer_api_v1_customers__customer_id__delete",
     "security": [
      {
@@ -4064,6 +4065,7 @@
      "crm"
     ],
     "summary": "Delete Survey",
+    "description": "يطلب الحذف: بيتحذف نهائي بعد ٣٠ يوم، أو فورًا بصلاحية الحذف النهائي.",
     "operationId": "delete_survey_api_v1_surveys__survey_id__delete",
     "security": [
      {
@@ -4362,7 +4364,7 @@
      "sales"
     ],
     "summary": "Delete Quotation",
-    "description": "A quotation that became a work order or an invoice stays (cancel those first).",
+    "description": "يطلب الحذف: بيتحذف نهائي بعد ٣٠ يوم، أو فورًا بصلاحية الحذف النهائي. A quotation that became a work order or an invoice stays (cancel those first).",
     "operationId": "delete_quotation_api_v1_quotations__quote_id__delete",
     "security": [
      {
@@ -5200,7 +5202,7 @@
      "production"
     ],
     "summary": "Delete Work Order",
-    "description": "Only before anything happened to it: once money is received or it is invoiced, it is cancelled\n(stage \"cancelled\") instead, so the records stay consistent.",
+    "description": "يطلب الحذف: بيتحذف نهائي بعد ٣٠ يوم، أو فورًا بصلاحية الحذف النهائي. Only before anything happened to it: once money is received or it is invoiced, it is cancelled\n(stage \"cancelled\") instead, so the records stay consistent.",
     "operationId": "delete_work_order_api_v1_work_orders__wo_id__delete",
     "security": [
      {
@@ -5872,6 +5874,7 @@
      "purchasing"
     ],
     "summary": "Delete Supplier",
+    "description": "يطلب الحذف: بيتحذف نهائي بعد ٣٠ يوم، أو فورًا بصلاحية الحذف النهائي.",
     "operationId": "delete_supplier_api_v1_suppliers__supplier_id__delete",
     "security": [
      {
@@ -6138,7 +6141,7 @@
      "purchasing"
     ],
     "summary": "Delete Po",
-    "description": "A draft order is deleted; an ordered one is cancelled instead (status \"cancelled\").",
+    "description": "يطلب الحذف: بيتحذف نهائي بعد ٣٠ يوم، أو فورًا بصلاحية الحذف النهائي. A draft order is deleted; an ordered one is cancelled instead (status \"cancelled\").",
     "operationId": "delete_po_api_v1_purchase_orders__po_id__delete",
     "security": [
      {
@@ -6744,7 +6747,7 @@
      "treasury"
     ],
     "summary": "Delete Cashbox",
-    "description": "Deleted when it never had a transaction; otherwise deactivated (money history stays).",
+    "description": "يطلب الحذف: بيتحذف نهائي بعد ٣٠ يوم، أو فورًا بصلاحية الحذف النهائي. Deleted when it never had a transaction; otherwise deactivated (money history stays).",
     "operationId": "delete_cashbox_api_v1_cashboxes__box_id__delete",
     "security": [
      {
@@ -7247,7 +7250,7 @@
      "invoicing"
     ],
     "summary": "Delete Invoice",
-    "description": "A draft is deleted; an issued invoice keeps its number and is cancelled with a reason instead.",
+    "description": "يطلب الحذف: بيتحذف نهائي بعد ٣٠ يوم، أو فورًا بصلاحية الحذف النهائي. A draft is deleted; an issued invoice keeps its number and is cancelled with a reason instead.",
     "operationId": "delete_invoice_api_v1_invoices__inv_id__delete",
     "security": [
      {
@@ -8055,6 +8058,7 @@
      "field"
     ],
     "summary": "Delete Maintenance",
+    "description": "يطلب الحذف: بيتحذف نهائي بعد ٣٠ يوم، أو فورًا بصلاحية الحذف النهائي.",
     "operationId": "delete_maintenance_api_v1_maintenance__mid__delete",
     "security": [
      {
@@ -8323,6 +8327,7 @@
      "field"
     ],
     "summary": "Delete Job",
+    "description": "يطلب الحذف: بيتحذف نهائي بعد ٣٠ يوم، أو فورًا بصلاحية الحذف النهائي.",
     "operationId": "delete_job_api_v1_field_jobs__job_id__delete",
     "security": [
      {
@@ -8922,7 +8927,7 @@
      "hr"
     ],
     "summary": "Delete Employee",
-    "description": "Deleted when nothing points to them; with salaries, advances or sales they are marked as left instead.",
+    "description": "يطلب الحذف: بيتحذف نهائي بعد ٣٠ يوم، أو فورًا بصلاحية الحذف النهائي. Deleted (hidden from every list). With salaries, advances or sales they are also marked as left, and that\nhistory keeps showing them.",
     "operationId": "delete_employee_api_v1_employees__eid__delete",
     "security": [
      {
@@ -9398,6 +9403,7 @@
      "hr"
     ],
     "summary": "Delete Leave",
+    "description": "يطلب الحذف: بيتحذف نهائي بعد ٣٠ يوم، أو فورًا بصلاحية الحذف النهائي.",
     "operationId": "delete_leave_api_v1_employee_leaves__leave_id__delete",
     "security": [
      {
@@ -9950,7 +9956,7 @@
      "finance"
     ],
     "summary": "Delete Asset",
-    "description": "For an entry made by mistake. A sold or scrapped asset is marked \"disposed\" (keeps the history).",
+    "description": "يطلب الحذف: بيتحذف نهائي بعد ٣٠ يوم، أو فورًا بصلاحية الحذف النهائي. For an entry made by mistake. A sold or scrapped asset is marked \"disposed\" (keeps the history).",
     "operationId": "delete_asset_api_v1_assets__asset_id__delete",
     "security": [
      {
@@ -10209,6 +10215,157 @@
       "OAuth2PasswordBearer": []
      }
     ]
+   }
+  },
+  "/api/v1/deletions": {
+   "get": {
+    "tags": [
+     "deletions"
+    ],
+    "summary": "List Deletions",
+    "description": "What is waiting to be deleted (with its countdown), or the finished ones (`status=done|cancelled|failed`).",
+    "operationId": "list_deletions_api_v1_deletions_get",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "status",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string",
+       "default": "pending",
+       "title": "Status"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/DeletionOut"
+         },
+         "title": "Response List Deletions Api V1 Deletions Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/deletions/{req_id}/now": {
+   "post": {
+    "tags": [
+     "deletions"
+    ],
+    "summary": "Delete Now",
+    "description": "حذف نهائي فورًا من غير ما يستنى الـ٣٠ يوم.",
+    "operationId": "delete_now_api_v1_deletions__req_id__now_post",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "req_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Req Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/DeletionOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/deletions/{req_id}/cancel": {
+   "post": {
+    "tags": [
+     "deletions"
+    ],
+    "summary": "Cancel Deletion",
+    "description": "تراجع عن الحذف: the one who asked, or whoever holds the permanent delete permission.",
+    "operationId": "cancel_deletion_api_v1_deletions__req_id__cancel_post",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "req_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Req Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/DeletionOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
    }
   }
  },
@@ -11780,7 +11937,7 @@
        }
       ],
       "title": "Min Reusable Offcut Mm",
-      "description": "أقصر باقي بيتشال (أقل منه هالك)",
+      "description": "أقصر فضلة بتتشال (أقل منها هالك)",
       "default": "400"
      },
      "quote_terms": {
@@ -12530,6 +12687,30 @@
      "result": {
       "type": "string",
       "title": "Result"
+     },
+     "request_id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "uuid"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Request Id"
+     },
+     "due_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Due At"
      }
     },
     "type": "object",
@@ -12537,7 +12718,93 @@
      "result"
     ],
     "title": "DeleteResult",
-    "description": "What a delete did: \"deleted\", or \"deactivated\" when history still points to the record."
+    "description": "What a delete did: \"scheduled\" (erased after 30 days, see `deletions`), \"deleted\", or \"deactivated\" when\nhistory still points to the record."
+   },
+   "DeletionOut": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Id"
+     },
+     "kind": {
+      "type": "string",
+      "title": "Kind"
+     },
+     "target_id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Target Id"
+     },
+     "label": {
+      "type": "string",
+      "title": "Label"
+     },
+     "requested_by": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Requested By"
+     },
+     "requested_by_name": {
+      "type": "string",
+      "title": "Requested By Name",
+      "default": ""
+     },
+     "requested_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Requested At"
+     },
+     "due_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Due At"
+     },
+     "status": {
+      "type": "string",
+      "title": "Status"
+     },
+     "finished_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Finished At"
+     },
+     "note": {
+      "type": "string",
+      "title": "Note"
+     },
+     "can_cancel": {
+      "type": "boolean",
+      "title": "Can Cancel",
+      "default": false
+     },
+     "can_delete_now": {
+      "type": "boolean",
+      "title": "Can Delete Now",
+      "default": false
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "kind",
+     "target_id",
+     "label",
+     "requested_by",
+     "requested_at",
+     "due_at",
+     "status",
+     "finished_at",
+     "note"
+    ],
+    "title": "DeletionOut"
    },
    "DeviceOut": {
     "properties": {
@@ -14071,6 +14338,11 @@
       "type": "string",
       "format": "uuid",
       "title": "Id"
+     },
+     "model_deleted": {
+      "type": "boolean",
+      "title": "Model Deleted",
+      "default": false
      },
      "position": {
       "type": "integer",
@@ -16760,6 +17032,11 @@
       "type": "string",
       "format": "uuid",
       "title": "Id"
+     },
+     "model_deleted": {
+      "type": "boolean",
+      "title": "Model Deleted",
+      "default": false
      },
      "position": {
       "type": "integer",
@@ -22608,6 +22885,11 @@
       "type": "boolean",
       "title": "Priced",
       "default": true
+     },
+     "model_deleted": {
+      "type": "boolean",
+      "title": "Model Deleted",
+      "default": false
      }
     },
     "type": "object",

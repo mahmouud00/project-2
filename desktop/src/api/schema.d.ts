@@ -563,8 +563,8 @@ export interface paths {
         post?: never;
         /**
          * Delete System
-         * @description Deleted with its constants, materials and models when it was never published; otherwise deactivated
-         *     (published versions are frozen: work orders were calculated with them).
+         * @description يطلب الحذف: بيتحذف نهائي بعد ٣٠ يوم، أو فورًا بصلاحية الحذف النهائي. Deleted with its constants, materials and models. When it was published or old work uses it, it is hidden
+         *     instead (with its models and materials): the frozen versions and the old orders keep their copy.
          */
         delete: operations["delete_system_api_v1_library_systems__system_id__delete"];
         options?: never;
@@ -640,7 +640,8 @@ export interface paths {
         post?: never;
         /**
          * Delete Material
-         * @description Refused while a model still uses it; deactivated when it was published or has stock/orders; else deleted.
+         * @description يطلب الحذف: بيتحذف نهائي بعد ٣٠ يوم، أو فورًا بصلاحية الحذف النهائي. Erased, or hidden when old purchases point to it. Models that still use its code are reported by the
+         *     deletion (they need another material) and fail their check until changed.
          */
         delete: operations["delete_material_api_v1_library_materials__material_id__delete"];
         options?: never;
@@ -741,7 +742,8 @@ export interface paths {
         post?: never;
         /**
          * Delete Model
-         * @description Deactivated when it was published or quotations/orders use it (they keep their history); else deleted.
+         * @description يطلب الحذف: بيتحذف نهائي بعد ٣٠ يوم، أو فورًا بصلاحية الحذف النهائي. Erased, or hidden when surveys, quotations or orders use it (the closed ones keep their copy; the open ones
+         *     are told to replace it by the deletion).
          */
         delete: operations["delete_model_api_v1_library_models__model_id__delete"];
         options?: never;
@@ -1036,7 +1038,10 @@ export interface paths {
         get: operations["get_customer_api_v1_customers__customer_id__get"];
         put?: never;
         post?: never;
-        /** Delete Customer */
+        /**
+         * Delete Customer
+         * @description يطلب الحذف: بيتحذف نهائي بعد ٣٠ يوم، أو فورًا بصلاحية الحذف النهائي.
+         */
         delete: operations["delete_customer_api_v1_customers__customer_id__delete"];
         options?: never;
         head?: never;
@@ -1073,7 +1078,10 @@ export interface paths {
         get: operations["get_survey_api_v1_surveys__survey_id__get"];
         put?: never;
         post?: never;
-        /** Delete Survey */
+        /**
+         * Delete Survey
+         * @description يطلب الحذف: بيتحذف نهائي بعد ٣٠ يوم، أو فورًا بصلاحية الحذف النهائي.
+         */
         delete: operations["delete_survey_api_v1_surveys__survey_id__delete"];
         options?: never;
         head?: never;
@@ -1112,7 +1120,7 @@ export interface paths {
         post?: never;
         /**
          * Delete Quotation
-         * @description A quotation that became a work order or an invoice stays (cancel those first).
+         * @description يطلب الحذف: بيتحذف نهائي بعد ٣٠ يوم، أو فورًا بصلاحية الحذف النهائي. A quotation that became a work order or an invoice stays (cancel those first).
          */
         delete: operations["delete_quotation_api_v1_quotations__quote_id__delete"];
         options?: never;
@@ -1330,7 +1338,7 @@ export interface paths {
         post?: never;
         /**
          * Delete Work Order
-         * @description Only before anything happened to it: once money is received or it is invoiced, it is cancelled
+         * @description يطلب الحذف: بيتحذف نهائي بعد ٣٠ يوم، أو فورًا بصلاحية الحذف النهائي. Only before anything happened to it: once money is received or it is invoiced, it is cancelled
          *     (stage "cancelled") instead, so the records stay consistent.
          */
         delete: operations["delete_work_order_api_v1_work_orders__wo_id__delete"];
@@ -1507,7 +1515,10 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        /** Delete Supplier */
+        /**
+         * Delete Supplier
+         * @description يطلب الحذف: بيتحذف نهائي بعد ٣٠ يوم، أو فورًا بصلاحية الحذف النهائي.
+         */
         delete: operations["delete_supplier_api_v1_suppliers__supplier_id__delete"];
         options?: never;
         head?: never;
@@ -1546,7 +1557,7 @@ export interface paths {
         post?: never;
         /**
          * Delete Po
-         * @description A draft order is deleted; an ordered one is cancelled instead (status "cancelled").
+         * @description يطلب الحذف: بيتحذف نهائي بعد ٣٠ يوم، أو فورًا بصلاحية الحذف النهائي. A draft order is deleted; an ordered one is cancelled instead (status "cancelled").
          */
         delete: operations["delete_po_api_v1_purchase_orders__po_id__delete"];
         options?: never;
@@ -1713,7 +1724,7 @@ export interface paths {
         post?: never;
         /**
          * Delete Cashbox
-         * @description Deleted when it never had a transaction; otherwise deactivated (money history stays).
+         * @description يطلب الحذف: بيتحذف نهائي بعد ٣٠ يوم، أو فورًا بصلاحية الحذف النهائي. Deleted when it never had a transaction; otherwise deactivated (money history stays).
          */
         delete: operations["delete_cashbox_api_v1_cashboxes__box_id__delete"];
         options?: never;
@@ -1803,7 +1814,7 @@ export interface paths {
         post?: never;
         /**
          * Delete Invoice
-         * @description A draft is deleted; an issued invoice keeps its number and is cancelled with a reason instead.
+         * @description يطلب الحذف: بيتحذف نهائي بعد ٣٠ يوم، أو فورًا بصلاحية الحذف النهائي. A draft is deleted; an issued invoice keeps its number and is cancelled with a reason instead.
          */
         delete: operations["delete_invoice_api_v1_invoices__inv_id__delete"];
         options?: never;
@@ -2006,7 +2017,10 @@ export interface paths {
         get: operations["get_maintenance_api_v1_maintenance__mid__get"];
         put?: never;
         post?: never;
-        /** Delete Maintenance */
+        /**
+         * Delete Maintenance
+         * @description يطلب الحذف: بيتحذف نهائي بعد ٣٠ يوم، أو فورًا بصلاحية الحذف النهائي.
+         */
         delete: operations["delete_maintenance_api_v1_maintenance__mid__delete"];
         options?: never;
         head?: never;
@@ -2045,7 +2059,10 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        /** Delete Job */
+        /**
+         * Delete Job
+         * @description يطلب الحذف: بيتحذف نهائي بعد ٣٠ يوم، أو فورًا بصلاحية الحذف النهائي.
+         */
         delete: operations["delete_job_api_v1_field_jobs__job_id__delete"];
         options?: never;
         head?: never;
@@ -2205,7 +2222,8 @@ export interface paths {
         post?: never;
         /**
          * Delete Employee
-         * @description Deleted when nothing points to them; with salaries, advances or sales they are marked as left instead.
+         * @description يطلب الحذف: بيتحذف نهائي بعد ٣٠ يوم، أو فورًا بصلاحية الحذف النهائي. Deleted (hidden from every list). With salaries, advances or sales they are also marked as left, and that
+         *     history keeps showing them.
          */
         delete: operations["delete_employee_api_v1_employees__eid__delete"];
         options?: never;
@@ -2352,7 +2370,10 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        /** Delete Leave */
+        /**
+         * Delete Leave
+         * @description يطلب الحذف: بيتحذف نهائي بعد ٣٠ يوم، أو فورًا بصلاحية الحذف النهائي.
+         */
         delete: operations["delete_leave_api_v1_employee_leaves__leave_id__delete"];
         options?: never;
         head?: never;
@@ -2480,7 +2501,7 @@ export interface paths {
         post?: never;
         /**
          * Delete Asset
-         * @description For an entry made by mistake. A sold or scrapped asset is marked "disposed" (keeps the history).
+         * @description يطلب الحذف: بيتحذف نهائي بعد ٣٠ يوم، أو فورًا بصلاحية الحذف النهائي. For an entry made by mistake. A sold or scrapped asset is marked "disposed" (keeps the history).
          */
         delete: operations["delete_asset_api_v1_assets__asset_id__delete"];
         options?: never;
@@ -2577,6 +2598,66 @@ export interface paths {
         put?: never;
         /** Read All */
         post: operations["read_all_api_v1_notifications_read_all_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/deletions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Deletions
+         * @description What is waiting to be deleted (with its countdown), or the finished ones (`status=done|cancelled|failed`).
+         */
+        get: operations["list_deletions_api_v1_deletions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/deletions/{req_id}/now": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Delete Now
+         * @description حذف نهائي فورًا من غير ما يستنى الـ٣٠ يوم.
+         */
+        post: operations["delete_now_api_v1_deletions__req_id__now_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/deletions/{req_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancel Deletion
+         * @description تراجع عن الحذف: the one who asked, or whoever holds the permanent delete permission.
+         */
+        post: operations["cancel_deletion_api_v1_deletions__req_id__cancel_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3168,7 +3249,7 @@ export interface components {
             bar_trim_mm: number | string;
             /**
              * Min Reusable Offcut Mm
-             * @description أقصر باقي بيتشال (أقل منه هالك)
+             * @description أقصر فضلة بتتشال (أقل منها هالك)
              * @default 400
              */
             min_reusable_offcut_mm: number | string;
@@ -3400,11 +3481,69 @@ export interface components {
         };
         /**
          * DeleteResult
-         * @description What a delete did: "deleted", or "deactivated" when history still points to the record.
+         * @description What a delete did: "scheduled" (erased after 30 days, see `deletions`), "deleted", or "deactivated" when
+         *     history still points to the record.
          */
         DeleteResult: {
             /** Result */
             result: string;
+            /** Request Id */
+            request_id?: string | null;
+            /** Due At */
+            due_at?: string | null;
+        };
+        /** DeletionOut */
+        DeletionOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Kind */
+            kind: string;
+            /**
+             * Target Id
+             * Format: uuid
+             */
+            target_id: string;
+            /** Label */
+            label: string;
+            /**
+             * Requested By
+             * Format: uuid
+             */
+            requested_by: string;
+            /**
+             * Requested By Name
+             * @default
+             */
+            requested_by_name: string;
+            /**
+             * Requested At
+             * Format: date-time
+             */
+            requested_at: string;
+            /**
+             * Due At
+             * Format: date-time
+             */
+            due_at: string;
+            /** Status */
+            status: string;
+            /** Finished At */
+            finished_at: string | null;
+            /** Note */
+            note: string;
+            /**
+             * Can Cancel
+             * @default false
+             */
+            can_cancel: boolean;
+            /**
+             * Can Delete Now
+             * @default false
+             */
+            can_delete_now: boolean;
         };
         /** DeviceOut */
         DeviceOut: {
@@ -3905,6 +4044,11 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /**
+             * Model Deleted
+             * @default false
+             */
+            model_deleted: boolean;
             /** Position */
             position: number;
             /** Location */
@@ -4778,6 +4922,11 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /**
+             * Model Deleted
+             * @default false
+             */
+            model_deleted: boolean;
             /** Position */
             position: number;
             /** Location */
@@ -6776,6 +6925,11 @@ export interface components {
              * @default true
              */
             priced: boolean;
+            /**
+             * Model Deleted
+             * @default false
+             */
+            model_deleted: boolean;
         };
         /** LineUpdate */
         app__modules__sales__router__LineUpdate: {
@@ -13017,6 +13171,99 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Inbox"];
+                };
+            };
+        };
+    };
+    list_deletions_api_v1_deletions_get: {
+        parameters: {
+            query?: {
+                status?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeletionOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_now_api_v1_deletions__req_id__now_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                req_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeletionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancel_deletion_api_v1_deletions__req_id__cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                req_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeletionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

@@ -158,7 +158,7 @@ function EmployeeProfile({ id, tab }: { id: string; tab: string }) {
             {s.can("hr.write", e.branch_id) && <Btn icon="edit" onClick={() => setEditing(true)}>تعديل</Btn>}
             {s.can("hr.delete", e.branch_id) && <DeleteBtn small={false} path={`/employees/${id}`} what={`الموظف ${e.full_name}`}
               onDone={() => { invalidate("salespeople"); go("hr"); }}
-              note="لو ليه مرتبات أو سلف أو مبيعات مش هيتمسح، هيتعلم إنه ساب الشغل والتاريخ يفضل." />}
+              note="لو ليه مرتبات أو سلف أو مبيعات بيتعلم إنه ساب الشغل، ومرتباته ومبيعاته القديمة بتفضل باسمه." />}
           </div>
         </div>
       </Card>

@@ -15,6 +15,7 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 from sqlalchemy import func, or_, select
 
+from app.modules.deletions.router import deletable
 from app.api.common import DeleteResult, ORMModel, Page, PageParams, Record, VersionedUpdate, paginate
 from app.core.audit import apply_changes, audit, check_version, snapshot
 from app.core.errors import Conflict, ValidationFailed
@@ -204,9 +205,22 @@ def update_employee(eid: uuid.UUID, body: EmployeeUpdate, dc=Depends(require("hr
     return e
 
 
-@router.delete("/employees/{eid}", response_model=DeleteResult)
+def _employee_in_use(sdb, employee_id) -> list:
+    """Quotations not accepted yet sold by this employee: another salesperson is chosen."""
+    from app.modules.deletions.router import OpenWork
+    from app.modules.sales.models import Quotation
+
+    return [OpenWork(q.company_id, q.branch_id, q.created_by, "notify.sales", "sales", f"عرض السعر {q.number}",
+                     f"quotations/{q.id}")
+            for q in sdb.scalars(select(Quotation).where(Quotation.salesperson_id == employee_id,
+                                                         Quotation.deleted_at.is_(None),
+                                                         Quotation.status.in_(("draft", "sent"))))]
+
+
+@deletable(router, "/employees/{eid}", "employees", ("الموظف", Employee, "code"), open_work=_employee_in_use)
 def delete_employee(eid: uuid.UUID, dc=Depends(require("hr.delete"))):
-    """Deleted when nothing points to them; with salaries, advances or sales they are marked as left instead."""
+    """Deleted (hidden from every list). With salaries, advances or sales they are also marked as left, and that
+    history keeps showing them."""
     from app.modules.invoicing.models import Invoice
     from app.modules.production.models import WorkOrder
     from app.modules.sales.models import Quotation
@@ -221,9 +235,6 @@ def delete_employee(eid: uuid.UUID, dc=Depends(require("hr.delete"))):
     if used:
         e.status = "left"
         e.end_date = e.end_date or date.today()
-        audit(db, e, "update", before)
-        db.commit()
-        return DeleteResult(result="deactivated")
     e.deleted_at = utcnow()
     audit(db, e, "delete", before)
     log_pii(db, ctx, "employee", [e.id], "delete", ["full_name"])
@@ -457,7 +468,7 @@ def update_leave(leave_id: uuid.UUID, body: LeaveUpdate, dc=Depends(require("hr.
     return lv
 
 
-@router.delete("/employee-leaves/{leave_id}", response_model=DeleteResult)
+@deletable(router, "/employee-leaves/{leave_id}", "employee-leaves", ("إجازة", Leave, "start_date"))
 def delete_leave(leave_id: uuid.UUID, dc=Depends(require("hr.delete"))):
     db, ctx = dc
     lv = get_or_404(db, Leave, leave_id)

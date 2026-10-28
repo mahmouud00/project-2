@@ -192,7 +192,8 @@ function QuotationDetail({ id }: { id: string }) {
               <div><b>{l.model_name}</b>{l.location && <span className="muted"> · {l.location}</span>}
                 <div className="small"><ColorName code={l.color_code} /> {l.glass_material_code && <span className="muted">· {l.glass_material_code}</span>}</div>
                 <ParamLabels modelId={l.model_id} values={l.params} />
-                {archOf(l) && <ArchNote arch={archOf(l)!} />}</div>
+                {archOf(l) && <ArchNote arch={archOf(l)!} />}
+                {(l.model_deleted || archOf(l)?.model_deleted) && editable && <div className="small"><Chip color="red">النموذج اتحذف من المكتبة: غيّره</Chip></div>}</div>
             </div>) },
           { key: "p", label: "سعر المتر", width: 150, render: (l) => (
             <PpmCell line={l} editable={editable} busy={busy} onSave={(v) => setPpm(l, v)} />) },

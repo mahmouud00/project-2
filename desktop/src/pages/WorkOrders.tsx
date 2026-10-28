@@ -168,6 +168,7 @@ function WorkOrderDetail({ id, tab }: { id: string; tab: string }) {
           { key: "p", label: "#", width: 36, render: (i) => <span className="num muted">{i.position}</span> },
           { key: "img", label: "", width: 76, render: (i) => <ModelThumb modelId={i.model_id} /> },
           { key: "m", label: "الصنف", render: (i) => <div><ModelLabel id={i.model_id} />{i.location && <span className="muted"> · {i.location}</span>}
+            {i.model_deleted && ["survey", "quotation", "approved"].includes(w.stage) && <div className="small"><Chip color="red">النموذج اتحذف من المكتبة: غيّره</Chip></div>}
             <div><ParamLabels modelId={i.model_id} values={i.params} /></div></div> },
           { key: "s", label: "الفتحة (عرض × ارتفاع)", render: (i) => <Dim w={i.opening_width_mm} h={i.opening_height_mm} /> },
           { key: "c", label: "اللون", render: (i) => <ColorName code={i.color_code} /> },

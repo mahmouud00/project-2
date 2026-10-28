@@ -46,7 +46,7 @@ def licensed_types(db: Session, ctx: RequestContext) -> set[str] | None:
 
 
 def visible_systems_stmt(db: Session, ctx: RequestContext):
-    stmt = select(ProfileSystem)
+    stmt = select(ProfileSystem).where(ProfileSystem.deleted_at.is_(None))
     types = licensed_types(db, ctx)
     if types is not None:
         # own systems always; library systems only for licensed material types
@@ -68,9 +68,17 @@ def get_visible(db: Session, model, obj_id: uuid.UUID):
     return obj
 
 
+def deleted_models(db: Session, model_ids) -> set[uuid.UUID]:
+    """Of these models, the ones deleted from the library (open work using them must replace them)."""
+    ids = {i for i in model_ids if i}
+    if not ids:
+        return set()
+    return set(db.scalars(select(ProductModel.id).where(ProductModel.id.in_(ids), ProductModel.deleted_at.is_not(None))))
+
+
 def find_material(db: Session, code: str) -> Material | None:
     """Own material first, then the library one with the same code."""
-    rows = db.scalars(select(Material).where(Material.code == code)).all()
+    rows = db.scalars(select(Material).where(Material.code == code, Material.deleted_at.is_(None))).all()
     for m in rows:
         if m.company_id != PLATFORM_COMPANY_ID:
             return m
@@ -100,10 +108,11 @@ def referenced_codes(definition: dict) -> set[str]:
 def build_snapshot(db: Session, system: ProfileSystem) -> dict:
     constants = db.scalars(select(SystemConstant).where(SystemConstant.system_id == system.id)
                            .order_by(SystemConstant.sort, SystemConstant.name)).all()
-    models = db.scalars(select(ProductModel).where(ProductModel.system_id == system.id, ProductModel.is_active)
-                        .order_by(ProductModel.sort, ProductModel.code)).all()
+    models = db.scalars(select(ProductModel).where(ProductModel.system_id == system.id, ProductModel.is_active,
+                                                 ProductModel.deleted_at.is_(None)).order_by(ProductModel.sort, ProductModel.code)).all()
     materials: dict[str, Material] = {
-        m.code: m for m in db.scalars(select(Material).where(Material.system_id == system.id, Material.is_active))}
+        m.code: m for m in db.scalars(select(Material).where(Material.system_id == system.id, Material.is_active,
+                                                    Material.deleted_at.is_(None)))}
     for model in models:
         for code in referenced_codes(model.definition) - set(materials):
             m = find_material(db, code)

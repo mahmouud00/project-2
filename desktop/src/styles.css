@@ -183,6 +183,7 @@ a { color: var(--primary); }
 .btn.success { background: var(--success); border-color: var(--success); color: #fff; }
 .btn.danger { color: var(--danger); }
 .btn.danger.solid { background: var(--danger); border-color: var(--danger); color: #fff; }
+.btn.danger-soft { background: var(--danger-soft); border-color: transparent; color: var(--danger); font-weight: 600; white-space: nowrap; }
 .btn.ghost { border-color: transparent; background: transparent; color: var(--primary); }
 .btn.sm { min-height: 28px; padding: 3px 9px; font-size: 12px; }
 .btn.icon { padding: 0; width: 34px; }
@@ -328,6 +329,7 @@ textarea.input { min-height: 70px; resize: vertical; }
 .editor-table .input { min-height: 30px; padding: 3px 7px; }
 .notice { border-radius: 8px; padding: 9px 12px; font-size: 12.5px; }
 .notice.warn { background: var(--warning-soft); color: var(--warning); }
+.notice.danger { background: var(--danger-soft); color: var(--danger); }
 .notice.err { background: var(--danger-soft); color: var(--danger); }
 .notice.info { background: var(--primary-soft); color: var(--primary); }
 .notice.ok { background: var(--success-soft); color: var(--success); }

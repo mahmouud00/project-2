@@ -36,6 +36,7 @@ export const NAV: [string, NavItem[]][] = [
     { id: "users", icon: "shield", label: "المستخدمين والصلاحيات", perm: "users.manage" },
     { id: "settings", icon: "gear", label: "بيانات الشركة", perm: "org.manage", hideForPlatform: true },
     { id: "system", icon: "key", label: "الترخيص والنسخ", perm: ["system.manage", "platform.library.author"] },
+    { id: "deletions", icon: "trash", label: "جاري الحذف" },
   ]],
 ];
 

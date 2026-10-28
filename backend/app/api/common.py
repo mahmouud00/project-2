@@ -48,5 +48,8 @@ class VersionedUpdate(BaseModel):
 
 
 class DeleteResult(BaseModel):
-    """What a delete did: "deleted", or "deactivated" when history still points to the record."""
+    """What a delete did: "scheduled" (erased after 30 days, see `deletions`), "deleted", or "deactivated" when
+    history still points to the record."""
     result: str
+    request_id: uuid.UUID | None = None
+    due_at: datetime | None = None

@@ -123,7 +123,7 @@ def import_workbook(db, ctx, data: bytes, apply: bool) -> dict:
 
     system_ids: dict[str, object] = {}
     for s in systems:
-        existing = db.scalar(select(ProfileSystem).where(ProfileSystem.code == s["code"],
+        existing = db.scalar(select(ProfileSystem).where(ProfileSystem.code == s["code"], ProfileSystem.deleted_at.is_(None),
                                                          ProfileSystem.company_id.in_([mine, PLATFORM_COMPANY_ID])))
         if existing is not None:
             system_ids[s["code"]] = existing.id
@@ -174,7 +174,8 @@ def import_workbook(db, ctx, data: bytes, apply: bool) -> dict:
             system_code = _text(r.get("system"))
             system_id = system_ids.get(system_code)
             if system_code and system_code not in system_ids:
-                found = db.scalar(select(ProfileSystem).where(ProfileSystem.code == system_code))
+                found = db.scalar(select(ProfileSystem).where(ProfileSystem.code == system_code,
+                                                              ProfileSystem.deleted_at.is_(None)))
                 if found is None:
                     raise ValueError(f"السيستم مش موجود: {system_code}")
                 system_id = system_ids[system_code] = found.id
@@ -192,9 +193,11 @@ def import_workbook(db, ctx, data: bytes, apply: bool) -> dict:
             continue
 
         if code not in seen_materials:
-            own = db.scalar(select(Material).where(Material.code == code, Material.company_id == mine))
+            own = db.scalar(select(Material).where(Material.code == code, Material.company_id == mine,
+                                                   Material.deleted_at.is_(None)))
             library = None if platform or own else db.scalar(
-                select(Material).where(Material.code == code, Material.company_id == PLATFORM_COMPANY_ID))
+                select(Material).where(Material.code == code, Material.company_id == PLATFORM_COMPANY_ID,
+                                       Material.deleted_at.is_(None)))
             fields = dict(name=name, kind=kind, unit=unit, bar_length_mm=bar, weight_kg_per_m=weight,
                           category=_text(r.get("category")), system_id=system_id)
             if own is not None:

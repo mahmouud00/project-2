@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 
+from app.modules.deletions.router import deletable
 from app.api.common import DeleteResult, ORMModel, Page, PageParams, Record, VersionedUpdate, paginate
 from app.core.audit import apply_changes, audit, check_version, snapshot
 from app.core.errors import Conflict, ValidationFailed
@@ -306,7 +307,18 @@ def receive(po_id: uuid.UUID, body: ReceiveIn, dc=Depends(require("purchasing.wr
     return _po_out(db, po)
 
 
-@router.delete("/suppliers/{supplier_id}", response_model=DeleteResult)
+def _supplier_in_use(sdb, supplier_id) -> list:
+    """Purchases not ordered yet from this supplier: the accounts choose another one."""
+    from app.modules.deletions.router import OpenWork
+
+    return [OpenWork(po.company_id, po.branch_id, po.created_by, "notify.accounts", "accounts",
+                     f"أمر الشراء {po.number}", f"purchasing/{po.id}")
+            for po in sdb.scalars(select(PurchaseOrder).where(PurchaseOrder.supplier_id == supplier_id,
+                                                              PurchaseOrder.deleted_at.is_(None),
+                                                              PurchaseOrder.status.in_(("draft", "approved", "rejected"))))]
+
+
+@deletable(router, "/suppliers/{supplier_id}", "suppliers", ("المورد", Supplier, "code"), open_work=_supplier_in_use)
 def delete_supplier(supplier_id: uuid.UUID, dc=Depends(require("purchasing.delete"))):
     db, _ = dc
     supplier = get_or_404(db, Supplier, supplier_id)
@@ -317,7 +329,7 @@ def delete_supplier(supplier_id: uuid.UUID, dc=Depends(require("purchasing.delet
     return DeleteResult(result="deleted")
 
 
-@router.delete("/purchase-orders/{po_id}", response_model=DeleteResult)
+@deletable(router, "/purchase-orders/{po_id}", "purchase-orders", ("أمر الشراء", PurchaseOrder, "number"))
 def delete_po(po_id: uuid.UUID, dc=Depends(require("purchasing.delete"))):
     """A draft order is deleted; an ordered one is cancelled instead (status "cancelled")."""
     db, ctx = dc

@@ -3,6 +3,7 @@ approval, assets, profit and capital."""
 from datetime import date
 from decimal import Decimal as D
 
+from tests.delete_helpers import delete_now
 from tests.test_business_flow import _setup, price_at_top
 from tests.test_field_service import _accepted_order
 from tests.test_org_permissions_locking import _make_user
@@ -99,8 +100,10 @@ def test_salesperson_follows_the_sale(platform, tenant_a, client):
     q2 = client.post("/api/v1/quotations", headers=hs, json={"customer_id": customer["id"], "branch_id": branch["id"],
                                                            "lines": [line]}).json()
     assert q2["salesperson_id"] == e2["id"]
-    # an employee with sales is not deleted, only marked as left
-    assert client.delete(f"/api/v1/employees/{e['id']}", headers=h).json()["result"] == "deactivated"
+    # an employee with sales is deleted from the lists and marked as left; the sales keep their salesperson
+    assert delete_now(client, h, f"/api/v1/employees/{e['id']}").json()["result"] == "deleted"
+    assert all(x["id"] != e["id"] for x in client.get("/api/v1/employees", headers=h).json()["items"])
+    assert client.get(f"/api/v1/invoices/{inv['id']}", headers=h).json()["salesperson_id"] == e["id"]
 
 
 def test_purchase_needs_approval_by_accounts(platform, tenant_a, client):
@@ -119,7 +122,7 @@ def test_purchase_needs_approval_by_accounts(platform, tenant_a, client):
     r = client.post(f"/api/v1/purchase-orders/{po['id']}/status", headers=h, json={"version": rej["version"],
                                                                                    "status": "ordered"})
     assert r.status_code == 409 and r.json()["error"]["code"] == "PO_NOT_APPROVED"
-    assert client.delete(f"/api/v1/purchase-orders/{po['id']}", headers=h).json()["result"] == "deleted"
+    assert delete_now(client, h, f"/api/v1/purchase-orders/{po['id']}").json()["result"] == "deleted"
     hb = tenant_a.headers("buyer", "user-pass-123")
     assert client.post(f"/api/v1/purchase-orders/{po['id']}/approve", headers=hb,
                        json={"version": 1}).status_code == 403

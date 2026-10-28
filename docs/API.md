@@ -50,7 +50,16 @@ POST /auth/login     {company_code?, username, password, device_key, device_name
 كل endpoint محتاج صلاحية معينة (`GET /permissions` بيرجّع القايمة كاملة). الصلاحية بتتمنح بالدور، والدور بيتربط بالفرع، فالمستخدم مابيشوفش ولا بيعدّل غير في الفروع اللي ليه فيها الصلاحية.
 
 ### الترخيص
-- **الإضافة والحذف صلاحيات منفصلة** لكل قسم (`customers.create` / `customers.delete`، ...). كل `DELETE` بيرجّع `{"result": "deleted"}` أو `{"result": "deactivated"}` (للي ليه تاريخ)، أو `409` بسبب واضح (`QUOTE_IN_USE`، `WO_IN_USE`، `INVOICE_ISSUED`، `PO_NOT_DRAFT`). الفلوس عمرها ما بتتمسح: حركة الخزينة بتتعكس (`treasury.delete`) والفاتورة الصادرة بتتلغي (`invoices.delete`).
+- **الإضافة والحذف صلاحيات منفصلة** لكل قسم (`customers.create` / `customers.delete`، ...).
+- **الحذف بعد ٣٠ يوم:** كل `DELETE` لسجل (عميل، معاينة، عرض، أمر، فاتورة مسودة، أمر شراء، مورد، موظف، إجازة، خزنة، أصل، صيانة، مهمة فني، سيستم/خامة/نموذج في المكتبة) بيرجّع `{"result": "scheduled", "request_id", "due_at"}`: الحاجة بتفضل شغالة وعليها «جاري الحذف»، وبتتحذف نهائي بعد ٣٠ يوم (المجدول كل ساعة). نفس قواعد الحذف بتتشيك وقت الطلب (`409` زي `QUOTE_IN_USE`، `WO_IN_USE`، `INVOICE_ISSUED`، `PO_NOT_DRAFT`)، ولو بقت مينفعش تتحذف وقت التنفيذ الطلب بيبقى `failed` بالسبب. الفلوس عمرها ما بتتمسح: حركة الخزينة بتتعكس (`treasury.delete`) والفاتورة الصادرة بتتلغي (`invoices.delete`). سطور المستند (سطر عرض أو فاتورة، ثابت، اختبار) بتتمسح فورًا.
+
+| | | |
+|---|---|---|
+| GET | `/deletions?status=pending` (أو `done`، `cancelled`، `failed`) | طلبات الحذف بالعداد (`due_at`)، ومين طلبها، و`can_delete_now` و`can_cancel` |
+| POST | `/deletions/{id}/now` | حذف نهائي فورًا (`delete.permanent`، المدير بيحدد مين ياخدها) |
+| POST | `/deletions/{id}/cancel` | تراجع: اللي طلب الحذف أو صاحب `delete.permanent` |
+
+إشعار «طلب حذف» بيروح لأصحاب `delete.permanent`. لو الحاجة مستخدمة في شغل مفتوح (معاينة مفتوحة، عرض لسه ماتقبلش، أمر لسه مادخلش تصنيع، أمر شراء لسه ماتطلبش، نموذج في المكتبة) اللي عامل الشغل ده ومدير القسم بيوصلهم إشعار «غيّره» وقت الطلب ووقت الحذف، والسطر بيتعلّم `model_deleted`. الشغل المقفول بيفضل بنسخته.
 - لو الترخيص أو الاشتراك منتهي: فترة سماح، وبعدها السيستم بيبقى **قراءة بس** (`LICENSE_READ_ONLY` على أي POST/PUT/PATCH/DELETE).
 - لو الترخيص مش موجود أو متلاعب فيه: مفيش أي وصول، ما عدا رفع ترخيص جديد.
 
@@ -109,7 +118,7 @@ WS /api/v1/system/events?token=<access_token>
 | GET / POST | `/library/models/{id}/tests` | الاختبارات المرجعية للنموذج |
 | DELETE | `/library/tests/{id}` | |
 | POST | `/library/models/{id}/tests/run` | تشغيل الاختبارات المرجعية |
-| DELETE | `/library/systems/{id}`، `/library/materials/{id}`، `/library/models/{id}` | لو عمره ما اتنشر ولا اتستخدم بيتمسح (السيستم بكل اللي جواه)، ولو اتنشر أو مستخدم بيتوقف بس (`{"result": "deactivated"}`). الخامة المستخدمة في نموذج: `MATERIAL_IN_USE` بأكواد النماذج. الشركة محتاجة `library.manage` + `library.delete` لصفوفها الخاصة بس |
+| DELETE | `/library/systems/{id}`، `/library/materials/{id}`، `/library/models/{id}` | بعد ٣٠ يوم (فوق). لو مفيش حاجة قديمة بتشاور عليه بيتمسح (السيستم بكل اللي جواه)، ولو نسخة منشورة أو عرض أو أمر أو أمر شراء بيشاور عليه بيستخبى من كل القوايم (`deleted_at`) والقديم بيفضل بنسخته، وكوده ينفع يتستخدم تاني. النماذج اللي مستخدمة خامة اتحذفت بيوصل لأصحابها إشعار. الشركة محتاجة `library.manage` + `library.delete` لصفوفها الخاصة بس |
 | POST | `/library/systems/{id}/publish` | نشر نسخة مجمّدة. بيترفض لو أي نموذج فيه غلط أو أي اختبار مرجعي اختلف أكتر من 0.1 مم |
 | GET | `/library/systems/{id}/versions`، `/library/versions/{id}` | النسخ المنشورة ومحتواها |
 | GET / PUT | `/library/systems/{id}/adjustments` | معايرة الشركة (`calibrations: [{constant_name, delta}]`) وقيمها الخاصة (`overrides`) |
@@ -205,7 +214,7 @@ WS /api/v1/system/events?token=<access_token>
 ### hr: الموارد البشرية
 | | | |
 |---|---|---|
-| GET / POST / PATCH / DELETE | `/employees`، `/employees/{id}` | الموظف: الوظيفة، القسم (`sales`، `production`، `installation`، ...)، الفرع، المرتب، الرقم القومي، رصيد الإجازات، وحسابه على البرنامج (`user_id`). قراءة بياناته الشخصية بتتسجل. اللي ليه مرتبات أو مبيعات بيتعلم إنه ساب الشغل بدل ما يتمسح |
+| GET / POST / PATCH / DELETE | `/employees`، `/employees/{id}` | الموظف: الوظيفة، القسم (`sales`، `production`، `installation`، ...)، الفرع، المرتب، الرقم القومي، رصيد الإجازات، وحسابه على البرنامج (`user_id`). قراءة بياناته الشخصية بتتسجل. الحذف بيشيله من القوايم، واللي ليه مرتبات أو مبيعات بيتعلم كمان إنه ساب الشغل وتاريخه يفضل |
 | GET | `/employees/brief` | الأسماء بس (لاختيار البائع) لمين يشوف عروض الأسعار |
 | GET | `/employees/{id}/summary`، `/sales`، `/payslips`، `/entries`، `/leaves` | باقي الإجازات والسلف، مبيعاته في السنة، مرتباته، حركاته، إجازاته |
 | POST / DELETE | `/employee-entries` | `bonus` حافز / `deduction` خصم على مرتب شهر، أو `advance` سلفة بتتصرف من خزينة (`cashbox_id`) وتتخصم على أقساط (`installment`). السلفة بتتلغي بعكس حركة صرفها |

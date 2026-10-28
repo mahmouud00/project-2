@@ -74,7 +74,7 @@ def _from_row(model, data: dict) -> dict:
 
 # ---------------------------------------------------------------- export (vendor)
 def export_package(db: Session, system_codes: list[str] | None = None, notes: str = "") -> bytes:
-    stmt = select(ProfileSystem).where(ProfileSystem.company_id == PLATFORM_COMPANY_ID)
+    stmt = select(ProfileSystem).where(ProfileSystem.company_id == PLATFORM_COMPANY_ID, ProfileSystem.deleted_at.is_(None))
     if system_codes:
         stmt = stmt.where(ProfileSystem.code.in_(system_codes))
     systems = db.scalars(stmt.order_by(ProfileSystem.code)).all()
@@ -83,15 +83,16 @@ def export_package(db: Session, system_codes: list[str] | None = None, notes: st
     for s in systems:
         if s.image_id:
             media_ids.add(s.image_id)
-        materials = db.scalars(select(Material).where(Material.system_id == s.id)).all()
-        models = db.scalars(select(ProductModel).where(ProductModel.system_id == s.id)).all()
+        materials = db.scalars(select(Material).where(Material.system_id == s.id, Material.deleted_at.is_(None))).all()
+        models = db.scalars(select(ProductModel).where(ProductModel.system_id == s.id,
+                                                       ProductModel.deleted_at.is_(None))).all()
         versions = db.scalars(select(FormulaSetVersion).where(FormulaSetVersion.system_id == s.id)
                               .order_by(FormulaSetVersion.version_no)).all()
         # shared library materials (system_id NULL) used by this system's models
         used = set()
         for v in versions:
             used |= set(v.snapshot.get("materials", {}))
-        shared = db.scalars(select(Material).where(Material.company_id == PLATFORM_COMPANY_ID,
+        shared = db.scalars(select(Material).where(Material.company_id == PLATFORM_COMPANY_ID, Material.deleted_at.is_(None),
                                                    Material.system_id.is_(None), Material.code.in_(used))).all() if used else []
         mats = []
         for m in list(materials) + list(shared):

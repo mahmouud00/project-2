@@ -178,6 +178,8 @@ function SurveyDetail({ id }: { id: string }) {
         <Btn small icon="plus" onClick={() => setRows((r) => [...r, blankRow()])}>صف</Btn>
         <Btn small kind="primary" icon="check" busy={busy} disabled={!dirty} onClick={save}>حفظ</Btn>
       </>}>
+        {openings.some((o) => o.model_deleted) && <div className="card-b"><div className="notice danger small">
+          نموذج الوحدات رقم <span className="num">{openings.filter((o) => o.model_deleted).map((o) => o.position).join("، ")}</span> اتحذف من المكتبة: اختار نموذج تاني.</div></div>}
         <SurveySheet kind={survey.kind as SurveyKind} rows={rows} editable={editable} onChange={(r) => setRows(withBlank(r))}
           onDetails={(i) => setDetails(i)} />
         <div className="card-b small muted">

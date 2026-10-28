@@ -15,11 +15,11 @@ import uuid
 from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import BigInteger, Boolean, DateTime, ForeignKey, Integer, Numeric, String, Text, UniqueConstraint
+from sqlalchemy import BigInteger, Boolean, DateTime, ForeignKey, Index, Integer, Numeric, String, Text, UniqueConstraint, text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.db.base import Base, Entity, utcnow
+from app.db.base import Base, Entity, SoftDeleteMixin, utcnow
 
 MATERIAL_TYPES = ("upvc", "shutter", "aluminum")
 MATERIAL_KINDS = ("profile", "reinforcement", "accessory", "glass", "gasket", "consumable", "panel", "other")
@@ -50,9 +50,11 @@ class Color(Base, LibraryEntity):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
 
-class ProfileSystem(Base, LibraryEntity):
+class ProfileSystem(Base, LibraryEntity, SoftDeleteMixin):
     __tablename__ = "profile_systems"
-    __table_args__ = (UniqueConstraint("company_id", "code"),)
+    # unique among the rows not deleted (a deleted one kept for old orders may share the code with a new one)
+    __table_args__ = (Index("uq_profile_systems_company_id_code", "company_id", "code", unique=True,
+                            postgresql_where=text("deleted_at IS NULL")),)
 
     code: Mapped[str] = mapped_column(String(40))
     name: Mapped[str] = mapped_column(String(200))
@@ -82,9 +84,10 @@ class SystemConstant(Base, LibraryEntity):
     sort: Mapped[int] = mapped_column(Integer, default=0)
 
 
-class Material(Base, LibraryEntity):
+class Material(Base, LibraryEntity, SoftDeleteMixin):
     __tablename__ = "materials"
-    __table_args__ = (UniqueConstraint("company_id", "code"),)
+    __table_args__ = (Index("uq_materials_company_id_code", "company_id", "code", unique=True,
+                            postgresql_where=text("deleted_at IS NULL")),)
 
     system_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("profile_systems.id"),
                                                         nullable=True, index=True)
@@ -115,12 +118,13 @@ class MaterialVariant(Base, LibraryEntity):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
 
-class ProductModel(Base, LibraryEntity):
+class ProductModel(Base, LibraryEntity, SoftDeleteMixin):
     """A window/door/shutter model of a system with its full definition
     (parameters, formulas, cut pieces per material with their deductions,
     glass, accessories, validations, drawing) as one JSON document."""
     __tablename__ = "product_models"
-    __table_args__ = (UniqueConstraint("system_id", "code"),)
+    __table_args__ = (Index("uq_product_models_system_id_code", "system_id", "code", unique=True,
+                            postgresql_where=text("deleted_at IS NULL")),)
 
     system_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("profile_systems.id"), index=True)
     code: Mapped[str] = mapped_column(String(60))

@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 from sqlalchemy import case, func, select
 
+from app.modules.deletions.router import deletable
 from app.api.common import DeleteResult, ORMModel, Page, PageParams, Record, paginate
 from app.core.audit import audit
 from app.core.errors import Conflict, ValidationFailed
@@ -263,7 +264,7 @@ def supplier_statement(supplier_id: uuid.UUID, dc=Depends(require("treasury.read
                         "received_value": str(p.received_value), "paid": str(p.paid_amount)} for p in pos]}
 
 
-@router.delete("/cashboxes/{box_id}", response_model=DeleteResult)
+@deletable(router, "/cashboxes/{box_id}", "cashboxes", ("الخزنة", Cashbox, "code"))
 def delete_cashbox(box_id: uuid.UUID, dc=Depends(require("treasury.delete"))):
     """Deleted when it never had a transaction; otherwise deactivated (money history stays)."""
     from app.core.audit import snapshot

@@ -4,6 +4,7 @@
     sales       أي تحديث على عميل: بياناته، معاينة، عرض سعر، تأكيد البيعة، تحصيل، فاتورة، صيانة
     production  بيعة اتأكدت (جاهزة للتصنيع) وكل نقل مرحلة في أمر التصنيع
     field       مهام الفنيين: اتعملت، الفني في الطريق، وصل، خلص؛ وطلبات الصيانة
+    deletions   طلبات الحذف (لصاحب صلاحية الحذف النهائي)، وأي حاجة محذوفة لسه مستخدمة في شغل مفتوح
 
 The program asks for new ones every few seconds and shows each as a Windows / Android notification.
 The one who made the change is not notified about it.
@@ -26,7 +27,7 @@ from app.tenancy.context import get_db_and_ctx
 router = APIRouter(tags=["notifications"])
 
 PERMISSION = {"accounts": "notify.accounts", "sales": "notify.sales", "production": "notify.production",
-              "field": "notify.field"}
+              "field": "notify.field", "deletions": "delete.permanent"}
 
 
 def recipients(db, permission: str, branch_id: uuid.UUID | None) -> set[uuid.UUID]:

@@ -169,6 +169,9 @@ def test_upgrade_from_old_revision_keeps_data():
     assert qt["fair_total"] == 0 and qt["price_approved_total"] is None and qt["price_list_id"] is not None
     assert "quotes.approve_price" in set(after["roles"][str(p["admin_role"])]["permissions"])
     assert not any(x.startswith("pricelists.") for r in after["roles"].values() for x in r["permissions"])
+    # 0016: nothing is hidden by the upgrade; the administrator may erase at once
+    assert all(r["deleted_at"] is None for t in ("profile_systems", "materials") for r in after[t].values())
+    assert "delete.permanent" in set(after["roles"][str(p["admin_role"])]["permissions"])
     # 0012: orders already in production count as confirmed sales; accounts confirm sales; manager roles
     assert wo["sale_status"] == "approved" and wo["sale_approval_note"] == "قبل تأكيد الحسابات"
     assert {"sales.approve", "notify.accounts"} <= acc

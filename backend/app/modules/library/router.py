@@ -11,11 +11,12 @@ from pydantic import BaseModel
 from sqlalchemy import delete, or_, select
 from sqlalchemy.exc import IntegrityError
 
+from app.modules.deletions.router import deletable, materials_in_use, models_in_use
 from app.api.common import DeleteResult, Page, PageParams, paginate
 from app.core.audit import apply_changes, audit, check_version, snapshot
 from app.core.config import get_settings
 from app.core.errors import Conflict, Forbidden, NotFound, ValidationFailed
-from app.db.base import PLATFORM_COMPANY_ID
+from app.db.base import PLATFORM_COMPANY_ID, utcnow
 from app.engine.compute import CalcError, calculate, check_definition
 from app.modules.library import schemas as S
 from app.modules.library import service as svc
@@ -145,7 +146,7 @@ def list_systems(material_type: str | None = None, include_inactive: bool = Fals
 def create_system(body: S.SystemIn, dc=Depends(get_db_and_ctx)):
     db, ctx = dc
     svc.require_author(ctx)
-    if db.scalar(select(ProfileSystem).where(ProfileSystem.code == body.code,
+    if db.scalar(select(ProfileSystem).where(ProfileSystem.code == body.code, ProfileSystem.deleted_at.is_(None),
                                              ProfileSystem.company_id == ctx.company_id)):
         raise Conflict("System code exists", code="DUPLICATE_CODE")
     system = ProfileSystem(**body.model_dump())
@@ -233,15 +234,22 @@ def delete_constant(constant_id: uuid.UUID, dc=Depends(get_db_and_ctx)):
     db.commit()
 
 
-@router.delete("/library/systems/{system_id}", response_model=DeleteResult)
+def _system_in_use(sdb, system_id) -> list:
+    """Open work using the system's models or materials (told to replace them)."""
+    models = list(sdb.scalars(select(ProductModel.id).where(ProductModel.system_id == system_id)))
+    materials = list(sdb.scalars(select(Material.id).where(Material.system_id == system_id)))
+    return models_in_use(sdb, models) + materials_in_use(sdb, materials)
+
+
+@deletable(router, "/library/systems/{system_id}", "library/systems", ("السيستم", ProfileSystem, "code"),
+           open_work=_system_in_use)
 def delete_system(system_id: uuid.UUID, dc=Depends(get_db_and_ctx)):
-    """Deleted with its constants, materials and models when it was never published; otherwise deactivated
-    (published versions are frozen: work orders were calculated with them)."""
+    """Deleted with its constants, materials and models. When it was published or old work uses it, it is hidden
+    instead (with its models and materials): the frozen versions and the old orders keep their copy."""
     db, ctx = dc
     svc.require_deleter(ctx)
     system = svc.get_system(db, ctx, system_id)
     svc.ensure_writable(ctx, system)
-    published = db.scalar(select(FormulaSetVersion.id).where(FormulaSetVersion.system_id == system.id).limit(1))
 
     def children():
         model_ids = select(ProductModel.id).where(ProductModel.system_id == system.id)
@@ -254,29 +262,47 @@ def delete_system(system_id: uuid.UUID, dc=Depends(get_db_and_ctx)):
         for table in (CompanyCalibration, CompanyConstantOverride):
             db.execute(delete(table).where(table.system_id == system.id))
 
-    return _delete_or_deactivate(db, system, keep=bool(published), children=children)
+    def hide_children():
+        now = utcnow()
+        for m in db.scalars(select(ProductModel).where(ProductModel.system_id == system.id,
+                                                       ProductModel.deleted_at.is_(None))):
+            m.deleted_at, m.is_active = now, False
+        for m in db.scalars(select(Material).where(Material.system_id == system.id, Material.deleted_at.is_(None))):
+            _free_material(db, m)
+            m.deleted_at, m.is_active = now, False
+
+    return _delete_or_hide(db, system, children=children, hide_children=hide_children)
 
 
-def _delete_or_deactivate(db, obj, *, keep: bool, children=None) -> DeleteResult:
-    """Hard delete unless `keep` or something still references the row (then it is only deactivated)."""
+def _free_material(db, m: Material) -> None:
+    """A hidden material gives back its SKUs and the company prices (nothing old points to them)."""
+    db.execute(delete(MaterialVariant).where(MaterialVariant.material_id == m.id))
+    db.execute(delete(CompanyMaterialSetting).where(CompanyMaterialSetting.material_id == m.id))
+
+
+def _delete_or_hide(db, obj, *, children=None, hide_children=None) -> DeleteResult:
+    """حذف نهائي: the row is erased. When old work still points to it (a published version, a quotation, an order,
+    a purchase) it is hidden everywhere instead (`deleted_at`), so that work keeps showing what it was made with;
+    its code may be used again."""
     before = snapshot(obj)
-    if not keep:
-        try:
-            with db.begin_nested():
-                if children:
-                    children()
-                db.delete(obj)
-                db.flush()
-        except IntegrityError:
-            pass
-        else:
-            audit(db, obj, "delete", before)
-            db.commit()
-            return DeleteResult(result="deleted")
-    obj.is_active = False
-    audit(db, obj, "update", before)
+    try:
+        with db.begin_nested():
+            if children:
+                children()
+            db.delete(obj)
+            db.flush()
+    except IntegrityError:
+        pass
+    else:
+        audit(db, obj, "delete", before)
+        db.commit()
+        return DeleteResult(result="deleted")
+    if hide_children:
+        hide_children()
+    obj.deleted_at, obj.is_active = utcnow(), False
+    audit(db, obj, "delete", before)
     db.commit()
-    return DeleteResult(result="deactivated")
+    return DeleteResult(result="deleted")
 
 
 # ---------------------------------------------------------------- materials
@@ -314,7 +340,7 @@ def _set_variants(db, material: Material, variants: list[S.VariantIn]) -> None:
 def list_materials(system_id: uuid.UUID | None = None, kind: str | None = None, q: str | None = None,
                    params: PageParams = Depends(), dc=Depends(require("library.read"))):
     db, ctx = dc
-    stmt = select(Material).order_by(Material.code)
+    stmt = select(Material).where(Material.deleted_at.is_(None)).order_by(Material.code)
     if system_id:
         svc.get_system(db, ctx, system_id)
         stmt = stmt.where(Material.system_id == system_id)
@@ -334,7 +360,8 @@ def create_material(body: S.MaterialIn, dc=Depends(get_db_and_ctx)):
     svc.require_author(ctx)
     if body.system_id:
         svc.ensure_writable(ctx, svc.get_system(db, ctx, body.system_id))
-    if db.scalar(select(Material).where(Material.code == body.code, Material.company_id == ctx.company_id)):
+    if db.scalar(select(Material).where(Material.code == body.code, Material.company_id == ctx.company_id,
+                                        Material.deleted_at.is_(None))):
         raise Conflict("Material code exists", code="DUPLICATE_CODE")
     material = Material(**body.model_dump(exclude={"variants"}))
     db.add(material)
@@ -431,25 +458,17 @@ def import_template(dc=Depends(require("library.read"))):
                              headers={"Content-Disposition": "attachment; filename=materials-template.xlsx"})
 
 
-@router.delete("/library/materials/{material_id}", response_model=DeleteResult)
+@deletable(router, "/library/materials/{material_id}", "library/materials", ("الخامة", Material, "code"),
+           open_work=lambda sdb, mid: materials_in_use(sdb, [mid]))
 def delete_material(material_id: uuid.UUID, dc=Depends(get_db_and_ctx)):
-    """Refused while a model still uses it; deactivated when it was published or has stock/orders; else deleted."""
+    """Erased, or hidden when old purchases point to it. Models that still use its code are reported by the
+    deletion (they need another material) and fail their check until changed."""
     db, ctx = dc
     svc.require_deleter(ctx)
     material = svc.get_visible(db, Material, material_id)
     svc.ensure_writable(ctx, material)
-    users = sorted(m.code for m in db.scalars(select(ProductModel).where(ProductModel.is_active))
-                   if material.code in svc.referenced_codes(m.definition))
-    if users:
-        raise Conflict("Material is used by models", code="MATERIAL_IN_USE", details=users)
-    published = db.scalar(select(FormulaSetVersion.id)
-                          .where(FormulaSetVersion.snapshot["materials"].has_key(material.code)).limit(1))
-
-    def children():
-        db.execute(delete(MaterialVariant).where(MaterialVariant.material_id == material.id))
-        db.execute(delete(CompanyMaterialSetting).where(CompanyMaterialSetting.material_id == material.id))
-
-    return _delete_or_deactivate(db, material, keep=bool(published), children=children)
+    return _delete_or_hide(db, material, children=lambda: _free_material(db, material),
+                           hide_children=lambda: _free_material(db, material))
 
 
 # ---------------------------------------------------------------- models
@@ -463,7 +482,8 @@ def _check_materials_exist(db, definition: S.Definition) -> None:
 def list_models(system_id: uuid.UUID, include_inactive: bool = False, dc=Depends(require("library.read"))):
     db, ctx = dc
     svc.get_system(db, ctx, system_id)
-    stmt = select(ProductModel).where(ProductModel.system_id == system_id).order_by(ProductModel.sort, ProductModel.code)
+    stmt = select(ProductModel).where(ProductModel.system_id == system_id, ProductModel.deleted_at.is_(None)) \
+        .order_by(ProductModel.sort, ProductModel.code)
     if not include_inactive:
         stmt = stmt.where(ProductModel.is_active)
     return db.scalars(stmt).all()
@@ -475,7 +495,8 @@ def create_model(body: S.ModelIn, dc=Depends(get_db_and_ctx)):
     svc.require_author(ctx)
     system = svc.get_system(db, ctx, body.system_id)
     svc.ensure_writable(ctx, system)
-    if db.scalar(select(ProductModel).where(ProductModel.system_id == system.id, ProductModel.code == body.code)):
+    if db.scalar(select(ProductModel).where(ProductModel.system_id == system.id, ProductModel.code == body.code,
+                                            ProductModel.deleted_at.is_(None))):
         raise Conflict("Model code exists", code="DUPLICATE_CODE")
     _check_materials_exist(db, body.definition)
     model = ProductModel(**body.model_dump(exclude={"definition", "color_images"}),
@@ -518,21 +539,20 @@ def update_model(model_id: uuid.UUID, body: S.ModelUpdate, dc=Depends(get_db_and
     return model
 
 
-@router.delete("/library/models/{model_id}", response_model=DeleteResult)
+@deletable(router, "/library/models/{model_id}", "library/models", ("النموذج", ProductModel, "code"),
+           open_work=lambda sdb, mid: models_in_use(sdb, [mid]))
 def delete_model(model_id: uuid.UUID, dc=Depends(get_db_and_ctx)):
-    """Deactivated when it was published or quotations/orders use it (they keep their history); else deleted."""
+    """Erased, or hidden when surveys, quotations or orders use it (the closed ones keep their copy; the open ones
+    are told to replace it by the deletion)."""
     db, ctx = dc
     svc.require_deleter(ctx)
     model = svc.get_visible(db, ProductModel, model_id)
     svc.ensure_writable(ctx, model)
-    published = db.scalar(select(FormulaSetVersion.id).where(
-        FormulaSetVersion.system_id == model.system_id,
-        FormulaSetVersion.snapshot["models"].has_key(model.code)).limit(1))
 
     def children():
         db.execute(delete(ModelTestCase).where(ModelTestCase.model_id == model.id))
 
-    return _delete_or_deactivate(db, model, keep=bool(published), children=children)
+    return _delete_or_hide(db, model, children=children)
 
 
 def _draft_snapshot(db, ctx, model: ProductModel) -> dict:

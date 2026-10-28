@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 from sqlalchemy import case, func, select
 
+from app.modules.deletions.router import deletable
 from app.api.common import DeleteResult, Page, PageParams, Record, VersionedUpdate, paginate
 from app.core.audit import apply_changes, audit, check_version, snapshot
 from app.core.errors import Conflict, ValidationFailed
@@ -393,7 +394,7 @@ def cancel(inv_id: uuid.UUID, body: CancelIn, dc=Depends(require("invoices.delet
     return invoice_out(db, inv)
 
 
-@router.delete("/invoices/{inv_id}", response_model=DeleteResult)
+@deletable(router, "/invoices/{inv_id}", "invoices", ("الفاتورة", Invoice, "number"))
 def delete_invoice(inv_id: uuid.UUID, dc=Depends(require("invoices.delete"))):
     """A draft is deleted; an issued invoice keeps its number and is cancelled with a reason instead."""
     db, ctx = dc

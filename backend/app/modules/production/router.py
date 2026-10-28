@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 
+from app.modules.deletions.router import deletable
 from app.api.common import DeleteResult, ORMModel, Page, PageParams, Record, VersionedUpdate, paginate
 from app.core.audit import apply_changes, audit, check_version, snapshot
 from app.core.errors import Conflict, ValidationFailed
@@ -52,6 +53,7 @@ class WorkOrderUpdate(VersionedUpdate):
 
 class ItemOut(ORMModel):
     id: uuid.UUID
+    model_deleted: bool = False          # its model was deleted from the library (replace it before manufacturing)
     position: int
     location: str
     model_id: uuid.UUID
@@ -116,8 +118,13 @@ def _wo_out(db, wo: WorkOrder, full: bool = True, ctx=None) -> WorkOrderOut:
     if ctx is not None:
         _with_progress(db, ctx, [out], [wo])
     if full:
+        from app.modules.library.service import deleted_models
+
         out.items = [ItemOut.model_validate(i) for i in db.scalars(
             select(WorkOrderItem).where(WorkOrderItem.work_order_id == wo.id).order_by(WorkOrderItem.position))]
+        gone = deleted_models(db, [i.model_id for i in out.items])
+        for i in out.items:
+            i.model_deleted = i.model_id in gone
         out.stage_log = [StageLogOut.model_validate(l) for l in db.scalars(
             select(WorkOrderStageLog).where(WorkOrderStageLog.work_order_id == wo.id).order_by(WorkOrderStageLog.at))]
     return out
@@ -424,7 +431,7 @@ def material_needs(wo_id: uuid.UUID, dc=Depends(require("workorders.read"))):
     return needs
 
 
-@router.delete("/work-orders/{wo_id}", response_model=DeleteResult)
+@deletable(router, "/work-orders/{wo_id}", "work-orders", ("أمر التصنيع", WorkOrder, "number"))
 def delete_work_order(wo_id: uuid.UUID, dc=Depends(require("workorders.delete"))):
     """Only before anything happened to it: once money is received or it is invoiced, it is cancelled
     (stage "cancelled") instead, so the records stay consistent."""
