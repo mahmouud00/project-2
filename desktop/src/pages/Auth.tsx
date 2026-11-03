@@ -147,6 +147,8 @@ function ActivationCard({ state, onDone }: { state: Activation; onDone: () => vo
 }
 
 type PublicBranding = { company_code: string; name: string; has_logo: boolean; accent_color?: string };
+/** MYTech's own account (authors the library) on a factory server, which otherwise logs into its one company */
+const PLATFORM_CODE = "__platform__";
 
 export function LoginPage({ info, onLogin, onChangeServer }:
   { info: ServerInfo; onLogin: () => Promise<void>; onChangeServer: () => void }) {
@@ -159,6 +161,7 @@ export function LoginPage({ info, onLogin, onChangeServer }:
   const [brand, setBrand] = useState<PublicBranding | null>(null);
   const [logo, setLogo] = useState<string | null>(null);
   const [activation, setActivation] = useState<Activation | null>(null);
+  const [vendor, setVendor] = useState(!online && store.company === PLATFORM_CODE);
 
   const checkActivation = async () => {
     if (online) return;
@@ -194,7 +197,7 @@ export function LoginPage({ info, onLogin, onChangeServer }:
     setBusy(true);
     setError(null);
     try {
-      await login(online ? company.trim() : (brand?.company_code ?? ""), username.trim(), password);
+      await login(online ? company.trim() : vendor ? PLATFORM_CODE : (brand?.company_code ?? ""), username.trim(), password);
       await onLogin();
     } catch (err) {
       if (err instanceof ApiError && err.code === "LICENSE_INVALID") {
@@ -215,11 +218,11 @@ export function LoginPage({ info, onLogin, onChangeServer }:
           <div className="co">
             <div className={"co-logo" + (logo ? "" : " empty")}>{logo ? <img src={logo} alt="" /> : (brand?.name ?? "M").slice(0, 1)}</div>
             <div>
-              <h2>{brand?.name ?? "تسجيل الدخول"}</h2>
-              <div className="muted small">{brand ? "تسجيل الدخول" : online ? "اكتب كود الشركة" : ""}</div>
+              <h2>{vendor ? "MYTech Solutions" : brand?.name ?? "تسجيل الدخول"}</h2>
+              <div className="muted small">{vendor ? "حساب المطوّر: المكتبة وحزم التحديث" : brand ? "تسجيل الدخول" : online ? "اكتب كود الشركة" : ""}</div>
             </div>
           </div>
-          {activation && <ActivationCard state={activation} onDone={() => { setActivation(null); setError(null); }} />}
+          {activation && !vendor && <ActivationCard state={activation} onDone={() => { setActivation(null); setError(null); }} />}
           {online && (
             <Field label="كود الشركة"><TextIn value={company} onChange={setCompany} code autoFocus={!company} /></Field>
           )}
@@ -231,6 +234,11 @@ export function LoginPage({ info, onLogin, onChangeServer }:
             <span className="dot" /> <span className="num">{store.server?.replace(/^https?:\/\//, "")}</span>
             <button type="button" className="btn ghost sm end" onClick={onChangeServer}>تغيير السيرفر</button>
           </div>
+          {!online && (
+            <button type="button" className="btn ghost sm" style={{ alignSelf: "center" }}
+              onClick={() => { setVendor((v) => !v); setError(null); }}>
+              {vendor ? `دخول ${brand?.name ?? "الشركة"}` : "دخول MYTech (للمطوّر)"}</button>
+          )}
         </form>
       </div>
     </div>
