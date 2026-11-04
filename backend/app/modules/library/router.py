@@ -5,7 +5,7 @@ import uuid
 from datetime import datetime, timezone
 from decimal import Decimal
 
-from fastapi import APIRouter, Depends, UploadFile
+from fastapi import APIRouter, Depends, Query, UploadFile
 from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel
 from sqlalchemy import delete, or_, select
@@ -450,6 +450,33 @@ async def import_excel(file: UploadFile, apply: bool = False, dc=Depends(get_db_
     if len(data) > 20 * 1024 * 1024:
         raise ValidationFailed("File too large", code="FILE_TOO_LARGE")
     out = import_workbook(db, ctx, data, apply)
+    if apply:
+        db.commit()
+    else:
+        db.rollback()
+    return out
+
+
+@router.post("/library/models/import")
+async def import_models_excel(file: UploadFile, system_ids: list[uuid.UUID] = Query(...), apply: bool = False,
+                              dc=Depends(get_db_and_ctx)):
+    """استيراد النماذج من إكسيل into each chosen system (its own systems only): `apply=false` shows what would be
+    made (nothing saved), `apply=true` imports everything or nothing. See `model_import` for the columns."""
+    from app.modules.library.model_import import import_models
+
+    db, ctx = dc
+    svc.require_author(ctx)
+    if not system_ids:
+        raise ValidationFailed("Choose at least one system", code="NOTHING_SELECTED")
+    systems = []
+    for sid in dict.fromkeys(system_ids):
+        system = svc.get_system(db, ctx, sid)
+        svc.ensure_writable(ctx, system)
+        systems.append(system)
+    data = await file.read(20 * 1024 * 1024 + 1)
+    if len(data) > 20 * 1024 * 1024:
+        raise ValidationFailed("File too large", code="FILE_TOO_LARGE")
+    out = import_models(db, systems, data, apply)
     if apply:
         db.commit()
     else:

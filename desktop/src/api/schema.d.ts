@@ -691,6 +691,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/library/models/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Import Models Excel
+         * @description استيراد النماذج من إكسيل into each chosen system (its own systems only): `apply=false` shows what would be
+         *     made (nothing saved), `apply=true` imports everything or nothing. See `model_import` for the columns.
+         */
+        post: operations["import_models_excel_api_v1_library_models_import_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/library/import-excel/template": {
         parameters: {
             query?: never;
@@ -2893,6 +2914,11 @@ export interface components {
         };
         /** Body_import_excel_api_v1_library_import_excel_post */
         Body_import_excel_api_v1_library_import_excel_post: {
+            /** File */
+            file: string;
+        };
+        /** Body_import_models_excel_api_v1_library_models_import_post */
+        Body_import_models_excel_api_v1_library_models_import_post: {
             /** File */
             file: string;
         };
@@ -8645,6 +8671,42 @@ export interface operations {
         requestBody: {
             content: {
                 "multipart/form-data": components["schemas"]["Body_import_excel_api_v1_library_import_excel_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    import_models_excel_api_v1_library_models_import_post: {
+        parameters: {
+            query: {
+                system_ids: string[];
+                apply?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_import_models_excel_api_v1_library_models_import_post"];
             };
         };
         responses: {

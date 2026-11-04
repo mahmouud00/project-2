@@ -1,7 +1,7 @@
 // المكتبة: MYTech authors systems / materials / models once and publishes them for every customer.
 // Customers see library rows read-only, add their own calibration, and may keep private systems.
 import { useState, type ReactNode } from "react";
-import { api, raw, type S } from "../api/client";
+import { api, errorText, raw, type S } from "../api/client";
 import { useTitle, type PageProps } from "../lib/title";
 import { useAction, useLoad } from "../lib/hooks";
 import { useSession } from "../state/session";
@@ -10,6 +10,7 @@ import { Btn, Card, Chip, Confirm, ErrorBox, Field, FilePick, Help, Len, LenIn, 
 import { RowsEditor } from "../components/rows";
 import { MediaImg } from "../components/media";
 import { DeleteBtn } from "../components/actions";
+import { reloadDeletions } from "../state/deletions";
 import { MATERIAL_KINDS, MATERIAL_TYPES, UNITS, invalidate } from "../lib/lookups";
 import { go, setQuery } from "../lib/router";
 import { clean, dateTime } from "../lib/format";
@@ -33,7 +34,7 @@ export default function Library({ route }: PageProps) {
   const [, systemId, sub, modelId] = route.path;
   if (systemId === "colors") return <LibraryShell tab="colors"><Colors /></LibraryShell>;
   if (systemId === "packages") return <LibraryShell tab="packages"><Packages /></LibraryShell>;
-  if (systemId === "import") return <LibraryShell tab="import"><ExcelImport /></LibraryShell>;
+  if (systemId === "import") return <LibraryShell tab="import"><ModelsImport /><ExcelImport /></LibraryShell>;
   if (systemId && sub === "models" && modelId) return <ModelEditor systemId={systemId} modelId={modelId} tab={route.query.tab ?? "info"} />;
   return <LibraryShell tab="systems"><Systems selected={systemId} tab={route.query.tab ?? "info"} /></LibraryShell>;
 }
@@ -383,20 +384,37 @@ function Models({ system, editable }: { system: System; editable: boolean }) {
   const list = useLoad(() => api.get<S<"ModelOut">[]>("/library/models", { system_id: system.id, include_inactive: editable || undefined }), [system.id]);
   const { deleter } = useAuthor();
   const [d, setD] = useState<{ code: string; name: string; category: string } | null>(null);
+  const [sel, setSel] = useState<string[] | null>(null);   // null: not choosing models to delete
+  const [askBulk, setAskBulk] = useState(false);
+  const rows = list.data ?? [];
+  const toggle = (id: string) => setSel((x) => x && (x.includes(id) ? x.filter((y) => y !== id) : [...x, id]));
   return (
     <div className="col">
-      {editable && <PageHead><Btn kind="primary" small icon="plus" onClick={() => setD({ code: "", name: "", category: "" })}>نموذج جديد</Btn></PageHead>}
+      {editable && <PageHead>
+        {sel === null ? <>
+          <Btn kind="primary" small icon="plus" onClick={() => setD({ code: "", name: "", category: "" })}>نموذج جديد</Btn>
+          {deleter && rows.length > 0 && <Btn small icon="trash" onClick={() => setSel([])}>حذف أكتر من نموذج</Btn>}
+        </> : <>
+          <span className="muted small">اختار النماذج اللي عايز تحذفها ({sel.length} من {rows.length})</span>
+          <Btn small onClick={() => setSel(sel.length === rows.length ? [] : rows.map((m) => m.id))}>{sel.length === rows.length ? "إلغاء التحديد" : "تحديد الكل"}</Btn>
+          <Btn small kind="danger" icon="trash" disabled={!sel.length} onClick={() => setAskBulk(true)}>حذف المحدد ({sel.length})</Btn>
+          <Btn small onClick={() => setSel(null)}>رجوع</Btn>
+        </>}
+      </PageHead>}
       <div className="grid" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))" }}>
-        {(list.data ?? []).map((m) => (
+        {rows.map((m) => (
           <div key={m.id} style={{ position: "relative" }}>
-          <button className="card" style={{ width: "100%", padding: 12, cursor: "pointer", textAlign: "start" }} onClick={() => go(`library/${system.id}/models/${m.id}`)}>
+          <button className="card" style={{ width: "100%", padding: 12, cursor: "pointer", textAlign: "start",
+            outline: sel?.includes(m.id) ? "2px solid var(--danger)" : undefined }}
+            onClick={() => sel !== null ? toggle(m.id) : go(`library/${system.id}/models/${m.id}`)}>
+            {sel !== null && <input type="checkbox" readOnly checked={sel.includes(m.id)} style={{ position: "absolute", top: 10, right: 10, width: 18, height: 18 }} />}
             <MediaImg id={m.image_id} className="thumb lg" />
             <div className="mt"><b>{m.name}</b></div>
             <div className="row small muted" style={{ gap: 6 }}><span className="code">{m.code}</span>{({ window: "شباك", door: "باب", shutter: "شيش" } as Record<string, string>)[m.category] ?? m.category}
               {m.status === "trial" && <Chip color="amber">تجربة</Chip>}{!m.is_active && <Chip color="red">متوقف</Chip>}</div>
             <div className="small muted">{((m.definition as any)?.pieces ?? []).length} قطعة · {((m.definition as any)?.params ?? []).length} متغير</div>
           </button>
-          {editable && deleter && m.is_active && (
+          {editable && deleter && m.is_active && sel === null && (
             <div className="no-print" style={{ position: "absolute", top: 8, left: 8 }}>
               <DeleteBtn label="" path={`/library/models/${m.id}`} what={`النموذج ${m.name}`} onDone={() => { invalidate("models"); list.reload(); }}
                 note="العروض والأوامر المقفولة بتفضل بنسختها زي ما هي. المعاينات والعروض والأوامر المفتوحة اللي مستخدماه هيوصلها إشعار تغيّره." />
@@ -407,6 +425,8 @@ function Models({ system, editable }: { system: System; editable: boolean }) {
       </div>
       {list.loading && <Loading />}
       {list.data && !list.data.length && <div className="empty">مفيش نماذج</div>}
+      {askBulk && sel && <BulkDeleteModels ids={sel} names={Object.fromEntries(rows.map((m) => [m.id, m.name]))} onClose={() => setAskBulk(false)}
+        onDone={() => { setAskBulk(false); setSel(null); invalidate("models"); list.reload(); }} />}
       {d && <Modal title="نموذج جديد" onClose={() => setD(null)} footer={<><Btn kind="primary" busy={busy} disabled={!d.code || !d.name} onClick={() => run(async () => {
         const m = await api.post<S<"ModelOut">>("/library/models", { system_id: system.id, ...d, definition: {} });
         invalidate("models");
@@ -419,6 +439,131 @@ function Models({ system, editable }: { system: System; editable: boolean }) {
         </div>
       </Modal>}
     </div>
+  );
+}
+
+/** Deletes several models: each one asks for its deletion (30 days), or is erased at once by whoever holds the
+ * permanent delete permission when they choose to. */
+function BulkDeleteModels({ ids, names, onClose, onDone }: { ids: string[]; names: Record<string, string>; onClose: () => void; onDone: () => void }) {
+  const s = useSession();
+  const toast = useToast();
+  const canNow = s.can("delete.permanent");
+  const [now, setNow] = useState(false);
+  const [done, setDone] = useState<number | null>(null);
+  const [failed, setFailed] = useState<{ name: string; why: string }[]>([]);
+  const go = async () => {
+    const bad: { name: string; why: string }[] = [];
+    for (let i = 0; i < ids.length; i++) {
+      setDone(i);
+      try {
+        const r = await api.del<{ result: string; request_id?: string | null }>(`/library/models/${ids[i]}`);
+        if (now && r.result === "scheduled" && r.request_id) await api.post(`/deletions/${r.request_id}/now`);
+      } catch (e) {
+        bad.push({ name: names[ids[i]] ?? ids[i], why: errorText(e) });
+      }
+    }
+    setDone(ids.length);
+    await reloadDeletions();
+    setFailed(bad);
+    const ok = ids.length - bad.length;
+    if (ok) toast.ok(now ? `اتحذف ${ok} نموذج نهائي.` : `اتطلب حذف ${ok} نموذج: هيتحذفوا نهائي بعد ٣٠ يوم.`);
+    if (!bad.length) onDone();
+  };
+  const running = done !== null && done < ids.length;
+  return (
+    <Modal title={`حذف ${ids.length} نموذج`} onClose={running ? () => {} : failed.length ? onDone : onClose} footer={failed.length ? <Btn onClick={onDone}>تمام</Btn> : <>
+      <Btn kind="danger" busy={running} onClick={go}>أيوه، احذف</Btn><Btn onClick={onClose} disabled={running}>رجوع</Btn></>}>
+      <div className="col">
+        {!failed.length && <>
+          <div>{now ? "النماذج دي هتتحذف نهائي دلوقتي." : "النماذج دي هتتعلّم «جاري الحذف» وتتحذف نهائي بعد ٣٠ يوم، وتقدر تتراجع قبلها."}
+            {" "}العروض والأوامر المقفولة بتفضل بنسختها، والمفتوحة اللي مستخدماها هيوصلها إشعار تغيّرها.</div>
+          {canNow && <label className="check"><input type="checkbox" checked={now} onChange={(e) => setNow(e.target.checked)} disabled={running} />
+            احذفهم نهائي دلوقتي (من غير ما يستنوا ٣٠ يوم)</label>}
+          {running && <div className="muted small">بيحذف {done! + 1} من {ids.length}…</div>}
+        </>}
+        {!!failed.length && <>
+          <div className="notice warn">{failed.length} نموذج ماتحذفوش:</div>
+          <Table rows={failed} rowKey={(f) => f.name} columns={[
+            { key: "n", label: "النموذج", render: (f) => <b>{f.name}</b> },
+            { key: "w", label: "السبب", render: (f) => f.why },
+          ]} />
+        </>}
+      </div>
+    </Modal>
+  );
+}
+
+// ---------------------------------------------------------------- import models
+type ModelsReport = { rows: number; models_new: number; error_count: number; errors: { where: string; message: string }[];
+  systems: { id: string; code: string; name: string; new: number; existing: number }[] };
+
+/** Window/door models from an Excel list (الكود، الاسم، النوع، الرسمة), created in each chosen system. */
+function ModelsImport() {
+  const s = useSession();
+  const toast = useToast();
+  const { canEdit, author } = useAuthor();
+  const { busy, run } = useAction(toast.err);
+  const systems = useLoad(() => api.get<System[]>("/library/systems", { include_inactive: true }), []);
+  const own = (systems.data ?? []).filter((x) => canEdit(x));
+  const [picked, setPicked] = useState<string[] | null>(null);
+  const chosen = picked ?? own.filter((x) => x.material_type === "upvc").map((x) => x.id);   // all the UPVC ones by default
+  const [file, setFile] = useState<File | null>(null);
+  const [report, setReport] = useState<ModelsReport | null>(null);
+  const [done, setDone] = useState(false);
+  if (!author) return null;
+  const path = (apply: boolean) => `/library/models/import?apply=${apply}&` + chosen.map((id) => `system_ids=${id}`).join("&");
+  const check = (f: File) => run(async () => { setFile(f); setDone(false); setReport(await api.upload<ModelsReport>(path(false), f)); });
+  const apply = () => run(async () => {
+    try {
+      setReport(await api.upload<ModelsReport>(path(true), file!));
+      setDone(true);
+      invalidate("models");
+      toast.ok("اتضافت النماذج.");
+    } catch (e) {
+      const d = (e as { details?: ModelsReport }).details;
+      if (d?.errors) setReport(d);
+      throw e;
+    }
+  });
+  const toggle = (id: string) => { setPicked(chosen.includes(id) ? chosen.filter((x) => x !== id) : [...chosen, id]); setReport(null); setDone(false); };
+  return (
+    <Card title="استيراد النماذج من إكسيل">
+      <div className="col">
+        <Help>ملف فيه عمود «الكود» و«الاسم» (أو «الرقم المرجعي» و«اسم المنتج»)، واختياري «النوع» (شباك / باب) و«الرسمة». كل نموذج بيتعمل في كل قطاع
+          تختاره بالاسم والنوع والرسمة بس، وقطعه ومعادلاته (التخصيمات) بتدخلها إنت من محرر النماذج. النموذج اللي كوده موجود في القطاع بيتخطّى ومبيتغيّرش.
+          النماذج اللي مش عندك امسحها من تبويب النماذج («حذف أكتر من نموذج»).</Help>
+        <div className="row wrap" style={{ gap: 6 }}>
+          <b className="small">القطاعات:</b>
+          <Btn small onClick={() => { setPicked(own.filter((x) => x.material_type === "upvc").map((x) => x.id)); setReport(null); }}>كل قطاعات UPVC</Btn>
+          <Btn small onClick={() => { setPicked([]); setReport(null); }}>ولا قطاع</Btn>
+        </div>
+        <div className="row wrap" style={{ gap: "4px 14px", maxHeight: 180, overflow: "auto" }}>
+          {own.map((x) => <label key={x.id} className="check"><input type="checkbox" checked={chosen.includes(x.id)} onChange={() => toggle(x.id)} />
+            {x.name} <span className="code small">{x.code}</span> <span className="faint small">{MATERIAL_TYPES[x.material_type]}</span></label>)}
+          {systems.data && !own.length && <span className="muted small">مفيش قطاعات {s.isPlatform ? "في المكتبة" : "خاصة بالشركة"} لسه.</span>}
+        </div>
+        <div className="row wrap" style={{ gap: 8 }}>
+          {chosen.length ? <FilePick accept=".xlsx" onFile={check} busy={busy}>اختار ملف النماذج</FilePick>
+            : <span className="muted small">اختار قطاع واحد على الأقل.</span>}
+          {file && <span className="muted small">{file.name}</span>}
+        </div>
+        {report && <>
+          <Table rows={report.systems} rowKey={(x) => x.id} columns={[
+            { key: "n", label: "القطاع", render: (x) => <><b>{x.name}</b> <span className="code small">{x.code}</span></> },
+            { key: "a", label: "نماذج جديدة", num: true, render: (x) => <b className="num">{x.new}</b> },
+            { key: "b", label: "موجودة (هتتخطّى)", num: true, render: (x) => <span className="num muted">{x.existing}</span> },
+          ]} />
+          {report.error_count > 0 ? <>
+            <div className="notice warn">في <b className="num">{report.error_count}</b> سطر فيهم أخطاء. صلّحهم في الملف واختاره تاني (الاستيراد بيتم كله أو مفيش).</div>
+            <Table rows={report.errors} rowKey={(e) => e.where + e.message} columns={[
+              { key: "w", label: "المكان", render: (e) => <span className="num">{e.where}</span> },
+              { key: "m", label: "المشكلة", render: (e) => e.message },
+            ]} />
+          </> : done ? <div className="notice ok">اتضاف <b className="num">{report.models_new}</b> نموذج. افتح أي قطاع ← النماذج عشان تكمّل قطعها ومعادلاتها.</div>
+            : <div><Btn kind="primary" busy={busy} disabled={!report.models_new} onClick={apply}>إضافة {report.models_new} نموذج</Btn></div>}
+        </>}
+      </div>
+    </Card>
   );
 }
 

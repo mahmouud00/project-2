@@ -2485,6 +2485,76 @@
     }
    }
   },
+  "/api/v1/library/models/import": {
+   "post": {
+    "tags": [
+     "library"
+    ],
+    "summary": "Import Models Excel",
+    "description": "استيراد النماذج من إكسيل into each chosen system (its own systems only): `apply=false` shows what would be\nmade (nothing saved), `apply=true` imports everything or nothing. See `model_import` for the columns.",
+    "operationId": "import_models_excel_api_v1_library_models_import_post",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "system_ids",
+      "in": "query",
+      "required": true,
+      "schema": {
+       "type": "array",
+       "items": {
+        "type": "string",
+        "format": "uuid"
+       },
+       "title": "System Ids"
+      }
+     },
+     {
+      "name": "apply",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "boolean",
+       "default": false,
+       "title": "Apply"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "multipart/form-data": {
+       "schema": {
+        "$ref": "#/components/schemas/Body_import_models_excel_api_v1_library_models_import_post"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/v1/library/import-excel/template": {
    "get": {
     "tags": [
@@ -11012,6 +11082,20 @@
      "file"
     ],
     "title": "Body_import_excel_api_v1_library_import_excel_post"
+   },
+   "Body_import_models_excel_api_v1_library_models_import_post": {
+    "properties": {
+     "file": {
+      "type": "string",
+      "contentMediaType": "application/octet-stream",
+      "title": "File"
+     }
+    },
+    "type": "object",
+    "required": [
+     "file"
+    ],
+    "title": "Body_import_models_excel_api_v1_library_models_import_post"
    },
    "Body_preview_library_package_api_v1_library_packages_preview_post": {
     "properties": {

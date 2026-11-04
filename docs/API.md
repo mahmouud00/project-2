@@ -123,6 +123,7 @@ WS /api/v1/system/events?token=<access_token>
 | GET | `/library/systems/{id}/versions`، `/library/versions/{id}` | النسخ المنشورة ومحتواها |
 | GET / PUT | `/library/systems/{id}/adjustments` | معايرة الشركة (`calibrations: [{constant_name, delta}]`) وقيمها الخاصة (`overrides`) |
 | POST | `/engine/calculate` | `{model_id, opening_width_mm, opening_height_mm, params, version_id?}` ← القطع (طول، عدد، زوايا)، الزجاج، الإكسسوار، الرسمة، التحذيرات، و`meta.formula_set_version_id` |
+| POST | `/library/models/import?apply=&system_ids=` | ملف إكسيل بالنماذج (الكود، الاسم، النوع، الرسمة) ← بيتعمل في كل قطاع مختار (معاينة الأول، كله أو مفيش) |
 | GET | `/library/copy/sources` | (MYTech) الشركات اللي على السيرفر وسيستماتها الخاصة (مصدر للنسخ) |
 | POST | `/library/copy/run` | (MYTech) `{company_id, system_ids}` ← نسخ سيستمات شركة للمكتبة كنسخة مش منشورة |
 | POST | `/library/packages/export` | (MYTech) حزمة المكتبة، غير موقّعة |

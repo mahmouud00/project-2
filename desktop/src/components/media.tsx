@@ -59,10 +59,13 @@ export function Drawing({ elements, w, h, maxW = 150, maxH = 110 }:
       parts.push(<path key={i + "c"} d={`M${cx - 8 * d} ${cy} h${16 * d} m${-4 * d} -3 l${4 * d} 3 l${-4 * d} 3`}
         stroke="var(--primary)" strokeWidth={1.2} fill="none" />);
     } else if (op.startsWith("casement") || op.startsWith("tilt")) {
-      const hinge = op.endsWith("left") ? x + ew - inset : x + inset;
-      const tip = op.endsWith("left") ? x + inset : x + ew - inset;
-      parts.push(<path key={i + "c"} d={`M${hinge} ${y + inset} L${tip} ${cy} L${hinge} ${y + eh - inset}`} stroke="var(--primary)"
-        strokeWidth={0.9} strokeDasharray="3 2" fill="none" />);
+      // side-hung (casement, tilt-turn): lines to the hinge side; tilt (bottom-hung): the triangle only
+      if (op !== "tilt") {
+        const hinge = op.endsWith("left") ? x + ew - inset : x + inset;
+        const tip = op.endsWith("left") ? x + inset : x + ew - inset;
+        parts.push(<path key={i + "c"} d={`M${hinge} ${y + inset} L${tip} ${cy} L${hinge} ${y + eh - inset}`} stroke="var(--primary)"
+          strokeWidth={0.9} strokeDasharray="3 2" fill="none" />);
+      }
       if (op.startsWith("tilt")) parts.push(<path key={i + "d"} d={`M${x + inset} ${y + eh - inset} L${cx} ${y + inset} L${x + ew - inset} ${y + eh - inset}`}
         stroke="var(--primary)" strokeWidth={0.9} strokeDasharray="3 2" fill="none" />);
     }
