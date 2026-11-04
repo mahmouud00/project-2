@@ -21,6 +21,7 @@
 - `docs/PROGRESS.md` — اللي خلص واللي فاضل (يتحدث بعد كل مرحلة).
 - `docs/LIBRARY.md` — إزاي MYTech بتضيف القطاعات والخامات والنماذج والتخصيمات وتنشرها وتوصّلها.
 - `docs/MOVE.md` — نقل التسطيب (داتا + صور) من سيرفر المصنع للـ VPS.
+- `docs/AI_ASSISTANT.md` — المساعد الذكي (فكرة متفق عليها، هتتعمل مع النقل للـVPS).
 - `docs/API.md` · `docs/INSTALL.md` · `docs/UPDATE.md` · `docs/ONLINE.md` · `CHANGELOG.md`.
 
 ## التقنيات
