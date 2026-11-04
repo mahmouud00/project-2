@@ -653,13 +653,21 @@ def delete_quotation(quote_id: uuid.UUID, dc=Depends(require("quotes.delete"))):
     from app.modules.invoicing.models import Invoice
     from app.modules.production.models import WorkOrder
 
+    from app.modules.deletions.models import DeletionRequest
+
     db, ctx = dc
     q = _get_quote(db, ctx, quote_id, "quotes.delete")
-    if db.scalar(select(WorkOrder.id).where(WorkOrder.quotation_id == q.id, WorkOrder.deleted_at.is_(None),
-                                            WorkOrder.stage != "cancelled")) or \
-            db.scalar(select(Invoice.id).where(Invoice.quotation_id == q.id, Invoice.deleted_at.is_(None),
-                                               Invoice.status != "cancelled")):
-        raise Conflict("Quotation has a work order or an invoice", code="QUOTE_IN_USE")
+    blockers = [("work_order", w.id, w.number) for w in db.scalars(select(WorkOrder).where(
+        WorkOrder.quotation_id == q.id, WorkOrder.deleted_at.is_(None), WorkOrder.stage != "cancelled"))]
+    blockers += [("invoice", i.id, i.number) for i in db.scalars(select(Invoice).where(
+        Invoice.quotation_id == q.id, Invoice.deleted_at.is_(None), Invoice.status != "cancelled"))]
+    if blockers:
+        # name what blocks it (and whether its own deletion is already counting down) so the user knows what to do
+        pending = set(db.scalars(select(DeletionRequest.target_id).where(
+            DeletionRequest.status == "pending", DeletionRequest.target_id.in_([b[1] for b in blockers]))))
+        raise Conflict("Quotation has a work order or an invoice", code="QUOTE_IN_USE",
+                       details=[{"kind": k, "id": str(i), "number": n, "pending_delete": i in pending}
+                                for k, i, n in blockers])
     before = snapshot(q)
     q.deleted_at = utcnow()
     audit(db, q, "delete", before)

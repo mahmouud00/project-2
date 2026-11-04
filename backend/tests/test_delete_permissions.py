@@ -49,6 +49,14 @@ def test_what_delete_does(platform, tenant_a, client):
     wo = client.post("/api/v1/work-orders/from-quotation", headers=h, json={"quotation_id": q["id"]}).json()
     r = delete_now(client, h, f"/api/v1/quotations/{q['id']}")
     assert r.status_code == 409 and r.json()["error"]["code"] == "QUOTE_IN_USE"
+    # the refusal names what blocks it, and says when that one is already counting down to its own deletion
+    assert r.json()["error"]["details"] == [{"kind": "work_order", "id": wo["id"], "number": wo["number"],
+                                             "pending_delete": False}]
+    asked = client.delete(f"/api/v1/work-orders/{wo['id']}", headers=h).json()
+    assert asked["result"] == "scheduled"
+    r = delete_now(client, h, f"/api/v1/quotations/{q['id']}")
+    assert r.status_code == 409 and r.json()["error"]["details"][0]["pending_delete"] is True
+    assert client.post(f"/api/v1/deletions/{asked['request_id']}/cancel", headers=h).status_code == 200
     box = client.post("/api/v1/cashboxes", headers=h, json={"code": "DB1", "name": "خزنة", "branch_id": branch["id"]}).json()
     tx = client.post("/api/v1/cash-transactions", headers=h, json={
         "cashbox_id": box["id"], "direction": "in", "amount": "100", "party_type": "customer",

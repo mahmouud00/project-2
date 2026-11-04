@@ -27,6 +27,7 @@ export function DeleteBtn({ path, what, onDone, small = true, label = "حذف", 
       if (r.result === "scheduled") toast.ok(`اتطلب حذف ${what}: هيتحذف نهائي يوم ${date(r.due_at)}.`);
       else { toast.ok(`اتمسح ${what}.`); onDone(r); }
     } catch (e) {
+      setAsk(false);   // close the confirmation: clicking again would only repeat the same refusal
       toast.err(errorText(e));
     } finally {
       setBusy(false);

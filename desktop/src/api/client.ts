@@ -217,8 +217,22 @@ function deviceName() {
 }
 
 /** Arabic message for an API error. */
+type QuoteBlocker = { kind: "work_order" | "invoice"; number: string | null; pending_delete: boolean };
+
+/** which work orders / invoices keep a quotation from being deleted, and what to do about them */
+function quoteInUse(items: QuoteBlocker[]): string {
+  const name = (b: QuoteBlocker) => `${b.kind === "work_order" ? "أمر التصنيع" : "الفاتورة"} ${b.number ?? "(مسودة)"}`
+    + (b.pending_delete ? " (جاري حذفه)" : "");
+  const list = items.map(name).join("، ");
+  const allPending = items.every((b) => b.pending_delete);
+  return `مينفعش يتمسح عرض السعر ده: اتعمل منه ${list}. `
+    + (allPending ? "استنى لما يتحذفوا نهائي، أو احذفهم فورًا من «جاري الحذف»، وبعدين امسح العرض."
+      : "الغي أو احذف أمر التصنيع والفاتورة الأول، وبعدين امسح العرض.");
+}
+
 export function errorText(e: unknown): string {
   if (!(e instanceof ApiError)) return e instanceof Error ? e.message : String(e);
+  if (e.code === "QUOTE_IN_USE" && Array.isArray(e.details) && e.details.length) return quoteInUse(e.details as QuoteBlocker[]);
   const m = MESSAGES[e.code];
   if (m) return m;
   if (e.code === "VALIDATION_FAILED" && Array.isArray(e.details)) {
