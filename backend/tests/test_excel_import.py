@@ -103,3 +103,31 @@ def test_company_prices_library_material_without_changing_it(platform, tenant_a,
 def test_template_download(tenant_a, client):
     r = client.get("/api/v1/library/import-excel/template", headers=tenant_a.h)
     assert r.status_code == 200 and r.content[:2] == b"PK"
+
+
+def test_imported_systems_are_in_cm_and_bar_length_may_be_in_cm(tenant_a, client):
+    import io as _io
+
+    from openpyxl import load_workbook
+
+    h = tenant_a.h
+    wb = load_workbook(_io.BytesIO(client.get("/api/v1/library/import-excel/template", headers=h).content))
+    head = [c.value for c in wb["الخامات"][1]]
+    assert "طول العود (سم)" in head and "طول العود (مم)" not in head      # the template is in cm
+    cm_head = [x if x != "طول العود (مم)" else "طول العود (سم)" for x in HEAD]
+    book = Workbook()
+    book.active.title = "الألوان"
+    book.active.append(["الكود", "اللون", "اللون (hex)"])
+    s = book.create_sheet("السيستمات")
+    s.append(["الكود", "الاسم", "النوع", "ملاحظات"])
+    s.append(["CMSYS", "سيستم بالسنتيمتر", "upvc", ""])
+    m = book.create_sheet("قطاعات")
+    m.append(cm_head)
+    m.append(["CMSYS", "CM-H01", "حلق", "قطاع", "متر", 600, "", "", "", "", "", "", "", ""])
+    buf = _io.BytesIO()
+    book.save(buf)
+    assert _post(client, h, buf.getvalue(), True).status_code == 200
+    system = next(x for x in client.get("/api/v1/library/systems", headers=h).json() if x["code"] == "CMSYS")
+    assert system["unit"] == "cm"
+    mat = client.get("/api/v1/library/materials?q=CM-H01", headers=h).json()["items"][0]
+    assert D(mat["bar_length_mm"]) == 6000                                   # 600 cm stored as 6000 mm

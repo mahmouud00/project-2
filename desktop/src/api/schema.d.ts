@@ -6207,7 +6207,7 @@ export interface components {
             material_type: "upvc" | "shutter" | "aluminum";
             /**
              * Unit
-             * @default mm
+             * @default cm
              * @enum {string}
              */
             unit: "mm" | "cm";

@@ -3,7 +3,7 @@
 The workbook has a sheet "الألوان" (الكود، اللون، hex), a sheet "السيستمات" (الكود، الاسم، النوع، ملاحظات) and one
 or more material sheets whose first row has these headers (any order; extra columns are ignored):
 
-    السيستم · الكود · الاسم · النوع · الوحدة · طول العود (مم) · المجموعة · اللون · كود الصنف (SKU) · سعر المورد ·
+    السيستم · الكود · الاسم · النوع · الوحدة · طول العود (سم) أو (مم) · المجموعة · اللون · كود الصنف (SKU) · سعر المورد ·
     السعر على · ملاحظات · وزن المتر (كجم) · خصم المورد %
 
 One row = one material in one colour. Rows are matched by material code and colour: new ones are added, existing ones
@@ -38,7 +38,7 @@ UNIT = {"متر": "m", "م": "m", "قطعة": "pcs", "طقم": "set", "لفة": 
         "كيلو": "kg", "لتر": "l", "عود": "bar"}
 SYSTEM_TYPE = {"upvc": "upvc", "shutter": "shutter", "aluminum": "aluminum", "شاتر": "shutter", "ألومنيوم": "aluminum"}
 HEAD = {"السيستم": "system", "الكود": "code", "الاسم": "name", "النوع": "kind", "الوحدة": "unit",
-        "طول العود (مم)": "bar_length_mm", "المجموعة": "category", "اللون": "color", "كود الصنف (SKU)": "sku",
+        "طول العود (مم)": "bar_length_mm", "طول العود (سم)": "bar_length_cm", "المجموعة": "category", "اللون": "color", "كود الصنف (SKU)": "sku",
         "سعر المورد": "price", "السعر على": "basis", "ملاحظات": "notes", "وزن المتر (كجم)": "weight",
         "خصم المورد %": "discount"}
 
@@ -136,7 +136,7 @@ def import_workbook(db, ctx, data: bytes, apply: bool) -> dict:
         system_ids[s["code"]] = None        # known (made on import)
         if apply:
             mtype = SYSTEM_TYPE.get(s["type"].lower(), "upvc")
-            row = ProfileSystem(code=s["code"], name=s["name"] or s["code"], material_type=mtype, unit="mm",
+            row = ProfileSystem(code=s["code"], name=s["name"] or s["code"], material_type=mtype, unit="cm",
                                 description=s["notes"], status="trial", supplier="")
             db.add(row)
             db.flush()
@@ -161,6 +161,8 @@ def import_workbook(db, ctx, data: bytes, apply: bool) -> dict:
             if unit is None:
                 raise ValueError(f"الوحدة مش معروفة: {_text(r.get('unit'))}")
             bar = _dec(r.get("bar_length_mm"))
+            if bar is None and _dec(r.get("bar_length_cm")) is not None:     # the length may be given in cm
+                bar = _dec(r.get("bar_length_cm")) * 10
             weight = _dec(r.get("weight"))
             price = _dec(r.get("price"))
             discount = _dec(r.get("discount"))

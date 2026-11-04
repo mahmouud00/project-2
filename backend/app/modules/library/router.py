@@ -175,10 +175,39 @@ def update_system(system_id: uuid.UUID, body: S.SystemUpdate, dc=Depends(get_db_
     svc.ensure_writable(ctx, system)
     check_version(system, body.version)
     before = snapshot(system)
+    if body.unit and body.unit != system.unit:
+        _change_unit(db, system, body.unit)
     apply_changes(system, body.model_dump(exclude_unset=True, exclude={"version"}))
     audit(db, system, "update", before)
     db.commit()
     return _system_out(system)
+
+
+def _change_unit(db, system: ProfileSystem, unit: str) -> None:
+    """Changing the unit the numbers are written in keeps every length the same: the constants are converted
+    (0.5 mm -> 0.05 cm). Formulas can hold plain numbers that cannot be converted safely, so a system that has models
+    or published versions keeps its unit; so does one whose companies made their own calibration."""
+    from sqlalchemy import func
+
+    from app.db.session import system_session
+
+    if db.scalar(select(ProductModel.id).where(ProductModel.system_id == system.id).limit(1)) or \
+            db.scalar(select(FormulaSetVersion.id).where(FormulaSetVersion.system_id == system.id).limit(1)):
+        raise ValidationFailed("The unit of a system with models cannot change", code="UNIT_LOCKED",
+                               details={"reason": "models"})
+    with system_session() as sdb:   # every company's calibration of this system, not only the caller's
+        adjusted = sum(sdb.scalar(select(func.count()).select_from(t).where(t.system_id == system.id)) or 0
+                       for t in (CompanyCalibration, CompanyConstantOverride))
+    if adjusted:
+        raise ValidationFailed("The unit of a system with company calibration cannot change", code="UNIT_LOCKED",
+                               details={"reason": "calibration"})
+    factor = Decimal("0.1") if (system.unit, unit) == ("mm", "cm") else Decimal(10)
+    for c in db.scalars(select(SystemConstant).where(SystemConstant.system_id == system.id)):
+        value = c.value * factor
+        if value != value.quantize(Decimal("0.000001")):
+            raise ValidationFailed("A constant has too many decimals to convert", code="UNIT_LOCKED",
+                                   details={"reason": "precision", "constant": c.name})
+        c.value = value
 
 
 @router.get("/library/systems/{system_id}/constants", response_model=list[S.ConstantOut])
@@ -449,8 +478,8 @@ def import_template(dc=Depends(require("library.read"))):
     s.append(["SYS1", "اسم السيستم", "upvc", ""])
     m = wb.create_sheet("الخامات")
     m.sheet_view.rightToLeft = True
-    m.append(list(HEAD))
-    m.append(["SYS1", "P-001", "حلق مفصلي", "قطاع", "متر", 6000, "مفصلي", "أبيض", "P-001-WH", 150, "المتر", "", "", 5])
+    m.append([h for h in HEAD if h != "طول العود (مم)"])   # the template is in cm; files in mm are still read
+    m.append(["SYS1", "P-001", "حلق مفصلي", "قطاع", "متر", 600, "مفصلي", "أبيض", "P-001-WH", 150, "المتر", "", "", 5])
     buf = io.BytesIO()
     wb.save(buf)
     buf.seek(0)

@@ -125,10 +125,43 @@ def test_upgrade_from_old_revision_keeps_data():
     before5 = _dump(engine)
     engine.dispose()
 
+    migrate(url=url, revision="0016")
+    engine = create_engine(url)
+    u = {k: uuid.uuid4() for k in ("safe", "kept", "k_safe", "k_kept", "cal", "model")}
+    with engine.begin() as c:   # 0017: two systems in mm; one without models, one with a model
+        for key, code in (("safe", "MM-EMPTY"), ("kept", "MM-MODELS")):
+            c.execute(text("INSERT INTO profile_systems (id, company_id, code, name, supplier, material_type, unit, "
+                           "rounding_step_mm, rounding_mode, status, description, is_active, version) VALUES "
+                           "(:s, :c, :code, 'mm', '', 'upvc', 'mm', 0, 'half_up', 'trial', '', true, 1)"),
+                      {"s": u[key], "c": cid, "code": code})
+        for key, sys_key, value in (("k_safe", "safe", "0.5"), ("k_kept", "kept", "6")):
+            c.execute(text("INSERT INTO system_constants (id, company_id, system_id, name, label, value, unit, "
+                           "description, sort, version) VALUES (:k, :c, :s, 'gap', '', :v, '', '', 0, 1)"),
+                      {"k": u[key], "c": cid, "s": u[sys_key], "v": value})
+        c.execute(text("INSERT INTO company_calibrations (id, company_id, system_id, constant_name, delta, note, version) "
+                       "VALUES (:k, :c, :s, 'gap', 1, '', 1)"), {"k": u["cal"], "c": cid, "s": u["safe"]})
+        c.execute(text("INSERT INTO product_models (id, company_id, system_id, code, name, category, description, "
+                       "status, is_active, sort, definition, version) VALUES (:m, :c, :s, 'M1', 'model', 'window', '', "
+                       "'trial', true, 0, '{}', 1)"), {"m": u["model"], "c": cid, "s": u["kept"]})
+    engine.dispose()
+
     migrate(url=url)  # head
     engine = create_engine(url)
     after = _dump(engine)
     engine.dispose()
+    # 0017: a mm system without models moves to cm with the same lengths (0.5 mm -> 0.05 cm, calibration 1 -> 0.1);
+    # one with models keeps mm and its numbers
+    assert after["profile_systems"][str(u["safe"])]["unit"] == "cm"
+    assert float(after["system_constants"][str(u["k_safe"])]["value"]) == 0.05
+    assert float(after["company_calibrations"][str(u["cal"])]["delta"]) == 0.1
+    assert after["profile_systems"][str(u["kept"])]["unit"] == "mm"
+    assert float(after["system_constants"][str(u["k_kept"])]["value"]) == 6
+    for table, key in (("profile_systems", "safe"), ("profile_systems", "kept"), ("system_constants", "k_safe"),
+                       ("system_constants", "k_kept"), ("company_calibrations", "cal"), ("product_models", "model")):
+        after[table].pop(str(u[key]))
+    for table in ("company_calibrations", "product_models"):
+        if not after[table]:
+            after.pop(table)
     assert after["cash_transactions"][str(tx)]["invoice_id"] is None
     # 0005: old surveys are window surveys, old lines keep their price and bill their real area
     assert after["site_surveys"][str(ids["sv"])]["kind"] == "window"

@@ -60,7 +60,7 @@ class ProfileSystem(Base, LibraryEntity, SoftDeleteMixin):
     name: Mapped[str] = mapped_column(String(200))
     supplier: Mapped[str] = mapped_column(String(200), default="")
     material_type: Mapped[str] = mapped_column(String(20))  # upvc | shutter | aluminum
-    unit: Mapped[str] = mapped_column(String(4), default="mm")  # unit the formulas are written in
+    unit: Mapped[str] = mapped_column(String(4), default="cm")  # unit the formulas are written in
     rounding_step_mm: Mapped[Decimal] = mapped_column(Numeric(10, 4), default=Decimal("0"))
     rounding_mode: Mapped[str] = mapped_column(String(10), default="half_up")
     status: Mapped[str] = mapped_column(String(10), default="trial")

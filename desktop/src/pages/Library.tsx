@@ -117,7 +117,8 @@ function SystemForm({ system, onClose, onSaved }: { system?: System; onClose: ()
           options={Object.entries(MATERIAL_TYPES).map(([value, label]) => ({ value, label }))} /></Field>
         <Field label="المورد / الشركة المنتجة"><TextIn value={d.supplier} onChange={set("supplier")} /></Field>
         <Field label="الحالة"><Select value={d.status} onChange={set("status")} options={[{ value: "trial", label: "تحت التجربة" }, { value: "approved", label: "معتمد" }]} /></Field>
-        <Field label="وحدة المعادلات" hint="الأرقام اللي في المعادلات والثوابت بالوحدة دي"><Select value={d.unit} onChange={set("unit")}
+        <Field label="وحدة المعادلات" hint={system ? "تغيير الوحدة بيحوّل الثوابت والطول بيفضل زي ما هو (0.5 مم = 0.05 سم). مينفعش لو القطاع فيه نماذج."
+          : "الأرقام اللي في المعادلات والثوابت بالوحدة دي"}><Select value={d.unit} onChange={set("unit")}
           options={[{ value: "cm", label: "سنتيمتر" }, { value: "mm", label: "مليمتر" }]} /></Field>
         <Field label="تقريب أطوال القطع" hint="0 = من غير تقريب"><LenIn mm={d.rounding_step_mm} onChange={(mm) => set("rounding_step_mm")(mm ?? "0")} /></Field>
         <Field label="طريقة التقريب"><Select value={d.rounding_mode} onChange={set("rounding_mode")}

@@ -146,3 +146,23 @@ def test_sales_user_cannot_author(tenant_a, client):
     h = tenant_a.headers("s1", "user-pass-123")
     r = client.post("/api/v1/library/systems", headers=h, json={"code": "X", "name": "x", "material_type": "upvc"})
     assert r.status_code == 403
+
+
+def test_changing_a_systems_unit_keeps_its_lengths(tenant_a, client):
+    h = tenant_a.h
+    s = client.post("/api/v1/library/systems", headers=h, json={"code": "UNIT-MM", "name": "mm", "material_type": "upvc",
+                                                              "unit": "mm"}).json()
+    assert client.post("/api/v1/library/systems", headers=h, json={"code": "UNIT-DEF", "name": "x",
+                                                                  "material_type": "upvc"}).json()["unit"] == "cm"
+    c = client.post(f"/api/v1/library/systems/{s['id']}/constants", headers=h,
+                    json={"name": "gap", "label": "", "value": "0.5", "unit": "mm"}).json()
+    r = client.patch(f"/api/v1/library/systems/{s['id']}", headers=h, json={"version": s["version"], "unit": "cm"})
+    assert r.status_code == 200 and r.json()["unit"] == "cm"
+    consts = {k["name"]: k for k in client.get(f"/api/v1/library/systems/{s['id']}/constants", headers=h).json()}
+    assert D(consts["gap"]["value"]) == D("0.05") and consts["gap"]["id"] == c["id"]   # same length: 0.5 mm = 0.05 cm
+    # with models, the numbers inside their formulas cannot be converted: the unit stays
+    lib = build_library(client, tenant_a, code="UNIT-MODELS", prefix="UM-", publish=False)
+    r = client.patch(f"/api/v1/library/systems/{lib['system']['id']}", headers=h,
+                     json={"version": lib["system"]["version"], "unit": "mm"})
+    assert r.status_code == 422 and r.json()["error"]["code"] == "UNIT_LOCKED"
+    assert r.json()["error"]["details"]["reason"] == "models"

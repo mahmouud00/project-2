@@ -247,9 +247,19 @@ function woInUse(d: WoBlockers): string {
     + (d.can_cancel ? " أو الغي الأمر بدل ما تمسحه." : "");
 }
 
+/** why a system's unit cannot change: its numbers would change meaning */
+function unitLocked(d: { reason?: string; constant?: string }): string {
+  if (d.reason === "models") return "مينفعش تغيّر وحدة القطاع ده لأن فيه نماذج: الأرقام المكتوبة في معادلاتها هتتفهم بالوحدة الجديدة"
+    + " والأطوال هتتغير ١٠ أضعاف. خليه بوحدته، أو اعمل قطاع جديد بالسنتيمتر.";
+  if (d.reason === "calibration") return "مينفعش تغيّر وحدة القطاع ده لأن فيه شركات عاملة معايرة عليه بالوحدة الحالية.";
+  if (d.reason === "precision") return `الثابت ${d.constant ?? ""} فيه أرقام عشرية كتير فمينفعش يتحوّل بالظبط.`;
+  return "مينفعش تغيّر وحدة القطاع ده.";
+}
+
 export function errorText(e: unknown): string {
   if (!(e instanceof ApiError)) return e instanceof Error ? e.message : String(e);
   if (e.code === "WO_IN_USE" && e.details && typeof e.details === "object" && !Array.isArray(e.details)) return woInUse(e.details as WoBlockers);
+  if (e.code === "UNIT_LOCKED") return unitLocked((e.details ?? {}) as { reason?: string; constant?: string });
   if (e.code === "QUOTE_IN_USE" && Array.isArray(e.details) && e.details.length) return quoteInUse(e.details as QuoteBlocker[]);
   const m = MESSAGES[e.code];
   if (m) return m;

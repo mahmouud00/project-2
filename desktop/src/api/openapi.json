@@ -20705,7 +20705,7 @@
        "cm"
       ],
       "title": "Unit",
-      "default": "mm"
+      "default": "cm"
      },
      "rounding_step_mm": {
       "anyOf": [

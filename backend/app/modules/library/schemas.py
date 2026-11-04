@@ -56,7 +56,7 @@ class SystemIn(BaseModel):
     name: str
     supplier: str = ""
     material_type: Literal["upvc", "shutter", "aluminum"]
-    unit: Literal["mm", "cm"] = "mm"
+    unit: Literal["mm", "cm"] = "cm"
     rounding_step_mm: Decimal = Decimal("0")
     rounding_mode: Literal["half_up", "up", "down"] = "half_up"
     status: Status = "trial"
