@@ -230,8 +230,26 @@ function quoteInUse(items: QuoteBlocker[]): string {
       : "الغي أو احذف أمر التصنيع والفاتورة الأول، وبعدين امسح العرض.");
 }
 
+type WoBlockers = { paid_amount: string; can_cancel: boolean;
+  invoices: { number: string | null; status: string; pending_delete: boolean }[] };
+
+/** what keeps a work order from being deleted, and the way out of each */
+function woInUse(d: WoBlockers): string {
+  const steps: string[] = [];
+  for (const i of d.invoices) {
+    const name = i.number ? `الفاتورة ${i.number}` : "فاتورة مسودة";
+    if (i.pending_delete) steps.push(`${name} في «جاري الحذف»: احذفها نهائي دلوقتي من هناك`);
+    else if (i.status === "draft") steps.push(`${name} اتعملت من الأمر ده: امسحها من «الفواتير»`);
+    else steps.push(`${name} صادرة: الغيها من «الفواتير»`);
+  }
+  if (Number(d.paid_amount) > 0) steps.push(`عليه تحصيل ${d.paid_amount}: اعكس حركة التحصيل من «الحسابات والخزينة»`);
+  return "مينفعش يتمسح أمر التصنيع ده. " + steps.join("، و") + "، وبعدين امسح الأمر."
+    + (d.can_cancel ? " أو الغي الأمر بدل ما تمسحه." : "");
+}
+
 export function errorText(e: unknown): string {
   if (!(e instanceof ApiError)) return e instanceof Error ? e.message : String(e);
+  if (e.code === "WO_IN_USE" && e.details && typeof e.details === "object" && !Array.isArray(e.details)) return woInUse(e.details as WoBlockers);
   if (e.code === "QUOTE_IN_USE" && Array.isArray(e.details) && e.details.length) return quoteInUse(e.details as QuoteBlocker[]);
   const m = MESSAGES[e.code];
   if (m) return m;

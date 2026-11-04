@@ -63,6 +63,7 @@ def test_what_delete_does(platform, tenant_a, client):
         "party_id": customer["id"], "work_order_id": wo["id"]}).json()
     r = delete_now(client, h, f"/api/v1/work-orders/{wo['id']}")
     assert r.status_code == 409 and r.json()["error"]["code"] == "WO_IN_USE"
+    assert D(r.json()["error"]["details"]["paid_amount"]) == 100 and r.json()["error"]["details"]["invoices"] == []
     # money is never deleted: a cashbox with history is deactivated; a transaction is reversed
     assert delete_now(client, h, f"/api/v1/cashboxes/{box['id']}").json()["result"] == "deactivated"
     rev = client.post(f"/api/v1/cash-transactions/{tx['id']}/reverse", headers=h, json={"note": "غلط"})

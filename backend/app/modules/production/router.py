@@ -438,11 +438,20 @@ def delete_work_order(wo_id: uuid.UUID, dc=Depends(require("workorders.delete"))
     from app.modules.invoicing.models import Invoice
 
     db, ctx = dc
+    from app.modules.deletions.models import DeletionRequest
+
     wo = _get_wo(db, ctx, wo_id, "workorders.delete")
-    if wo.paid_amount > 0 or db.scalar(
-            select(Invoice.id).where(Invoice.work_order_id == wo.id, Invoice.deleted_at.is_(None),
-                                     Invoice.status != "cancelled")):
-        raise Conflict("Work order has payments or an invoice", code="WO_IN_USE")
+    invoices = db.scalars(select(Invoice).where(Invoice.work_order_id == wo.id, Invoice.deleted_at.is_(None),
+                                                Invoice.status != "cancelled")).all()
+    if wo.paid_amount > 0 or invoices:
+        # say exactly what keeps it (an invoice, even a draft one; money received) so the user can clear it
+        pending = set(db.scalars(select(DeletionRequest.target_id).where(
+            DeletionRequest.status == "pending", DeletionRequest.target_id.in_([i.id for i in invoices])))) \
+            if invoices else set()
+        raise Conflict("Work order has payments or an invoice", code="WO_IN_USE", details={
+            "paid_amount": str(wo.paid_amount), "can_cancel": wo.stage not in ("delivered", "cancelled"),
+            "invoices": [{"id": str(i.id), "number": i.number, "status": i.status, "pending_delete": i.id in pending}
+                         for i in invoices]})
     before = snapshot(wo)
     wo.deleted_at = utcnow()
     audit(db, wo, "delete", before)
