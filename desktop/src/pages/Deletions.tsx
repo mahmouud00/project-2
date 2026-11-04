@@ -4,7 +4,7 @@ import { api, type S } from "../api/client";
 import { useTitle, type PageProps } from "../lib/title";
 import { useLoad } from "../lib/hooks";
 import { dateTime } from "../lib/format";
-import { Card, Chip, Table, Tabs } from "../components/ui";
+import { Card, Chip, Help, Table, Tabs } from "../components/ui";
 import { PendingDelete } from "../components/actions";
 import { useDeletions } from "../state/deletions";
 
@@ -19,7 +19,7 @@ export default function Deletions(_: PageProps) {
   const old = useLoad(() => tab === "pending" ? Promise.resolve([] as Deletion[]) : api.get<Deletion[]>("/deletions", { status: tab }), [tab]);
   return (
     <div className="col">
-      <p className="def-help">أي حاجة بتتحذف بتستنى ٣٠ يوم وعليها عداد، وبعدها بتتحذف نهائي. صاحب صلاحية «الحذف النهائي» يقدر يحذفها فورًا من العداد، واللي طلب الحذف أو صاحب الصلاحية يقدر يتراجع. حركات الفلوس مابتتحذفش، بتتعكس.</p>
+      <Help>أي حاجة بتتحذف بتستنى ٣٠ يوم وعليها عداد، وبعدها بتتحذف نهائي. صاحب صلاحية «الحذف النهائي» يقدر يحذفها فورًا من العداد، واللي طلب الحذف أو صاحب الصلاحية يقدر يتراجع. حركات الفلوس مابتتحذفش، بتتعكس.</Help>
       <Tabs value={tab} onChange={setTab} tabs={[{ id: "pending", label: `مستني (${pending.length})` }, { id: "done", label: "اتحذف" },
         { id: "cancelled", label: "اتلغى" }, { id: "failed", label: "ماتحذفش" }]} />
       <Card flush>

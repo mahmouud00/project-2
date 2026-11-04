@@ -5,7 +5,8 @@ import { api, errorText, type S } from "../api/client";
 import { useTitle } from "../lib/title";
 import { useAction, useLoad } from "../lib/hooks";
 import { useToast } from "../state/toast";
-import { Btn, Card, Chip, Confirm, Dim, ErrorBox, Field, FilePick, Loading, Modal, NumIn, Select, SizeIn, Table, Tabs, TextArea, TextIn } from "../components/ui";
+import { Btn, Card, Chip, Confirm, Dim, ErrorBox, Field, FilePick, Help, Len, LenIn, Loading, Modal, NumIn, Select, SizeIn, Table, Tabs, TextArea, TextIn } from "../components/ui";
+import { useSession } from "../state/session";
 import { RowsEditor } from "../components/rows";
 import { Drawing, MediaImg } from "../components/media";
 import { ElementPieces, Issues, ParamFields, cleanParams, type Calc } from "../components/items";
@@ -112,7 +113,7 @@ export default function ModelEditor({ systemId, modelId, tab }: { systemId: stri
         <div className="card-b">
           {tab === "info" && <InfoTab info={info} setInfo={setInfo} editable={editable} />}
           {tab === "params" && <>
-            <p className="def-help">المتغيرات اللي البياع بيختارها مع المقاس (عدد الضلف، بسلك، نوع الزجاج…). الاسم بيتكتب في المعادلات، بالعربي أو بالإنجليزي، كلمة واحدة من غير مسافات (استخدم <code>_</code>)، مثلًا <code>عدد_الضلف</code>.</p>
+            <Help>المتغيرات اللي البياع بيختارها مع المقاس (عدد الضلف، بسلك، نوع الزجاج…). الاسم بيتكتب في المعادلات، بالعربي أو بالإنجليزي، كلمة واحدة من غير مسافات (استخدم <code>_</code>)، مثلًا <code>عدد_الضلف</code>.</Help>
             <RowsEditor rows={def.params} onChange={set("params")} readOnly={!editable} addLabel="متغير"
               blank={() => ({ name: "", label: "", type: "number" as const, default: null, min: null, max: null, choices: [] })} columns={[
                 { key: "name", label: "الاسم", kind: "code", width: 140 },
@@ -136,7 +137,7 @@ export default function ModelEditor({ systemId, modelId, tab }: { systemId: stri
             <PiecesTab def={def} setPieces={set("pieces")} editable={editable} matOptions={matOptions} unit={unit} />
             {def.formulas.length > 0 && <details className="helper-values" open>
               <summary>قيم مساعدة (من نموذج قديم) <span className="muted small">· {def.formulas.length}</span></summary>
-            <p className="def-help">مش لازمة: تقدر تكتب التخصيم كله في معادلة طول القطعة. بس لو فيه قيمة بتتكرر في كذا قطعة (زي عرض الضلفة) اكتبها هنا مرة واحدة باسم، واستخدم الاسم في القطع. بتتحسب بالترتيب حسب الاعتماد (زي <code>sash_w = (width + overlap) / leaf_count</code>). تقدر تكتبها <b>بالعربي</b>: <code>عرض_الضلفة = (العرض + ركوب_الضلف) ÷ عدد_الضلف</code>. الأسامي الجاهزة: <code>العرض</code> و<code>الارتفاع</code> (مقاس التصنيع) و<code>عرض_الفتحة</code> و<code>ارتفاع_الفتحة</code> و<code>خلوص_العرض</code> و<code>خلوص_الارتفاع</code>. الكلمات: <code>و</code> <code>أو</code> <code>مش</code> <code>صح</code> <code>خطأ</code>. الدوال: <code>لو(شرط، لو صح، لو غلط)</code> <code>أصغر</code> <code>أكبر</code> <code>مطلق</code> <code>تقريب</code> <code>تقريب_لأعلى</code> <code>تقريب_لأسفل</code> <code>تقريب_لخطوة</code> <code>لأعلى_لخطوة</code> <code>لأسفل_لخطوة</code> <code>حصر</code> <code>جدول</code> <code>جدول_أقل</code>، وللأرج <code>طول_القوس(العرض، الارتفاع)</code> <code>مساحة_القطعة</code> <code>باي()</code> <code>جذر</code>. ينفع كمان الإنجليزي (<code>width</code>، <code>min</code>، <code>if</code>…) والأرقام العربي و<code>×</code> و<code>÷</code>.</p>
+            <Help>مش لازمة: تقدر تكتب التخصيم كله في معادلة طول القطعة. بس لو فيه قيمة بتتكرر في كذا قطعة (زي عرض الضلفة) اكتبها هنا مرة واحدة باسم، واستخدم الاسم في القطع. بتتحسب بالترتيب حسب الاعتماد (زي <code>sash_w = (width + overlap) / leaf_count</code>). تقدر تكتبها <b>بالعربي</b>: <code>عرض_الضلفة = (العرض + ركوب_الضلف) ÷ عدد_الضلف</code>. الأسامي الجاهزة: <code>العرض</code> و<code>الارتفاع</code> (مقاس التصنيع) و<code>عرض_الفتحة</code> و<code>ارتفاع_الفتحة</code> و<code>خلوص_العرض</code> و<code>خلوص_الارتفاع</code>. الكلمات: <code>و</code> <code>أو</code> <code>مش</code> <code>صح</code> <code>خطأ</code>. الدوال: <code>لو(شرط، لو صح، لو غلط)</code> <code>أصغر</code> <code>أكبر</code> <code>مطلق</code> <code>تقريب</code> <code>تقريب_لأعلى</code> <code>تقريب_لأسفل</code> <code>تقريب_لخطوة</code> <code>لأعلى_لخطوة</code> <code>لأسفل_لخطوة</code> <code>حصر</code> <code>جدول</code> <code>جدول_أقل</code>، وللأرج <code>طول_القوس(العرض، الارتفاع)</code> <code>مساحة_القطعة</code> <code>باي()</code> <code>جذر</code>. ينفع كمان الإنجليزي (<code>width</code>، <code>min</code>، <code>if</code>…) والأرقام العربي و<code>×</code> و<code>÷</code>.</Help>
             <RowsEditor rows={def.formulas} onChange={set("formulas")} readOnly={!editable} addLabel="معادلة" blank={() => ({ key: "", label: "", expr: "", unit: "length" as const })} columns={[
               { key: "key", label: "الاسم", kind: "code", width: 150 },
               { key: "label", label: "الوصف", width: 200 },
@@ -147,7 +148,7 @@ export default function ModelEditor({ systemId, modelId, tab }: { systemId: stri
             </details>}
           </>}
           {tab === "glass" && <>
-            <p className="def-help">مقاس كل لوح زجاج: معادلة العرض ومعادلة الارتفاع والعدد. لو اللوح مش مستطيل (زي زجاج الأرج نص الدايرة) اكتب معادلة مساحته، مثلًا <code>segment_area(width, height)</code>.</p>
+            <Help>مقاس كل لوح زجاج: معادلة العرض ومعادلة الارتفاع والعدد. لو اللوح مش مستطيل (زي زجاج الأرج نص الدايرة) اكتب معادلة مساحته، مثلًا <code>segment_area(width, height)</code>.</Help>
             <RowsEditor rows={def.glass} onChange={set("glass")} readOnly={!editable} addLabel="زجاج"
               blank={() => ({ key: "", label: "", material_code: null, width_expr: "", height_expr: "", area_expr: null, qty_expr: "1", condition: null })} columns={[
                 { key: "key", label: "الاسم", kind: "code", width: 110 },
@@ -161,7 +162,7 @@ export default function ModelEditor({ systemId, modelId, tab }: { systemId: stri
               ]} />
           </>}
           {tab === "accessories" && <>
-            <p className="def-help">الإكسسوار بالكمية لكل شباك (مقابض، سكاكات، عجل…).</p>
+            <Help>الإكسسوار بالكمية لكل شباك (مقابض، سكاكات، عجل…).</Help>
             <RowsEditor rows={def.accessories} onChange={set("accessories")} readOnly={!editable} addLabel="إكسسوار"
               blank={() => ({ key: "", label: "", material_code: "", qty_expr: "1", condition: null })} columns={[
                 { key: "key", label: "الاسم", kind: "code", width: 130 },
@@ -172,7 +173,7 @@ export default function ModelEditor({ systemId, modelId, tab }: { systemId: stri
               ]} />
           </>}
           {tab === "validations" && <>
-            <p className="def-help">قواعد بتتأكد إن المقاس مناسب (زي <code>width &lt;= 300</code>). خطأ = الحساب يترفض، تحذير = يظهر للبياع بس.</p>
+            <Help>قواعد بتتأكد إن المقاس مناسب (زي <code>width &lt;= 300</code>). خطأ = الحساب يترفض، تحذير = يظهر للبياع بس.</Help>
             <RowsEditor rows={def.validations} onChange={set("validations")} readOnly={!editable} addLabel="قاعدة"
               blank={() => ({ expr: "", level: "error" as const, code: "", message: "" })} columns={[
                 { key: "expr", label: "الشرط (لازم يتحقق)", kind: "expr" },
@@ -331,7 +332,7 @@ function PiecesTab({ def, setPieces, editable, matOptions, unit }:
   const elements = useMemo(() => [...new Set(rows.map((p) => p.element).filter(Boolean))] as string[], [rows]);
   return (
     <>
-      <p className="def-help">كل عنصر (حلق، ضلفة، باكتة، …) ليه سطر <b className="side-w">للعرض</b> وسطر <b className="side-h">للارتفاع</b>: معادلة الطول بالتخصيم، العدد، وزوايا القص. القطع بتتجمع بالعنصر في كشف التقطيع.</p>
+      <Help>كل عنصر (حلق، ضلفة، باكتة، …) ليه سطر <b className="side-w">للعرض</b> وسطر <b className="side-h">للارتفاع</b>: معادلة الطول بالتخصيم، العدد، وزوايا القص. القطع بتتجمع بالعنصر في كشف التقطيع.</Help>
       <RowsEditor rows={rows} onChange={setPieces} readOnly={!editable} addLabel="قطعة لوحدها"
         rowClass={(r) => r.side === "width" ? "row-w" : r.side === "height" ? "row-h" : undefined}
         blank={() => ({ key: "", label: "", element: null, side: null, role: null, material_code: "", length_expr: "", qty_expr: "1", angle_left: "90", angle_right: "90", condition: null })}
@@ -389,7 +390,7 @@ function AddElement({ onClose, onAdd, matOptions }: { onClose: () => void; onAdd
 function DrawingTab({ def, setDrawing, editable }: { def: Def; setDrawing: (d: S<"DrawingElement">[]) => void; editable: boolean }) {
   return (
     <>
-      <p className="def-help">الرسمة اللي بتظهر في العرض والفاتورة: مستطيلات، لكل واحد مكانه من الشمال ومن فوق وعرضه وارتفاعه بمعادلات (زي <code>العرض</code> أو <code>العرض ÷ عدد_الضلف</code>). النوع: حلق، ضلفة، زجاج، بانل، قاطوع. والفتح للضلفة: جرار أو مفصلي أو قلاب.</p>
+      <Help>الرسمة اللي بتظهر في العرض والفاتورة: مستطيلات، لكل واحد مكانه من الشمال ومن فوق وعرضه وارتفاعه بمعادلات (زي <code>العرض</code> أو <code>العرض ÷ عدد_الضلف</code>). النوع: حلق، ضلفة، زجاج، بانل، قاطوع. والفتح للضلفة: جرار أو مفصلي أو قلاب.</Help>
       <RowsEditor rows={def.drawing} onChange={setDrawing} readOnly={!editable} addLabel="عنصر رسمة"
         blank={() => ({ type: "sash", label: null, opening: null, x: "0", y: "0", w: "", h: "", condition: null })} columns={[
           { key: "type", label: "النوع", kind: "select", width: 110, options: Object.entries(DRAW_TYPES).map(([value, label]) => ({ value, label })) },
@@ -477,7 +478,7 @@ function TestsTab({ modelId, def, editable }: { modelId: string; def: Def; edita
   const byId = Object.fromEntries((results?.results ?? []).map((r) => [r.id, r]));
   return (
     <div className="col">
-      <p className="def-help">الاختبار المرجعي = مقاس حقيقي ومعاه الأطوال الصح المتأكد منها (من المصنع أو الشيت). النشر بيترفض لو أي رقم اختلف أكتر من 0.1 مم. الأطوال هنا بالمليمتر.</p>
+      <Help>الاختبار المرجعي = مقاس حقيقي ومعاه الأطوال الصح المتأكد منها (من المصنع أو الشيت). النشر بيترفض لو أي رقم اختلف أكتر من 0.1 مم. اكتب الأطوال بوحدة البرنامج (سم).</Help>
       <div className="row">
         <Btn icon="play" busy={busy} onClick={() => run(async () => setResults(await api.post(`/library/models/${modelId}/tests/run`)))}>تشغيل كل الاختبارات</Btn>
         {results && (results.passed ? <Chip color="green">كله مطابق</Chip> : <Chip color="red">فيه اختلاف</Chip>)}
@@ -504,6 +505,8 @@ function expectedCount(e: Expected) {
 }
 
 function NewTest({ modelId, def, onClose, onSaved }: { modelId: string; def: Def; onClose: () => void; onSaved: () => void }) {
+  const s = useSession();
+  const uL = s.unit === "cm" ? "سم" : "مم";
   const toast = useToast();
   const { busy, run } = useAction(toast.err);
   const [name, setName] = useState("");
@@ -540,10 +543,10 @@ function NewTest({ modelId, def, onClose, onSaved }: { modelId: string; def: Def
         <Field label="مقاس الفتحة (العرض × الارتفاع)" className="span2"><SizeIn w={w} h={h} onChange={(a, b) => { setW(a); setH(b); }} /></Field>
         <ParamFields params={def.params} values={params} onChange={setParams} unit="" />
       </div>
-      <div className="notice warn mb">اكتب الأطوال الصح المتأكد منها <b>بالمليمتر</b>. زرار "اعرض حساب البرنامج" بيوريك رقم البرنامج جنب كل خانة للمقارنة بس، ومش بيملأ الخانات: القيمة المرجعية لازم تيجي من الواقع.</div>
+      <div className="notice warn mb">اكتب الأطوال الصح المتأكد منها <b>بالـ{uL}</b>. زرار "اعرض حساب البرنامج" بيوريك رقم البرنامج جنب كل خانة للمقارنة بس، ومش بيملأ الخانات: القيمة المرجعية لازم تيجي من الواقع.</div>
       <div className="row mb"><Btn icon="calc" busy={busy} disabled={!w || !h} onClick={fillFromEngine}>اعرض حساب البرنامج للمقارنة</Btn></div>
       <table className="editor-table">
-        <thead><tr><th>القطعة</th><th>العنصر</th><th>الطول الصح (مم)</th><th>العدد الصح</th><th>حساب البرنامج</th></tr></thead>
+        <thead><tr><th>القطعة</th><th>العنصر</th><th>الطول الصح ({uL})</th><th>العدد الصح</th><th>حساب البرنامج</th></tr></thead>
         <tbody>{def.pieces.map((p) => {
           const got = calc?.pieces?.find((x) => x.key === p.key);
           const diff = got && pieces[p.key] ? Math.abs(Number(got.length_mm) - Number(pieces[p.key])) : null;
@@ -551,9 +554,9 @@ function NewTest({ modelId, def, onClose, onSaved }: { modelId: string; def: Def
             <tr key={p.key}>
               <td><span className="code">{p.key}</span> {p.label}</td>
               <td>{p.element} {p.side === "width" ? <span className="side-w">عرض</span> : p.side === "height" ? <span className="side-h">ارتفاع</span> : ""}</td>
-              <td style={{ width: 140 }}><NumIn value={pieces[p.key] ?? ""} onChange={(v) => setPieces((x) => ({ ...x, [p.key]: v }))} unit="مم" /></td>
+              <td style={{ width: 140 }}><LenIn mm={pieces[p.key] ?? ""} onChange={(mm) => setPieces((x) => ({ ...x, [p.key]: mm ?? "" }))} /></td>
               <td style={{ width: 100 }}><NumIn value={qty[p.key] ?? ""} onChange={(v) => setQty((x) => ({ ...x, [p.key]: v.replace(/\D/g, "") }))} /></td>
-              <td className="num">{got ? <span className={diff !== null && diff > 0.1 ? "danger-text bold" : ""}>{clean(got.length_mm)} مم × {got.qty}</span> : "—"}</td>
+              <td className="num">{got ? <span className={diff !== null && diff > 0.1 ? "danger-text bold" : ""}><Len mm={got.length_mm} /> {uL} × {got.qty}</span> : "—"}</td>
             </tr>
           );
         })}</tbody>
@@ -561,15 +564,15 @@ function NewTest({ modelId, def, onClose, onSaved }: { modelId: string; def: Def
       {def.glass.length > 0 && <>
         <h4 style={{ margin: "14px 0 6px" }}>الزجاج</h4>
         <table className="editor-table">
-          <thead><tr><th>اللوح</th><th>العرض الصح (مم)</th><th>الارتفاع الصح (مم)</th><th>حساب البرنامج</th></tr></thead>
+          <thead><tr><th>اللوح</th><th>العرض الصح ({uL})</th><th>الارتفاع الصح ({uL})</th><th>حساب البرنامج</th></tr></thead>
           <tbody>{def.glass.map((g) => {
             const got = calc?.glass?.find((x: any) => x.key === g.key);
             const v = glass[g.key] ?? ["", ""];
             return (
               <tr key={g.key}><td><span className="code">{g.key}</span> {g.label}</td>
-                <td><NumIn value={v[0]} onChange={(x) => setGlass((o) => ({ ...o, [g.key]: [x, v[1]] }))} unit="مم" /></td>
-                <td><NumIn value={v[1]} onChange={(x) => setGlass((o) => ({ ...o, [g.key]: [v[0], x] }))} unit="مم" /></td>
-                <td>{got ? <span><span className="dim"><b>{clean(got.width_mm)}</b><span className="x">×</span>{clean(got.height_mm)}</span> مم</span> : "—"}</td></tr>
+                <td><LenIn mm={v[0]} onChange={(mm) => setGlass((o) => ({ ...o, [g.key]: [mm ?? "", v[1]] }))} /></td>
+                <td><LenIn mm={v[1]} onChange={(mm) => setGlass((o) => ({ ...o, [g.key]: [v[0], mm ?? ""] }))} /></td>
+                <td>{got ? <span><span className="dim"><b><Len mm={got.width_mm} /></b><span className="x">×</span><Len mm={got.height_mm} /></span> {uL}</span> : "—"}</td></tr>
             );
           })}</tbody>
         </table>

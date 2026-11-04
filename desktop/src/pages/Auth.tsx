@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { api, ApiError, errorText, login, normalizeServer, store, CLIENT_VERSION } from "../api/client";
 import { discover, inDesktop, serverUrl, type FoundServer } from "../lib/discovery";
 import { Btn, Field, FilePick, TextIn } from "../components/ui";
@@ -162,6 +162,19 @@ export function LoginPage({ info, onLogin, onChangeServer }:
   const [logo, setLogo] = useState<string | null>(null);
   const [activation, setActivation] = useState<Activation | null>(null);
   const [vendor, setVendor] = useState(!online && store.company === PLATFORM_CODE);
+  const [opened, setOpened] = useState(false);   // the window starts closed; a click opens the two sashes
+  const formRef = useRef<HTMLFormElement>(null);
+
+  const openWindow = () => {
+    if (opened) return;
+    setOpened(true);
+    // once the sashes slide away, put the cursor in the first empty field
+    setTimeout(() => {
+      const first = formRef.current?.querySelector<HTMLInputElement>("input:not([value]), input[value='']")
+        ?? formRef.current?.querySelector<HTMLInputElement>("input");
+      first?.focus();
+    }, 650);
+  };
 
   const checkActivation = async () => {
     if (online) return;
@@ -214,32 +227,45 @@ export function LoginPage({ info, onLogin, onChangeServer }:
       <ThemeCorner />
       <Art />
       <div className="auth-form">
-        <form className="auth-card col" onSubmit={submit}>
-          <div className="co">
-            <div className={"co-logo" + (logo ? "" : " empty")}>{logo ? <img src={logo} alt="" /> : (brand?.name ?? "M").slice(0, 1)}</div>
-            <div>
-              <h2>{vendor ? "MYTech Solutions" : brand?.name ?? "تسجيل الدخول"}</h2>
-              <div className="muted small">{vendor ? "حساب المطوّر: المكتبة وحزم التحديث" : brand ? "تسجيل الدخول" : online ? "اكتب كود الشركة" : ""}</div>
-            </div>
+        <div className={"win-login" + (opened ? " open" : "")}>
+          <div className="win-frame">
+            <form ref={formRef} className="win-inner col" onSubmit={submit} aria-hidden={!opened}>
+              <div className="co">
+                <div className={"co-logo" + (logo ? "" : " empty")}>{logo ? <img src={logo} alt="" /> : (brand?.name ?? "M").slice(0, 1)}</div>
+                <div>
+                  <h2>{vendor ? "MYTech Solutions" : brand?.name ?? "تسجيل الدخول"}</h2>
+                  <div className="muted small">{vendor ? "حساب المطوّر: المكتبة وحزم التحديث" : brand ? "تسجيل الدخول" : online ? "اكتب كود الشركة" : ""}</div>
+                </div>
+              </div>
+              {activation && !vendor && <ActivationCard state={activation} onDone={() => { setActivation(null); setError(null); }} />}
+              {online && (
+                <Field label="كود الشركة"><TextIn value={company} onChange={setCompany} code autoFocus={!company} tabIndex={opened ? 0 : -1} /></Field>
+              )}
+              <Field label="اسم المستخدم"><TextIn value={username} onChange={setUsername} autoComplete="username" tabIndex={opened ? 0 : -1} /></Field>
+              <Field label="كلمة المرور"><TextIn type="password" value={password} onChange={setPassword} autoComplete="current-password" tabIndex={opened ? 0 : -1} /></Field>
+              {error && <div className="notice err">{error}</div>}
+              <Btn kind="primary" type="submit" busy={busy} disabled={!username || !password} tabIndex={opened ? 0 : -1}>دخول</Btn>
+              <div className="row small muted">
+                <span className="dot" /> <span className="num">{store.server?.replace(/^https?:\/\//, "")}</span>
+                <button type="button" className="btn ghost sm end" onClick={onChangeServer} tabIndex={opened ? 0 : -1}>تغيير السيرفر</button>
+              </div>
+              {!online && (
+                <button type="button" className="btn ghost sm" style={{ alignSelf: "center" }} tabIndex={opened ? 0 : -1}
+                  onClick={() => { setVendor((v) => !v); setError(null); }}>
+                  {vendor ? `دخول ${brand?.name ?? "الشركة"}` : "دخول MYTech (للمطوّر)"}</button>
+              )}
+            </form>
+            {/* the two UPVC sashes that cover the form until the user opens them */}
+            <button type="button" className="sash sash-start" onClick={openWindow} aria-label="افتح الشباك" tabIndex={opened ? -1 : 0}>
+              <span className="glass" /><span className="rail" /><span className="handle" />
+            </button>
+            <button type="button" className="sash sash-end" onClick={openWindow} aria-label="افتح الشباك" tabIndex={opened ? -1 : 0}>
+              <span className="glass" /><span className="rail" /><span className="handle" />
+            </button>
+            <div className="win-hint" aria-hidden={opened}><Icon name="hand" /> اضغط على الشباك للدخول</div>
           </div>
-          {activation && !vendor && <ActivationCard state={activation} onDone={() => { setActivation(null); setError(null); }} />}
-          {online && (
-            <Field label="كود الشركة"><TextIn value={company} onChange={setCompany} code autoFocus={!company} /></Field>
-          )}
-          <Field label="اسم المستخدم"><TextIn value={username} onChange={setUsername} autoFocus={!online || !!company} autoComplete="username" /></Field>
-          <Field label="كلمة المرور"><TextIn type="password" value={password} onChange={setPassword} autoComplete="current-password" /></Field>
-          {error && <div className="notice err">{error}</div>}
-          <Btn kind="primary" type="submit" busy={busy} disabled={!username || !password}>دخول</Btn>
-          <div className="row small muted">
-            <span className="dot" /> <span className="num">{store.server?.replace(/^https?:\/\//, "")}</span>
-            <button type="button" className="btn ghost sm end" onClick={onChangeServer}>تغيير السيرفر</button>
-          </div>
-          {!online && (
-            <button type="button" className="btn ghost sm" style={{ alignSelf: "center" }}
-              onClick={() => { setVendor((v) => !v); setError(null); }}>
-              {vendor ? `دخول ${brand?.name ?? "الشركة"}` : "دخول MYTech (للمطوّر)"}</button>
-          )}
-        </form>
+          <div className="win-sill" />
+        </div>
       </div>
     </div>
   );

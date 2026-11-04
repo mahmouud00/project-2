@@ -2,7 +2,8 @@ import { useRef, useState, type ReactNode } from "react";
 import { useSession } from "../state/session";
 import { useTheme } from "../state/theme";
 import { Icon } from "./icons";
-import { Btn, Field, Modal, TextIn } from "./ui";
+import { PAGE_HELP } from "../lib/help";
+import { Btn, Field, Help, Modal, TextIn } from "./ui";
 import { api, errorText, store, CLIENT_VERSION } from "../api/client";
 import { go } from "../lib/router";
 import { useToast } from "../state/toast";
@@ -122,6 +123,7 @@ export function Shell({ page, title, crumbs, children, onLogout }:
               {s.branches.filter((b) => b.is_active).map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
             </select>
           )}
+          {PAGE_HELP[page] && <Help iconOnly title={PAGE_HELP[page].title} label="شرح الصفحة">{PAGE_HELP[page].body}</Help>}
           <Bell />
           <button className="icon-btn hide-phone" onClick={printPage} title="طباعة الصفحة / حفظ PDF"><Icon name="print" /></button>
           <button className="icon-btn" onClick={theme.toggle} title={theme.isDark ? "الوضع الفاتح" : "الوضع الغامق"}>

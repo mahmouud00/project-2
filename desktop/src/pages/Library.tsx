@@ -6,7 +6,7 @@ import { useTitle, type PageProps } from "../lib/title";
 import { useAction, useLoad } from "../lib/hooks";
 import { useSession } from "../state/session";
 import { useToast } from "../state/toast";
-import { Btn, Card, Chip, Confirm, ErrorBox, Field, FilePick, Loading, Modal, Money, NumIn, PageHead, Select, Table, Tabs, TextArea, TextIn } from "../components/ui";
+import { Btn, Card, Chip, Confirm, ErrorBox, Field, FilePick, Help, Len, LenIn, Loading, Modal, Money, NumIn, PageHead, Select, Table, Tabs, TextArea, TextIn } from "../components/ui";
 import { RowsEditor } from "../components/rows";
 import { MediaImg } from "../components/media";
 import { DeleteBtn } from "../components/actions";
@@ -118,7 +118,7 @@ function SystemForm({ system, onClose, onSaved }: { system?: System; onClose: ()
         <Field label="الحالة"><Select value={d.status} onChange={set("status")} options={[{ value: "trial", label: "تحت التجربة" }, { value: "approved", label: "معتمد" }]} /></Field>
         <Field label="وحدة المعادلات" hint="الأرقام اللي في المعادلات والثوابت بالوحدة دي"><Select value={d.unit} onChange={set("unit")}
           options={[{ value: "cm", label: "سنتيمتر" }, { value: "mm", label: "مليمتر" }]} /></Field>
-        <Field label="تقريب أطوال القطع (مم)" hint="0 = من غير تقريب"><NumIn value={d.rounding_step_mm} onChange={set("rounding_step_mm")} unit="مم" /></Field>
+        <Field label="تقريب أطوال القطع" hint="0 = من غير تقريب"><LenIn mm={d.rounding_step_mm} onChange={(mm) => set("rounding_step_mm")(mm ?? "0")} /></Field>
         <Field label="طريقة التقريب"><Select value={d.rounding_mode} onChange={set("rounding_mode")}
           options={[{ value: "half_up", label: "لأقرب قيمة" }, { value: "up", label: "لفوق" }, { value: "down", label: "لتحت" }]} /></Field>
         <Field label="وصف" className="span-all"><TextArea value={d.description} onChange={set("description")} rows={2} /></Field>
@@ -171,7 +171,7 @@ function Constants({ system, editable }: { system: System; editable: boolean }) 
   const [del, setDel] = useState<S<"ConstantOut"> | null>(null);
   return (
     <div className="col">
-      <p className="def-help">الثوابت بتتكتب في المعادلات باسمها، بالعربي كلمة واحدة (زي <code>سماحية_اللحام</code>). <code>خلوص_العرض</code> و<code>خلوص_الارتفاع</code> (خلوص التركيب) موجودين دايمًا، عشان مقاس التصنيع = الفتحة − الخلوص. الأرقام بوحدة القطاع ({system.unit === "cm" ? "سم" : "مم"}).</p>
+      <Help>الثوابت بتتكتب في المعادلات باسمها، بالعربي كلمة واحدة (زي <code>سماحية_اللحام</code>). <code>خلوص_العرض</code> و<code>خلوص_الارتفاع</code> (خلوص التركيب) موجودين دايمًا، عشان مقاس التصنيع = الفتحة − الخلوص. الأرقام بوحدة القطاع ({system.unit === "cm" ? "سم" : "مم"}).</Help>
       {editable && <PageHead><Btn kind="primary" small icon="plus" onClick={() => setEdit({ unit: system.unit, sort: 0 })}>ثابت جديد</Btn></PageHead>}
       <Table rows={list.data} loading={list.loading} onRow={editable ? (c) => setEdit(c) : undefined} columns={[
         { key: "name", label: "الاسم في المعادلات", render: (c) => <span className="code">{BUILTIN_CONSTANTS[c.name] ?? c.name}</span> },
@@ -217,14 +217,14 @@ function Materials({ system, editable }: { system: System; editable: boolean }) 
   const [setting, setSetting] = useState<Material | null>(null);
   return (
     <div className="col">
-      <p className="def-help">كل خامة ليها كود بيتكتب في القطع والزجاج والإكسسوار، وألوانها (كل لون ليه SKU في المخزن). الطول والأطوال هنا بالمليمتر.</p>
+      <Help>كل خامة ليها كود بيتكتب في القطع والزجاج والإكسسوار، وألوانها (كل لون ليه SKU في المخزن). الأطوال بوحدة البرنامج (سم).</Help>
       {editable && <PageHead><Btn kind="primary" small icon="plus" onClick={() => setEdit({ kind: "profile", unit: "m", status: "trial", variants: [] })}>خامة جديدة</Btn></PageHead>}
       <Table rows={list.data} loading={list.loading} onRow={(m) => editable ? setEdit(m) : !s.isPlatform && setSetting(m)} columns={[
         { key: "img", label: "", width: 70, render: (m) => <MediaImg id={m.image_id} /> },
         { key: "code", label: "الكود", render: (m) => <span className="code">{m.code}</span> },
         { key: "name", label: "الاسم", render: (m) => <b>{m.name}</b> },
         { key: "kind", label: "النوع", render: (m) => <Chip>{MATERIAL_KINDS[m.kind] ?? m.kind}</Chip> },
-        { key: "bar", label: "طول العود", num: true, render: (m) => m.bar_length_mm ? <span className="num">{clean(m.bar_length_mm)} مم</span> : <span className="faint">—</span> },
+        { key: "bar", label: `طول العود (${s.unit === "cm" ? "سم" : "مم"})`, num: true, render: (m) => m.bar_length_mm ? <Len mm={m.bar_length_mm} /> : <span className="faint">—</span> },
         { key: "v", label: "الألوان", render: (m) => <span className="small">{(m.variants ?? []).map((v) => v.color_code).join("، ") || "—"}</span> },
         { key: "c", label: "تكلفة مرجعية", num: true, render: (m) => <Money v={m.reference_cost} /> },
         ...(!s.isPlatform ? [{ key: "cp", label: "سعر شركتك", num: true, render: (m: Material) => <PriceRange m={m} /> }] : []),
@@ -276,8 +276,8 @@ function MaterialForm({ system, material, onClose, onSaved }: { system: System; 
           <Field label="التصنيف"><TextIn value={d.category} onChange={set("category")} placeholder="حلق، ضلفة، باكتة…" /></Field>
           <Field label="النوع"><Select value={d.kind} onChange={set("kind")} options={Object.entries(MATERIAL_KINDS).map(([value, label]) => ({ value, label }))} /></Field>
           <Field label="وحدة المخزن"><Select value={d.unit} onChange={set("unit")} options={Object.entries(UNITS).map(([value, label]) => ({ value, label }))} /></Field>
-          <Field label="طول العود (مم)"><NumIn value={d.bar_length_mm} onChange={set("bar_length_mm")} unit="مم" /></Field>
-          <Field label="أقل طول قطعة (مم)"><NumIn value={d.min_piece_mm} onChange={set("min_piece_mm")} unit="مم" /></Field>
+          <Field label="طول العود"><LenIn mm={d.bar_length_mm} onChange={(mm) => set("bar_length_mm")(mm ?? "")} /></Field>
+          <Field label="أقل طول قطعة"><LenIn mm={d.min_piece_mm} onChange={(mm) => set("min_piece_mm")(mm ?? "")} /></Field>
           <Field label="الوزن كجم/متر"><NumIn value={d.weight_kg_per_m} onChange={set("weight_kg_per_m")} /></Field>
           <Field label="تكلفة مرجعية للوحدة"><NumIn value={d.reference_cost} onChange={set("reference_cost")} /></Field>
           <Field label="الحالة"><Select value={d.status} onChange={set("status")} options={[{ value: "trial", label: "تحت التجربة" }, { value: "approved", label: "معتمدة" }]} /></Field>
@@ -565,7 +565,7 @@ function Packages() {
       {s.isPlatform && (
         <Card title="تصدير حزمة للعملاء (MYTech)">
           <div className="col">
-            <p className="def-help" style={{ margin: 0 }}>اختار القطاعات المنشورة اللي عايز تبعتها (فاضي = الكل). الحزمة بتتوقّع بأداة الترخيص بالمفتاح الخاص، وبعدين العميل يستوردها من الشاشة دي.</p>
+            <Help>اختار القطاعات المنشورة اللي عايز تبعتها (فاضي = الكل). الحزمة بتتوقّع بأداة الترخيص بالمفتاح الخاص، وبعدين العميل يستوردها من الشاشة دي.</Help>
             <div className="col" style={{ gap: 4, maxHeight: 260, overflow: "auto" }}>
               {(systems.data ?? []).filter((x) => x.current_version_id).map((x) => (
                 <label key={x.id} className="check"><input type="checkbox" checked={codes.includes(x.code)}
@@ -580,7 +580,7 @@ function Packages() {
       {!s.isPlatform && s.can("library.import") && (
         <Card title="استيراد حزمة تحديث من MYTech">
           <div className="col">
-            <p className="def-help" style={{ margin: 0 }}>الحزمة لازم تكون موقّعة من MYTech. هتشوف كل التغييرات قبل التطبيق. المعايرة الخاصة بيك مش بتتغير، والنسخ المنشورة القديمة بتفضل زي ما هي.</p>
+            <Help>الحزمة لازم تكون موقّعة من MYTech. هتشوف كل التغييرات قبل التطبيق. المعايرة الخاصة بيك مش بتتغير، والنسخ المنشورة القديمة بتفضل زي ما هي.</Help>
             <div><FilePick accept=".zip,.mtlib" busy={busy} onFile={(f) => run(async () => setPreview(await api.upload("/library/packages/preview", f)))}>اختار ملف الحزمة</FilePick></div>
           </div>
         </Card>

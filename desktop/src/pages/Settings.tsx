@@ -5,7 +5,7 @@ import { useTitle, type PageProps } from "../lib/title";
 import { useAction, useLoad } from "../lib/hooks";
 import { useSession, type Company } from "../state/session";
 import { useToast } from "../state/toast";
-import { Btn, Card, Chip, Field, FilePick, KV, Modal, Money, NumIn, PageHead, Select, Table, Tabs, TextArea, TextIn } from "../components/ui";
+import { Btn, Card, Chip, Field, FilePick, KV, LenIn, Modal, Money, NumIn, PageHead, Select, Table, Tabs, TextArea, TextIn } from "../components/ui";
 import { DeleteBtn } from "../components/actions";
 import { date } from "../lib/format";
 import { setQuery } from "../lib/router";
@@ -117,9 +117,9 @@ function Defaults() {
       <Field label="تكلفة التشغيل للمتر" hint="بتتضاف على تكلفة الخامات عشان تكلفة العملية (مصنعية وتركيب وغيره)"><NumIn value={d.labor_cost_per_m2 as string} onChange={set("labor_cost_per_m2")} unit="/ م²" /></Field>
       <Field label="هامش السعر العادل" hint="أقل سعر من غير موافقة مدير المبيعات = التكلفة + الهامش ده"><NumIn value={d.fair_margin_pct as string} onChange={set("fair_margin_pct")} unit="%" /></Field>
       <Field label="أعلى هامش مقترح" hint="أعلى سعر في دليل المبيعات = التكلفة + الهامش ده"><NumIn value={d.top_margin_pct as string} onChange={set("top_margin_pct")} unit="%" /></Field>
-      <Field label="سُمك سلاح المنشار"><NumIn value={d.saw_kerf_mm as string} onChange={set("saw_kerf_mm")} unit="مم" /></Field>
-      <Field label="تشذيب طرف العود"><NumIn value={d.bar_trim_mm as string} onChange={set("bar_trim_mm")} unit="مم" /></Field>
-      <Field label="أقل فضلة تتشال (مش هالك)"><NumIn value={d.min_reusable_offcut_mm as string} onChange={set("min_reusable_offcut_mm")} unit="مم" /></Field>
+      <Field label="سُمك سلاح المنشار"><LenIn mm={d.saw_kerf_mm as string} onChange={(mm) => set("saw_kerf_mm")(mm ?? "0")} /></Field>
+      <Field label="تشذيب طرف العود"><LenIn mm={d.bar_trim_mm as string} onChange={(mm) => set("bar_trim_mm")(mm ?? "0")} /></Field>
+      <Field label="أقل فضلة تتشال (مش هالك)"><LenIn mm={d.min_reusable_offcut_mm as string} onChange={(mm) => set("min_reusable_offcut_mm")(mm ?? "0")} /></Field>
       <Field label="أقل مساحة بتتحسب للوحدة" hint="أي وحدة أصغر بتتحسب بالمساحة دي في سعر المتر"><NumIn value={d.min_billed_area_m2 as string} onChange={set("min_billed_area_m2")} unit="م²" /></Field>
       <Field label="نموذج الأرج الافتراضي" hint="بيتستخدم لما الوحدة يكون ليها ارتفاع كلي (أرج نص دايرة بحلق لوحده)" className="span-3">
         <ModelSelect value={d.default_arch_model_id} onChange={(id) => set("default_arch_model_id")(id || null)} /></Field>

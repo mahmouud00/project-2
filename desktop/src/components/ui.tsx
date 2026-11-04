@@ -154,6 +154,20 @@ export function PageHead({ title, children }: { title?: ReactNode; children?: Re
   return <div className="page-head">{title && <h2>{title}</h2>}<div className="end row wrap">{children}</div></div>;
 }
 
+/** A «مساعدة» button that opens the explanation of the current screen in a popup, instead of a long paragraph. */
+export function Help({ title = "شرح الشاشة", label = "مساعدة", iconOnly, children }:
+  { title?: string; label?: string; iconOnly?: boolean; children: ReactNode }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      {iconOnly
+        ? <button type="button" className="icon-btn" title={label} aria-label={label} onClick={() => setOpen(true)}><Icon name="help" /></button>
+        : <button type="button" className="help-btn" onClick={() => setOpen(true)}><Icon name="help" /><span>{label}</span></button>}
+      {open && <Modal title={title} onClose={() => setOpen(false)}><div className="help-body">{children}</div></Modal>}
+    </>
+  );
+}
+
 export type Column<T> = {
   key: string; label: ReactNode; render?: (row: T, i: number) => ReactNode; num?: boolean; width?: number | string;
   className?: string;

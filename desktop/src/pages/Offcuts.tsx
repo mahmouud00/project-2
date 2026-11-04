@@ -5,7 +5,7 @@ import { useTitle, type PageProps } from "../lib/title";
 import { useAction, useDebounced, useLoad } from "../lib/hooks";
 import { useDefaultBranch, useSession } from "../state/session";
 import { useToast } from "../state/toast";
-import { Btn, Chip, Field, Len, Modal, NumIn, PageHead, Pager, SearchBox, Select, Table, TextIn, Card } from "../components/ui";
+import { Btn, Chip, Field, Len, LenIn, Modal, PageHead, Pager, SearchBox, Select, Table, TextIn, Card } from "../components/ui";
 import { BranchName, BranchSelect, SkuIn } from "../components/pickers";
 import { go } from "../lib/router";
 import { date } from "../lib/format";
@@ -69,7 +69,7 @@ function AddOffcut({ onClose, onSaved }: { onClose: () => void; onSaved: () => v
       onClick={() => run(async () => { await api.post("/offcuts", d); onSaved(); onClose(); })}>حفظ</Btn><Btn onClick={onClose}>رجوع</Btn></>}>
       <div className="col">
         <Field label="القطاع (الكود باللون)"><SkuIn value={d.sku} onChange={(v) => setD((x) => ({ ...x, sku: v }))} /></Field>
-        <Field label="الطول (مم)"><NumIn value={d.length_mm} onChange={(v) => setD((x) => ({ ...x, length_mm: v }))} unit="مم" /></Field>
+        <Field label="الطول"><LenIn mm={d.length_mm} onChange={(mm) => setD((x) => ({ ...x, length_mm: mm ?? "" }))} /></Field>
         <Field label="الفرع"><BranchSelect value={d.branch_id} onChange={(v) => setD((x) => ({ ...x, branch_id: v }))} perm="workorders.write" /></Field>
         <Field label="ملاحظة"><TextIn value={d.note} onChange={(v) => setD((x) => ({ ...x, note: v }))} /></Field>
       </div>

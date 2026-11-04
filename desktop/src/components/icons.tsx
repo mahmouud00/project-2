@@ -45,6 +45,8 @@ const P: Record<string, string> = {
   send: '<path d="M4 12l16-8-6 16-2-7z"/>',
   ban: '<circle cx="12" cy="12" r="9"/><path d="M6 6l12 12"/>',
   scissors: '<circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M8.5 7.5L20 18M8.5 16.5L20 6"/>',
+  help: '<circle cx="12" cy="12" r="9"/><path d="M9.2 9.3a2.8 2.8 0 015.4 1c0 1.9-2.6 2.2-2.6 4"/><path d="M12 17.5v.01"/>',
+  hand: '<path d="M8 13V5.5a1.5 1.5 0 013 0V12M11 12V4.5a1.5 1.5 0 013 0V12M14 12V6.5a1.5 1.5 0 013 0V13c0 3.9-2.5 7-6.5 7-2.3 0-3.8-1-5-2.8l-2-3c-.6-1 .3-2.3 1.4-1.9L8 13.5"/>',
 };
 
 export type IconName = keyof typeof P | string;
