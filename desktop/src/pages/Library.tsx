@@ -392,7 +392,7 @@ function Models({ system, editable }: { system: System; editable: boolean }) {
     <div className="col">
       {editable && <PageHead>
         {sel === null ? <>
-          <Btn kind="primary" small icon="plus" onClick={() => setD({ code: "", name: "", category: "" })}>نموذج جديد</Btn>
+          <Btn kind="primary" small icon="plus" onClick={() => setD({ code: "", name: "", category: "window" })}>نموذج جديد</Btn>
           {deleter && rows.length > 0 && <Btn small icon="trash" onClick={() => setSel([])}>حذف أكتر من نموذج</Btn>}
         </> : <>
           <span className="muted small">اختار النماذج اللي عايز تحذفها ({sel.length} من {rows.length})</span>
@@ -435,7 +435,8 @@ function Models({ system, editable }: { system: System; editable: boolean }) {
         <div className="col">
           <Field label="الكود"><TextIn value={d.code} onChange={(v) => setD({ ...d, code: v })} code autoFocus /></Field>
           <Field label="الاسم"><TextIn value={d.name} onChange={(v) => setD({ ...d, name: v })} placeholder="شباك جرار ضلفتين…" /></Field>
-          <Field label="التصنيف"><TextIn value={d.category} onChange={(v) => setD({ ...d, category: v })} placeholder="شباك، باب، شاتر…" /></Field>
+          <Field label="النوع"><Select value={d.category} onChange={(v) => setD({ ...d, category: v })}
+            options={[{ value: "window", label: "شباك" }, { value: "door", label: "باب" }, { value: "shutter", label: "شيش" }]} /></Field>
         </div>
       </Modal>}
     </div>

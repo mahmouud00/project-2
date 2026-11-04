@@ -166,3 +166,14 @@ def test_changing_a_systems_unit_keeps_its_lengths(tenant_a, client):
                      json={"version": lib["system"]["version"], "unit": "mm"})
     assert r.status_code == 422 and r.json()["error"]["code"] == "UNIT_LOCKED"
     assert r.json()["error"]["details"]["reason"] == "models"
+
+
+def test_model_name_type_and_picture_can_be_changed_or_removed(tenant_a, client):
+    h = tenant_a.h
+    lib = build_library(client, tenant_a, code="EDIT-M", prefix="EM-", publish=False)
+    m = lib["model"]
+    assert m["image_id"]
+    r = client.patch(f"/api/v1/library/models/{m['id']}", headers=h,
+                     json={"version": m["version"], "name": "شباك جرار ضلفتين", "category": "door", "image_id": None})
+    assert r.status_code == 200, r.text
+    assert (r.json()["name"], r.json()["category"], r.json()["image_id"]) == ("شباك جرار ضلفتين", "door", None)

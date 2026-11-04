@@ -274,13 +274,18 @@ function InfoTab({ info, setInfo, editable }: { info: Partial<Model>; setInfo: (
     <div className="row top" style={{ gap: 18 }}>
       <div className="col" style={{ width: 200 }}>
         <MediaImg id={info.image_id} className="thumb lg" />
-        {editable && <FilePick accept="image/png,image/jpeg,image/webp" busy={busy}
-          onFile={(f) => run(async () => set("image_id")((await api.upload<S<"MediaOut">>("/library/media", f)).id))}>صورة النموذج</FilePick>}
+        {editable && <div className="row" style={{ gap: 4 }}>
+          <FilePick accept="image/png,image/jpeg,image/webp" busy={busy}
+            onFile={(f) => run(async () => set("image_id")((await api.upload<S<"MediaOut">>("/library/media", f)).id))}>{info.image_id ? "غيّر الصورة" : "صورة النموذج"}</FilePick>
+          {info.image_id && <Btn small icon="trash" kind="danger" title="شيل الصورة" onClick={() => set("image_id")(null)} />}
+        </div>}
         <div className="muted small">الصورة بتظهر في عرض السعر والفاتورة وأمر التصنيع.</div>
       </div>
       <div className="grid g2 grow">
         <Field label="الاسم"><TextIn value={info.name} onChange={set("name")} disabled={!editable} /></Field>
-        <Field label="التصنيف"><TextIn value={info.category} onChange={set("category")} disabled={!editable} /></Field>
+        <Field label="النوع"><Select value={info.category} onChange={set("category")} disabled={!editable}
+          options={[...Object.entries(CATEGORIES).map(([value, label]) => ({ value, label })),
+            ...(info.category && !CATEGORIES[info.category] ? [{ value: info.category, label: info.category }] : [])]} /></Field>
         <Field label="الحالة"><Select value={info.status} onChange={set("status")} disabled={!editable}
           options={[{ value: "trial", label: "تحت التجربة" }, { value: "approved", label: "معتمد" }]} /></Field>
         <Field label="الترتيب"><NumIn value={String(info.sort ?? 0)} onChange={set("sort")} disabled={!editable} /></Field>
@@ -292,6 +297,8 @@ function InfoTab({ info, setInfo, editable }: { info: Partial<Model>; setInfo: (
     </div>
   );
 }
+
+const CATEGORIES: Record<string, string> = { window: "شباك", door: "باب", shutter: "شيش" };
 
 /** The model's picture in each colour: the quotation, invoice and work order show the picture of the chosen colour. */
 function ColorImages({ value, onChange, editable }: { value: Record<string, string>; onChange: (v: Record<string, string>) => void; editable: boolean }) {
