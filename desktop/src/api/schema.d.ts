@@ -955,6 +955,47 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/library/copy/sources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Copy Sources
+         * @description MYTech: customer companies on this server and their own systems (to copy into the library).
+         */
+        get: operations["copy_sources_api_v1_library_copy_sources_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/library/copy/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Copy To Library
+         * @description MYTech: copy a company's systems (with constants, materials, models, tests, images) into the library
+         *     as fresh, unpublished rows. The company's own rows are untouched.
+         */
+        post: operations["copy_to_library_api_v1_library_copy_run_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/library/packages/preview": {
         parameters: {
             query?: never;
@@ -3349,6 +3390,16 @@ export interface components {
             description?: string | null;
             /** Sort */
             sort?: number | null;
+        };
+        /** CopyIn */
+        CopyIn: {
+            /**
+             * Company Id
+             * Format: uuid
+             */
+            company_id: string;
+            /** System Ids */
+            system_ids: string[];
         };
         /** CustomerIn */
         CustomerIn: {
@@ -9197,6 +9248,59 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["ExportIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    copy_sources_api_v1_library_copy_sources_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    copy_to_library_api_v1_library_copy_run_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CopyIn"];
             };
         };
         responses: {

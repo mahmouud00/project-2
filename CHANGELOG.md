@@ -4,6 +4,7 @@ All notable changes are listed here. Versions follow Semantic Versioning (MAJOR.
 
 ## [Unreleased]
 ### Added
+- MYTech can copy a company's own profile systems into the library (library ← update packages ← «نسخ سيستمات شركة للمكتبة», `GET /library/copy/sources`, `POST /library/copy/run`): the chosen systems — with their constants, materials (colour variants included), models (images included) and reference test cases — are copied as fresh, unpublished library rows under the platform company; the company's own rows are untouched, a code already in the library is skipped, and a material already in the library (by code) is reused. For when systems were entered under the company account instead of the MYTech developer account. Platform author only; reads the company's rows through the system (BYPASSRLS) session, as package import does.
 - Login screen is now an interactive UPVC window: two closed glass sashes that slide open on a click to reveal the username/password/server fields (works online, offline and for the MYTech developer account; light and dark).
 - A «مساعدة» (?) button on every page's top bar opens a short, accurate explanation of that screen; the long library/model-editor explanations now live inside per-section «مساعدة» buttons instead of always-visible paragraphs.
 ### Changed

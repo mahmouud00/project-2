@@ -35,7 +35,8 @@ DEFINITION = {
 }
 
 
-def build_library(client, author, code="T-SLIDE", material_type="upvc", publish=True, prefix=None) -> dict:
+def build_library(client, author, code="T-SLIDE", material_type="upvc", publish=True, prefix=None,
+                  color_codes=("W", "B")) -> dict:
     prefix = prefix or f"{code}-"
     h = author.h
     img = client.post("/api/v1/library/media", headers=h, files={"file": ("m.png", PNG, "image/png")}).json()
@@ -52,8 +53,8 @@ def build_library(client, author, code="T-SLIDE", material_type="upvc", publish=
                                      (f"{prefix}HANDLE", "accessory", "pcs", {}), (f"{prefix}WHEEL", "accessory", "pcs", {})):
         r = client.post("/api/v1/library/materials", headers=h, json={
             "system_id": system["id"], "code": mcode, "name": mcode, "kind": kind, "unit": unit, **extra,
-            "reference_cost": "100", "variants": [{"color_code": "W", "sku": mcode + "-W"},
-                                                  {"color_code": "B", "sku": mcode + "-B"}]})
+            "reference_cost": "100",
+            "variants": [{"color_code": cc, "sku": f"{mcode}-{cc}"} for cc in color_codes]})
         assert r.status_code == 201, r.text
     definition = DEFINITION
     if prefix != "T-":

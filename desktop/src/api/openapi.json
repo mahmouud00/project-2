@@ -3416,6 +3416,76 @@
     ]
    }
   },
+  "/api/v1/library/copy/sources": {
+   "get": {
+    "tags": [
+     "library"
+    ],
+    "summary": "Copy Sources",
+    "description": "MYTech: customer companies on this server and their own systems (to copy into the library).",
+    "operationId": "copy_sources_api_v1_library_copy_sources_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ]
+   }
+  },
+  "/api/v1/library/copy/run": {
+   "post": {
+    "tags": [
+     "library"
+    ],
+    "summary": "Copy To Library",
+    "description": "MYTech: copy a company's systems (with constants, materials, models, tests, images) into the library\nas fresh, unpublished rows. The company's own rows are untouched.",
+    "operationId": "copy_to_library_api_v1_library_copy_run_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/CopyIn"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ]
+   }
+  },
   "/api/v1/library/packages/preview": {
    "post": {
     "tags": [
@@ -12211,6 +12281,29 @@
      "version"
     ],
     "title": "ConstantUpdate"
+   },
+   "CopyIn": {
+    "properties": {
+     "company_id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Company Id"
+     },
+     "system_ids": {
+      "items": {
+       "type": "string",
+       "format": "uuid"
+      },
+      "type": "array",
+      "title": "System Ids"
+     }
+    },
+    "type": "object",
+    "required": [
+     "company_id",
+     "system_ids"
+    ],
+    "title": "CopyIn"
    },
    "CustomerIn": {
     "properties": {

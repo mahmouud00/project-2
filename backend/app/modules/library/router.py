@@ -744,6 +744,49 @@ def export_library_package(body: ExportIn, dc=Depends(get_db_and_ctx)):
                     headers={"Content-Disposition": f'attachment; filename="{name}"'})
 
 
+# ---------------------------------------------------------------- copy company systems into the library (MYTech)
+class CopyIn(BaseModel):
+    company_id: uuid.UUID
+    system_ids: list[uuid.UUID]
+
+
+def _require_platform_author(ctx) -> None:
+    if not ctx.is_platform:
+        raise Forbidden("Only MYTech can copy systems into the library", code="PLATFORM_ONLY")
+    ctx.require("platform.library.author")
+
+
+@router.get("/library/copy/sources")
+def copy_sources(dc=Depends(get_db_and_ctx)):
+    """MYTech: customer companies on this server and their own systems (to copy into the library)."""
+    from app.db.session import system_session
+    from app.modules.library.copy_to_library import list_source_systems
+
+    _, ctx = dc
+    _require_platform_author(ctx)
+    with system_session() as sys_db:  # reads a customer company's private rows: platform author only
+        return list_source_systems(sys_db)
+
+
+@router.post("/library/copy/run")
+def copy_to_library(body: CopyIn, dc=Depends(get_db_and_ctx)):
+    """MYTech: copy a company's systems (with constants, materials, models, tests, images) into the library
+    as fresh, unpublished rows. The company's own rows are untouched."""
+    from app.db.session import system_session
+    from app.modules.library.copy_to_library import copy_systems
+
+    _, ctx = dc
+    _require_platform_author(ctx)
+    if not body.system_ids:
+        raise ValidationFailed("No systems selected", code="NOTHING_SELECTED")
+    if body.company_id == PLATFORM_COMPANY_ID:
+        raise ValidationFailed("Source must be a customer company", code="INVALID_SOURCE")
+    with system_session() as sys_db:  # writes platform rows from a customer company's rows: platform author only
+        summary = copy_systems(sys_db, ctx.user_id, body.company_id, body.system_ids)
+        sys_db.commit()
+    return summary
+
+
 def _check_can_import(ctx) -> None:
     ctx.require("library.import")
     if get_settings().is_online and not ctx.is_platform:

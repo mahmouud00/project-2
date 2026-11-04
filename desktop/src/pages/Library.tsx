@@ -79,7 +79,8 @@ function Systems({ selected, tab }: { selected?: string; tab: string }) {
             </button>
           ))}
           {list.loading && <Loading />}
-          {list.data && !list.data.length && <div className="empty">مفيش قطاعات. {author ? "ضيف أول قطاع." : "MYTech بتضيف القطاعات."}</div>}
+          {list.data && !list.data.length && <div className="empty">مفيش قطاعات. {author ? "ضيف أول قطاع." : "MYTech بتضيف القطاعات."}
+            {s.isPlatform && <> أو انسخ سيستمات شركة من تبويب «حزم التحديث».</>}</div>}
         </div>
         {author && <div className="card-b"><Btn kind="primary" icon="plus" onClick={() => setCreating(true)} className="grow" style={{ width: "100%" }}>
           {s.isPlatform ? "قطاع جديد في المكتبة" : "قطاع خاص بالشركة"}</Btn></div>}
@@ -562,6 +563,7 @@ function Packages() {
 
   return (
     <div className="grid g2" style={{ alignItems: "start" }}>
+      {s.isPlatform && <CopyToLibrary onDone={() => systems.reload()} />}
       {s.isPlatform && (
         <Card title="تصدير حزمة للعملاء (MYTech)">
           <div className="col">
@@ -628,6 +630,69 @@ function Packages() {
   );
 }
 
+
+// ---------------------------------------------------------------- copy a company's systems into the library (MYTech)
+type CopySource = { company_id: string; company_code: string; company_name: string;
+  systems: { id: string; code: string; name: string; material_type: string; models_count: number; already_in_library: boolean }[] };
+type CopyResult = { copied: { code: string; name: string; models: number }[];
+  skipped: { code?: string; name?: string; reason: string }[]; colors: string[]; materials: string[] };
+
+function CopyToLibrary({ onDone }: { onDone: () => void }) {
+  const toast = useToast();
+  const { busy, run } = useAction(toast.err);
+  const sources = useLoad(() => api.get<CopySource[]>("/library/copy/sources"), []);
+  const [open, setOpen] = useState(false);
+  const [companyId, setCompanyId] = useState("");
+  const [picked, setPicked] = useState<string[]>([]);
+  const [result, setResult] = useState<CopyResult | null>(null);
+  const data = sources.data ?? [];
+  const company = data.find((c) => c.company_id === companyId) ?? data[0];
+  const toggle = (id: string) => setPicked((p) => p.includes(id) ? p.filter((x) => x !== id) : [...p, id]);
+  const copy = async () => {
+    const out = await api.post<CopyResult>("/library/copy/run", { company_id: company.company_id, system_ids: picked });
+    setResult(out);
+    invalidate("systems");
+    onDone();
+    setPicked((p) => p.filter((id) => out.skipped.some((k) => company.systems.find((x) => x.id === id)?.code === k.code)));
+    if (out.copied.length) toast.ok(`اتنسخ ${out.copied.length} قطاع للمكتبة.`);
+  };
+  return (
+    <Card title="نسخ سيستمات شركة للمكتبة">
+      <div className="col">
+        <Help>لو دخّلت القطاعات والنماذج وانت داخل بحساب الشركة (مش حساب MYTech)، من هنا بتنسخها للمكتبة. بيتعمل <b>نسخة</b> في المكتبة بكل حاجة (الثوابت، الخامات بألوانها، النماذج بصورها، الاختبارات) من غير ما تتغير بيانات الشركة. النسخة بتنزل <b>مش منشورة</b>، فبتراجعها وتنشرها وبعدين تصدّر حزمة.</Help>
+        {sources.loading && <Loading />}
+        {sources.data && !data.length && <div className="empty">مفيش شركات فيها قطاعات على السيرفر ده.</div>}
+        {!!data.length && <>
+          {data.length > 1 && <Field label="الشركة المصدر"><Select value={company.company_id} onChange={(v) => { setCompanyId(v); setPicked([]); }}
+            options={data.map((c) => ({ value: c.company_id, label: `${c.company_name} (${c.company_code})` }))} /></Field>}
+          {data.length === 1 && <div className="muted small">من شركة: <b>{company.company_name}</b> ({company.company_code})</div>}
+          <div className="col" style={{ gap: 4, maxHeight: 240, overflow: "auto" }}>
+            {company.systems.map((x) => (
+              <label key={x.id} className={"check" + (x.already_in_library ? " faint" : "")}>
+                <input type="checkbox" checked={picked.includes(x.id)} disabled={x.already_in_library} onChange={() => toggle(x.id)} />
+                {x.name} <span className="code">{x.code}</span> <span className="muted small">{MATERIAL_TYPES[x.material_type]} · {x.models_count} نموذج</span>
+                {x.already_in_library && <Chip color="blue">في المكتبة بالفعل</Chip>}
+              </label>
+            ))}
+          </div>
+          <div className="row">
+            <Btn kind="primary" icon="copy" busy={busy} disabled={!picked.length} onClick={() => { setResult(null); setOpen(true); }}>نسخ المختار للمكتبة ({picked.length})</Btn>
+            <Btn small onClick={() => sources.reload()}>تحديث</Btn>
+          </div>
+        </>}
+        {result && <div className="notice ok">
+          {result.copied.length > 0 && <div>اتنسخ: <b>{result.copied.map((c) => c.name).join("، ")}</b>.</div>}
+          {result.skipped.length > 0 && <div className="small mt">اتخطّى (الكود موجود في المكتبة): {result.skipped.map((c) => c.code ?? c.reason).join("، ")}.</div>}
+          <div className="small mt">راجع القطاعات في تبويب «القطاعات والخامات والنماذج»، وانشرها، وبعدين صدّر حزمة.</div>
+        </div>}
+      </div>
+      {open && <Confirm title="نسخ للمكتبة" yes="نسخ" busy={busy} onClose={() => setOpen(false)}
+        text={`هيتنسخ ${picked.length} قطاع من ${company.company_name} لمكتبة MYTech كنسخة مش منشورة. بيانات الشركة مش هتتغير.`}
+        onYes={() => run(async () => { await copy(); setOpen(false); })} />}
+      {/* run wraps the async copy; copy itself no longer calls run */}
+    </Card>
+  );
+}
 
 type ImportReport = { systems: { new: number; updated: number }; colors: { new: number };
   materials: { new: number; updated: number; library: number }; variants: { new: number; updated: number }; prices: number;
