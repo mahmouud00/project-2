@@ -8,7 +8,7 @@ from decimal import Decimal
 from pathlib import Path
 
 from fastapi import APIRouter, Depends
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, Response
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 
@@ -221,3 +221,77 @@ def print_report(body: ReportIn, dc=Depends(get_db_and_ctx)):
                 for s in body.sections]
     return _page("report.html", db, ctx, title=body.title, subtitle=body.subtitle, landscape=landscape,
                  sections=sections)
+
+
+
+@router.post("/documents/report.xlsx")
+def export_report_xlsx(body: ReportIn, dc=Depends(get_db_and_ctx)):
+    """The same report as an Excel workbook (a sheet per table, right to left). Like the printout it holds only what
+    the user sees on the screen; numbers in numeric columns become real numbers, every other cell stays text
+    (a value starting with = is never turned into a formula)."""
+    import io
+    import re
+    from urllib.parse import quote
+
+    from openpyxl import Workbook
+    from openpyxl.styles import Alignment, Font, PatternFill
+
+    db, ctx = dc
+    wb = Workbook()
+    wb.remove(wb.active)
+    used: set[str] = set()
+    for n, sec in enumerate(body.sections or [ReportSection()], start=1):
+        name = re.sub(r"[\\/*?:\[\]]", " ", sec.title or body.title).strip()[:28] or f"Sheet{n}"
+        while name in used:
+            name = f"{name[:25]} {n}"
+        used.add(name)
+        ws = wb.create_sheet(name)
+        ws.sheet_view.rightToLeft = True
+        r = 1
+        ws.cell(r, 1, body.title).font = Font(bold=True, size=13)
+        if body.subtitle:
+            r += 1
+            ws.cell(r, 1, body.subtitle).font = Font(color="666666")
+        for k, v in sec.kv:
+            r += 1
+            ws.cell(r, 1, k).font = Font(bold=True)
+            _text_cell(ws.cell(r, 2), v)
+        if sec.columns:
+            r += 2
+            for c, label in enumerate(sec.columns, start=1):
+                cell = ws.cell(r, c, label)
+                cell.font = Font(bold=True)
+                cell.fill = PatternFill("solid", fgColor="DDE7F7")
+                cell.alignment = Alignment(horizontal="center")
+            nums = set(sec.nums)
+            for row in sec.rows:
+                r += 1
+                for c, v in enumerate(row[:len(sec.columns)], start=1):
+                    number = _number(v) if (c - 1) in nums else None
+                    if number is not None:
+                        ws.cell(r, c, number)
+                    else:
+                        _text_cell(ws.cell(r, c), v)
+            for c in range(1, len(sec.columns) + 1):
+                width = max([len(str(sec.columns[c - 1]))] + [len(str(x[c - 1])) for x in sec.rows if len(x) >= c] or [8])
+                ws.column_dimensions[ws.cell(1, c).column_letter].width = min(60, max(8, width + 2))
+    buf = io.BytesIO()
+    wb.save(buf)
+    name = quote((body.title or "report")[:80] + ".xlsx")
+    return Response(buf.getvalue(), media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    headers={"Content-Disposition": f"attachment; filename=report.xlsx; filename*=UTF-8''{name}"})
+
+
+def _number(v: str) -> Decimal | None:
+    text = str(v).replace(",", "").replace("٬", "").strip()
+    for suffix in ("EGP", "ج.م", "%", "م²", "سم", "مم"):
+        text = text.removesuffix(suffix).strip()
+    try:
+        return Decimal(text) if text and text not in ("-", "—") else None
+    except Exception:
+        return None
+
+
+def _text_cell(cell, v) -> None:
+    cell.value = "" if v is None else str(v)
+    cell.data_type = "s"          # never a formula, whatever the text starts with

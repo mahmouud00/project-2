@@ -28,9 +28,9 @@ function titleFor(el: Element): string {
 
 function tableSection(table: HTMLTableElement): ReportSection | null {
   const head = Array.from(table.tHead?.rows[0]?.cells ?? table.rows[0]?.cells ?? []);
-  const keep = head.map((c, i) => [i, textOf(c)] as const).filter(([, t]) => t !== "");
+  const keep = head.map((c, i) => [i, textOf(c).replace(/[▲▼]/g, "").trim()] as const).filter(([, t]) => t !== "");
   if (!keep.length) return null;
-  const body = Array.from(table.tBodies).flatMap((b) => Array.from(b.rows));
+  const body = Array.from(table.tBodies).flatMap((b) => Array.from(b.rows)).filter((r) => !r.hidden);   // filtered out: not printed
   const rows = body.map((r) => keep.map(([i]) => (r.cells[i] ? textOf(r.cells[i]) : "")))
     .filter((r) => r.some((v) => v !== ""));
   const nums = keep.map(([i], j) => (head[i].classList.contains("n") ? j : -1)).filter((j) => j >= 0);

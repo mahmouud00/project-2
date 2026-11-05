@@ -90,7 +90,7 @@ def get_db_and_ctx(request: Request, token: str | None = Depends(oauth2)) -> Ite
 
 
 _LICENSE_EXEMPT = ("/api/v1/system/license", "/api/v1/auth/")
-_READ_ONLY_POSTS = ("/api/v1/documents/report",)  # POST only to send a body; changes nothing
+_READ_ONLY_POSTS = ("/api/v1/documents/report", "/api/v1/documents/report.xlsx")  # POST only to send a body; changes nothing
 
 
 def _license_gate(db: TenantSession, ctx: RequestContext, request: Request) -> None:

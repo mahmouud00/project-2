@@ -2050,6 +2050,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/documents/report.xlsx": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Export Report Xlsx
+         * @description The same report as an Excel workbook (a sheet per table, right to left). Like the printout it holds only what
+         *     the user sees on the screen; numbers in numeric columns become real numbers, every other cell stays text
+         *     (a value starting with = is never turned into a formula).
+         */
+        post: operations["export_report_xlsx_api_v1_documents_report_xlsx_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/maintenance": {
         parameters: {
             query?: never;
@@ -11977,6 +11999,39 @@ export interface operations {
                 };
                 content: {
                     "text/html": string;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_report_xlsx_api_v1_documents_report_xlsx_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReportIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */

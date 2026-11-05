@@ -7952,6 +7952,51 @@
     ]
    }
   },
+  "/api/v1/documents/report.xlsx": {
+   "post": {
+    "tags": [
+     "documents"
+    ],
+    "summary": "Export Report Xlsx",
+    "description": "The same report as an Excel workbook (a sheet per table, right to left). Like the printout it holds only what\nthe user sees on the screen; numbers in numeric columns become real numbers, every other cell stays text\n(a value starting with = is never turned into a formula).",
+    "operationId": "export_report_xlsx_api_v1_documents_report_xlsx_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ReportIn"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ]
+   }
+  },
   "/api/v1/maintenance": {
    "get": {
     "tags": [

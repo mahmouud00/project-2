@@ -1,8 +1,10 @@
-import { Fragment, useEffect, useRef, useState, type ReactNode, type ButtonHTMLAttributes, type InputHTMLAttributes } from "react";
+import { Fragment, useEffect, useLayoutEffect, useRef, useState, type ReactNode, type ButtonHTMLAttributes, type InputHTMLAttributes } from "react";
 import { Icon, type IconName } from "./icons";
 import { useSession } from "../state/session";
 import { clean } from "../lib/format";
 import { go, useUnsavedGuard } from "../lib/router";
+import { textOf } from "../lib/printpage";
+import { TableTools } from "./tabletools";
 
 export function Btn({ icon, kind, small, busy, children, className, ...rest }:
   ButtonHTMLAttributes<HTMLButtonElement> & { icon?: IconName; kind?: "primary" | "success" | "danger" | "ghost" | "solid-danger";
@@ -196,33 +198,94 @@ export type Column<T> = {
   className?: string;
 };
 
-export function Table<T>({ rows, columns, onRow, loading, empty = "مفيش بيانات", rowKey, selected }:
+/** A table. With more than a few rows (or `tools`), it gets a quick filter, a column chooser and Excel / PDF export,
+ * and any titled column sorts when its header is clicked (by the text shown, numbers as numbers). */
+export function Table<T>({ rows, columns, onRow, loading, empty = "مفيش بيانات", rowKey, selected, tools }:
   { rows: T[] | undefined; columns: Column<T>[]; onRow?: (row: T) => void; loading?: boolean; empty?: ReactNode;
-    rowKey?: (row: T, i: number) => string; selected?: string | null }) {
+    rowKey?: (row: T, i: number) => string; selected?: string | null; tools?: boolean }) {
+  const table = useRef<HTMLTableElement>(null);
+  const store = "table.cols:" + (location.hash.split("?")[0].split("/")[1] ?? "") + ":" + columns.map((c) => c.key).join(",");
+  const [hidden, setHiddenState] = useState<string[]>(() => {
+    try { return JSON.parse(localStorage.getItem(store) ?? "[]"); } catch { return []; }
+  });
+  const setHidden = (v: string[]) => { setHiddenState(v); try { localStorage.setItem(store, JSON.stringify(v)); } catch { /* ignore */ } };
+  const [sort, setSort] = useState<{ key: string; dir: 1 | -1 } | null>(null);
+  const [order, setOrder] = useState<string[] | null>(null);
+  const [filter, setFilter] = useState("");
+  const [shown, setShown] = useState<number | null>(null);
+  const cols = columns.filter((c) => !hidden.includes(c.key));
+  const keyed = (rows ?? []).map((r, i) => ({ r, i, k: rowKey ? rowKey(r, i) : String((r as any).id ?? i) }));
+  const at = order ? new Map(order.map((k, n) => [k, n])) : null;
+  const list = at ? [...keyed].sort((a, b) => (at.get(a.k) ?? 1e9) - (at.get(b.k) ?? 1e9) || a.i - b.i) : keyed;
+  const showTools = tools ?? keyed.length > 5;
+
+  // sort by what each cell shows (custom renders included): read the column's cells, order the row keys
+  useLayoutEffect(() => {
+    const t = table.current;
+    if (!sort || !t) { if (order) setOrder(null); return; }
+    const col = cols.findIndex((c) => c.key === sort.key);
+    if (col < 0) { setSort(null); return; }
+    const cells = Array.from(t.tBodies[0]?.rows ?? []).map((tr) => [tr.dataset.k ?? "", tr.cells[col] ? textOf(tr.cells[col]) : ""] as const);
+    const num = (v: string) => { const n = Number(v.replace(/[,٬\s]/g, "").replace(/(EGP|ج\.م|%|م²|سم|مم)$/g, "")); return v.trim() !== "" && Number.isFinite(n) ? n : null; };
+    const sorted = [...cells].sort(([, a], [, b]) => {
+      const x = num(a), y = num(b);
+      const c = x !== null && y !== null ? x - y : a.localeCompare(b, "ar", { numeric: true });
+      return c * sort.dir;
+    }).map(([k]) => k);
+    if (!order || sorted.join("\u0000") !== order.join("\u0000")) setOrder(sorted);
+  });
+
+  // quick filter: hide the rows whose shown text does not contain it
+  useLayoutEffect(() => {
+    const t = table.current;
+    if (!t) return;
+    const q = filter.trim().toLowerCase();
+    let n = 0;
+    for (const tr of Array.from(t.tBodies[0]?.rows ?? [])) {
+      const hide = !!q && !textOf(tr).toLowerCase().includes(q);
+      tr.hidden = hide;
+      if (!hide) n += 1;
+    }
+    const v = q ? n : null;
+    if (v !== shown) setShown(v);
+  });
+
+  const clickHead = (c: Column<T>) => {
+    if (c.label === "" || c.label === null || c.label === undefined) return;
+    setSort((s) => (s?.key !== c.key ? { key: c.key, dir: 1 } : s.dir === 1 ? { key: c.key, dir: -1 } : null));
+  };
   return (
     <div className="table-wrap">
-      <table>
+      {showTools && <TableTools tableRef={table} filter={filter} setFilter={setFilter} columns={columns} hidden={hidden}
+        setHidden={setHidden} shown={shown} />}
+      <table ref={table}>
         <thead>
-          <tr>{columns.map((c) => <th key={c.key} className={c.num ? "n" : undefined} style={{ width: c.width }}>{c.label}</th>)}</tr>
+          <tr>{cols.map((c) => {
+            const sortable = c.label !== "" && c.label !== null && c.label !== undefined;
+            return (
+              <th key={c.key} className={[c.num && "n", sortable && "sortable"].filter(Boolean).join(" ") || undefined} style={{ width: c.width }}
+                onClick={sortable ? () => clickHead(c) : undefined} title={sortable ? "اضغط للترتيب" : undefined}>
+                {c.label}{sort?.key === c.key && <span className="sort-mark">{sort.dir === 1 ? "▲" : "▼"}</span>}
+              </th>
+            );
+          })}</tr>
         </thead>
         <tbody>
-          {(rows ?? []).map((r, i) => {
-            const k = rowKey ? rowKey(r, i) : ((r as any).id ?? String(i));
-            return (
-              <tr key={k} className={[onRow && "click", selected && selected === k && "sel"].filter(Boolean).join(" ")}
-                onClick={onRow ? () => onRow(r) : undefined}>
-                {columns.map((c) => (
-                  <td key={c.key} className={[c.num && "n", c.className].filter(Boolean).join(" ") || undefined}>
-                    {c.render ? c.render(r, i) : ((r as any)[c.key] ?? "")}
-                  </td>
-                ))}
-              </tr>
-            );
-          })}
+          {list.map(({ r, i, k }) => (
+            <tr key={k} data-k={k} className={[onRow && "click", selected && selected === k && "sel"].filter(Boolean).join(" ")}
+              onClick={onRow ? () => onRow(r) : undefined}>
+              {cols.map((c) => (
+                <td key={c.key} className={[c.num && "n", c.className].filter(Boolean).join(" ") || undefined}>
+                  {c.render ? c.render(r, i) : ((r as any)[c.key] ?? "")}
+                </td>
+              ))}
+            </tr>
+          ))}
         </tbody>
       </table>
       {loading && !rows?.length && <div className="empty"><span className="spinner" /></div>}
       {!loading && rows && rows.length === 0 && <div className="empty">{empty}</div>}
+      {!!filter.trim() && shown === 0 && <div className="empty">مفيش صفوف فيها «{filter.trim()}»</div>}
     </div>
   );
 }

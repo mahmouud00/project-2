@@ -124,6 +124,7 @@ WS /api/v1/system/events?token=<access_token>
 | GET / PUT | `/library/systems/{id}/adjustments` | معايرة الشركة (`calibrations: [{constant_name, delta}]`) وقيمها الخاصة (`overrides`) |
 | POST | `/engine/calculate` | `{model_id, opening_width_mm, opening_height_mm, params, version_id?}` ← القطع (طول، عدد، زوايا)، الزجاج، الإكسسوار، الرسمة، التحذيرات، و`meta.formula_set_version_id` |
 | POST | `/library/models/import?apply=&system_ids=` | ملف إكسيل بالنماذج (الكود، الاسم، النوع، الرسمة) ← بيتعمل في كل قطاع مختار (معاينة الأول، كله أو مفيش) |
+| POST | `/documents/report.xlsx` | أي جدول زي ما المستخدم شايفه كملف إكسيل (نفس جسم `/documents/report`) |
 | GET | `/search?q=&limit=` | البحث الشامل (Ctrl + K): نتايج مجمّعة لكل قسم المستخدم يقدر يقراه، في فروعه وشركته بس |
 | GET | `/library/copy/sources` | (MYTech) الشركات اللي على السيرفر وسيستماتها الخاصة (مصدر للنسخ) |
 | POST | `/library/copy/run` | (MYTech) `{company_id, system_ids}` ← نسخ سيستمات شركة للمكتبة كنسخة مش منشورة |
