@@ -72,7 +72,7 @@ def _issue(db: Session, user: User, device: Device | None, family_id: uuid.UUID 
 
 
 def login(db: Session, *, company_code: str | None, username: str, password: str, device_key: str,
-          device_name: str = "", client_version: str = "", platform: str = "") -> dict:
+          device_name: str = "", client_version: str = "", platform: str = "", otp: str | None = None) -> dict:
     s = get_settings()
     company = resolve_company(db, company_code)
     user = db.scalar(select(User).where(User.company_id == company.id, User.username == username,
@@ -91,11 +91,29 @@ def login(db: Session, *, company_code: str | None, username: str, password: str
         raise Unauthorized("Invalid credentials", code="INVALID_CREDENTIALS")
     if not user.is_active:
         raise Unauthorized("User disabled", code="USER_DISABLED")
+    if user.totp_enabled_at is not None:          # two-step login: the code from the authenticator app
+        from app.auth import totp
+
+        if not otp:
+            raise Unauthorized("Code from the authenticator app required", code="OTP_REQUIRED")
+        secret = totp.unseal(user.totp_secret)
+        step = totp.verify(secret, otp, user.totp_last_step) if secret else None
+        if step is None:
+            user.failed_logins += 1
+            if user.failed_logins >= s.login_max_failures:
+                user.locked_until = _now() + timedelta(minutes=s.login_lock_minutes)
+                user.failed_logins = 0
+            db.commit()
+            raise Unauthorized("Wrong code", code="OTP_INVALID" if secret else "OTP_UNAVAILABLE")
+        user.totp_last_step = step
     user.failed_logins = 0
     user.locked_until = None
     if needs_rehash(user.password_hash):
         user.password_hash = hash_password(password)
     device = register_device(db, company.id, device_key, device_name, client_version, platform)
+    # one sign-in per user and device: signing in again ends the earlier one (the app keeps only the newest)
+    db.execute(update(RefreshToken).where(RefreshToken.user_id == user.id, RefreshToken.device_id == device.id,
+                                          RefreshToken.revoked_at.is_(None)).values(revoked_at=_now()))
     tokens = _issue(db, user, device)
     db.commit()
     return tokens

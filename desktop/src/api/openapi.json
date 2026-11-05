@@ -220,6 +220,175 @@
     ]
    }
   },
+  "/api/v1/auth/2fa/setup": {
+   "post": {
+    "tags": [
+     "auth"
+    ],
+    "summary": "Two Factor Setup",
+    "description": "A new secret for the authenticator app (scan the QR or type the key). Not active until a code is confirmed.",
+    "operationId": "two_factor_setup_api_v1_auth_2fa_setup_post",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ]
+   }
+  },
+  "/api/v1/auth/2fa/enable": {
+   "post": {
+    "tags": [
+     "auth"
+    ],
+    "summary": "Two Factor Enable",
+    "operationId": "two_factor_enable_api_v1_auth_2fa_enable_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/CodeIn"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "204": {
+      "description": "Successful Response"
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ]
+   }
+  },
+  "/api/v1/auth/2fa/disable": {
+   "post": {
+    "tags": [
+     "auth"
+    ],
+    "summary": "Two Factor Disable",
+    "operationId": "two_factor_disable_api_v1_auth_2fa_disable_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/DisableIn"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "204": {
+      "description": "Successful Response"
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ]
+   }
+  },
+  "/api/v1/auth/sessions": {
+   "get": {
+    "tags": [
+     "auth"
+    ],
+    "summary": "My Sessions",
+    "description": "The devices this user is signed in on (live sign-ins), newest first; `current` is this one.",
+    "operationId": "my_sessions_api_v1_auth_sessions_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ]
+   }
+  },
+  "/api/v1/auth/sessions/{family_id}/revoke": {
+   "post": {
+    "tags": [
+     "auth"
+    ],
+    "summary": "Revoke Session",
+    "description": "Sign that device out (it can stay in at most until its short access token ends).",
+    "operationId": "revoke_session_api_v1_auth_sessions__family_id__revoke_post",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "family_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Family Id"
+      }
+     }
+    ],
+    "responses": {
+     "204": {
+      "description": "Successful Response"
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/v1/branches": {
    "get": {
     "tags": [
@@ -622,6 +791,55 @@
     },
     "responses": {
      "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/UserOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/users/{user_id}/2fa/reset": {
+   "post": {
+    "tags": [
+     "org"
+    ],
+    "summary": "Reset Two Factor",
+    "description": "Turns a user's two-step login off (a lost or changed phone): they set it up again after signing in.",
+    "operationId": "reset_two_factor_api_v1_users__user_id__2fa_reset_post",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "user_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "User Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
       "description": "Successful Response",
       "content": {
        "application/json": {
@@ -12042,6 +12260,21 @@
     ],
     "title": "Choice"
    },
+   "CodeIn": {
+    "properties": {
+     "code": {
+      "type": "string",
+      "maxLength": 10,
+      "minLength": 6,
+      "title": "Code"
+     }
+    },
+    "type": "object",
+    "required": [
+     "code"
+    ],
+    "title": "CodeIn"
+   },
    "ColorIn": {
     "properties": {
      "code": {
@@ -12554,6 +12787,11 @@
       ],
       "title": "Length Unit",
       "default": "cm"
+     },
+     "two_factor_for_admins": {
+      "type": "boolean",
+      "title": "Two Factor For Admins",
+      "default": false
      }
     },
     "type": "object",
@@ -13484,6 +13722,26 @@
     },
     "type": "object",
     "title": "DeviceUpdate"
+   },
+   "DisableIn": {
+    "properties": {
+     "password": {
+      "type": "string",
+      "title": "Password"
+     },
+     "code": {
+      "type": "string",
+      "maxLength": 10,
+      "minLength": 6,
+      "title": "Code"
+     }
+    },
+    "type": "object",
+    "required": [
+     "password",
+     "code"
+    ],
+    "title": "DisableIn"
    },
    "DrawingElement": {
     "properties": {
@@ -15920,6 +16178,18 @@
       "type": "string",
       "title": "Platform",
       "default": ""
+     },
+     "otp": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 10
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Otp"
      }
     },
     "type": "object",
@@ -22336,6 +22606,11 @@
      "must_change_password": {
       "type": "boolean",
       "title": "Must Change Password"
+     },
+     "two_factor_enabled": {
+      "type": "boolean",
+      "title": "Two Factor Enabled",
+      "default": false
      },
      "assignments": {
       "items": {

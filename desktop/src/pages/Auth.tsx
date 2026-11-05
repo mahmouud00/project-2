@@ -156,6 +156,7 @@ export function LoginPage({ info, onLogin, onChangeServer }:
   const [company, setCompany] = useState(store.company);
   const [username, setUsername] = useState(store.username);
   const [password, setPassword] = useState("");
+  const [otp, setOtp] = useState<string | null>(null);   // asked only for users with two-step login
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [brand, setBrand] = useState<PublicBranding | null>(null);
@@ -210,10 +211,13 @@ export function LoginPage({ info, onLogin, onChangeServer }:
     setBusy(true);
     setError(null);
     try {
-      await login(online ? company.trim() : vendor ? PLATFORM_CODE : (brand?.company_code ?? ""), username.trim(), password);
+      await login(online ? company.trim() : vendor ? PLATFORM_CODE : (brand?.company_code ?? ""), username.trim(), password, otp);
       await onLogin();
     } catch (err) {
-      if (err instanceof ApiError && err.code === "LICENSE_INVALID") {
+      if (err instanceof ApiError && err.code === "OTP_REQUIRED") {
+        setOtp("");
+        setError(null);
+      } else if (err instanceof ApiError && err.code === "LICENSE_INVALID") {
         const why = reasonText(err);
         setError(why === errorText(err) ? why : errorText(err) + " " + why);
         await checkActivation();
@@ -243,6 +247,9 @@ export function LoginPage({ info, onLogin, onChangeServer }:
               )}
               <Field label="اسم المستخدم"><TextIn value={username} onChange={setUsername} autoComplete="username" tabIndex={opened ? 0 : -1} /></Field>
               <Field label="كلمة المرور"><TextIn type="password" value={password} onChange={setPassword} autoComplete="current-password" tabIndex={opened ? 0 : -1} /></Field>
+              {otp !== null && <Field label="كود التأكيد" hint="الـ٦ أرقام اللي في تطبيق التأكيد (Google Authenticator) على موبايلك">
+                <TextIn value={otp} onChange={(v) => setOtp(v.replace(/\D/g, "").slice(0, 6))} inputMode="numeric" autoComplete="one-time-code"
+                  autoFocus code style={{ letterSpacing: 4, textAlign: "center" }} tabIndex={opened ? 0 : -1} /></Field>}
               {error && <div className="notice err">{error}</div>}
               <Btn kind="primary" type="submit" busy={busy} disabled={!username || !password} tabIndex={opened ? 0 : -1}>دخول</Btn>
               <div className="row small muted">

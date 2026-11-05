@@ -104,6 +104,9 @@ def main(argv: list[str] | None = None) -> int:
     p = sub.add_parser("create-platform-admin")
     p.add_argument("--username", required=True)
     p.add_argument("--password")
+    p = sub.add_parser("reset-2fa", help="turn a user's two-step login off (lost phone; run on the server)")
+    p.add_argument("--username", required=True)
+    p.add_argument("--company", default="", help="company code (online servers)")
     sub.add_parser("demo", help="create the demo companies and example data (APP_MODE=online)")
     sub.add_parser("serve", help="run the API server")
     sub.add_parser("version", help="print the server version")
@@ -159,6 +162,23 @@ def main(argv: list[str] | None = None) -> int:
     elif args.cmd == "update":
         from app.ops.updater import main as update_main
         return update_main([args.package, "--root", args.root, "--service", args.service, "--port", str(args.port)])
+    elif args.cmd == "reset-2fa":
+        from sqlalchemy import select
+
+        from app.auth.service import resolve_company
+        from app.db import models  # noqa: F401
+        from app.db.session import system_session
+        from app.modules.org.models import User
+
+        with system_session() as db:
+            company = resolve_company(db, args.company or None)
+            user = db.scalar(select(User).where(User.company_id == company.id, User.username == args.username))
+            if user is None:
+                print("no such user")
+                return 1
+            user.totp_secret, user.totp_enabled_at, user.totp_last_step = None, None, None
+            db.commit()
+            print(f"two-step login is off for {user.username}")
     elif args.cmd in ("create-company", "create-platform-admin"):
         from app.db import models  # noqa: F401
         from app.db.session import system_session

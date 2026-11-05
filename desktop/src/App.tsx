@@ -4,6 +4,7 @@ import { api, logout, onApiEvent, resume, store, CLIENT_VERSION } from "./api/cl
 import { ConnectPage, LoginPage } from "./pages/Auth";
 import { SessionProvider, loadSession, useSession, type ServerInfo, type SessionData } from "./state/session";
 import { ChangePassword, NAV, Shell, navVisible } from "./components/Shell";
+import { Security } from "./components/security";
 import { redirect, useRoute } from "./lib/router";
 import { Btn } from "./components/ui";
 import { PAGES } from "./pages";
@@ -72,6 +73,7 @@ function Main({ onLogout }: { onLogout: () => void }) {
   const [title, setTitle] = useState<Title>({ title: "" });
   const [record, setRecord] = useState<RecordRef | null>(null);
   const [pwd, setPwd] = useState(s.me.must_change_password);
+  const [tfa, setTfa] = useState(!!s.me.two_factor_required);
   const first = defaultPage(s);
   const page = route.path[0] ?? first;
 
@@ -88,6 +90,7 @@ function Main({ onLogout }: { onLogout: () => void }) {
         </Shell>
       </RecordCtx.Provider>
       {pwd && <ChangePassword forced onClose={() => setPwd(false)} />}
+      {!pwd && tfa && <Security forced onClose={() => setTfa(false)} />}
     </TitleCtx.Provider>
   );
 }

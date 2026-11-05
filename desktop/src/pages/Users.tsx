@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { api, type S } from "../api/client";
+import { api, errorText, type S } from "../api/client";
 import { useTitle, type PageProps } from "../lib/title";
 import { useAction, useLoad } from "../lib/hooks";
 import { useSession } from "../state/session";
 import { useToast } from "../state/toast";
-import { Btn, Card, Check, Chip, Field, Modal, PageHead, Pager, Select, Table, Tabs, TextIn } from "../components/ui";
+import { Btn, Card, Check, Chip, Confirm, Field, Modal, PageHead, Pager, Select, Table, Tabs, TextIn } from "../components/ui";
 import { invalidate, lookups } from "../lib/lookups";
 import { setQuery } from "../lib/router";
 
@@ -26,6 +26,8 @@ function UserList() {
   const s = useSession();
   const [offset, setOffset] = useState(0);
   const [edit, setEdit] = useState<Partial<User> | null>(null);
+  const [reset, setReset] = useState<User | null>(null);
+  const toast = useToast();
   const list = useLoad(() => api.get<S<"Page_UserOut_">>("/users", { limit: 50, offset }), [offset]);
   const roles = useLoad(() => lookups.roles(), []);
   const roleName = (id: string) => roles.data?.find((r) => r.id === id)?.name ?? "";
@@ -42,7 +44,13 @@ function UserList() {
         { key: "r", label: "الأدوار", render: (u) => <div className="row wrap" style={{ gap: 4 }}>{(u.assignments ?? []).map((a, i) =>
           <Chip key={i} color="blue">{roleName(a.role_id)} · {branchName(a.branch_id)}</Chip>)}</div> },
         { key: "s", label: "الحالة", render: (u) => u.is_active ? <Chip color="green">نشط</Chip> : <Chip color="red">متوقف</Chip> },
+        { key: "t", label: "التأكيد بخطوتين", render: (u) => u.two_factor_enabled
+          ? <span className="row" style={{ gap: 6 }}><Chip color="green">شغّال</Chip><Btn small onClick={(e) => { e.stopPropagation(); setReset(u); }}>إلغاؤه (موبايل ضاع)</Btn></span>
+          : <span className="faint small">—</span> },
       ]} />
+      {reset && <Confirm title="إلغاء التأكيد بخطوتين" yes="إلغاؤه" danger onClose={() => setReset(null)}
+        text={`${reset.full_name} هيدخل بكلمة المرور بس لحد ما يفعّله تاني (لو موبايله ضاع أو اتغيّر).`}
+        onYes={async () => { try { await api.post(`/users/${reset.id}/2fa/reset`); toast.ok("اتلغى."); list.reload(); } catch (e) { toast.err(errorText(e)); } setReset(null); }} />}
       {list.data && <Pager total={list.data.total} limit={50} offset={offset} onChange={setOffset} />}
       {edit && <UserForm user={edit} onClose={() => setEdit(null)} onSaved={list.reload} />}
     </div>

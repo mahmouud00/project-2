@@ -526,3 +526,7 @@ tr[hidden] { display: none; }
 .history-changes td { padding: 2px 8px 2px 0; vertical-align: top; }
 .history-changes .del { color: var(--danger); text-decoration: line-through; opacity: .8; }
 .history-changes .ins { color: var(--success, #15803d); font-weight: 600; }
+
+/* ---------------------------------------------------------------- two-step login */
+.qr-box { background: #fff; padding: 8px; border-radius: 10px; border: 1px solid var(--line); line-height: 0; }
+.qr-box svg { width: 180px; height: 180px; }

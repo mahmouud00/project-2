@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 
 from app.core.errors import VersionConflict
 
-_SKIP = {"password_hash", "updated_at", "created_at", "version"}
+_SKIP = {"password_hash", "totp_secret", "totp_last_step", "updated_at", "created_at", "version"}
 
 
 def _jsonable(value: Any) -> Any:

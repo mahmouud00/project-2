@@ -92,7 +92,8 @@ function Defaults() {
     min_reusable_offcut_mm: st.min_reusable_offcut_mm, quote_terms: st.quote_terms, length_unit: st.length_unit ?? "cm",
     min_billed_area_m2: st.min_billed_area_m2, labor_cost_per_m2: st.labor_cost_per_m2, fair_margin_pct: st.fair_margin_pct,
     top_margin_pct: st.top_margin_pct, default_arch_model_id: st.default_arch_model_id ?? null,
-    stage_durations_days: { ...(st.stage_durations_days ?? {}) }, supplier_discounts: { ...(st.supplier_discounts ?? {}) } });
+    stage_durations_days: { ...(st.stage_durations_days ?? {}) }, supplier_discounts: { ...(st.supplier_discounts ?? {}) },
+    two_factor_for_admins: st.two_factor_for_admins ?? false });
   const systems = useLoad(() => lookups.systems().catch(() => []), []);
   const discounts = (d.supplier_discounts ?? {}) as Record<string, string | number>;
   const setDiscount = (code: string) => (v: string) => setD((x) => {
@@ -110,6 +111,9 @@ function Defaults() {
       <Field label="وحدة المقاسات في البرنامج"><Select value={d.length_unit as string} onChange={set("length_unit")}
         options={[{ value: "cm", label: "سنتيمتر" }, { value: "mm", label: "مليمتر" }]} /></Field>
       <Field label="العملة"><TextIn value={d.currency} onChange={set("currency")} code /></Field>
+      <Field label="أمان المديرين" className="span2" hint="المديرين (اللي بيديروا المستخدمين) لازم يفعّلوا كود من تطبيق على الموبايل مع كلمة المرور">
+        <label className="check"><input type="checkbox" checked={!!d.two_factor_for_admins} onChange={(e) => set("two_factor_for_admins")(e.target.checked)} />
+          إلزام المديرين بالتأكيد بخطوتين</label></Field>
       <Field label="الضريبة الافتراضية"><NumIn value={d.default_tax_pct as string} onChange={set("default_tax_pct")} unit="%" /></Field>
       <Field label="نسبة العربون"><NumIn value={d.deposit_pct as string} onChange={set("deposit_pct")} unit="%" /></Field>
       <Field label="صلاحية عرض السعر (يوم)"><NumIn value={String(d.quote_validity_days ?? "")} onChange={(v) => set("quote_validity_days")(Number(v) || 0)} /></Field>

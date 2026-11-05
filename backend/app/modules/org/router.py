@@ -178,11 +178,13 @@ class UserOut(Record):
     email: str | None
     is_active: bool
     must_change_password: bool
+    two_factor_enabled: bool = False
     assignments: list[AssignmentOut] = []
 
 
 def _user_out(db, user: User) -> UserOut:
     out = UserOut.model_validate(user)
+    out.two_factor_enabled = user.totp_enabled_at is not None
     out.assignments = [AssignmentOut.model_validate(a) for a in
                        db.scalars(select(UserBranchRole).where(UserBranchRole.user_id == user.id)).all()]
     return out
@@ -221,6 +223,18 @@ def create_user(body: UserIn, dc=Depends(require("users.manage"))):
     db.flush()
     _set_assignments(db, user, body.assignments)
     audit(db, user, "create")
+    db.commit()
+    return _user_out(db, user)
+
+
+@router.post("/users/{user_id}/2fa/reset", response_model=UserOut)
+def reset_two_factor(user_id: uuid.UUID, dc=Depends(require("users.manage"))):
+    """Turns a user's two-step login off (a lost or changed phone): they set it up again after signing in."""
+    db, _ = dc
+    user = get_or_404(db, User, user_id)
+    before = snapshot(user)
+    user.totp_secret, user.totp_enabled_at, user.totp_last_step = None, None, None
+    audit(db, user, "update", before, note="two-step login reset by an administrator")
     db.commit()
     return _user_out(db, user)
 

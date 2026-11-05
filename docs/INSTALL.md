@@ -89,3 +89,9 @@ SSL_KEYFILE=C:\MYTech\config\server.key
 - **السيرفر شغال؟** افتح `http://localhost:8000/api/v1/system/health` على جهاز السيرفر.
 - **الخدمات:** `services.msc` ← MYTech Solutions Server وMYTechPostgreSQL.
 - **إلغاء التسطيب:** من Apps & features. بيشيل الخدمات والفايروول، و**بيسيب البيانات** (pgdata، backups، media، license، config). امسح الفولدر بإيدك بعد ما تاخد نسخة من backups.
+
+
+## التأكيد بخطوتين
+لو المدير ضيّع موبايله ومحدش غيره يقدر يلغيه من «المستخدمين»: على جهاز السيرفر من فولدر `config` شغّل
+`mytech-server.exe reset-2fa --username admin` (على سيرفر أونلاين زوّد `--company <الكود>`).
+تغيير `JWT_SECRET` بيلغي التأكيد بخطوتين لكل المستخدمين (لازم يفعّلوه تاني).

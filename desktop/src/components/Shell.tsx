@@ -10,6 +10,7 @@ import { useToast } from "../state/toast";
 import { PrintPreview } from "./media";
 import { Bell } from "./bell";
 import { SearchButton } from "./search";
+import { Security } from "./security";
 import { HistoryButton } from "./history";
 import type { RecordRef } from "../lib/title";
 import { collectPage, type Report } from "../lib/printpage";
@@ -58,6 +59,7 @@ export function Shell({ page, title, crumbs, record, children, onLogout }:
   const [menu, setMenu] = useState(false);
   const [drawer, setDrawer] = useState(false);   // phones: the side menu slides in
   const [pwd, setPwd] = useState(false);
+  const [security, setSecurity] = useState(false);
   const name = s.company.branding?.name || s.company.name;
   const lic = s.license;
   const content = useRef<HTMLDivElement>(null);
@@ -151,6 +153,8 @@ export function Shell({ page, title, crumbs, record, children, onLogout }:
                 <ThemeChoice />
                 <button className="btn ghost" style={{ width: "100%", justifyContent: "flex-start", color: "var(--text)" }}
                   onClick={() => { setMenu(false); setPwd(true); }}><Icon name="key" />تغيير كلمة المرور</button>
+                <button className="btn ghost" style={{ width: "100%", justifyContent: "flex-start", color: "var(--text)" }}
+                  onClick={() => { setMenu(false); setSecurity(true); }}><Icon name="shield" />الأمان والأجهزة</button>
                 <button className="btn ghost" style={{ width: "100%", justifyContent: "flex-start", color: "var(--danger)" }}
                   onClick={onLogout}><Icon name="logout" />تسجيل الخروج</button>
               </div>
@@ -160,6 +164,7 @@ export function Shell({ page, title, crumbs, record, children, onLogout }:
         <div className="content" ref={content}>{children}</div>
       </div>
       {pwd && <ChangePassword onClose={() => setPwd(false)} />}
+      {security && <Security onClose={() => setSecurity(false)} />}
       <LeaveGuard />
       {report && <PrintPreview path="/documents/report" body={report} title={report.title} onClose={() => setReport(null)} />}
     </div>

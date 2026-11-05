@@ -179,11 +179,11 @@ export const api = {
   },
 };
 
-export async function login(company: string, username: string, password: string) {
+export async function login(company: string, username: string, password: string, otp?: string | null) {
   const r = await fetch(base() + "/auth/login", {
     method: "POST", headers: { "Content-Type": "application/json", "X-Client-Version": CLIENT_VERSION },
     body: JSON.stringify({ company_code: company || null, username, password, device_key: store.deviceKey,
-      device_name: deviceName(), client_version: CLIENT_VERSION, platform: platformName() }),
+      device_name: deviceName(), client_version: CLIENT_VERSION, platform: platformName(), otp: otp || null }),
   }).catch(() => { throw new ApiError(0, "NETWORK", "تعذّر الاتصال بالسيرفر"); });
   if (!r.ok) throw await parseError(r);
   const t = await r.json();
@@ -345,6 +345,11 @@ const MESSAGES: Record<string, string> = {
   NETWORK: "تعذّر الاتصال بالسيرفر. اتأكد إن السيرفر شغال وإن الجهاز على نفس الشبكة.",
   NO_SERVER: "اختار السيرفر الأول.",
   INVALID_CREDENTIALS: "اسم المستخدم أو كلمة المرور غلط.",
+  OTP_REQUIRED: "اكتب الكود اللي في تطبيق التأكيد على موبايلك.",
+  OTP_INVALID: "الكود غلط أو استُخدم قبل كده. استنى الكود الجديد في التطبيق واكتبه.",
+  OTP_UNAVAILABLE: "التأكيد بخطوتين مش شغال للحساب ده. خلي المدير يلغيه من «المستخدمين» وفعّله تاني.",
+  TWO_FACTOR_REQUIRED: "الشركة ملزمة المديرين بالتأكيد بخطوتين، فمينفعش يتلغى.",
+  TWO_FACTOR_ON: "التأكيد بخطوتين شغال بالفعل.",
   ACCOUNT_LOCKED: "الحساب متقفل مؤقتًا بسبب محاولات دخول كتير. حاول بعد شوية.",
   USER_DISABLED: "المستخدم ده متوقف.",
   DEVICE_DISABLED: "الجهاز ده متوقف من الإدارة.",

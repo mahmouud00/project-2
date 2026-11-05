@@ -7,6 +7,7 @@ import { fromMm, toMm, type LengthUnit } from "../lib/format";
 export type Me = {
   id: string; username: string; full_name: string; company_id: string; device_id: string | null;
   must_change_password: boolean; grants: Record<string, string[]>;
+  two_factor_enabled?: boolean; two_factor_required?: boolean;
 };
 export type Branding = {
   company_code: string; name: string; legal_name?: string; phone?: string; phone2?: string; email?: string; website?: string;

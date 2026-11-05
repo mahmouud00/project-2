@@ -58,6 +58,8 @@ class CompanySettings(BaseModel):
         "assembly": Decimal(3), "quality": Decimal(1)})
     # Unit the desktop app shows and accepts lengths in. The API always speaks millimetres.
     length_unit: Literal["cm", "mm"] = "cm"
+    # administrators (who manage users) must use two-step login with an authenticator app
+    two_factor_for_admins: bool = False
 
 
 def get_company_settings(db, company_id) -> CompanySettings:
