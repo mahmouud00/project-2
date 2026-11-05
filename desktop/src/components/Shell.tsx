@@ -9,6 +9,7 @@ import { back, forward, go, navGuard, useHistoryKeys, useHistoryNav } from "../l
 import { useToast } from "../state/toast";
 import { PrintPreview } from "./media";
 import { Bell } from "./bell";
+import { SearchButton } from "./search";
 import { collectPage, type Report } from "../lib/printpage";
 import mytechLogo from "../assets/logo-transparent.png";
 
@@ -129,6 +130,7 @@ export function Shell({ page, title, crumbs, children, onLogout }:
               {s.branches.filter((b) => b.is_active).map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
             </select>
           )}
+          <SearchButton />
           {PAGE_HELP[page] && <Help iconOnly title={PAGE_HELP[page].title} label="شرح الصفحة">{PAGE_HELP[page].body}</Help>}
           <Bell />
           <button className="icon-btn hide-phone" onClick={printPage} title="طباعة الصفحة / حفظ PDF"><Icon name="print" /></button>

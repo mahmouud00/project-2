@@ -10507,6 +10507,67 @@
      }
     }
    }
+  },
+  "/api/v1/search": {
+   "get": {
+    "tags": [
+     "search"
+    ],
+    "summary": "Search",
+    "operationId": "search_api_v1_search_get",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "q",
+      "in": "query",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "minLength": 1,
+       "maxLength": 100,
+       "title": "Q"
+      }
+     },
+     {
+      "name": "limit",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "maximum": 20,
+       "minimum": 1,
+       "default": 6,
+       "title": "Limit"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/SearchOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
   }
  },
  "components": {
@@ -14061,6 +14122,32 @@
     ],
     "title": "Glass"
    },
+   "Group": {
+    "properties": {
+     "kind": {
+      "type": "string",
+      "title": "Kind"
+     },
+     "label": {
+      "type": "string",
+      "title": "Label"
+     },
+     "items": {
+      "items": {
+       "$ref": "#/components/schemas/Hit"
+      },
+      "type": "array",
+      "title": "Items"
+     }
+    },
+    "type": "object",
+    "required": [
+     "kind",
+     "label",
+     "items"
+    ],
+    "title": "Group"
+   },
    "HTTPValidationError": {
     "properties": {
      "detail": {
@@ -14073,6 +14160,42 @@
     },
     "type": "object",
     "title": "HTTPValidationError"
+   },
+   "Hit": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "title": {
+      "type": "string",
+      "title": "Title"
+     },
+     "subtitle": {
+      "type": "string",
+      "title": "Subtitle",
+      "default": ""
+     },
+     "path": {
+      "type": "string",
+      "title": "Path"
+     },
+     "query": {
+      "additionalProperties": {
+       "type": "string"
+      },
+      "type": "object",
+      "title": "Query",
+      "default": {}
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "title",
+     "path"
+    ],
+    "title": "Hit"
    },
    "Inbox": {
     "properties": {
@@ -19746,6 +19869,27 @@
      "version"
     ],
     "title": "ScrapIn"
+   },
+   "SearchOut": {
+    "properties": {
+     "q": {
+      "type": "string",
+      "title": "Q"
+     },
+     "groups": {
+      "items": {
+       "$ref": "#/components/schemas/Group"
+      },
+      "type": "array",
+      "title": "Groups"
+     }
+    },
+    "type": "object",
+    "required": [
+     "q",
+     "groups"
+    ],
+    "title": "SearchOut"
    },
    "StageIn": {
     "properties": {

@@ -107,6 +107,7 @@ MODULE_ROUTERS: list[str] = [
     "app.modules.finance.router",
     "app.modules.notifications.router",
     "app.modules.deletions.router",
+    "app.modules.search.router",
 ]
 
 app = create_app()
