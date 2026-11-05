@@ -388,22 +388,29 @@ function Models({ system, editable }: { system: System; editable: boolean }) {
   const toast = useToast();
   const { busy, run } = useAction(toast.err);
   const list = useLoad(() => api.get<S<"ModelOut">[]>("/library/models", { system_id: system.id, include_inactive: editable || undefined }), [system.id]);
-  const { deleter } = useAuthor();
+  const { deleter, author } = useAuthor();
   const [d, setD] = useState<{ code: string; name: string; category: string } | null>(null);
-  const [sel, setSel] = useState<string[] | null>(null);   // null: not choosing models to delete
+  const [sel, setSel] = useState<string[] | null>(null);   // null: not choosing models
+  const [mode, setMode] = useState<"delete" | "copy">("delete");
   const [askBulk, setAskBulk] = useState(false);
+  const [askCopy, setAskCopy] = useState(false);
+  const choose = (m: "delete" | "copy") => { setMode(m); setSel([]); };
   const rows = list.data ?? [];
   const toggle = (id: string) => setSel((x) => x && (x.includes(id) ? x.filter((y) => y !== id) : [...x, id]));
   return (
     <div className="col">
-      {editable && <PageHead>
+      {(editable || (author && rows.length > 0)) && <PageHead>
         {sel === null ? <>
-          <Btn kind="primary" small icon="plus" onClick={() => setD({ code: "", name: "", category: "window" })}>نموذج جديد</Btn>
-          {deleter && rows.length > 0 && <Btn small icon="trash" onClick={() => setSel([])}>حذف أكتر من نموذج</Btn>}
+          {editable && <Btn kind="primary" small icon="plus" onClick={() => setD({ code: "", name: "", category: "window" })}>نموذج جديد</Btn>}
+          {author && rows.length > 0 && <Btn small icon="copy" onClick={() => choose("copy")}
+            title="انسخ نماذج بكل بياناتها لقطاع تاني، أو كمّل بيها النماذج اللي بنفس الاسم هناك">نسخ لقطاع تاني</Btn>}
+          {editable && deleter && rows.length > 0 && <Btn small icon="trash" onClick={() => choose("delete")}>حذف أكتر من نموذج</Btn>}
         </> : <>
-          <span className="muted small">اختار النماذج اللي عايز تحذفها ({sel.length} من {rows.length})</span>
+          <span className="muted small">{mode === "copy" ? "اختار النماذج اللي عايز تنسخها" : "اختار النماذج اللي عايز تحذفها"} ({sel.length} من {rows.length})</span>
           <Btn small onClick={() => setSel(sel.length === rows.length ? [] : rows.map((m) => m.id))}>{sel.length === rows.length ? "إلغاء التحديد" : "تحديد الكل"}</Btn>
-          <Btn small kind="danger" icon="trash" disabled={!sel.length} onClick={() => setAskBulk(true)}>حذف المحدد ({sel.length})</Btn>
+          {mode === "copy"
+            ? <Btn small kind="primary" icon="copy" disabled={!sel.length} onClick={() => setAskCopy(true)}>نسخ المحدد ({sel.length})</Btn>
+            : <Btn small kind="danger" icon="trash" disabled={!sel.length} onClick={() => setAskBulk(true)}>حذف المحدد ({sel.length})</Btn>}
           <Btn small onClick={() => setSel(null)}>رجوع</Btn>
         </>}
       </PageHead>}
@@ -411,7 +418,7 @@ function Models({ system, editable }: { system: System; editable: boolean }) {
         {rows.map((m) => (
           <div key={m.id} style={{ position: "relative" }}>
           <button className="card" style={{ width: "100%", padding: 12, cursor: "pointer", textAlign: "start",
-            outline: sel?.includes(m.id) ? "2px solid var(--danger)" : undefined }}
+            outline: sel?.includes(m.id) ? `2px solid var(${mode === "copy" ? "--primary" : "--danger"})` : undefined }}
             onClick={() => sel !== null ? toggle(m.id) : go(`library/${system.id}/models/${m.id}`)}>
             {sel !== null && <input type="checkbox" readOnly checked={sel.includes(m.id)} style={{ position: "absolute", top: 10, right: 10, width: 18, height: 18 }} />}
             <MediaImg id={m.image_id} className="thumb lg" />
@@ -431,6 +438,8 @@ function Models({ system, editable }: { system: System; editable: boolean }) {
       </div>
       {list.loading && <Loading />}
       {list.data && !list.data.length && <div className="empty">مفيش نماذج</div>}
+      {askCopy && sel && <CopyModels from={system} ids={sel} onClose={() => setAskCopy(false)}
+        onDone={() => { setAskCopy(false); setSel(null); invalidate("models"); }} />}
       {askBulk && sel && <BulkDeleteModels ids={sel} names={Object.fromEntries(rows.map((m) => [m.id, m.name]))} onClose={() => setAskBulk(false)}
         onDone={() => { setAskBulk(false); setSel(null); invalidate("models"); list.reload(); }} />}
       {d && <Modal title="نموذج جديد" onClose={() => setD(null)} footer={<><Btn kind="primary" busy={busy} disabled={!d.code || !d.name} onClick={() => run(async () => {
@@ -914,5 +923,65 @@ function ExcelImport() {
         </>}
       </div>
     </Card>
+  );
+}
+
+type CopyRow = { id: string; code: string; name: string; action: "new" | "merge" | "same"; into_code?: string; into_name?: string;
+  added: Record<string, number>; colors: number; filled?: string[]; tests: number; tests_skipped?: number; constants_missing: string[] };
+type CopyOut = { models: CopyRow[]; new: number; merged: number; same: number; to: { id: string; code: string; name: string } };
+const COPY_PART: Record<string, string> = { params: "متغير", formulas: "معادلة", pieces: "قطعة", glass: "زجاج", accessories: "إكسسوار",
+  validations: "تحقق", drawing: "الرسمة" };
+
+/** نسخ النماذج لقطاع تاني: preview first (new / gets what it lacks / nothing new), then copy. */
+function CopyModels({ from, ids, onClose, onDone }: { from: System; ids: string[]; onClose: () => void; onDone: () => void }) {
+  const s = useSession();
+  const toast = useToast();
+  const { busy, run } = useAction(toast.err);
+  const systems = useLoad(() => api.get<System[]>("/library/systems", { include_inactive: true }), []);
+  const targets = (systems.data ?? []).filter((x) => x.id !== from.id && x.company_id === s.me.company_id);
+  const [to, setTo] = useState("");
+  const [pre, setPre] = useState<CopyOut | null>(null);
+  const [consts, setConsts] = useState(false);
+  const preview = (id: string) => { setTo(id); setPre(null); if (!id) return;
+    run(async () => setPre(await api.post<CopyOut>(`/library/systems/${from.id}/models/copy?apply=false`, { to_system_id: id, model_ids: ids }))); };
+  const what = (r: CopyRow) => [
+    ...Object.entries(r.added).map(([k, n]) => k === "drawing" ? COPY_PART[k] : `${n} ${COPY_PART[k] ?? k}`),
+    r.colors ? `${r.colors} صورة لون` : "", r.filled?.includes("image_id") ? "الصورة" : "", r.filled?.includes("description") ? "الوصف" : "",
+    r.tests ? `${r.tests} اختبار مرجعي` : "",
+  ].filter(Boolean).join("، ");
+  const missing = [...new Set((pre?.models ?? []).flatMap((r) => r.constants_missing))];
+  return (
+    <Modal title={`نسخ ${ids.length} نموذج من ${from.name}`} size="wide" onClose={onClose} footer={<>
+      <Btn kind="primary" icon="copy" busy={busy} disabled={!pre || pre.new + pre.merged === 0} onClick={() => run(async () => {
+        const out = await api.post<CopyOut>(`/library/systems/${from.id}/models/copy?apply=true`, { to_system_id: to, model_ids: ids, copy_constants: consts });
+        toast.ok(`اتنسخ لـ ${out.to.name}: ${out.new} نموذج جديد، و${out.merged} نموذج اتكمّل.`);
+        onDone();
+      })}>نسخ</Btn><Btn onClick={onClose}>رجوع</Btn></>}>
+      <div className="col">
+        <Field label="القطاع اللي هتنسخ له" hint="قطاعات شركتك بس، وبنفس وحدة القياس.">
+          <Select value={to} onChange={preview} options={[{ value: "", label: "اختار القطاع…" },
+            ...targets.map((x) => ({ value: x.id, label: `${x.name} (${x.code})${x.unit !== from.unit ? " · وحدة مختلفة" : ""}` }))]} />
+        </Field>
+        <div className="notice info small">النموذج اللي مش موجود هناك بيتنسخ بكل حاجة فيه (تحت التجربة). ولو فيه هناك نموذج بنفس الاسم (أو نفس الكود)،
+          مفيش حاجة فيه بتتغير: بيتضاف عليه بس اللي ناقصه من متغيرات ومعادلات وقطع وزجاج وإكسسوار وصور ألوان، والرسمة والصورة والوصف لو فاضيين.
+          التخصيمات بتتنسخ زي ما هي بالظبط، فاعمل تجربة الحساب والاختبارات المرجعية قبل النشر.</div>
+        {pre && <>
+          <div className="row" style={{ gap: 6 }}>
+            <Chip color="green">{pre.new} جديد</Chip><Chip color="blue">{pre.merged} هيتكمّل</Chip><Chip>{pre.same} مفيش جديد</Chip>
+          </div>
+          {missing.length > 0 && <div className="notice warn small">ثوابت المعادلات دي مش موجودة في {pre.to.name}، ضيفها هناك قبل النشر:{" "}
+            {missing.map((c) => <span key={c} className="code" style={{ marginInlineEnd: 4 }}>{c}</span>)}
+            <label className="check" style={{ marginTop: 6 }}><input type="checkbox" checked={consts} onChange={(e) => setConsts(e.target.checked)} />
+              انسخهم كمان بقيمهم من {from.name} (راجع القيم بعد كده: كل قطاع ليه تخصيماته)</label></div>}
+          <Table rows={pre.models} rowKey={(r) => r.id} tools={false} columns={[
+            { key: "m", label: "النموذج", render: (r) => <><b>{r.name}</b> <span className="code small">{r.code}</span></> },
+            { key: "a", label: "هيحصل إيه", render: (r) => r.action === "new" ? <Chip color="green">نموذج جديد</Chip>
+              : r.action === "merge" ? <Chip color="blue">يتكمّل: {r.into_name} ({r.into_code})</Chip> : <Chip>عنده كل حاجة</Chip> },
+            { key: "w", label: "اللي هيتضاف", render: (r) => <span className="small">{r.action === "same" ? "—" : what(r) || "—"}
+              {!!r.tests_skipped && <span className="muted"> · الاختبارات المرجعية مش هتتنسخ (النموذج هناك ليه قطع بتاعته)</span>}</span> },
+          ]} />
+        </>}
+      </div>
+    </Modal>
   );
 }

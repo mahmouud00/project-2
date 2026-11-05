@@ -484,6 +484,31 @@ async def import_models_excel(file: UploadFile, system_ids: list[uuid.UUID] = Qu
     return out
 
 
+class ModelCopyIn(BaseModel):
+    to_system_id: uuid.UUID
+    model_ids: list[uuid.UUID]
+    copy_constants: bool = False        # also add the constants the formulas need that the other system lacks
+
+
+@router.post("/library/systems/{system_id}/models/copy")
+def copy_models_to_system(system_id: uuid.UUID, body: ModelCopyIn, apply: bool = False, dc=Depends(get_db_and_ctx)):
+    """نسخ نماذج لقطاع تاني (one of the company's own): new ones are copied whole, ones the other system already has
+    (same name or code) only get what they lack. `apply=false` shows what would happen (nothing saved)."""
+    from app.modules.library.model_copy import copy_models
+
+    db, ctx = dc
+    svc.require_author(ctx)
+    source = svc.get_system(db, ctx, system_id)
+    target = svc.get_system(db, ctx, body.to_system_id)
+    svc.ensure_writable(ctx, target)
+    out = copy_models(db, ctx, source, target, list(dict.fromkeys(body.model_ids)), apply, body.copy_constants)
+    if apply:
+        db.commit()
+    else:
+        db.rollback()
+    return out
+
+
 @router.get("/library/import-excel/template")
 def import_template(dc=Depends(require("library.read"))):
     """An empty workbook with the sheets and columns the import reads."""

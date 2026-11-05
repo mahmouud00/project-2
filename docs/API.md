@@ -87,6 +87,7 @@ WS /api/v1/system/events?token=<access_token>
 | GET | `/system/clients` · `/system/clients/{desktop\|android}` | (عام) أحدث برنامج ديسكتوب / موبايل على السيرفر وتنزيله |
 | GET / POST | `/system/update` | حالة التحديث / رفع ملف `.mtu` وبدء تحديث السيرفر (`system.manage`؛ ويندوز متسطب بس) |
 | GET / POST | `/company/setup` · `/company/setup/dismiss` | خطوات أول تشغيل (محسوبة من البيانات) / إخفاؤها (`org.manage`) |
+| POST | `/library/systems/{id}/models/copy?apply=` | نسخ نماذج لقطاع تاني من قطاعات الشركة: الجديد كامل، واللي بنفس الاسم أو الكود يتضافله الناقص بس (`{to_system_id, model_ids, copy_constants}`) |
 | WS | `/system/events` | التحديث اللحظي |
 | GET | `/system/branding?company_code=`، `/system/branding/logo?company_code=` | (عام) اسم الشركة ولوجوها ولونها، عشان شاشة الدخول. في الأوفلاين `company_code` اختياري |
 
