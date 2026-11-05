@@ -1,10 +1,11 @@
 // Editing one window/door item (survey opening, quotation line): model, opening size (width first),
 // parameters from the model definition, colour, glass, quantity, and a live calculation preview.
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { api, errorText, type S } from "../api/client";
 import { lookups } from "../lib/lookups";
 import { useDebounced, useLoad } from "../lib/hooks";
-import { Btn, Check, Dim, Field, Len, LenIn, Modal, NumIn, Select, SizeIn, TextIn, Chip } from "./ui";
+import { Btn, Check, Dim, DraftNotice, Field, Len, LenIn, Modal, NumIn, Select, SizeIn, TextIn, Chip } from "./ui";
+import { useDraft } from "../lib/draft";
 import { ColorSelect, GlassSelect, ModelSelect } from "./pickers";
 import { useSession } from "../state/session";
 import { subDec } from "../lib/format";
@@ -115,11 +116,15 @@ export type ItemDraft = {
   manual_unit_price?: string | null; price_per_m2?: string | null; notes?: string;
 };
 
-export function ItemForm({ title, initial, onClose, onSave, withPrice, requireModel = true, extra }:
+export function ItemForm({ title, initial, onClose, onSave, withPrice, requireModel = true, extra, draftKey, draftBase }:
   { title: string; initial?: ItemDraft; onClose: () => void; onSave: (d: ItemDraft) => Promise<void>; withPrice?: boolean;
-    requireModel?: boolean; extra?: ReactNode }) {
+    requireModel?: boolean; extra?: ReactNode;
+    /** keep what is typed on this computer until saved (closing by mistake loses nothing); base: the line's version */
+    draftKey?: string; draftBase?: string | number }) {
   const s = useSession();
   const [d, setD] = useState<ItemDraft>(() => ({ qty: 1, params: {}, location: "", ...initial }));
+  const start = useRef(JSON.stringify(d));
+  const draft = useDraft(draftKey ?? "", draftKey ? draftBase ?? "new" : null, d, !!draftKey && JSON.stringify(d) !== start.current);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const models = useLoad(() => lookups.allModels(), []);
@@ -151,6 +156,7 @@ export function ItemForm({ title, initial, onClose, onSave, withPrice, requireMo
     setError(null);
     try {
       await onSave({ ...d, params: cleanParams(params, d.params ?? {}) });
+      draft.discard();
       onClose();
     } catch (e) {
       setError(errorText(e));
@@ -168,6 +174,8 @@ export function ItemForm({ title, initial, onClose, onSave, withPrice, requireMo
       <Btn kind="primary" busy={busy} disabled={!valid} onClick={save}>حفظ</Btn><Btn onClick={onClose}>رجوع</Btn>
       {error && <span className="danger-text small" style={{ alignSelf: "center" }}>{error}</span>}
     </>}>
+      {draft.found && <div className="mb"><DraftNotice at={draft.found.at} onDiscard={draft.discard}
+        onRestore={() => draft.restore((v) => setD(v))} /></div>}
       <div className="grid" style={{ gridTemplateColumns: "minmax(0,1.1fr) minmax(0,1fr)", gap: 18 }}>
         <div className="grid g2" style={{ alignContent: "start" }}>
           <Field label="النموذج" className="span-all"><ModelSelect value={d.model_id} onChange={(id) => setD((x) => ({ ...x, model_id: id || null }))} /></Field>

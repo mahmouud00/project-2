@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useLayoutEffect, useRef, useState, type ReactNode, type ButtonHTMLAttributes, type InputHTMLAttributes } from "react";
 import { Icon, type IconName } from "./icons";
 import { useSession } from "../state/session";
-import { clean } from "../lib/format";
+import { clean, dateTime } from "../lib/format";
 import { go, useUnsavedGuard } from "../lib/router";
 import { textOf } from "../lib/printpage";
 import { TableTools } from "./tabletools";
@@ -157,6 +157,17 @@ export function Card({ title, actions, children, flush, className }:
 export function UnsavedGuard({ when, message }: { when: boolean; message?: string }) {
   useUnsavedGuard(when, message);
   return null;
+}
+
+/** «فيه تعديلات متحفظة على الجهاز ده»: offers back the unsaved work of a screen (see useDraft). */
+export function DraftNotice({ at, onRestore, onDiscard }: { at: Date; onRestore: () => void; onDiscard: () => void }) {
+  return (
+    <div className="notice info row wrap" style={{ gap: 8 }}>
+      <span className="grow">فيه تعديلات ماتحفظتش متسجلة على الجهاز ده من <b className="num">{dateTime(at.toISOString())}</b>. تحب ترجّعها؟</span>
+      <Btn small kind="primary" icon="refresh" onClick={onRestore}>رجّع التعديلات</Btn>
+      <Btn small onClick={onDiscard}>تجاهلها</Btn>
+    </div>
+  );
 }
 
 export type Crumb = { label: ReactNode; to?: string; query?: Record<string, string | undefined> };

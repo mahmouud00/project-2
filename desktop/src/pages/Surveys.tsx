@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { api, type S } from "../api/client";
+import { useDraft } from "../lib/draft";
 import { useTitle, type PageProps } from "../lib/title";
 import { useAction, useLoad } from "../lib/hooks";
 import { useDefaultBranch, useSession } from "../state/session";
 import { useToast } from "../state/toast";
-import { Btn, Card, Chip, Crumbs, ErrorBox, Field, Loading, Modal, PageHead, Pager, Select, Table, TextArea, TextIn, UnsavedGuard } from "../components/ui";
+import { Btn, Card, Chip, Crumbs, DraftNotice, ErrorBox, Field, Loading, Modal, PageHead, Pager, Select, Table, TextArea, TextIn, UnsavedGuard } from "../components/ui";
 import { BranchName, BranchSelect, CustomerName, CustomerPicker } from "../components/pickers";
 import { ItemForm } from "../components/items";
 import { PrintPreview } from "../components/media";
@@ -121,11 +122,13 @@ function SurveyDetail({ id }: { id: string }) {
     if (survey) setRows(withBlank((survey.openings ?? []).map(rowFromApi)));
   }, [survey?.id, survey?.version, editable]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const openings = survey?.openings ?? [];
+  const filled = rows.filter((r) => !isEmptyRow(r));
+  const dirty = !!survey && editable && JSON.stringify(filled.map(rowToApi)) !== JSON.stringify(openings.map(rowFromApi).map(rowToApi));
+  const draft = useDraft(`survey:${id}`, survey?.version, filled, dirty);
+
   if (sv.error) return <ErrorBox text={sv.error} onRetry={sv.reload} />;
   if (!survey) return <Loading />;
-  const openings = survey.openings ?? [];
-  const filled = rows.filter((r) => !isEmptyRow(r));
-  const dirty = JSON.stringify(filled.map(rowToApi)) !== JSON.stringify(openings.map(rowFromApi).map(rowToApi));
 
   const save = () => run(async () => {
     if (filled.some(rowMissingSize)) throw new Error("فيه صفوف من غير عرض أو ارتفاع (متعلّمة بالأحمر).");
@@ -173,6 +176,8 @@ function SurveyDetail({ id }: { id: string }) {
         </div>
       </Card>
 
+      {draft.found && editable && <DraftNotice at={draft.found.at} onDiscard={draft.discard}
+        onRestore={() => draft.restore((v) => setRows(withBlank(v)))} />}
       <Card title={`${survey.kind === "shutter" ? "الوحدات (شيش)" : "الوحدات"} (${filled.length})`} flush actions={editable && <>
         <UnsavedGuard when={dirty && editable} message="فيه تعديلات في المعاينة لسه متحفظتش. تخرج من غير حفظ؟" />
         {dirty && <Chip color="amber">فيه تعديلات مش محفوظة</Chip>}

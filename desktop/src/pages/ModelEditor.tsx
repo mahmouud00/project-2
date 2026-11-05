@@ -5,13 +5,14 @@ import { api, errorText, type S } from "../api/client";
 import { useTitle } from "../lib/title";
 import { useAction, useLoad } from "../lib/hooks";
 import { useToast } from "../state/toast";
-import { Btn, Card, Chip, Confirm, Crumbs, Dim, ErrorBox, Field, FilePick, Help, Len, LenIn, Loading, Modal, NumIn, Select, SizeIn, Table, Tabs, TextArea, TextIn, UnsavedGuard } from "../components/ui";
+import { Btn, Card, Chip, Confirm, Crumbs, Dim, DraftNotice, ErrorBox, Field, FilePick, Help, Len, LenIn, Loading, Modal, NumIn, Select, SizeIn, Table, Tabs, TextArea, TextIn, UnsavedGuard } from "../components/ui";
 import { useSession } from "../state/session";
 import { RowsEditor } from "../components/rows";
 import { Drawing, MediaImg } from "../components/media";
 import { ElementPieces, Issues, ParamFields, cleanParams, type Calc } from "../components/items";
 import { useAuthor } from "./Library";
 import { setQuery } from "../lib/router";
+import { useDraft } from "../lib/draft";
 import { clean } from "../lib/format";
 import { invalidate, lookups } from "../lib/lookups";
 
@@ -53,14 +54,17 @@ export default function ModelEditor({ systemId, modelId, tab }: { systemId: stri
     [model.data?.name, system.data?.name]);
   useEffect(() => { if (model.data) { setDef(normalize(model.data.definition)); setInfo(model.data); } }, [model.data?.version]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const loaded = model.data;
+  const dirty = !!loaded && !!def && !!info && (JSON.stringify(def) !== JSON.stringify(normalize(loaded.definition)) ||
+    ["name", "category", "description", "image_id", "status", "sort", "is_active"].some((k) => (info as any)[k] !== (loaded as any)[k]) ||
+    JSON.stringify(info.color_images ?? {}) !== JSON.stringify(loaded.color_images ?? {}));
+  const draft = useDraft(`model:${modelId}`, loaded?.version, { def, info }, dirty && !!loaded && canEdit(loaded));
+
   if (model.error) return <ErrorBox text={model.error} onRetry={model.reload} />;
   if (!model.data || !def || !info || !system.data) return <Loading />;
   const m = model.data;
   const editable = canEdit(m);
   const unit = system.data.unit === "cm" ? "سم" : "مم";
-  const dirty = JSON.stringify(def) !== JSON.stringify(normalize(m.definition)) ||
-    ["name", "category", "description", "image_id", "status", "sort", "is_active"].some((k) => (info as any)[k] !== (m as any)[k]) ||
-    JSON.stringify(info.color_images ?? {}) !== JSON.stringify(m.color_images ?? {});
   const matOptions = [...(materials.data ?? []), ...(allMaterials.data ?? []).filter((x) => x.system_id !== systemId)]
     .map((x) => ({ value: x.code, label: `${x.code} · ${x.name}` }));
   const names = [...(constants.data ?? []).map((c) => c.name), ...def.params.map((p) => p.name), ...def.formulas.map((f) => f.key)];
@@ -99,6 +103,8 @@ export default function ModelEditor({ systemId, modelId, tab }: { systemId: stri
             : <><span className="code">{e.where ?? e.code}</span> {e.message}</>}</div>)}</div>
           : <div className="notice ok mt">الفحص سليم: كل المعادلات والقطع صحيحة.</div>)}
         <UnsavedGuard when={dirty && editable} message="فيه تعديلات في النموذج لسه متحفظتش. تخرج من غير حفظ؟" />
+        {draft.found && editable && <div className="mt"><DraftNotice at={draft.found.at} onDiscard={draft.discard}
+          onRestore={() => draft.restore((v) => { if (v.def) setDef(normalize(v.def)); if (v.info) setInfo(v.info); })} /></div>}
         {dirty && editable && <div className="notice warn mt">فيه تعديلات لسه متحفظتش.</div>}
       </Card>
 

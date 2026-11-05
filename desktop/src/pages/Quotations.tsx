@@ -228,7 +228,8 @@ function QuotationDetail({ id }: { id: string }) {
       {lineEdit && <ItemForm title={lineEdit === "new" ? "بند جديد" : "تعديل البند"} withPrice onClose={() => setLineEdit(null)}
         initial={lineEdit === "new" ? undefined : { ...lineEdit, manual_unit_price: lineEdit.manual_unit_price, price_per_m2: lineEdit.price_per_m2,
           total_height_mm: lineEdit.total_height_mm, top_model_id: lineEdit.top_model_id }}
-        onSave={saveLine(lineEdit === "new" ? null : lineEdit)} />}
+        onSave={saveLine(lineEdit === "new" ? null : lineEdit)}
+        draftKey={`quote-line:${id}:${lineEdit === "new" ? "new" : lineEdit.id}`} draftBase={lineEdit === "new" ? "new" : lineEdit.version} />}
       {del && <Confirm title="حذف البند" danger yes="حذف" busy={busy} onClose={() => setDel(null)} text={`هتحذف ${del.model_name} (${del.location || "بدون مكان"}).`}
         onYes={() => run(async () => { q.set(await api.del<Quote>(`/quotation-lines/${del.id}`)); setDel(null); })} />}
       {printing && <PrintPreview path={`/quotations/${id}/print`} title={`عرض سعر ${quote.number}`} onClose={() => setPrinting(false)} />}
