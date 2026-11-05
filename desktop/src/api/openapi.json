@@ -10613,6 +10613,67 @@
      }
     }
    }
+  },
+  "/api/v1/history/{kind}/{record_id}": {
+   "get": {
+    "tags": [
+     "history"
+    ],
+    "summary": "Record History",
+    "operationId": "record_history_api_v1_history__kind___record_id__get",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "kind",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Kind"
+      }
+     },
+     {
+      "name": "record_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Record Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/Entry"
+         },
+         "title": "Response Record History Api V1 History  Kind   Record Id  Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
   }
  },
  "components": {
@@ -13773,6 +13834,78 @@
      "version"
     ],
     "title": "EmployeeUpdate"
+   },
+   "Entry": {
+    "properties": {
+     "at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "At"
+     },
+     "user_id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "uuid"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "User Id"
+     },
+     "user_name": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "User Name"
+     },
+     "entity": {
+      "type": "string",
+      "title": "Entity"
+     },
+     "entity_id": {
+      "type": "string",
+      "title": "Entity Id"
+     },
+     "action": {
+      "type": "string",
+      "title": "Action"
+     },
+     "changes": {
+      "additionalProperties": true,
+      "type": "object",
+      "title": "Changes"
+     },
+     "note": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Note"
+     }
+    },
+    "type": "object",
+    "required": [
+     "at",
+     "user_id",
+     "user_name",
+     "entity",
+     "entity_id",
+     "action",
+     "changes",
+     "note"
+    ],
+    "title": "Entry"
    },
    "EntryIn": {
     "properties": {

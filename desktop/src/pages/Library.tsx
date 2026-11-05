@@ -2,7 +2,7 @@
 // Customers see library rows read-only, add their own calibration, and may keep private systems.
 import { useState, type ReactNode } from "react";
 import { api, errorText, raw, type S } from "../api/client";
-import { useTitle, type PageProps } from "../lib/title";
+import { type PageProps, useRecordHistory, useTitle } from "../lib/title";
 import { useAction, useLoad } from "../lib/hooks";
 import { useSession } from "../state/session";
 import { useToast } from "../state/toast";
@@ -67,6 +67,7 @@ function Systems({ selected, tab }: { selected?: string; tab: string }) {
   const list = useLoad(() => api.get<System[]>("/library/systems", { material_type: type || undefined, include_inactive: author || undefined }), [type]);
   const current = list.data?.find((x) => x.id === selected);
   useTitle(current?.name ?? "مكتبة القطاعات", current ? <Crumbs items={[{ label: "مكتبة القطاعات", to: "library" }]} /> : undefined, [current?.name]);
+  useRecordHistory("profile_systems", current?.id);
   return (
     <div className="split">
       <Card flush title={<div className="row grow"><h3>القطاعات</h3>

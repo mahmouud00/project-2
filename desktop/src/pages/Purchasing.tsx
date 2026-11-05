@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { api, type S } from "../api/client";
-import { useTitle, type PageProps } from "../lib/title";
+import { type PageProps, useRecordHistory, useTitle } from "../lib/title";
 import { useAction, useLoad, when } from "../lib/hooks";
 import { useDefaultBranch, useSession } from "../state/session";
 import { useToast } from "../state/toast";
@@ -105,6 +105,7 @@ function NewPO() {
 }
 
 function PODetail({ id }: { id: string }) {
+  useRecordHistory("purchase_orders", id);
   const s = useSession();
   const toast = useToast();
   const { busy, run } = useAction(toast.err);

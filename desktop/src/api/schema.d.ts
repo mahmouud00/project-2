@@ -2765,6 +2765,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/history/{kind}/{record_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Record History */
+        get: operations["record_history_api_v1_history__kind___record_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -3878,6 +3895,30 @@ export interface components {
             annual_leave_days?: number | string | null;
             /** Notes */
             notes?: string | null;
+        };
+        /** Entry */
+        Entry: {
+            /**
+             * At
+             * Format: date-time
+             */
+            at: string;
+            /** User Id */
+            user_id: string | null;
+            /** User Name */
+            user_name: string | null;
+            /** Entity */
+            entity: string;
+            /** Entity Id */
+            entity_id: string;
+            /** Action */
+            action: string;
+            /** Changes */
+            changes: {
+                [key: string]: unknown;
+            };
+            /** Note */
+            note: string | null;
         };
         /** EntryIn */
         EntryIn: {
@@ -13562,6 +13603,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SearchOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    record_history_api_v1_history__kind___record_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                kind: string;
+                record_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Entry"][];
                 };
             };
             /** @description Validation Error */

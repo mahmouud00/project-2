@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { TitleCtx, type Title } from "./lib/title";
+import { RecordCtx, TitleCtx, type RecordRef, type Title } from "./lib/title";
 import { api, logout, onApiEvent, resume, store, CLIENT_VERSION } from "./api/client";
 import { ConnectPage, LoginPage } from "./pages/Auth";
 import { SessionProvider, loadSession, useSession, type ServerInfo, type SessionData } from "./state/session";
@@ -70,6 +70,7 @@ function Main({ onLogout }: { onLogout: () => void }) {
   const s = useSession();
   const route = useRoute();
   const [title, setTitle] = useState<Title>({ title: "" });
+  const [record, setRecord] = useState<RecordRef | null>(null);
   const [pwd, setPwd] = useState(s.me.must_change_password);
   const first = defaultPage(s);
   const page = route.path[0] ?? first;
@@ -81,9 +82,11 @@ function Main({ onLogout }: { onLogout: () => void }) {
   const ok = Page && (!allowed || navVisible(allowed, s));
   return (
     <TitleCtx.Provider value={setTitle}>
-      <Shell page={page} title={title.title} crumbs={title.crumbs} onLogout={onLogout}>
-        {ok ? <Page route={route} key={page} /> : <div className="empty">الصفحة دي مش متاحة.</div>}
-      </Shell>
+      <RecordCtx.Provider value={setRecord}>
+        <Shell page={page} title={title.title} crumbs={title.crumbs} record={record} onLogout={onLogout}>
+          {ok ? <Page route={route} key={page} /> : <div className="empty">الصفحة دي مش متاحة.</div>}
+        </Shell>
+      </RecordCtx.Provider>
       {pwd && <ChangePassword forced onClose={() => setPwd(false)} />}
     </TitleCtx.Provider>
   );

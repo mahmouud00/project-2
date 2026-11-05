@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { api, type S } from "../api/client";
-import { useTitle, type PageProps } from "../lib/title";
+import { type PageProps, useRecordHistory, useTitle } from "../lib/title";
 import { useAction, useDebounced, useLoad, when } from "../lib/hooks";
 import { useSession } from "../state/session";
 import { useToast } from "../state/toast";
@@ -106,6 +106,7 @@ type Statement = { billed: string; paid: string; balance: string;
   invoices?: { id: string; number: string; issue_date: string | null; total: string }[] };
 
 function CustomerDetail({ id, tab: tabQuery }: { id: string; tab?: string }) {
+  useRecordHistory("customers", id);
   const s = useSession();
   const toast = useToast();
   const c = useLoad(() => api.get<S<"CustomerOut">>(`/customers/${id}`), [id]);

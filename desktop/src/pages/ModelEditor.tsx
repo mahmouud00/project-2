@@ -2,7 +2,7 @@
 // piece length and quantity is data typed by MYTech, checked by the server and frozen on publish.
 import { useEffect, useMemo, useState } from "react";
 import { api, errorText, type S } from "../api/client";
-import { useTitle } from "../lib/title";
+import { useRecordHistory, useTitle } from "../lib/title";
 import { useAction, useLoad } from "../lib/hooks";
 import { useToast } from "../state/toast";
 import { Btn, Card, Chip, Confirm, Crumbs, Dim, DraftNotice, ErrorBox, Field, FilePick, Help, Len, LenIn, Loading, Modal, NumIn, Select, SizeIn, Table, Tabs, TextArea, TextIn, UnsavedGuard } from "../components/ui";
@@ -58,6 +58,7 @@ export default function ModelEditor({ systemId, modelId, tab }: { systemId: stri
   const dirty = !!loaded && !!def && !!info && (JSON.stringify(def) !== JSON.stringify(normalize(loaded.definition)) ||
     ["name", "category", "description", "image_id", "status", "sort", "is_active"].some((k) => (info as any)[k] !== (loaded as any)[k]) ||
     JSON.stringify(info.color_images ?? {}) !== JSON.stringify(loaded.color_images ?? {}));
+  useRecordHistory("product_models", modelId);
   const draft = useDraft(`model:${modelId}`, loaded?.version, { def, info }, dirty && !!loaded && canEdit(loaded));
 
   if (model.error) return <ErrorBox text={model.error} onRetry={model.reload} />;

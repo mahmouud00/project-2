@@ -10,6 +10,8 @@ import { useToast } from "../state/toast";
 import { PrintPreview } from "./media";
 import { Bell } from "./bell";
 import { SearchButton } from "./search";
+import { HistoryButton } from "./history";
+import type { RecordRef } from "../lib/title";
 import { collectPage, type Report } from "../lib/printpage";
 import mytechLogo from "../assets/logo-transparent.png";
 
@@ -49,8 +51,8 @@ export function navVisible(item: NavItem, s: ReturnType<typeof useSession>): boo
   return perms.some((p) => s.can(p));
 }
 
-export function Shell({ page, title, crumbs, children, onLogout }:
-  { page: string; title: ReactNode; crumbs?: ReactNode; children: ReactNode; onLogout: () => void }) {
+export function Shell({ page, title, crumbs, record, children, onLogout }:
+  { page: string; title: ReactNode; crumbs?: ReactNode; record?: RecordRef | null; children: ReactNode; onLogout: () => void }) {
   const s = useSession();
   const theme = useTheme();
   const [menu, setMenu] = useState(false);
@@ -130,6 +132,7 @@ export function Shell({ page, title, crumbs, children, onLogout }:
               {s.branches.filter((b) => b.is_active).map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
             </select>
           )}
+          {record && <HistoryButton record={record} />}
           <SearchButton />
           {PAGE_HELP[page] && <Help iconOnly title={PAGE_HELP[page].title} label="شرح الصفحة">{PAGE_HELP[page].body}</Help>}
           <Bell />

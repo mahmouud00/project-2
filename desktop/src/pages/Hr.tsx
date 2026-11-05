@@ -1,7 +1,7 @@
 // الموارد البشرية: الموظفين (ملف كل موظف: بياناته، حوافز وخصومات وسلف، إجازات، مرتبات، مبيعاته) وكشوف المرتبات.
 import { useState } from "react";
 import { api, type S } from "../api/client";
-import { useTitle, type PageProps } from "../lib/title";
+import { type PageProps, useRecordHistory, useTitle } from "../lib/title";
 import { useAction, useDebounced, useLoad } from "../lib/hooks";
 import { useDefaultBranch, useSession } from "../state/session";
 import { useToast } from "../state/toast";
@@ -131,6 +131,7 @@ function EmployeeForm({ employee, onClose, onSaved }: { employee?: Emp; onClose:
 }
 
 function EmployeeProfile({ id, tab }: { id: string; tab: string }) {
+  useRecordHistory("employees", id);
   const s = useSession();
   const emp = useLoad(() => api.get<Emp>(`/employees/${id}`), [id]);
   const summary = useLoad(() => api.get<{ annual_leave_left: string; advances_owed: string; leave_days: Record<string, string> }>(

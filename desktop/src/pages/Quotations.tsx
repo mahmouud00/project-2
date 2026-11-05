@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api, type S } from "../api/client";
-import { useTitle, type PageProps } from "../lib/title";
+import { type PageProps, useRecordHistory, useTitle } from "../lib/title";
 import { useAction, useLoad } from "../lib/hooks";
 import { useDefaultBranch, useSession } from "../state/session";
 import { useToast } from "../state/toast";
@@ -96,6 +96,7 @@ const NEXT: Record<string, { to: string; label: string; kind?: "primary" | "succ
 };
 
 function QuotationDetail({ id }: { id: string }) {
+  useRecordHistory("quotations", id);
   const s = useSession();
   const toast = useToast();
   const { busy, run } = useAction(toast.err);
