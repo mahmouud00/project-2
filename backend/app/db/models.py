@@ -13,3 +13,4 @@ from app.modules.hr import models as _hr  # noqa: F401
 from app.modules.finance import models as _finance  # noqa: F401
 from app.modules.notifications import models as _notifications  # noqa: F401
 from app.modules.deletions import models as _deletions  # noqa: F401
+from app.modules.sharing import models as _sharing  # noqa: F401

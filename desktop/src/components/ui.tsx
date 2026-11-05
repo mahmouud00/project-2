@@ -139,8 +139,9 @@ export function Qty({ v }: { v: string | number | null | undefined }) {
   return <span className="num">{clean(v)}</span>;
 }
 
-export function Chip({ color = "gray", children }: { color?: "blue" | "green" | "amber" | "red" | "gray" | "violet"; children: ReactNode }) {
-  return <span className={"chip " + color}>{children}</span>;
+export function Chip({ color = "gray", children, title }: { color?: "blue" | "green" | "amber" | "red" | "gray" | "violet"; children: ReactNode;
+  title?: string }) {
+  return <span className={"chip " + color} title={title}>{children}</span>;
 }
 
 export function Card({ title, actions, children, flush, className }:

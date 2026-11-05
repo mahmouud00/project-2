@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { ShareActions } from "../components/share";
 import { api, type S } from "../api/client";
 import { type PageProps, useRecordHistory, useTitle } from "../lib/title";
 import { useAction, useLoad } from "../lib/hooks";
@@ -160,6 +161,8 @@ function QuotationDetail({ id }: { id: string }) {
           <div><div className="muted small">صالح لحد</div><span className="num">{date(quote.valid_until)}</span></div>
           <div className="end row wrap">
             <Btn icon="print" onClick={() => setPrinting(true)}>طباعة</Btn>
+            {(quote.status === "draft" || quote.status === "sent") && s.can("quotes.write", quote.branch_id) &&
+              <ShareActions kind="quotations" id={id} number={quote.number} total={quote.total} customerId={quote.customer_id} onChanged={() => q.reload()} />}
             {editable && <Btn icon="refresh" busy={busy} onClick={recalc}>إعادة حساب</Btn>}
             {s.can("quotes.write", quote.branch_id) && (NEXT[quote.status] ?? []).map((n) => (
               <Btn key={n.to} kind={n.kind} busy={busy} onClick={() => setStatus(n.to)}>{n.label}</Btn>

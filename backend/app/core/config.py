@@ -35,6 +35,8 @@ class Settings(BaseSettings):
 
     app_mode: AppMode = AppMode.OFFLINE
     app_name: str = "MYTech Solutions"
+    # the address customers open shared quotations / invoices on (e.g. https://app.example.com); empty: this server's own
+    public_url: str = ""
 
     # Runtime role: RLS enforced. Never owner, never BYPASSRLS.
     database_url: str = "postgresql+psycopg://mytech_app:mytech_app@localhost:5432/mytech"

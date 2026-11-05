@@ -126,6 +126,7 @@ WS /api/v1/system/events?token=<access_token>
 | POST | `/library/models/import?apply=&system_ids=` | ملف إكسيل بالنماذج (الكود، الاسم، النوع، الرسمة) ← بيتعمل في كل قطاع مختار (معاينة الأول، كله أو مفيش) |
 | POST | `/documents/report.xlsx` | أي جدول زي ما المستخدم شايفه كملف إكسيل (نفس جسم `/documents/report`) |
 | GET | `/history/{kind}/{id}` | سجل التغييرات لسجل واحد وبنوده (لأي حد يقدر يقرا السجل) |
+| POST / GET | `/quotations/{id}/share` · `/invoices/{id}/share` | لينك للعميل (واتساب) وحالته؛ `POST /shares/{id}/revoke` يلغي كل لينكات المستند. الصفحة العامة: `/s/{token}` (موافقة / طلب تعديل) |
 | GET | `/search?q=&limit=` | البحث الشامل (Ctrl + K): نتايج مجمّعة لكل قسم المستخدم يقدر يقراه، في فروعه وشركته بس |
 | GET | `/library/copy/sources` | (MYTech) الشركات اللي على السيرفر وسيستماتها الخاصة (مصدر للنسخ) |
 | POST | `/library/copy/run` | (MYTech) `{company_id, system_ids}` ← نسخ سيستمات شركة للمكتبة كنسخة مش منشورة |

@@ -47,6 +47,8 @@ def create_app() -> FastAPI:
     _include_optional(app)
     from app.modules.field.pages import router as tech_pages   # technicians' phone app at /tech
     app.include_router(tech_pages)
+    from app.modules.sharing.pages import router as share_pages   # what a customer opens from a shared link: /s/...
+    app.include_router(share_pages)
     return app
 
 
@@ -109,6 +111,7 @@ MODULE_ROUTERS: list[str] = [
     "app.modules.deletions.router",
     "app.modules.search.router",
     "app.modules.history.router",
+    "app.modules.sharing.router",
 ]
 
 app = create_app()

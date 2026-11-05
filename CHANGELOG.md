@@ -4,6 +4,7 @@ All notable changes are listed here. Versions follow Semantic Versioning (MAJOR.
 
 ## [Unreleased]
 ### Added
+- Send a quotation or an issued invoice to the customer on WhatsApp («واتساب»: a chat with the customer's number and a ready message) or copy the message («نسخ اللينك»). The message carries a link the customer opens without an account, on the phone too: the document as printed, and for a quotation «موافق على العرض» or a change request with a note. The quotation shows what happened (sent and not opened, opened, approved, change asked with the note); the sales people and whoever sent it are notified. Sharing a draft quotation sends it, with the same checks; approving goes through them again. Links last 14 days, an older message's link keeps working, «إلغاء اللينكات» stops them all; only the token's hash is stored; link previews (WhatsApp) are not counted as the customer. Migration 0018 (`document_shares`, RLS). New setting `PUBLIC_URL` (the address customers open links on; without it a factory server's link only opens inside the factory).
 - The window drawing shows its measurements: on the quotation and invoice printouts every line's drawing has its width above and height beside it in cm (the opening the customer ordered), the cut list's drawings their manufacturing size; on screen the line form and the model editor's calculation show them in the company unit. The printout drawings are a little larger to fit them.
 ### Fixed
 - A plain tilt window was also drawn like a tilt-turn one on the printouts.

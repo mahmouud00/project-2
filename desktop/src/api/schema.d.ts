@@ -2782,6 +2782,59 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/quotations/{quote_id}/share": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Quotation Share */
+        get: operations["quotation_share_api_v1_quotations__quote_id__share_get"];
+        put?: never;
+        /** Share Quotation */
+        post: operations["share_quotation_api_v1_quotations__quote_id__share_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invoices/{inv_id}/share": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Invoice Share */
+        get: operations["invoice_share_api_v1_invoices__inv_id__share_get"];
+        put?: never;
+        /** Share Invoice */
+        post: operations["share_invoice_api_v1_invoices__inv_id__share_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/shares/{share_id}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Revoke Share */
+        post: operations["revoke_share_api_v1_shares__share_id__revoke_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -6039,6 +6092,51 @@ export interface components {
             q: string;
             /** Groups */
             groups: components["schemas"]["Group"][];
+        };
+        /** ShareIn */
+        ShareIn: {
+            /**
+             * Days
+             * @default 14
+             */
+            days: number;
+        };
+        /** ShareOut */
+        ShareOut: {
+            /** Id */
+            id?: string | null;
+            /** Url */
+            url?: string | null;
+            /** Expires At */
+            expires_at?: string | null;
+            /**
+             * Reachable Outside
+             * @default false
+             */
+            reachable_outside: boolean;
+            /**
+             * Active
+             * @default false
+             */
+            active: boolean;
+            /** Viewed At */
+            viewed_at?: string | null;
+            /**
+             * Views
+             * @default 0
+             */
+            views: number;
+            /** Response */
+            response?: string | null;
+            /**
+             * Response Note
+             * @default
+             */
+            response_note: string;
+            /** Responded At */
+            responded_at?: string | null;
+            /** Customer Phone */
+            customer_phone?: string | null;
         };
         /** StageIn */
         StageIn: {
@@ -13635,6 +13733,169 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Entry"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    quotation_share_api_v1_quotations__quote_id__share_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                quote_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShareOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    share_quotation_api_v1_quotations__quote_id__share_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                quote_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ShareIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShareOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    invoice_share_api_v1_invoices__inv_id__share_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                inv_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShareOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    share_invoice_api_v1_invoices__inv_id__share_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                inv_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ShareIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShareOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    revoke_share_api_v1_shares__share_id__revoke_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                share_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShareOut"];
                 };
             };
             /** @description Validation Error */

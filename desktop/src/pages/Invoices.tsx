@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ShareActions } from "../components/share";
 import { api, type S } from "../api/client";
 import { type PageProps, useRecordHistory, useTitle } from "../lib/title";
 import { useAction, useLoad } from "../lib/hooks";
@@ -127,6 +128,8 @@ function InvoiceDetail({ id }: { id: string }) {
           {v.work_order_id && <div><div className="muted small">أمر التصنيع</div><a style={{ cursor: "pointer" }} onClick={() => go(`work-orders/${v.work_order_id}`)}>فتح</a></div>}
           <div className="end row wrap">
             <Btn icon="print" onClick={() => setPrinting(true)}>طباعة</Btn>
+            {v.status === "issued" && s.can("treasury.write", v.branch_id) && v.number &&
+              <ShareActions kind="invoices" id={id} number={v.number} total={v.total} customerId={v.customer_id} />}
             {draft && <Btn icon="edit" onClick={() => setHeader(true)}>الخصم والضريبة</Btn>}
             {draft && <Btn kind="primary" icon="check" disabled={!lines.length} onClick={() => setIssue(true)}>إصدار الفاتورة</Btn>}
             {v.status === "issued" && s.can("treasury.create", v.branch_id) && Number(v.balance) > 0 && <Btn kind="success" icon="cash" onClick={() => setPaying(true)}>تحصيل</Btn>}
