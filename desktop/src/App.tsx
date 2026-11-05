@@ -4,7 +4,7 @@ import { api, logout, onApiEvent, resume, store, CLIENT_VERSION } from "./api/cl
 import { ConnectPage, LoginPage } from "./pages/Auth";
 import { SessionProvider, loadSession, useSession, type ServerInfo, type SessionData } from "./state/session";
 import { ChangePassword, NAV, Shell, navVisible } from "./components/Shell";
-import { go, useRoute } from "./lib/router";
+import { redirect, useRoute } from "./lib/router";
 import { Btn } from "./components/ui";
 import { PAGES } from "./pages";
 
@@ -74,7 +74,7 @@ function Main({ onLogout }: { onLogout: () => void }) {
   const first = defaultPage(s);
   const page = route.path[0] ?? first;
 
-  useEffect(() => { if (!route.path.length) go(first); }, [route.path.length, first]);
+  useEffect(() => { if (!route.path.length) redirect(first); }, [route.path.length, first]);
 
   const Page = PAGES[page];
   const allowed = NAV.flatMap(([, items]) => items).find((i) => i.id === page);

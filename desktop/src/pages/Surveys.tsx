@@ -4,7 +4,7 @@ import { useTitle, type PageProps } from "../lib/title";
 import { useAction, useLoad } from "../lib/hooks";
 import { useDefaultBranch, useSession } from "../state/session";
 import { useToast } from "../state/toast";
-import { Btn, Card, Chip, ErrorBox, Field, Loading, Modal, PageHead, Pager, Select, Table, TextArea, TextIn } from "../components/ui";
+import { Btn, Card, Chip, Crumbs, ErrorBox, Field, Loading, Modal, PageHead, Pager, Select, Table, TextArea, TextIn, UnsavedGuard } from "../components/ui";
 import { BranchName, BranchSelect, CustomerName, CustomerPicker } from "../components/pickers";
 import { ItemForm } from "../components/items";
 import { PrintPreview } from "../components/media";
@@ -60,7 +60,7 @@ function SurveyList() {
 }
 
 function NewSurvey({ customerId }: { customerId?: string }) {
-  useTitle("معاينة جديدة", <a onClick={() => go("surveys")} style={{ cursor: "pointer" }}>المعاينات</a>);
+  useTitle("معاينة جديدة", <Crumbs items={[{ label: "المعاينات", to: "surveys" }]} />);
   const toast = useToast();
   const { busy, run } = useAction(toast.err);
   const branch = useDefaultBranch("surveys.create");
@@ -106,7 +106,7 @@ function SurveyDetail({ id }: { id: string }) {
   const toast = useToast();
   const { busy, run } = useAction(toast.err);
   const sv = useLoad(() => api.get<Survey>(`/surveys/${id}`), [id]);
-  useTitle(sv.data ? `معاينة ${sv.data.number}` : "…", <a onClick={() => go("surveys")} style={{ cursor: "pointer" }}>المعاينات</a>, [sv.data?.number]);
+  useTitle(sv.data ? `معاينة ${sv.data.number}` : "…", <Crumbs items={[{ label: "المعاينات", to: "surveys" }]} />, [sv.data?.number]);
   const [rows, setRows] = useState<SheetRow[]>([]);
   const [details, setDetails] = useState<number | null>(null);
   const [header, setHeader] = useState(false);
@@ -174,6 +174,7 @@ function SurveyDetail({ id }: { id: string }) {
       </Card>
 
       <Card title={`${survey.kind === "shutter" ? "الوحدات (شيش)" : "الوحدات"} (${filled.length})`} flush actions={editable && <>
+        <UnsavedGuard when={dirty && editable} message="فيه تعديلات في المعاينة لسه متحفظتش. تخرج من غير حفظ؟" />
         {dirty && <Chip color="amber">فيه تعديلات مش محفوظة</Chip>}
         <Btn small icon="plus" onClick={() => setRows((r) => [...r, blankRow()])}>صف</Btn>
         <Btn small kind="primary" icon="check" busy={busy} disabled={!dirty} onClick={save}>حفظ</Btn>

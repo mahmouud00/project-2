@@ -6,7 +6,7 @@ import { useTitle, type PageProps } from "../lib/title";
 import { useAction, useLoad } from "../lib/hooks";
 import { useSession } from "../state/session";
 import { useToast } from "../state/toast";
-import { Btn, Card, Chip, Confirm, ErrorBox, Field, FilePick, Help, Len, LenIn, Loading, Modal, Money, NumIn, PageHead, Select, Table, Tabs, TextArea, TextIn } from "../components/ui";
+import { Btn, Card, Chip, Confirm, Crumbs, ErrorBox, Field, FilePick, Help, Len, LenIn, Loading, Modal, Money, NumIn, PageHead, Select, Table, Tabs, TextArea, TextIn } from "../components/ui";
 import { RowsEditor } from "../components/rows";
 import { MediaImg } from "../components/media";
 import { DeleteBtn } from "../components/actions";
@@ -39,8 +39,12 @@ export default function Library({ route }: PageProps) {
   return <LibraryShell tab="systems"><Systems selected={systemId} tab={route.query.tab ?? "info"} /></LibraryShell>;
 }
 
+const LIB_TABS: Record<string, string> = { colors: "الألوان", packages: "حزم التحديث", import: "استيراد من إكسيل" };
+
 function LibraryShell({ tab, children }: { tab: string; children: ReactNode }) {
-  useTitle("مكتبة القطاعات");
+  // the systems tab names the chosen system itself (see Systems)
+  useTitle(tab === "systems" ? null : LIB_TABS[tab] ?? "مكتبة القطاعات",
+    tab === "systems" ? undefined : <Crumbs items={[{ label: "مكتبة القطاعات", to: "library" }]} />, [tab]);
   const { author } = useAuthor();
   return (
     <div className="col" style={{ gap: 14 }}>
@@ -62,6 +66,7 @@ function Systems({ selected, tab }: { selected?: string; tab: string }) {
   const [creating, setCreating] = useState(false);
   const list = useLoad(() => api.get<System[]>("/library/systems", { material_type: type || undefined, include_inactive: author || undefined }), [type]);
   const current = list.data?.find((x) => x.id === selected);
+  useTitle(current?.name ?? "مكتبة القطاعات", current ? <Crumbs items={[{ label: "مكتبة القطاعات", to: "library" }]} /> : undefined, [current?.name]);
   return (
     <div className="split">
       <Card flush title={<div className="row grow"><h3>القطاعات</h3>

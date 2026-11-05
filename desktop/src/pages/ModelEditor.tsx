@@ -5,13 +5,13 @@ import { api, errorText, type S } from "../api/client";
 import { useTitle } from "../lib/title";
 import { useAction, useLoad } from "../lib/hooks";
 import { useToast } from "../state/toast";
-import { Btn, Card, Chip, Confirm, Dim, ErrorBox, Field, FilePick, Help, Len, LenIn, Loading, Modal, NumIn, Select, SizeIn, Table, Tabs, TextArea, TextIn } from "../components/ui";
+import { Btn, Card, Chip, Confirm, Crumbs, Dim, ErrorBox, Field, FilePick, Help, Len, LenIn, Loading, Modal, NumIn, Select, SizeIn, Table, Tabs, TextArea, TextIn, UnsavedGuard } from "../components/ui";
 import { useSession } from "../state/session";
 import { RowsEditor } from "../components/rows";
 import { Drawing, MediaImg } from "../components/media";
 import { ElementPieces, Issues, ParamFields, cleanParams, type Calc } from "../components/items";
 import { useAuthor } from "./Library";
-import { go, setQuery } from "../lib/router";
+import { setQuery } from "../lib/router";
 import { clean } from "../lib/format";
 import { invalidate, lookups } from "../lib/lookups";
 
@@ -48,8 +48,9 @@ export default function ModelEditor({ systemId, modelId, tab }: { systemId: stri
   const [def, setDef] = useState<Def | null>(null);
   const [info, setInfo] = useState<Partial<Model> | null>(null);
   const [errors, setErrors] = useState<any[] | null>(null);
-  useTitle(model.data?.name ?? "…", <><a onClick={() => go("library")} style={{ cursor: "pointer" }}>المكتبة</a> · <a onClick={() => go(`library/${systemId}`, { tab: "models" })}
-    style={{ cursor: "pointer" }}>{system.data?.name ?? ""}</a></>, [model.data?.name, system.data?.name]);
+  useTitle(model.data?.name ?? "…", <Crumbs items={[{ label: "مكتبة القطاعات", to: "library" },
+    { label: system.data?.name ?? "…", to: `library/${systemId}` }, { label: "النماذج", to: `library/${systemId}`, query: { tab: "models" } }]} />,
+    [model.data?.name, system.data?.name]);
   useEffect(() => { if (model.data) { setDef(normalize(model.data.definition)); setInfo(model.data); } }, [model.data?.version]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (model.error) return <ErrorBox text={model.error} onRetry={model.reload} />;
@@ -97,6 +98,7 @@ export default function ModelEditor({ systemId, modelId, tab }: { systemId: stri
           ? <div className="col mt" style={{ gap: 6 }}>{errors.map((e, i) => <div key={i} className="notice err">{typeof e === "string" ? e
             : <><span className="code">{e.where ?? e.code}</span> {e.message}</>}</div>)}</div>
           : <div className="notice ok mt">الفحص سليم: كل المعادلات والقطع صحيحة.</div>)}
+        <UnsavedGuard when={dirty && editable} message="فيه تعديلات في النموذج لسه متحفظتش. تخرج من غير حفظ؟" />
         {dirty && editable && <div className="notice warn mt">فيه تعديلات لسه متحفظتش.</div>}
       </Card>
 

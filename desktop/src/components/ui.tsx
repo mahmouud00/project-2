@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState, type ReactNode, type ButtonHTMLAttributes, type InputHTMLAttributes } from "react";
+import { Fragment, useEffect, useRef, useState, type ReactNode, type ButtonHTMLAttributes, type InputHTMLAttributes } from "react";
 import { Icon, type IconName } from "./icons";
 import { useSession } from "../state/session";
 import { clean } from "../lib/format";
+import { go, useUnsavedGuard } from "../lib/router";
 
 export function Btn({ icon, kind, small, busy, children, className, ...rest }:
   ButtonHTMLAttributes<HTMLButtonElement> & { icon?: IconName; kind?: "primary" | "success" | "danger" | "ghost" | "solid-danger";
@@ -147,6 +148,28 @@ export function Card({ title, actions, children, flush, className }:
       {(title || actions) && <div className="card-h">{typeof title === "string" ? <h3>{title}</h3> : title}<div className="end row">{actions}</div></div>}
       <div className={"card-b" + (flush ? " flush" : "")}>{children}</div>
     </div>
+  );
+}
+
+/** Put on a screen with unsaved work: leaving it asks first (see useUnsavedGuard). */
+export function UnsavedGuard({ when, message }: { when: boolean; message?: string }) {
+  useUnsavedGuard(when, message);
+  return null;
+}
+
+export type Crumb = { label: ReactNode; to?: string; query?: Record<string, string | undefined> };
+
+/** Where this page is: «المكتبة ‹ كومبن ‹ النماذج». Each part with `to` opens that page. */
+export function Crumbs({ items }: { items: Crumb[] }) {
+  return (
+    <nav className="crumbs-path" aria-label="مكان الصفحة">
+      {items.map((c, i) => (
+        <Fragment key={i}>
+          {i > 0 && <Icon name="forward" size={11} className="crumb-sep" />}
+          {c.to !== undefined ? <a className="crumb" onClick={() => go(c.to!, c.query)}>{c.label}</a> : <span>{c.label}</span>}
+        </Fragment>
+      ))}
+    </nav>
   );
 }
 

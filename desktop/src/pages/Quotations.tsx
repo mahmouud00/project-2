@@ -4,7 +4,7 @@ import { useTitle, type PageProps } from "../lib/title";
 import { useAction, useLoad } from "../lib/hooks";
 import { useDefaultBranch, useSession } from "../state/session";
 import { useToast } from "../state/toast";
-import { Btn, Card, Chip, Confirm, Dim, ErrorBox, Field, Len, Loading, Modal, Money, NumIn, PageHead, Pager, Select, Table, TextArea, TextIn } from "../components/ui";
+import { Btn, Card, Chip, Confirm, Crumbs, Dim, ErrorBox, Field, Len, Loading, Modal, Money, NumIn, PageHead, Pager, Select, Table, TextArea, TextIn } from "../components/ui";
 import { BranchName, BranchSelect, ColorName, CustomerName, CustomerPicker, SalespersonName, SalespersonSelect } from "../components/pickers";
 import { ItemForm, ParamLabels, type ItemDraft } from "../components/items";
 import { Drawing, MediaImg, PrintPreview } from "../components/media";
@@ -58,7 +58,7 @@ function QuotationList() {
 }
 
 function NewQuotation({ customerId, surveyId }: { customerId?: string; surveyId?: string }) {
-  useTitle("عرض سعر جديد", <a onClick={() => go("quotations")} style={{ cursor: "pointer" }}>عروض الأسعار</a>);
+  useTitle("عرض سعر جديد", <Crumbs items={[{ label: "عروض الأسعار", to: "quotations" }]} />);
   const toast = useToast();
   const { busy, run } = useAction(toast.err);
   const branch = useDefaultBranch("quotes.create");
@@ -100,7 +100,7 @@ function QuotationDetail({ id }: { id: string }) {
   const toast = useToast();
   const { busy, run } = useAction(toast.err);
   const q = useLoad(() => api.get<Quote>(`/quotations/${id}`), [id]);
-  useTitle(q.data ? `عرض سعر ${q.data.number}` : "…", <a onClick={() => go("quotations")} style={{ cursor: "pointer" }}>عروض الأسعار</a>, [q.data?.number]);
+  useTitle(q.data ? `عرض سعر ${q.data.number}` : "…", <Crumbs items={[{ label: "عروض الأسعار", to: "quotations" }]} />, [q.data?.number]);
   const [lineEdit, setLineEdit] = useState<Line | "new" | null>(null);
   const [allPpm, setAllPpm] = useState(false);
   const [del, setDel] = useState<Line | null>(null);

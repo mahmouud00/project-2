@@ -485,3 +485,11 @@ html[data-theme="dark"] .win-hint { color: #cfe0f2; }
 .help-body { font-size: 14px; line-height: 1.9; color: var(--text); max-width: 680px; }
 .help-body p { margin: 0 0 10px; }
 .help-body code { background: var(--sunken); border: 1px solid var(--border); border-radius: 5px; padding: 1px 6px; font-size: 13px; }
+
+/* ---------------------------------------------------------------- back / forward and where the page is */
+.nav-arrows { display: flex; gap: 2px; }
+.nav-arrows .icon-btn:disabled { opacity: .35; cursor: default; }
+.crumbs-path { display: inline-flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.crumbs-path .crumb { cursor: pointer; color: var(--muted); }
+.crumbs-path .crumb:hover { color: var(--primary); text-decoration: underline; }
+.crumbs-path .crumb-sep { opacity: .6; }

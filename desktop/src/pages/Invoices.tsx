@@ -4,7 +4,7 @@ import { useTitle, type PageProps } from "../lib/title";
 import { useAction, useLoad } from "../lib/hooks";
 import { useDefaultBranch, useSession } from "../state/session";
 import { useToast } from "../state/toast";
-import { Btn, Card, Chip, Confirm, Dim, ErrorBox, Field, Loading, Modal, Money, NumIn, PageHead, Pager, Qty, Select, SizeIn, Table, TextArea, TextIn } from "../components/ui";
+import { Btn, Card, Chip, Confirm, Crumbs, Dim, ErrorBox, Field, Loading, Modal, Money, NumIn, PageHead, Pager, Qty, Select, SizeIn, Table, TextArea, TextIn } from "../components/ui";
 import { BranchName, BranchSelect, ColorName, ColorSelect, CustomerName, CustomerPicker, GlassSelect, ModelSelect, SalespersonName, SalespersonSelect } from "../components/pickers";
 import { Drawing, MediaImg, PrintPreview } from "../components/media";
 import { DeleteBtn } from "../components/actions";
@@ -59,7 +59,7 @@ function InvoiceList() {
 }
 
 function NewInvoice() {
-  useTitle("فاتورة جديدة", <a onClick={() => go("invoices")} style={{ cursor: "pointer" }}>الفواتير</a>);
+  useTitle("فاتورة جديدة", <Crumbs items={[{ label: "الفواتير", to: "invoices" }]} />);
   const toast = useToast();
   const { busy, run } = useAction(toast.err);
   const branch = useDefaultBranch("invoices.create");
@@ -98,7 +98,7 @@ function InvoiceDetail({ id }: { id: string }) {
   const { busy, run } = useAction(toast.err);
   const inv = useLoad(() => api.get<Invoice>(`/invoices/${id}`), [id]);
   useTitle(inv.data ? (inv.data.number ? `فاتورة ${inv.data.number}` : "فاتورة (مسودة)") : "…",
-    <a onClick={() => go("invoices")} style={{ cursor: "pointer" }}>الفواتير</a>, [inv.data?.number]);
+    <Crumbs items={[{ label: "الفواتير", to: "invoices" }]} />, [inv.data?.number]);
   const [printing, setPrinting] = useState(false);
   const [line, setLine] = useState<Line | "new" | null>(null);
   const [del, setDel] = useState<Line | null>(null);

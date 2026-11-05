@@ -4,6 +4,8 @@ All notable changes are listed here. Versions follow Semantic Versioning (MAJOR.
 
 ## [Unreleased]
 ### Added
+- Back and forward arrows in the top bar (also Alt + ← / →, the mouse's back / forward buttons and the phone's back button): every page is a numbered history entry, tabs and filters change the page in place, and the arrows are greyed out when there is nowhere to go. Leaving the survey sheet or the model editor with unsaved changes asks first («اخرج من غير حفظ» / «رجوع»), whatever way you leave.
+- Where the page is, above its title, with each part clickable: «مكتبة القطاعات › كومبن › النماذج» on a model, the section on every record page.
 - Window/door models from Excel (library ← استيراد من إكسيل ← «استيراد النماذج من إكسيل», `POST /library/models/import?apply=&system_ids=`): a list with الكود / الاسم (or الرقم المرجعي / اسم المنتج), optionally النوع (شباك / باب) and الرسمة (drawing JSON), created in every chosen system of the company's own (all UPVC ones by default) with their name, type and drawing only — pieces and formulas (the deductions) are entered in the model editor. Preview first, all or nothing; a code already in a system is skipped there.
 - Deleting several models at once (models tab ← «حذف أكتر من نموذج»): pick models or all of them; each one waits 30 days, or is erased at once when the permanent delete permission chooses to.
 ### Fixed

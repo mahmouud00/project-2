@@ -4,7 +4,7 @@ import { useTitle, type PageProps } from "../lib/title";
 import { useAction, useLoad, when } from "../lib/hooks";
 import { useDefaultBranch, useSession } from "../state/session";
 import { useToast } from "../state/toast";
-import { Btn, Card, Chip, ErrorBox, Field, Loading, Modal, Money, NumIn, PageHead, Pager, Qty, Table, Tabs, TextArea, TextIn, Check } from "../components/ui";
+import { Btn, Card, Check, Chip, Crumbs, ErrorBox, Field, Loading, Modal, Money, NumIn, PageHead, Pager, Qty, Table, Tabs, TextArea, TextIn } from "../components/ui";
 import { BranchName, BranchSelect, CustomerName, SkuIn, SupplierSelect } from "../components/pickers";
 import { PO_STATUS, invalidate, lookups } from "../lib/lookups";
 import { go, setQuery } from "../lib/router";
@@ -61,7 +61,7 @@ function POList() {
 type Line = { sku: string; qty: string; unit_cost: string };
 
 function NewPO() {
-  useTitle("أمر شراء جديد", <a onClick={() => go("purchasing")} style={{ cursor: "pointer" }}>المشتريات</a>);
+  useTitle("أمر شراء جديد", <Crumbs items={[{ label: "المشتريات", to: "purchasing" }]} />);
   const toast = useToast();
   const { busy, run } = useAction(toast.err);
   const branch = useDefaultBranch("purchasing.create");
@@ -110,7 +110,7 @@ function PODetail({ id }: { id: string }) {
   const { busy, run } = useAction(toast.err);
   const po = useLoad(() => api.get<PO>(`/purchase-orders/${id}`), [id]);
   const sup = useLoad(() => lookups.suppliers(), []);
-  useTitle(po.data ? `أمر شراء ${po.data.number}` : "…", <a onClick={() => go("purchasing")} style={{ cursor: "pointer" }}>المشتريات</a>, [po.data?.number]);
+  useTitle(po.data ? `أمر شراء ${po.data.number}` : "…", <Crumbs items={[{ label: "المشتريات", to: "purchasing" }]} />, [po.data?.number]);
   const [receiving, setReceiving] = useState(false);
   const [paying, setPaying] = useState(false);
   const [deciding, setDeciding] = useState<boolean | null>(null);

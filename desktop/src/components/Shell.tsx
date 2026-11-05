@@ -1,11 +1,11 @@
-import { useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useSession } from "../state/session";
 import { useTheme } from "../state/theme";
 import { Icon } from "./icons";
 import { PAGE_HELP } from "../lib/help";
-import { Btn, Field, Help, Modal, TextIn } from "./ui";
+import { Btn, Confirm, Field, Help, Modal, TextIn } from "./ui";
 import { api, errorText, store, CLIENT_VERSION } from "../api/client";
-import { go } from "../lib/router";
+import { back, forward, go, navGuard, useHistoryKeys, useHistoryNav } from "../lib/router";
 import { useToast } from "../state/toast";
 import { PrintPreview } from "./media";
 import { Bell } from "./bell";
@@ -61,6 +61,8 @@ export function Shell({ page, title, crumbs, children, onLogout }:
   const top = useRef<HTMLDivElement>(null);
   const [report, setReport] = useState<Report | null>(null);
   const toast = useToast();
+  const nav = useHistoryNav();
+  useHistoryKeys();
   const printPage = () => {
     if (!content.current) return;
     const crumbs = top.current?.querySelector(".crumbs")?.textContent?.trim();
@@ -112,6 +114,10 @@ export function Shell({ page, title, crumbs, children, onLogout }:
         {lic.status === "grace" && <div className="banner warn">الترخيص في فترة السماح. جدّد الترخيص قبل ما البرنامج يتحول لقراءة بس.</div>}
         <header className="topbar">
           <button className="icon-btn menu-btn" onClick={() => setDrawer(true)} aria-label="القايمة"><Icon name="menu" /></button>
+          <div className="nav-arrows">
+            <button className="icon-btn" onClick={back} disabled={!nav.canBack} title="رجوع (Alt + ←)" aria-label="رجوع"><Icon name="back" /></button>
+            <button className="icon-btn hide-phone" onClick={forward} disabled={!nav.canForward} title="قدّام (Alt + →)" aria-label="قدّام"><Icon name="forward" /></button>
+          </div>
           <div className="grow" ref={top}>
             {crumbs && <div className="crumbs">{crumbs}</div>}
             <div className="page-title">{title}</div>
@@ -149,9 +155,18 @@ export function Shell({ page, title, crumbs, children, onLogout }:
         <div className="content" ref={content}>{children}</div>
       </div>
       {pwd && <ChangePassword onClose={() => setPwd(false)} />}
+      <LeaveGuard />
       {report && <PrintPreview path="/documents/report" body={report} title={report.title} onClose={() => setReport(null)} />}
     </div>
   );
+}
+
+/** «فيه تعديلات لسه متحفظتش»: shown when leaving a screen with unsaved work (see useUnsavedGuard). */
+function LeaveGuard() {
+  const [message, setMessage] = useState<string | null>(null);
+  useEffect(() => navGuard.subscribe(setMessage), []);
+  if (!message) return null;
+  return <Confirm danger title="تعديلات مش محفوظة" text={message} yes="اخرج من غير حفظ" onYes={() => navGuard.leave()} onClose={() => navGuard.stay()} />;
 }
 
 function ThemeChoice() {

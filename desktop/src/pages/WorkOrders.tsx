@@ -4,7 +4,7 @@ import { useTitle, type PageProps } from "../lib/title";
 import { useAction, useLoad, when } from "../lib/hooks";
 import { useSession } from "../state/session";
 import { useToast } from "../state/toast";
-import { Btn, Card, Chip, Confirm, Dim, ErrorBox, Field, Len, Loading, Modal, Money, NumIn, PageHead, Pager, Qty, Select, Table, Tabs, TextIn } from "../components/ui";
+import { Btn, Card, Chip, Confirm, Crumbs, Dim, ErrorBox, Field, Len, Loading, Modal, Money, NumIn, PageHead, Pager, Qty, Select, Table, Tabs, TextIn } from "../components/ui";
 import { DeleteBtn } from "../components/actions";
 import { AssignJob, Progress } from "../components/field";
 import { BranchName, ColorName, CustomerName, ModelThumb, SalespersonName, SalespersonSelect } from "../components/pickers";
@@ -81,7 +81,7 @@ function WorkOrderDetail({ id, tab }: { id: string; tab: string }) {
   const toast = useToast();
   const { busy, run } = useAction(toast.err);
   const wo = useLoad(() => api.get<WO>(`/work-orders/${id}`), [id]);
-  useTitle(wo.data ? `أمر تصنيع ${wo.data.number}` : "…", <a onClick={() => go("work-orders")} style={{ cursor: "pointer" }}>أوامر التصنيع</a>, [wo.data?.number]);
+  useTitle(wo.data ? `أمر تصنيع ${wo.data.number}` : "…", <Crumbs items={[{ label: "أوامر التصنيع", to: "work-orders" }]} />, [wo.data?.number]);
   const [printing, setPrinting] = useState(false);
   const [saleDecision, setSaleDecision] = useState<boolean | null>(null);
   const [paying, setPaying] = useState(false);

@@ -5,8 +5,7 @@ import { useTitle, type PageProps } from "../lib/title";
 import { useAction, useDebounced, useLoad } from "../lib/hooks";
 import { useDefaultBranch, useSession } from "../state/session";
 import { useToast } from "../state/toast";
-import { Btn, Card, Chip, ErrorBox, Field, KV, Loading, Modal, Money, NumIn, PageHead, Pager, SearchBox, Select, Table, Tabs,
-  TextArea, TextIn } from "../components/ui";
+import { Btn, Card, Chip, Crumbs, ErrorBox, Field, KV, Loading, Modal, Money, NumIn, PageHead, Pager, SearchBox, Select, Table, Tabs, TextArea, TextIn } from "../components/ui";
 import { BranchName, BranchSelect, CashboxSelect } from "../components/pickers";
 import { DeleteBtn } from "../components/actions";
 import { QUOTE_STATUS, STAGE_NAMES, invalidate } from "../lib/lookups";
@@ -137,7 +136,7 @@ function EmployeeProfile({ id, tab }: { id: string; tab: string }) {
   const summary = useLoad(() => api.get<{ annual_leave_left: string; advances_owed: string; leave_days: Record<string, string> }>(
     `/employees/${id}/summary`), [id, emp.data?.version]);
   const [editing, setEditing] = useState(false);
-  useTitle(emp.data?.full_name ?? "…", <a onClick={() => go("hr")} style={{ cursor: "pointer" }}>الموارد البشرية</a>, [emp.data?.full_name]);
+  useTitle(emp.data?.full_name ?? "…", <Crumbs items={[{ label: "الموارد البشرية", to: "hr" }]} />, [emp.data?.full_name]);
   if (emp.error) return <ErrorBox text={emp.error} onRetry={emp.reload} />;
   if (!emp.data) return <Loading />;
   const e = emp.data;

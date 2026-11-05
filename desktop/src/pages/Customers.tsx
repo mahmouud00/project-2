@@ -4,7 +4,7 @@ import { useTitle, type PageProps } from "../lib/title";
 import { useAction, useDebounced, useLoad, when } from "../lib/hooks";
 import { useSession } from "../state/session";
 import { useToast } from "../state/toast";
-import { Btn, Card, Chip, Confirm, Field, KV, Loading, ErrorBox, Modal, Money, PageHead, Pager, SearchBox, Select, Table, Tabs, TextArea, TextIn } from "../components/ui";
+import { Btn, Card, Chip, Confirm, Crumbs, ErrorBox, Field, KV, Loading, Modal, Money, PageHead, Pager, SearchBox, Select, Table, Tabs, TextArea, TextIn } from "../components/ui";
 import { CUSTOMER_TYPES, INVOICE_STATUS, QUOTE_STATUS, STAGE_COLOR, STAGE_NAMES, SURVEY_KIND, SURVEY_STATUS } from "../lib/lookups";
 import { invalidate } from "../lib/lookups";
 import { go, setQuery } from "../lib/router";
@@ -109,7 +109,7 @@ function CustomerDetail({ id, tab: tabQuery }: { id: string; tab?: string }) {
   const s = useSession();
   const toast = useToast();
   const c = useLoad(() => api.get<S<"CustomerOut">>(`/customers/${id}`), [id]);
-  useTitle(c.data?.name ?? "…", <a onClick={() => go("customers")} style={{ cursor: "pointer" }}>العملاء</a>, [c.data?.name]);
+  useTitle(c.data?.name ?? "…", <Crumbs items={[{ label: "العملاء", to: "customers" }]} />, [c.data?.name]);
   const [edit, setEdit] = useState(false);
   const [erase, setErase] = useState(false);
   const [reason, setReason] = useState("");
