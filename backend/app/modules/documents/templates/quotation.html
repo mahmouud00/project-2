@@ -21,7 +21,7 @@
     <td class="num">{{ l.qty }}</td>
     <td class="num">{{ l.billed_area }}{% if l.area != l.billed_area %}<div class="small">الفعلية {{ l.area }}</div>{% endif %}</td>
     <td class="num">{{ l.total_area }}</td>
-    <td class="draw">{% if l.image %}<img src="{{ l.image }}" alt=""><br>{% endif %}{{ drawing(l.drawing, l.width_mm, l.height_mm, 110, 80) }}
+    <td class="draw">{% if l.image %}<img src="{{ l.image }}" alt=""><br>{% endif %}{{ drawing(l.drawing, l.width_mm, l.height_mm, 140, 100, label_w=l.opening_width_mm, label_h=l.opening_height_mm) }}
       <div><b>{{ l.model_name }}</b>{% if l.location %} · {{ l.location }}{% endif %}</div>
       {% if l.color_name or l.glass_name %}<div class="small">{% if l.color_name %}اللون: {{ l.color_name }}{% endif %}{% if l.glass_name %} · الزجاج: {{ l.glass_name }}{% endif %}</div>{% endif %}
       {% for p in l.param_labels %}<div class="small">{{ p }}</div>{% endfor %}

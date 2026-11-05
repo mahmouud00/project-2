@@ -71,19 +71,24 @@ def data_uri(db, media_id) -> str | None:
     return f"data:{media.mime};base64," + base64.b64encode(media_path(media.sha256).read_bytes()).decode()
 
 
-def drawing_svg(elements: list, width_mm=None, height_mm=None, max_w: int = 150, max_h: int = 120) -> Markup:
-    """Generic drawing from the engine's drawing elements (frame / sash / glass / mullion)."""
+def drawing_svg(elements: list, width_mm=None, height_mm=None, max_w: int = 150, max_h: int = 120, dims: bool = True,
+                label_w=None, label_h=None) -> Markup:
+    """The window drawn from the engine's drawing elements (frame / sash / glass / panel / mullion) with its opening
+    marks, and its width (above) and height (beside it) in cm when both are known. The shape is at manufacturing
+    size; `label_w` / `label_h` say which size the numbers show (a quotation shows the opening the customer ordered)."""
     elements = elements or []
     if not elements and not (width_mm and height_mm):
         return Markup("")
     fw = Decimal(str(width_mm or max((Decimal(str(e.get("w_mm", 0))) for e in elements), default=1)))
     fh = Decimal(str(height_mm or max((Decimal(str(e.get("h_mm", 0))) for e in elements), default=1)))
-    scale = min(Decimal(max_w - 8) / fw, Decimal(max_h - 8) / fh)
+    show = bool(dims and width_mm and height_mm)
+    mx, my = (22, 16) if show else (4, 4)                 # room for the height on the left, the width on top
+    scale = min(Decimal(max_w - mx - 4) / fw, Decimal(max_h - my - 4) / fh)
     W, H = float(fw * scale), float(fh * scale)
-    parts = [f'<rect x="4" y="4" width="{W:.1f}" height="{H:.1f}" fill="#F8FAFC" stroke="#334155" stroke-width="1.4"/>']
+    parts = [f'<rect x="{mx}" y="{my}" width="{W:.1f}" height="{H:.1f}" fill="#F8FAFC" stroke="#334155" stroke-width="1.4"/>']
     for e in elements:
-        x = 4 + float(Decimal(str(e.get("x_mm", 0))) * scale)
-        y = 4 + float(Decimal(str(e.get("y_mm", 0))) * scale)
+        x = mx + float(Decimal(str(e.get("x_mm", 0))) * scale)
+        y = my + float(Decimal(str(e.get("y_mm", 0))) * scale)
         w = float(Decimal(str(e.get("w_mm", 0))) * scale)
         h = float(Decimal(str(e.get("h_mm", 0))) * scale)
         kind = e.get("type", "rect")
@@ -102,16 +107,26 @@ def drawing_svg(elements: list, width_mm=None, height_mm=None, max_w: int = 150,
             parts.append(f'<path d="M{cx - 8 * d:.1f} {cy:.1f} h{16 * d} m{-4 * d} -3 l{4 * d} 3 l{-4 * d} 3" '
                          f'stroke="#4338CA" stroke-width="1.2" fill="none"/>')
         elif opening.startswith("casement") or opening.startswith("tilt"):
-            hinge = x + w - inset if opening.endswith("left") else x + inset
-            tip = x + inset if opening.endswith("left") else x + w - inset
-            parts.append(f'<path d="M{hinge:.1f} {y + inset:.1f} L{tip:.1f} {cy:.1f} L{hinge:.1f} {y + h - inset:.1f}" '
-                         f'stroke="#4338CA" stroke-width=".9" stroke-dasharray="3 2" fill="none"/>')
+            if opening != "tilt":                          # side-hung; a plain tilt (bottom-hung) has the triangle only
+                hinge = x + w - inset if opening.endswith("left") else x + inset
+                tip = x + inset if opening.endswith("left") else x + w - inset
+                parts.append(f'<path d="M{hinge:.1f} {y + inset:.1f} L{tip:.1f} {cy:.1f} L{hinge:.1f} {y + h - inset:.1f}" '
+                             f'stroke="#4338CA" stroke-width=".9" stroke-dasharray="3 2" fill="none"/>')
             if opening.startswith("tilt"):
                 parts.append(f'<path d="M{x + inset:.1f} {y + h - inset:.1f} L{cx:.1f} {y + inset:.1f} '
                              f'L{x + w - inset:.1f} {y + h - inset:.1f}" stroke="#4338CA" stroke-width=".9" '
                              f'stroke-dasharray="3 2" fill="none"/>')
-    svg = (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W + 8:.1f} {H + 8:.1f}" width="{W + 8:.0f}" '
-           f'height="{H + 8:.0f}" direction="ltr">{"".join(parts)}</svg>')
+    if show:
+        line = 'stroke="#0F172A" stroke-width=".7"'
+        text = 'font-size="8.5" font-family="Cairo, Arial, sans-serif" fill="#0F172A" text-anchor="middle"'
+        y = my - 5
+        parts.append(f'<path d="M{mx} {y} H{mx + W:.1f} M{mx} {y - 3} v6 M{mx + W:.1f} {y - 3} v6" {line}/>')
+        parts.append(f'<text x="{mx + W / 2:.1f}" y="{y - 2}" {text}>{cm(label_w or width_mm)} سم</text>')
+        x = mx - 6
+        parts.append(f'<path d="M{x} {my} V{my + H:.1f} M{x - 3} {my} h6 M{x - 3} {my + H:.1f} h6" {line}/>')
+        parts.append(f'<text transform="translate({x - 3} {my + H / 2:.1f}) rotate(-90)" {text}>{cm(label_h or height_mm)} سم</text>')
+    svg = (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {mx + W + 4:.1f} {my + H + 4:.1f}" width="{mx + W + 4:.0f}" '
+           f'height="{my + H + 4:.0f}" direction="ltr">{"".join(parts)}</svg>')
     return Markup(svg)
 
 

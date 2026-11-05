@@ -223,7 +223,8 @@ export function ItemForm({ title, initial, onClose, onSave, withPrice, requireMo
                   </div>
                 )}
               </div>
-              {c?.drawing && <Drawing elements={c.drawing} w={c.inputs?.width_mm} h={c.inputs?.height_mm} maxW={150} maxH={120} />}
+              {c?.drawing && <Drawing elements={c.drawing} w={c.inputs?.width_mm} h={c.inputs?.height_mm} maxW={180} maxH={140} dims
+                labelW={c.inputs?.opening_width_mm} labelH={c.inputs?.opening_height_mm} />}
             </div>
           </div>
           {calc.loading && <div className="row muted small"><span className="spinner" />بيحسب…</div>}

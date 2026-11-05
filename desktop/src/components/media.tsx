@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactElement } from "react";
 import { api, errorText } from "../api/client";
 import { Btn, Modal } from "./ui";
 import { useToast } from "../state/toast";
+import { useSession } from "../state/session";
 
 // Images need the bearer token, so they are fetched once and kept as object URLs.
 const cache = new Map<string, Promise<string>>();
@@ -31,20 +32,26 @@ export function MediaImg({ id, className = "thumb", alt = "" }: { id: string | n
 type El = { type?: string; x_mm?: string | number; y_mm?: string | number; w_mm?: string | number; h_mm?: string | number;
   opening?: string | null; label?: string | null };
 
-/** Drawing from the engine's drawing elements (frame / sash / glass / panel / mullion). */
-export function Drawing({ elements, w, h, maxW = 150, maxH = 110 }:
-  { elements: El[] | undefined; w?: string | number | null; h?: string | number | null; maxW?: number; maxH?: number }) {
+/** Drawing from the engine's drawing elements (frame / sash / glass / panel / mullion); with `dims`, the width above and
+ * the height beside it, in the company's length unit. */
+export function Drawing({ elements, w, h, maxW = 150, maxH = 110, dims, labelW, labelH }:
+  { elements: El[] | undefined; w?: string | number | null; h?: string | number | null; maxW?: number; maxH?: number; dims?: boolean;
+    /** the size the numbers show (the opening), when not the drawn (manufacturing) size */
+    labelW?: string | number | null; labelH?: string | number | null }) {
+  const s = useSession();
   const els = elements ?? [];
   const fw = Number(w ?? Math.max(1, ...els.map((e) => Number(e.w_mm ?? 0))));
   const fh = Number(h ?? Math.max(1, ...els.map((e) => Number(e.h_mm ?? 0))));
   if (!fw || !fh) return null;
-  const sc = Math.min((maxW - 8) / fw, (maxH - 8) / fh);
+  const show = !!dims && !!w && !!h;
+  const mx = show ? 22 : 4, my = show ? 16 : 4;
+  const sc = Math.min((maxW - mx - 4) / fw, (maxH - my - 4) / fh);
   const W = fw * sc, H = fh * sc;
   const parts: ReactElement[] = [];
   els.forEach((e, i) => {
     const kind = e.type ?? "rect";
     if (kind === "frame") return;
-    const x = 4 + Number(e.x_mm ?? 0) * sc, y = 4 + Number(e.y_mm ?? 0) * sc;
+    const x = mx + Number(e.x_mm ?? 0) * sc, y = my + Number(e.y_mm ?? 0) * sc;
     const ew = Number(e.w_mm ?? 0) * sc, eh = Number(e.h_mm ?? 0) * sc;
     const inset = kind === "sash" ? 3 : 0;
     parts.push(<rect key={i + "a"} x={x} y={y} width={ew} height={eh} fill="var(--card)" stroke="var(--stroke)" strokeWidth={0.9} />);
@@ -70,10 +77,19 @@ export function Drawing({ elements, w, h, maxW = 150, maxH = 110 }:
         stroke="var(--primary)" strokeWidth={0.9} strokeDasharray="3 2" fill="none" />);
     }
   });
+  if (show) {
+    const unit = s.unit === "cm" ? "سم" : "مم";
+    const y = my - 5, x = mx - 6;
+    parts.push(<path key="dw" d={`M${mx} ${y} H${mx + W} M${mx} ${y - 3} v6 M${mx + W} ${y - 3} v6`} stroke="var(--text)" strokeWidth={0.7} />);
+    parts.push(<text key="tw" x={mx + W / 2} y={y - 2} fontSize={8.5} fill="var(--text)" textAnchor="middle">{s.len(String(labelW ?? w))} {unit}</text>);
+    parts.push(<path key="dh" d={`M${x} ${my} V${my + H} M${x - 3} ${my} h6 M${x - 3} ${my + H} h6`} stroke="var(--text)" strokeWidth={0.7} />);
+    parts.push(<text key="th" transform={`translate(${x - 3} ${my + H / 2}) rotate(-90)`} fontSize={8.5} fill="var(--text)" textAnchor="middle">
+      {s.len(String(labelH ?? h))} {unit}</text>);
+  }
   return (
     <span className="drawing" style={{ display: "inline-block", direction: "ltr" }}>
-      <svg viewBox={`0 0 ${W + 8} ${H + 8}`} width={W + 8} height={H + 8}>
-        <rect x={4} y={4} width={W} height={H} fill="var(--sunken)" stroke="var(--stroke)" strokeWidth={1.4} />
+      <svg viewBox={`0 0 ${mx + W + 4} ${my + H + 4}`} width={mx + W + 4} height={my + H + 4}>
+        <rect x={mx} y={my} width={W} height={H} fill="var(--sunken)" stroke="var(--stroke)" strokeWidth={1.4} />
         {parts}
       </svg>
     </span>

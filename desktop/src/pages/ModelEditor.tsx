@@ -474,7 +474,8 @@ function CalcResult({ res }: { res: Calc }) {
           </tbody></table></div></div>}
           {res.values && <div className="small muted">المعادلات: {Object.entries(res.values).map(([k, v]) => <span key={k} className="code" style={{ margin: 2 }}>{k} = {clean(v)}</span>)}</div>}
         </div>
-        <Drawing elements={res.drawing} w={res.inputs?.width_mm} h={res.inputs?.height_mm} maxW={280} maxH={240} />
+        <Drawing elements={res.drawing} w={res.inputs?.width_mm} h={res.inputs?.height_mm} maxW={280} maxH={240} dims
+          labelW={res.inputs?.opening_width_mm} labelH={res.inputs?.opening_height_mm} />
       </div>
     </div>
   );

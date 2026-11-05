@@ -9,7 +9,7 @@
 <table>
   <tr><th>#</th><th class="draw">الشكل</th><th>الصنف</th><th>الفتحة سم</th><th>التصنيع سم</th><th>الكمية</th></tr>
   {% for d in outputs.drawings %}
-  <tr><td class="num">{{ d.item }}</td><td class="draw">{{ drawing(d.elements, d.width_mm, d.height_mm, 110, 70) }}</td>
+  <tr><td class="num">{{ d.item }}</td><td class="draw">{{ drawing(d.elements, d.width_mm, d.height_mm, 140, 90) }}</td>
     <td><b>{{ d.model_name }}</b><div class="small">{{ d.location }}</div></td>
     <td>{{ size(d.opening_width_mm, d.opening_height_mm) }}</td><td>{{ size(d.width_mm, d.height_mm) }}</td><td class="num">{{ d.qty }}</td></tr>
   {% endfor %}
