@@ -119,6 +119,10 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--out", required=True)
     p = sub.add_parser("import", help="load an export on this server (stop the service first)")
     p.add_argument("file")
+    p = sub.add_parser("decrypt-backup", help="open an encrypted outside copy (*.mtb) back into a .dump to restore")
+    p.add_argument("file")
+    p.add_argument("out")
+    p.add_argument("--password-file", help="file holding the backup password (else it is asked)")
     p = sub.add_parser("update", help="apply a signed update file (*.mtu)")
     p.add_argument("package")
     p.add_argument("--root", default=os.environ.get("MYTECH_ROOT", "C:\\MYTech"))
@@ -162,6 +166,22 @@ def main(argv: list[str] | None = None) -> int:
     elif args.cmd == "update":
         from app.ops.updater import main as update_main
         return update_main([args.package, "--root", args.root, "--service", args.service, "--port", str(args.port)])
+    elif args.cmd == "decrypt-backup":
+        from pathlib import Path
+        from app.ops.offsite import OffsiteError, decrypt_file
+        password = (Path(args.password_file).read_text(encoding="utf-8").strip() if args.password_file
+                    else getpass.getpass("Backup password: "))
+        src, out = Path(args.file), Path(args.out)
+        if out.is_dir():
+            out = out / (src.stem + ".dump")
+        try:
+            decrypt_file(src, out, password)
+        except OffsiteError as e:
+            print(e)
+            return 1
+        if src.with_suffix(".json").exists() and not out.with_suffix(".json").exists():
+            out.with_suffix(".json").write_bytes(src.with_suffix(".json").read_bytes())   # restore checks it
+        print(f"written {out}; restore it with: mytech-server restore {out}")
     elif args.cmd == "reset-2fa":
         from sqlalchemy import select
 

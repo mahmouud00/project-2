@@ -41,8 +41,9 @@ def create_app() -> FastAPI:
     from app.auth.router import router as auth_router
     from app.modules.org.router import router as org_router
     from app.modules.system.router import router as system_router
+    from app.modules.system.updates import router as updates_router
 
-    for r in (auth_router, org_router, system_router):
+    for r in (auth_router, org_router, system_router, updates_router):
         app.include_router(r, prefix=API_PREFIX)
     _include_optional(app)
     from app.modules.field.pages import router as tech_pages   # technicians' phone app at /tech

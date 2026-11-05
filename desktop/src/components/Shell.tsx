@@ -12,6 +12,7 @@ import { Bell } from "./bell";
 import { SearchButton } from "./search";
 import { Security } from "./security";
 import { HistoryButton } from "./history";
+import { UpdateBanner } from "./update";
 import type { RecordRef } from "../lib/title";
 import { collectPage, type Report } from "../lib/printpage";
 import mytechLogo from "../assets/logo-transparent.png";
@@ -117,6 +118,7 @@ export function Shell({ page, title, crumbs, record, children, onLogout }:
       <div className="main">
         {!lic.can_write && lic.can_read && <div className="banner warn">الترخيص منتهي أو غير صالح: البرنامج شغال قراءة بس. كلّم MYTech لتجديد الترخيص.</div>}
         {lic.status === "grace" && <div className="banner warn">الترخيص في فترة السماح. جدّد الترخيص قبل ما البرنامج يتحول لقراءة بس.</div>}
+        <UpdateBanner />
         <header className="topbar">
           <button className="icon-btn menu-btn" onClick={() => setDrawer(true)} aria-label="القايمة"><Icon name="menu" /></button>
           <div className="nav-arrows">

@@ -11,7 +11,7 @@ type Inbox = S<"Inbox">;
 type Note = S<"NotificationOut">;
 const POLL_MS = 15000;
 const CATEGORY: Record<string, string> = { accounts: "الحسابات", sales: "المبيعات", production: "التصنيع", field: "التركيبات",
-  deletions: "الحذف", library: "المكتبة" };
+  deletions: "الحذف", library: "المكتبة", system: "السيستم" };
 
 async function showNative(title: string, body: string) {
   try {

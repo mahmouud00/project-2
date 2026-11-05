@@ -86,6 +86,9 @@ class Settings(BaseSettings):
     # the desktop program's own origins (Tauri/WebView2); auth is a bearer token, never cookies
     cors_origins: list[str] = ["http://tauri.localhost", "https://tauri.localhost", "tauri://localhost"]
 
+    # Where the desktop / phone programs this server offers to older ones are (empty: "clients" next to the server)
+    clients_dir: str = ""
+
     # Oldest client version allowed to talk to this server.
     min_client_version: str = "0.1.0"
 

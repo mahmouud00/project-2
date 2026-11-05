@@ -83,6 +83,9 @@ WS /api/v1/system/events?token=<access_token>
 | GET | `/system/license` | حالة الترخيص والموديولات والحدود، وبصمة الجهاز في الأوفلاين |
 | POST | `/system/license` | (أوفلاين، `system.manage`) رفع ملف ترخيص موقّع (multipart `file`) |
 | GET / POST | `/system/backups` | قايمة النسخ الاحتياطية وآخر حالة / نسخة فورية (`system.manage`؛ في الأونلاين MYTech بس) |
+| GET / PUT | `/system/backups/offsite` | النسخة المتشفّرة برّه المصنع: الفولدر وكلمة السر وآخر حالة والمشاكل (`system.manage`) |
+| GET | `/system/clients` · `/system/clients/{desktop\|android}` | (عام) أحدث برنامج ديسكتوب / موبايل على السيرفر وتنزيله |
+| GET / POST | `/system/update` | حالة التحديث / رفع ملف `.mtu` وبدء تحديث السيرفر (`system.manage`؛ ويندوز متسطب بس) |
 | WS | `/system/events` | التحديث اللحظي |
 | GET | `/system/branding?company_code=`، `/system/branding/logo?company_code=` | (عام) اسم الشركة ولوجوها ولونها، عشان شاشة الدخول. في الأوفلاين `company_code` اختياري |
 

@@ -4,6 +4,7 @@ import json
 import uuid
 
 from fastapi import APIRouter, Depends, UploadFile, WebSocket, WebSocketDisconnect
+from pydantic import BaseModel
 from sqlalchemy import text
 
 from app.core.config import get_settings
@@ -157,11 +158,43 @@ def backup_now(dc=Depends(get_db_and_ctx)):
     from app.ops.backup import BackupError, run_backup, verify
 
     _require_backup_admin(dc[1])
+    from app.ops.offsite import OffsiteError, copy_backup
+
     try:
         path = run_backup("manual")
     except BackupError as e:
         raise AppError(str(e), code="BACKUP_FAILED", status_code=500)
-    return verify(path)
+    out = verify(path)
+    try:
+        out["offsite"] = str(copy_backup(path) or "") or None
+    except OffsiteError as e:                    # the backup itself is good: say the outside copy was not made
+        out["offsite_error"] = str(e)
+    return out
+
+
+class OffsiteIn(BaseModel):
+    folder: str = ""
+    password: str = ""
+
+
+@router.get("/backups/offsite")
+def offsite_status(dc=Depends(get_db_and_ctx)):
+    from app.ops.offsite import problems, status
+
+    _require_backup_admin(dc[1])
+    return {**status(), "problems": problems()}
+
+
+@router.put("/backups/offsite")
+def offsite_configure(body: OffsiteIn, dc=Depends(get_db_and_ctx)):
+    from app.ops.offsite import OffsiteError, configure, problems
+
+    _require_backup_admin(dc[1])
+    try:
+        out = configure(body.folder.strip() or None, body.password or None)
+    except OffsiteError as e:
+        raise ValidationFailed(str(e), code="OFFSITE_INVALID")
+    return {**out, "problems": problems()}
 
 
 # ---------------------------------------------------------------- live events

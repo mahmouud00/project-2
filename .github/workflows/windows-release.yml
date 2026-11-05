@@ -30,6 +30,8 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
+      - name: Build version (0.1.<build number>)
+        run: node tools/release/stamp_version.mjs ${{ github.run_number }}
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -69,6 +71,8 @@ jobs:
       HAS_KEY: ${{ secrets.ANDROID_KEYSTORE_B64 != '' }}
     steps:
       - uses: actions/checkout@v4
+      - name: Build version (0.1.<build number>)
+        run: node tools/release/stamp_version.mjs ${{ github.run_number }}
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -129,10 +133,13 @@ jobs:
           path: out/*.apk
 
   server:
+    needs: [desktop, android]   # the server installer carries the client programs (they update from it)
     runs-on: windows-latest
     timeout-minutes: 240   # the first native compile takes 1.5-2 h; later runs reuse the cache
     steps:
       - uses: actions/checkout@v4
+      - name: Build version (0.1.<build number>)
+        run: node tools/release/stamp_version.mjs ${{ github.run_number }}
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
@@ -238,10 +245,23 @@ jobs:
           powershell -NoProfile -ExecutionPolicy Bypass -File "$root\scripts\uninstall-server.ps1" -Root $root
           if (Get-Service MYTechServer, MYTechPostgreSQL -ErrorAction SilentlyContinue) { throw "services left registered" }
           if (Get-Process postgres, mytech-server -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "$root*" }) { throw "processes left running after uninstall" }
+      - name: Desktop program (the PCs update themselves from the server)
+        uses: actions/download-artifact@v4
+        with:
+          name: desktop
+          path: build/clients
+      - name: Phone app (the phones update themselves from the server)
+        uses: actions/download-artifact@v4
+        with:
+          name: android
+          path: build/clients
       - name: Installer (Inno Setup)
         shell: pwsh
         run: |
           $v = (Get-Content VERSION).Trim()
+          # next to the server program: the installer and the .mtu update both carry them
+          New-Item -ItemType Directory -Force "build/stage/app/$v/clients" | Out-Null
+          Copy-Item build/clients/* "build/stage/app/$v/clients/"
           $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
           if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress | Out-Null }
           & $iscc /Qp "/DMyVersion=$v" "/DStage=$PWD\build\stage" "/DOutDir=$PWD\out" deploy\windows\MYTechServer.iss
@@ -261,6 +281,8 @@ jobs:
     timeout-minutes: 150
     steps:
       - uses: actions/checkout@v4
+      - name: Build version (0.1.<build number>)
+        run: node tools/release/stamp_version.mjs ${{ github.run_number }}
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
@@ -316,6 +338,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Build version (0.1.<build number>)
+        run: node tools/release/stamp_version.mjs ${{ github.run_number }}
       - uses: actions/download-artifact@v4
         with:
           path: dist
@@ -325,8 +349,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           v=$(cat VERSION)
-          tag="v$v-build.${{ github.run_number }}"
+          tag="v$v"
           ls -la dist
           gh release create "$tag" dist/*.exe dist/*.zip dist/*.apk --prerelease --target "${{ github.sha }}" \
-            --title "MYTech Solutions $v (build ${{ github.run_number }})" \
+            --title "MYTech Solutions $v" \
             --notes "Build of ${{ github.sha }}. Desktop program for every PC; Android app (MYTech-Mobile) for phones; server installer for the server PC; licence tool for MYTech only."

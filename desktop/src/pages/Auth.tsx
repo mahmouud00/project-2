@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import { UpdateBanner } from "../components/update";
 import { api, ApiError, errorText, login, normalizeServer, store, CLIENT_VERSION } from "../api/client";
 import { discover, inDesktop, serverUrl, type FoundServer } from "../lib/discovery";
 import { Btn, Field, FilePick, TextIn } from "../components/ui";
@@ -231,6 +232,7 @@ export function LoginPage({ info, onLogin, onChangeServer }:
       <ThemeCorner />
       <Art />
       <div className="auth-form">
+        <div className="auth-update"><UpdateBanner /></div>
         <div className={"win-login" + (opened ? " open" : "")}>
           <div className="win-frame">
             <form ref={formRef} className="win-inner col" onSubmit={submit} aria-hidden={!opened}>

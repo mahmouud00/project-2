@@ -162,6 +162,7 @@ a { color: var(--primary); }
 .banner { padding: 8px 20px; font-weight: 600; font-size: 12.5px; }
 .banner.warn { background: var(--warning-soft); color: var(--warning); }
 .banner.err { background: var(--danger-soft); color: var(--danger); }
+.banner.info { background: var(--primary-soft); color: var(--text); align-items: center; flex-wrap: wrap; }
 
 /* ---------- components ---------- */
 .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); }
@@ -530,3 +531,4 @@ tr[hidden] { display: none; }
 /* ---------------------------------------------------------------- two-step login */
 .qr-box { background: #fff; padding: 8px; border-radius: 10px; border: 1px solid var(--line); line-height: 0; }
 .qr-box svg { width: 180px; height: 180px; }
+.auth-update { position: absolute; top: 12px; inset-inline: 12px; z-index: 5; } .auth-update .banner { border-radius: 10px; }

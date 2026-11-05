@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { api, ApiError, type S } from "../api/client";
+import { api, ApiError, CLIENT_VERSION, type S } from "../api/client";
 import { useTitle, type PageProps } from "../lib/title";
 import { useAction, useLoad } from "../lib/hooks";
 import { useSession } from "../state/session";
 import { useToast } from "../state/toast";
-import { Btn, Card, Chip, ErrorBox, FilePick, KV, Loading, PageHead, Pager, Table, Tabs } from "../components/ui";
+import { Btn, Card, Chip, Confirm, ErrorBox, Field, FilePick, KV, Loading, PageHead, Pager, Table, Tabs, TextIn } from "../components/ui";
 import { setQuery } from "../lib/router";
 import { date, dateTime } from "../lib/format";
 
@@ -16,12 +16,14 @@ export default function System({ route }: PageProps) {
     <Card flush>
       <Tabs value={tab} onChange={(t) => setQuery({ tab: t })} tabs={[
         { id: "license", label: "الترخيص", hidden: s.isPlatform }, { id: "backups", label: "النسخ الاحتياطي" },
+        { id: "updates", label: "تحديث السيرفر", hidden: !s.can("system.manage") || (s.info.mode === "online" && !s.isPlatform) },
         { id: "devices", label: "الأجهزة", hidden: s.isPlatform }, { id: "audit", label: "سجل التعديلات", hidden: !s.can("audit.read") },
         { id: "privacy", label: "سجل الوصول للبيانات الشخصية", hidden: !s.can("privacy.manage") },
       ]} />
       <div className="card-b">
         {tab === "license" && <License />}
         {tab === "backups" && <Backups />}
+        {tab === "updates" && <ServerUpdate />}
         {tab === "devices" && <Devices />}
         {tab === "audit" && <Audit />}
         {tab === "privacy" && <AccessLog />}
@@ -80,6 +82,7 @@ function Backups() {
   const toast = useToast();
   const { busy, run } = useAction(toast.err);
   const [blocked, setBlocked] = useState(false);
+  const [made, setMade] = useState(0);
   const data = useLoad(() => api.get<{ last_status: any; backups: BackupMeta[]; directory: string; keep: number }>("/system/backups").catch((e) => {
     if (e instanceof ApiError && e.code === "PLATFORM_ONLY") { setBlocked(true); return null; }
     throw e;
@@ -91,7 +94,12 @@ function Backups() {
   return (
     <div className="col">
       <PageHead title="النسخ الاحتياطي اليومي">
-        <Btn kind="primary" icon="db" busy={busy} onClick={() => run(async () => { await api.post("/system/backups"); toast.ok("اتعملت نسخة احتياطية واتأكدنا منها."); data.reload(); })}>نسخة دلوقتي</Btn>
+        <Btn kind="primary" icon="db" busy={busy} onClick={() => run(async () => {
+          const out = await api.post<{ offsite?: string | null; offsite_error?: string }>("/system/backups");
+          if (out.offsite_error) toast.err("النسخة اتعملت هنا، بس النسخة اللي برّه المصنع فشلت: " + out.offsite_error);
+          else toast.ok(out.offsite ? "اتعملت نسخة احتياطية، واتحفظت نسخة متشفّرة برّه المصنع." : "اتعملت نسخة احتياطية واتأكدنا منها.");
+          data.reload(); setMade((n) => n + 1);
+        })}>نسخة دلوقتي</Btn>
       </PageHead>
       {last && <div className={"notice " + (last.ok === false || last.error ? "err" : "ok")}>
         آخر نسخة: <span className="num">{dateTime(last.at ?? last.created_at)}</span> {last.error ? `· فشلت: ${last.error}` : "· تمام"}</div>}
@@ -99,9 +107,10 @@ function Backups() {
       <Table rows={data.data.backups} rowKey={(b) => b.file} columns={[
         { key: "f", label: "الملف", render: (b) => <span className="code">{b.file}</span> },
         { key: "t", label: "الوقت", render: (b) => <span className="num">{dateTime(b.created_at)}</span> },
-        { key: "l", label: "النوع", render: (b) => <Chip>{b.label === "daily" ? "يومي" : b.label === "manual" ? "يدوي" : b.label === "pre-update" ? "قبل تحديث" : b.label}</Chip> },
+        { key: "l", label: "النوع", render: (b) => <Chip>{b.label === "daily" ? "يومي" : b.label === "manual" ? "يدوي" : b.label.startsWith("pre-update") ? "قبل تحديث" : b.label}</Chip> },
         { key: "s", label: "الحجم", num: true, render: (b) => <span className="num">{(b.size / 1048576).toFixed(1)} MB</span> },
       ]} empty="مفيش نسخ لسه" />
+      <Offsite key={made} />
     </div>
   );
 }
@@ -162,6 +171,104 @@ function AccessLog() {
         { key: "f", label: "الحقول", render: (a) => <span className="small muted">{a.fields.join("، ")}</span> },
       ]} />
       {list.data && <Pager total={list.data.total} limit={50} offset={offset} onChange={setOffset} />}
+    </div>
+  );
+}
+
+type OffsiteSt = { folder: string | null; enabled: boolean; last: { ok: boolean; at: string; error?: string; file?: string } | null;
+  problems: string[] };
+
+/** The encrypted copy outside the factory (a Google Drive / OneDrive folder on the server PC, a network or USB drive). */
+function Offsite() {
+  const toast = useToast();
+  const { busy, run } = useAction(toast.err);
+  const st = useLoad(() => api.get<OffsiteSt>("/system/backups/offsite"), []);
+  const [folder, setFolder] = useState<string | null>(null);
+  const [pass, setPass] = useState("");
+  const [pass2, setPass2] = useState("");
+  const [off, setOff] = useState(false);
+  if (st.error) return <ErrorBox text={st.error} onRetry={st.reload} />;
+  if (!st.data) return <Loading />;
+  const d = st.data;
+  const shown = folder ?? d.folder ?? "";
+  const needPass = !d.enabled;
+  const save = () => run(async () => {
+    if (!shown.trim()) { toast.err("اكتب مكان الفولدر."); return; }
+    if ((needPass || pass) && pass.length < 8) { toast.err("كلمة سر النسخ لازم ٨ حروف على الأقل."); return; }
+    if (pass !== pass2) { toast.err("كلمتين السر مش زي بعض."); return; }
+    await api.put("/system/backups/offsite", { folder: shown.trim(), password: pass });
+    setPass(""); setPass2(""); setFolder(null);
+    toast.ok("اتحفظ: كل نسخة يومية هتتحفظ كمان متشفّرة في الفولدر ده.");
+    st.reload();
+  });
+  return (
+    <div className="card" style={{ padding: 14 }}>
+      <div className="row"><b className="grow">نسخة متشفّرة برّه المصنع</b>
+        {d.enabled ? <Chip color="green">شغّالة</Chip> : <Chip>مقفولة</Chip>}</div>
+      <p className="muted small">لو الجهاز اتسرق أو الهارد باظ، البيانات تفضل موجودة. كل نسخة يومية بتتحفظ كمان في فولدر تختاره على
+        جهاز السيرفر: فولدر <b>Google Drive</b> أو <b>OneDrive</b> (برنامجهم بيرفعها لما يكون فيه نت)، أو هارد خارجي أو جهاز تاني على الشبكة.
+        النسخة متشفّرة بكلمة سر انت بس اللي تعرفها، فمحدش يقدر يفتحها (ولا Google ولا MYTech).</p>
+      {d.problems.map((p) => <div key={p} className="notice err small">{p}</div>)}
+      {d.last && <div className={"notice small " + (d.last.ok ? "ok" : "err")}>آخر نسخة برّه: <span className="num">{dateTime(d.last.at)}</span>
+        {d.last.ok ? " · تمام" : ` · فشلت: ${d.last.error ?? ""}`}</div>}
+      <div className="grid g2">
+        <Field label="الفولدر على جهاز السيرفر" hint="مثلًا G:\My Drive\MYTech أو D:\Backup">
+          <TextIn value={shown} onChange={setFolder} className="input ltr" placeholder="G:\My Drive\MYTech" /></Field>
+        <div />
+        <Field label={needPass ? "كلمة سر النسخ" : "كلمة سر جديدة (سيبها فاضية لو مش هتغيّرها)"}>
+          <TextIn type="password" value={pass} onChange={setPass} autoComplete="new-password" /></Field>
+        <Field label="اكتبها تاني"><TextIn type="password" value={pass2} onChange={setPass2} autoComplete="new-password" /></Field>
+      </div>
+      <div className="notice warn small">احفظ كلمة السر دي في مكان أمين برّه الجهاز: من غيرها النسخة اللي برّه مش هتتفتح أبدًا.</div>
+      <div className="row" style={{ gap: 8 }}>
+        <Btn kind="primary" busy={busy} onClick={save}>حفظ</Btn>
+        {d.enabled && <Btn kind="danger" onClick={() => setOff(true)}>إيقاف</Btn>}
+      </div>
+      {off && <Confirm danger title="إيقاف النسخة اللي برّه" yes="إيقاف" busy={busy} onClose={() => setOff(false)}
+        text="النسخ اليومية هتفضل تتعمل على جهاز السيرفر بس. النسخ اللي اتحفظت برّه قبل كده مش هتتمسح."
+        onYes={() => run(async () => { await api.put("/system/backups/offsite", { folder: "" }); setOff(false); st.reload(); })} />}
+    </div>
+  );
+}
+
+/** Update the server from here: the signed update file from MYTech (*.mtu). The server backs up first and goes back
+ * to the old version by itself if anything fails. Every PC and phone is then offered the new program. */
+function ServerUpdate() {
+  const s = useSession();
+  const toast = useToast();
+  const { busy, run } = useAction(toast.err);
+  const st = useLoad(() => api.get<{ version: string; can_update: boolean; log: string[] }>("/system/update"), []);
+  const [file, setFile] = useState<File | null>(null);
+  const [started, setStarted] = useState<string | null>(null);
+  if (st.error) return <ErrorBox text={st.error} onRetry={st.reload} />;
+  if (!st.data) return <Loading />;
+  return (
+    <div className="col">
+      <KV items={[["إصدار السيرفر", <span className="num">v{st.data.version}</span>], ["إصدار البرنامج ده", <span className="num">v{CLIENT_VERSION}</span>]]} />
+      {!st.data.can_update ? (
+        <div className="notice info">السيرفر ده مش متسطب بمسطّب MYTech على ويندوز، فبيتحدث بأدواته (شوف دليل التحديث).</div>
+      ) : started ? (
+        <div className="notice ok">التحديث لـ <b className="num">{started}</b> بدأ. السيرفر هيعمل نسخة احتياطية ويقف دقيقتين ويرجع لوحده بالنسخة الجديدة،
+          ولو حاجة فشلت بيرجع للنسخة القديمة لوحده. بعدها كل جهاز وموبايل هيطلعله «فيه نسخة جديدة».</div>
+      ) : (
+        <div className="card" style={{ padding: 14 }}>
+          <b>تحديث السيرفر</b>
+          <p className="muted small">اختار ملف التحديث الموقّع اللي وصلك من MYTech (بينتهي بـ <span className="code">.mtu</span>). قبل التحديث بتتعمل نسخة
+            احتياطية، ولو أي حاجة فشلت السيرفر بيرجع للنسخة القديمة والبيانات زي ما هي. اعمله في وقت مفيش فيه شغل (السيرفر بيقف دقيقتين).</p>
+          <FilePick accept=".mtu" busy={busy} onFile={setFile}>اختار ملف التحديث</FilePick>
+        </div>
+      )}
+      {st.data.log.length > 0 && <>
+        <b className="small">آخر عمليات التحديث</b>
+        <pre className="code small ltr" style={{ whiteSpace: "pre-wrap", padding: 8, margin: 0 }}>{st.data.log.join("\n")}</pre>
+      </>}
+      {file && <Confirm title="تحديث السيرفر" yes="ابدأ التحديث" busy={busy} onClose={() => setFile(null)}
+        text={`هيتحدث السيرفر من الملف ${file.name}. كل اللي شغالين على البرنامج هيقفلهم دقيقتين. تكمّل؟`}
+        onYes={() => run(async () => {
+          const out = await api.upload<{ version: string }>("/system/update", file);
+          setFile(null); setStarted(out.version);
+          setTimeout(() => s.reload().catch(() => undefined), 180000);
+        })} />}
     </div>
   );
 }
