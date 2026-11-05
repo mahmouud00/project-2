@@ -532,3 +532,16 @@ tr[hidden] { display: none; }
 .qr-box { background: #fff; padding: 8px; border-radius: 10px; border: 1px solid var(--line); line-height: 0; }
 .qr-box svg { width: 180px; height: 180px; }
 .auth-update { position: absolute; top: 12px; inset-inline: 12px; z-index: 5; } .auth-update .banner { border-radius: 10px; }
+/* «ابدأ هنا» on the dashboard */
+.setup-card { padding: 16px; border: 1px solid color-mix(in srgb, var(--primary) 30%, var(--border)); }
+.setup-bar { height: 6px; border-radius: 4px; background: var(--primary-soft); margin: 10px 0 4px; overflow: hidden; }
+.setup-bar span { display: block; height: 100%; background: var(--primary); border-radius: 4px; transition: width .3s; }
+.setup-steps { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
+.setup-steps li { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 10px; }
+.setup-steps li.next { background: var(--primary-soft); }
+.setup-steps li.done b { text-decoration: line-through; color: var(--muted); }
+.setup-steps .mark { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; flex: none; font-weight: 700;
+  font-size: 12px; border: 1.5px solid var(--border); color: var(--muted); }
+.setup-steps li.done .mark { background: var(--success); border-color: var(--success); color: #fff; }
+.setup-steps li.next .mark { border-color: var(--primary); color: var(--primary); }
+.setup-steps .mark svg { width: 15px; height: 15px; }

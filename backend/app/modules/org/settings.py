@@ -60,6 +60,8 @@ class CompanySettings(BaseModel):
     length_unit: Literal["cm", "mm"] = "cm"
     # administrators (who manage users) must use two-step login with an authenticator app
     two_factor_for_admins: bool = False
+    # «ابدأ هنا» on the dashboard was closed by the company (set through POST /company/setup/dismiss)
+    setup_dismissed: bool = False
 
 
 def get_company_settings(db, company_id) -> CompanySettings:
@@ -146,7 +148,53 @@ def update_company(body: CompanyUpdate, dc=Depends(require("org.manage"))):
     if body.settings:
         new = body.settings.model_dump(mode="json")
         new["logo_media_id"] = (c.settings or {}).get("logo_media_id")  # only changed via /company/logo
+        new["setup_dismissed"] = bool((c.settings or {}).get("setup_dismissed"))   # only via /company/setup
         c.settings = new
     audit(db, c, "update", before)
     db.commit()
     return get_company(dc)
+
+
+# ---------------------------------------------------------------- «ابدأ هنا»: first steps of a new factory
+@router.get("/company/setup", response_model=dict)
+def setup_progress(dc=Depends(require("org.manage"))):
+    """What a new factory has done of its first steps, read from its data (nothing to tick by hand)."""
+    from sqlalchemy import func, select
+
+    from app.modules.library.models import CompanyMaterialSetting, ProfileSystem
+    from app.modules.org.models import User
+    from app.modules.sales.models import Quotation
+
+    db, ctx = dc
+    c = db.get(Company, ctx.company_id)
+    s = get_company_settings(db, c.id)
+    count = lambda stmt: db.scalar(select(func.count()).select_from(stmt.subquery())) or 0   # noqa: E731
+    systems = count(select(ProfileSystem.id).where(ProfileSystem.deleted_at.is_(None), ProfileSystem.is_active,
+                                                   ProfileSystem.current_version_id.is_not(None)))
+    prices = count(select(CompanyMaterialSetting.id).where(CompanyMaterialSetting.company_id == c.id,
+                                                           CompanyMaterialSetting.unit_cost.is_not(None)))
+    users = count(select(User.id).where(User.company_id == c.id, User.is_active.is_(True)))
+    quotes = count(select(Quotation.id).where(Quotation.company_id == c.id))
+    steps = [
+        {"id": "company", "done": bool(s.logo_media_id) and bool(s.phone or s.address)},
+        {"id": "systems", "done": systems > 0, "count": systems},
+        {"id": "prices", "done": prices > 0, "count": prices},
+        {"id": "users", "done": users > 1, "count": users},
+        {"id": "quotation", "done": quotes > 0, "count": quotes},
+    ]
+    return {"steps": steps, "done": sum(x["done"] for x in steps), "total": len(steps), "dismissed": s.setup_dismissed}
+
+
+class SetupDismiss(BaseModel):
+    dismissed: bool = True
+
+
+@router.post("/company/setup/dismiss", response_model=dict)
+def setup_dismiss(body: SetupDismiss, dc=Depends(require("org.manage"))):
+    db, ctx = dc
+    c = db.get(Company, ctx.company_id)
+    settings = dict(c.settings or {})
+    settings["setup_dismissed"] = body.dismissed
+    c.settings = settings
+    db.commit()
+    return setup_progress(dc)

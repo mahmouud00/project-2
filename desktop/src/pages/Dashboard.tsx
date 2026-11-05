@@ -8,6 +8,7 @@ import { CustomerName } from "../components/pickers";
 import { QUOTE_STATUS, STAGES, STAGE_COLOR, STAGE_NAMES, INVOICE_STATUS } from "../lib/lookups";
 import { date, sumMoney } from "../lib/format";
 import { go } from "../lib/router";
+import { SetupCard } from "../components/setup";
 
 
 export default function Dashboard() {
@@ -35,6 +36,7 @@ export default function Dashboard() {
 
   return (
     <div className="col" style={{ gap: 14 }}>
+      <SetupCard />
       <div className="grid g4">
         {kpis.map((k) => (
           <div key={k.label} className="card kpi click" style={{ cursor: "pointer" }} onClick={() => go(k.to)}>
