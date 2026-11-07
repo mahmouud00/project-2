@@ -137,8 +137,11 @@ def build_snapshot(db: Session, system: ProfileSystem) -> dict:
     }
 
 
-def model_snapshot(version_snapshot: dict, model_code: str) -> dict:
+def model_snapshot(version_snapshot: dict, model_code: str, model_id: str | None = None) -> dict:
     model = version_snapshot["models"].get(model_code)
+    if (model is None or (model_id and model.get("id") not in (None, model_id))) and model_id:
+        # the code was changed after this version was published: the model is found by its id
+        model = next((m for m in version_snapshot["models"].values() if m.get("id") == model_id), None)
     if model is None:
         raise NotFound("Model not in this published version", code="MODEL_NOT_PUBLISHED")
     return {"system": version_snapshot["system"], "constants": version_snapshot["constants"],
@@ -240,7 +243,7 @@ def calculate_model(db: Session, ctx: RequestContext, model_id: uuid.UUID, *, op
     version = db.get(FormulaSetVersion, vid)
     if version is None or version.system_id != system.id:
         raise NotFound("Version not found")
-    snap = model_snapshot(version.snapshot, model.code)
+    snap = model_snapshot(version.snapshot, model.code, str(model.id))
     calibration, overrides = company_adjustments(db, system.id)
     try:
         result = calculate(snap, opening_width_mm=opening_width_mm, opening_height_mm=opening_height_mm,

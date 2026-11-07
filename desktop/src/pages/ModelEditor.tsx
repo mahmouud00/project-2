@@ -56,7 +56,7 @@ export default function ModelEditor({ systemId, modelId, tab }: { systemId: stri
 
   const loaded = model.data;
   const dirty = !!loaded && !!def && !!info && (JSON.stringify(def) !== JSON.stringify(normalize(loaded.definition)) ||
-    ["name", "category", "description", "image_id", "status", "sort", "is_active"].some((k) => (info as any)[k] !== (loaded as any)[k]) ||
+    ["code", "name", "category", "description", "image_id", "status", "sort", "is_active"].some((k) => (info as any)[k] !== (loaded as any)[k]) ||
     JSON.stringify(info.color_images ?? {}) !== JSON.stringify(loaded.color_images ?? {}));
   useRecordHistory("product_models", modelId);
   const draft = useDraft(`model:${modelId}`, loaded?.version, { def, info }, dirty && !!loaded && canEdit(loaded));
@@ -71,7 +71,7 @@ export default function ModelEditor({ systemId, modelId, tab }: { systemId: stri
   const names = [...(constants.data ?? []).map((c) => c.name), ...def.params.map((p) => p.name), ...def.formulas.map((f) => f.key)];
 
   const save = () => run(async () => {
-    const out = await api.patch<Model>(`/library/models/${modelId}`, { version: m.version, name: info.name, category: info.category,
+    const out = await api.patch<Model>(`/library/models/${modelId}`, { version: m.version, code: (info.code ?? "").trim() || m.code, name: info.name, category: info.category,
       description: info.description, image_id: info.image_id, color_images: info.color_images ?? {}, status: info.status, sort: Number(info.sort ?? 0), is_active: info.is_active, definition: def });
     model.set(out);
     invalidate("models");
@@ -292,6 +292,8 @@ function InfoTab({ info, setInfo, editable }: { info: Partial<Model>; setInfo: (
       </div>
       <div className="grid g2 grow">
         <Field label="الاسم"><TextIn value={info.name} onChange={set("name")} disabled={!editable} /></Field>
+        <Field label="الكود" hint="لازم يكون مش متكرر في القطاع. العروض والأوامر القديمة مش بتتأثر بتغييره.">
+          <TextIn value={info.code} onChange={set("code")} disabled={!editable} code /></Field>
         <Field label="النوع"><Select value={info.category} onChange={set("category")} disabled={!editable}
           options={[...Object.entries(CATEGORIES).map(([value, label]) => ({ value, label })),
             ...(info.category && !CATEGORIES[info.category] ? [{ value: info.category, label: info.category }] : [])]} /></Field>

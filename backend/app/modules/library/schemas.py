@@ -306,6 +306,7 @@ class ModelIn(BaseModel):
 
 
 class ModelUpdate(VersionedUpdate):
+    code: str | None = Field(None, min_length=1, max_length=60)   # unique in its system; old orders are not affected
     name: str | None = None
     category: str | None = None
     description: str | None = None

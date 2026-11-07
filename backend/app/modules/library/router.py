@@ -607,6 +607,12 @@ def update_model(model_id: uuid.UUID, body: S.ModelUpdate, dc=Depends(get_db_and
     check_version(model, body.version)
     before = snapshot(model)
     data = body.model_dump(exclude_unset=True, exclude={"version", "definition"})
+    if "code" in data:
+        data["code"] = (data["code"] or "").strip() or model.code
+        if data["code"] != model.code and db.scalar(select(ProductModel).where(
+                ProductModel.system_id == model.system_id, ProductModel.code == data["code"],
+                ProductModel.deleted_at.is_(None), ProductModel.id != model.id)):
+            raise Conflict("Model code exists", code="DUPLICATE_CODE")
     if data.get("color_images") is not None:
         data["color_images"] = {k: str(v) for k, v in data["color_images"].items()}
     elif "color_images" in data:
