@@ -1,10 +1,11 @@
 // Editable table of rows (definition lists: params, formulas, pieces, glass, ...).
 import type { ReactNode } from "react";
 import { Btn } from "./ui";
+import { SearchSelect } from "./searchselect";
 
 export type RowCol<T> = {
   key: keyof T & string; label: ReactNode; width?: number | string;
-  kind?: "text" | "code" | "expr" | "number" | "select" | "check";
+  kind?: "text" | "code" | "expr" | "number" | "select" | "search" | "check";
   options?: { value: string; label: string }[]; placeholder?: string;
   render?: (row: T, set: (patch: Partial<T>) => void, i: number) => ReactNode;
 };
@@ -51,6 +52,10 @@ export function RowsEditor<T extends Record<string, any>>({ rows, onChange, colu
 
 function Cell<T>({ col, value, onChange, readOnly }: { col: RowCol<T>; value: any; onChange: (v: any) => void; readOnly?: boolean }) {
   if (col.kind === "check") return <input type="checkbox" checked={!!value} disabled={readOnly} onChange={(e) => onChange(e.target.checked)} />;
+  if (col.kind === "search") {
+    return <SearchSelect value={value} onChange={onChange} options={col.options ?? []} disabled={readOnly}
+      emptyLabel={col.placeholder !== undefined && col.placeholder !== "اختار…" ? col.placeholder : undefined} placeholder={col.placeholder} />;
+  }
   if (col.kind === "select") {
     return (
       <select className="input" value={value ?? ""} disabled={readOnly} onChange={(e) => onChange(e.target.value || null)}>

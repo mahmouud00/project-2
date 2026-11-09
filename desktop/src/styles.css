@@ -545,3 +545,10 @@ tr[hidden] { display: none; }
 .setup-steps li.done .mark { background: var(--success); border-color: var(--success); color: #fff; }
 .setup-steps li.next .mark { border-color: var(--primary); color: var(--primary); }
 .setup-steps .mark svg { width: 15px; height: 15px; }
+/* searchable select (materials) */
+.ss-box { text-align: start; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; width: 100%; }
+.ss-pop { position: fixed; z-index: 200; padding: 6px; box-shadow: 0 10px 30px rgba(0,0,0,.25); }
+.ss-list { max-height: 260px; overflow-y: auto; margin-top: 6px; }
+.ss-opt { padding: 6px 8px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.ss-opt.hi { background: var(--primary-soft); }
+.ss-opt.on { font-weight: 700; color: var(--primary); }

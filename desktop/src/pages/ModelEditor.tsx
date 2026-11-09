@@ -1,6 +1,7 @@
 // Full definition of one window/door model. Nothing here is a deduction in code: every formula,
 // piece length and quantity is data typed by MYTech, checked by the server and frozen on publish.
 import { useEffect, useMemo, useState } from "react";
+import { SearchSelect } from "../components/searchselect";
 import { api, errorText, type S } from "../api/client";
 import { useRecordHistory, useTitle } from "../lib/title";
 import { useAction, useLoad } from "../lib/hooks";
@@ -124,6 +125,7 @@ export default function ModelEditor({ systemId, modelId, tab }: { systemId: stri
           {tab === "params" && <>
             <Help>المتغيرات اللي البياع بيختارها مع المقاس (عدد الضلف، بسلك، نوع الزجاج…). الاسم بيتكتب في المعادلات، بالعربي أو بالإنجليزي، كلمة واحدة من غير مسافات (استخدم <code>_</code>)، مثلًا <code>عدد_الضلف</code>.</Help>
             <RowsEditor rows={def.params} onChange={set("params")} readOnly={!editable} addLabel="متغير"
+              extraActions={<CopyRows systemId={systemId} modelId={modelId} section="params" keyField="name" rows={def.params} onChange={set("params")} />}
               blank={() => ({ name: "", label: "", type: "number" as const, default: null, min: null, max: null, choices: [] })} columns={[
                 { key: "name", label: "الاسم", kind: "code", width: 140 },
                 { key: "label", label: "الوصف" },
@@ -159,10 +161,11 @@ export default function ModelEditor({ systemId, modelId, tab }: { systemId: stri
           {tab === "glass" && <>
             <Help>مقاس كل لوح زجاج: معادلة العرض ومعادلة الارتفاع والعدد. لو اللوح مش مستطيل (زي زجاج الأرج نص الدايرة) اكتب معادلة مساحته، مثلًا <code>segment_area(width, height)</code>.</Help>
             <RowsEditor rows={def.glass} onChange={set("glass")} readOnly={!editable} addLabel="زجاج"
+              extraActions={<CopyRows systemId={systemId} modelId={modelId} section="glass" keyField="key" rows={def.glass} onChange={set("glass")} />}
               blank={() => ({ key: "", label: "", material_code: null, width_expr: "", height_expr: "", area_expr: null, qty_expr: "1", condition: null })} columns={[
                 { key: "key", label: "الاسم", kind: "code", width: 110 },
                 { key: "label", label: "الوصف", width: 140 },
-                { key: "material_code", label: "الخامة (فاضي = اختيار البياع)", kind: "select", placeholder: "اختيار البياع", options: matOptions, width: 200 },
+                { key: "material_code", label: "الخامة (فاضي = اختيار البياع)", kind: "search", placeholder: "اختيار البياع", options: matOptions, width: 200 },
                 { key: "width_expr", label: <span className="side-w">معادلة العرض</span>, kind: "expr" },
                 { key: "height_expr", label: <span className="side-h">معادلة الارتفاع</span>, kind: "expr" },
                 { key: "area_expr", label: "المساحة (لو مش مستطيل)", kind: "expr", width: 170 },
@@ -173,10 +176,11 @@ export default function ModelEditor({ systemId, modelId, tab }: { systemId: stri
           {tab === "accessories" && <>
             <Help>الإكسسوار بالكمية لكل شباك (مقابض، سكاكات، عجل…).</Help>
             <RowsEditor rows={def.accessories} onChange={set("accessories")} readOnly={!editable} addLabel="إكسسوار"
+              extraActions={<CopyRows systemId={systemId} modelId={modelId} section="accessories" keyField="key" rows={def.accessories} onChange={set("accessories")} />}
               blank={() => ({ key: "", label: "", material_code: "", qty_expr: "1", condition: null })} columns={[
                 { key: "key", label: "الاسم", kind: "code", width: 130 },
                 { key: "label", label: "الوصف" },
-                { key: "material_code", label: "الخامة", kind: "select", placeholder: "اختار…", options: matOptions, width: 240 },
+                { key: "material_code", label: "الخامة", kind: "search", placeholder: "اختار…", options: matOptions, width: 240 },
                 { key: "qty_expr", label: "الكمية", kind: "expr", width: 140 },
                 { key: "condition", label: "شرط", kind: "expr", width: 160 },
               ]} />
@@ -184,6 +188,7 @@ export default function ModelEditor({ systemId, modelId, tab }: { systemId: stri
           {tab === "validations" && <>
             <Help>قواعد بتتأكد إن المقاس مناسب (زي <code>width &lt;= 300</code>). خطأ = الحساب يترفض، تحذير = يظهر للبياع بس.</Help>
             <RowsEditor rows={def.validations} onChange={set("validations")} readOnly={!editable} addLabel="قاعدة"
+              extraActions={<CopyRows systemId={systemId} modelId={modelId} section="validations" keyField="expr" rows={def.validations} onChange={set("validations")} />}
               blank={() => ({ expr: "", level: "error" as const, code: "", message: "" })} columns={[
                 { key: "expr", label: "الشرط (لازم يتحقق)", kind: "expr" },
                 { key: "level", label: "المستوى", kind: "select", width: 100, options: [{ value: "error", label: "خطأ" }, { value: "warning", label: "تحذير" }] },
@@ -256,6 +261,69 @@ function CopyDeductions({ systemId, modelId, def, onCopy }: { systemId: string; 
               ))}
             </div>
             <div className="notice info small">اللي هتختاره بيتنسخ مكان اللي في النموذج ده. ده نسخة: لو عدلت تخصيم النموذج التاني بعدين، النموذج ده مش هيتغير. والاختبارات المرجعية مش بتتنسخ، اعمل له اختباراته.</div>
+          </div>
+        </Modal>
+      )}
+    </>
+  );
+}
+
+type Section = "params" | "glass" | "accessories" | "validations";
+const SECTION_NAME: Record<Section, string> = { params: "المتغيرات", glass: "الزجاج", accessories: "الإكسسوار", validations: "قواعد التحقق" };
+
+/** نسخ من نموذج تاني: pick a model (any system), tick its rows, and they are added here; a row with the same name
+ * replaces this model's one. A copy: later edits of either model stay separate. */
+function CopyRows({ systemId, modelId, section, keyField, rows, onChange }:
+  { systemId: string; modelId: string; section: Section; keyField: string; rows: any[]; onChange: (rows: any[]) => void }) {
+  const toast = useToast();
+  const [open, setOpen] = useState(false);
+  const [sys, setSys] = useState(systemId);
+  const [source, setSource] = useState<string | null>(null);
+  const [picked, setPicked] = useState<Set<number>>(new Set());
+  const systems = useLoad(() => lookups.systems(), []);
+  const models = useLoad(() => (open ? lookups.models(sys) : Promise.resolve([])), [sys, open]);
+  const others = (models.data ?? []).filter((m) => m.id !== modelId);
+  const src: any[] = source ? ((normalize(others.find((m) => m.id === source)?.definition) as any)[section] ?? []) : [];
+  const have = new Set(rows.map((r) => r[keyField]));
+  const choose = (id: string | null) => { setSource(id); const d: any[] = id ? ((normalize(others.find((m) => m.id === id)?.definition) as any)[section] ?? []) : [];
+    setPicked(new Set(d.map((_, i) => i))); };
+  const apply = () => {
+    const chosen = src.filter((_, i) => picked.has(i)).map((r) => JSON.parse(JSON.stringify(r)));
+    const byKey = new Map(chosen.map((r) => [r[keyField], r]));
+    const next = [...rows.map((r) => byKey.get(r[keyField]) ?? r), ...chosen.filter((r) => !have.has(r[keyField]))];
+    onChange(next);
+    setOpen(false);
+    toast.ok(`اتنسخ ${chosen.length} من ${SECTION_NAME[section]}. راجعهم واحفظ النموذج.`);
+  };
+  const show = (r: any) => section === "params" ? `${r.name}${r.label ? " · " + r.label : ""}`
+    : section === "validations" ? `${r.expr}${r.message ? " · " + r.message : ""}`
+    : `${r.key}${r.label ? " · " + r.label : ""}${r.material_code ? " · " + r.material_code : ""}`;
+  return (
+    <>
+      <Btn small icon="copy" onClick={() => { setOpen(true); setSource(null); }}>نسخ من نموذج تاني</Btn>
+      {open && (
+        <Modal title={`نسخ ${SECTION_NAME[section]} من نموذج تاني`} onClose={() => setOpen(false)} footer={<>
+          <Btn kind="primary" icon="copy" disabled={!picked.size || !source} onClick={apply}>نسخ ({picked.size})</Btn>
+          <Btn onClick={() => setOpen(false)}>رجوع</Btn></>}>
+          <div className="col">
+            <Field label="القطاع"><SearchSelect value={sys} onChange={(v) => { setSys(v ?? systemId); choose(null); }}
+              options={(systems.data ?? []).map((x) => ({ value: x.id, label: `${x.name} (${x.code})` }))} /></Field>
+            <Field label="النموذج"><SearchSelect value={source} onChange={choose} placeholder={models.loading ? "…" : "اختار النموذج…"}
+              options={others.map((m) => ({ value: m.id, label: `${m.code} · ${m.name}` }))} /></Field>
+            {source && (src.length ? <>
+              <div className="row"><b className="grow small">اختار اللي تنسخه</b>
+                <button className="link-btn small" onClick={() => setPicked(picked.size === src.length ? new Set() : new Set(src.map((_, i) => i)))}>
+                  {picked.size === src.length ? "إلغاء التحديد" : "تحديد الكل"}</button></div>
+              <div className="col" style={{ gap: 4, maxHeight: 280, overflowY: "auto" }}>
+                {src.map((r, i) => (
+                  <label key={i} className="check"><input type="checkbox" checked={picked.has(i)}
+                    onChange={() => setPicked((p) => { const n = new Set(p); if (n.has(i)) n.delete(i); else n.add(i); return n; })} />
+                    <span className="code-ish">{show(r)}</span>
+                    {have.has(r[keyField]) && <Chip color="amber">هيتبدّل باللي هنا</Chip>}</label>
+                ))}
+              </div>
+            </> : <div className="empty small">النموذج ده مفيهوش {SECTION_NAME[section]}.</div>)}
+            {sys !== systemId && <div className="notice warn small">ده من قطاع تاني: اتأكد إن الخامات والثوابت اللي في المعادلات موجودة في القطاع ده.</div>}
           </div>
         </Modal>
       )}
@@ -366,7 +434,7 @@ function PiecesTab({ def, setPieces, editable, matOptions, unit }:
               <option value="">—</option><option value="width">عرض</option><option value="height">ارتفاع</option></select>) },
           { key: "key", label: "الاسم", kind: "code", width: 120 },
           { key: "label", label: "الوصف", width: 120 },
-          { key: "material_code", label: "الخامة", kind: "select", placeholder: "اختار…", options: matOptions, width: 170 },
+          { key: "material_code", label: "الخامة", kind: "search", placeholder: "اختار…", options: matOptions, width: 170 },
           { key: "length_expr", label: `معادلة الطول (${unit})`, kind: "expr" },
           { key: "qty_expr", label: "العدد", kind: "expr", width: 90 },
           { key: "angle_left", label: "زاوية ١", kind: "expr", width: 64 },
@@ -394,7 +462,7 @@ function AddElement({ onClose, onAdd, matOptions }: { onClose: () => void; onAdd
     }}>إضافة</Btn><Btn onClick={onClose}>رجوع</Btn></>}>
       <div className="grid g3">
         <Field label="العنصر"><TextIn value={d.element} onChange={set("element")} placeholder="حلق، ضلفة، باكتة…" autoFocus /></Field>
-        <Field label="الخامة"><Select value={d.material_code} onChange={set("material_code")} placeholder="اختار…" options={matOptions} /></Field>
+        <Field label="الخامة"><SearchSelect value={d.material_code} onChange={(v) => set("material_code")(v ?? "")} options={matOptions} /></Field>
         <Field label={<span className="side-w">معادلة طول العرض</span>} className="span2"><TextIn value={d.w_expr} onChange={set("w_expr")} code placeholder="العرض + 2 × سماحية_اللحام" /></Field>
         <Field label="عدد قطع العرض"><TextIn value={d.w_qty} onChange={set("w_qty")} code /></Field>
         <Field label={<span className="side-h">معادلة طول الارتفاع</span>} className="span2"><TextIn value={d.h_expr} onChange={set("h_expr")} code placeholder="الارتفاع + 2 × سماحية_اللحام" /></Field>
