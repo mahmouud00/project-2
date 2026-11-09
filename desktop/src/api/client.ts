@@ -370,6 +370,7 @@ const MESSAGES: Record<string, string> = {
   LICENSE_ACTIVE: "فيه ترخيص شغال. التغيير من صفحة الترخيص والنسخ بعد الدخول.",
   MODULE_NOT_LICENSED: "الجزء ده مش ضمن الترخيص.",
   CLIENT_UPDATE_REQUIRED: "لازم تحدّث البرنامج عشان يشتغل مع السيرفر.",
+  MATERIALS_FILE: "ده ملف خامات مش نماذج: استورده من «استيراد الخامات من إكسيل» اللي تحت.",
   UPDATE_INVALID: "ده مش ملف تحديث موقّع من MYTech، أو الملف بايظ.",
   UPDATE_NOT_NEWER: "النسخة اللي في الملف مش أحدث من اللي على السيرفر.",
   UPDATE_UNAVAILABLE: "السيرفر ده مش متسطب بمسطّب MYTech على ويندوز: حدّثه بأدواته.",

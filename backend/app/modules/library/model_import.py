@@ -47,6 +47,9 @@ def read_models(data: bytes) -> tuple[list[dict], list[dict]]:
         code_i = next((cols.index(h) for h in CODE if h in cols), None)
         if name_i is None or code_i is None:
             continue
+        if "سعر المورد" in cols or ("الوحدة" in cols and "السيستم" in cols):
+            # a materials sheet (the file for «استيراد الخامات من إكسيل»), not a list of models
+            raise ValidationFailed("This is a materials file: import it from the materials import", code="MATERIALS_FILE")
         col = {h: cols.index(h) for h in ("النوع", "الوصف", "الرسمة") if h in cols}
         rows, errors, seen = [], [], set()
         for n, r in enumerate(it, start=2):

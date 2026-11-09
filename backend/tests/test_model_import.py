@@ -72,3 +72,18 @@ def test_only_own_systems(platform, tenant_a, client):
     lib = build_library(client, platform, code="MI-LIB", prefix="MIL-", publish=False)["system"]
     r = _post(client, tenant_a.h, _book([("Z1", "شباك", "شباك", "", "")]), [lib["id"]], True)
     assert r.status_code == 403 and r.json()["error"]["code"] == "LIBRARY_READ_ONLY"
+
+
+def test_a_materials_file_is_pointed_to_the_materials_import(tenant_a, client):
+    from openpyxl import Workbook
+    import io
+    h = tenant_a.h
+    s = client.post("/api/v1/library/systems", headers=h, json={"code": "MI-MAT", "name": "m", "material_type": "upvc"}).json()
+    wb = Workbook()
+    wb.active.append(["السيستم", "الكود", "الاسم", "النوع", "الوحدة", "سعر المورد"])
+    wb.active.append(["MI-MAT", "X-A01", "مانع أتربة", "إكسسوار", "قطعة", 5])
+    buf = io.BytesIO()
+    wb.save(buf)
+    r = client.post("/api/v1/library/models/import", headers=h, params={"system_ids": [s["id"]], "apply": False},
+                    files={"file": ("m.xlsx", buf.getvalue())})
+    assert r.status_code == 422 and r.json()["error"]["code"] == "MATERIALS_FILE"
