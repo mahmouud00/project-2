@@ -47,6 +47,9 @@ def generate_outputs(db: Session, wo: WorkOrder, offcuts: dict[str, list[dict]] 
     versions: dict[uuid.UUID, dict] = {}
     cut_groups: dict[str, dict] = {}
     glass, accessories, drawings, issues = [], defaultdict(lambda: {"qty": Decimal(0)}), [], []
+    # what is bought per SKU: the model's «حساب طلبية الشراء» rows when it has them, else its pieces (each with a
+    # saw cut, as the cut list); the cut list itself always comes from the pieces
+    buy_groups: dict[str, dict] = {}
 
     for item in items:
         if item.formula_set_version_id not in versions:
@@ -68,6 +71,20 @@ def generate_outputs(db: Session, wo: WorkOrder, offcuts: dict[str, list[dict]] 
             entry = g["pieces"][key]
             entry["qty"] += int(p["qty"]) * item.qty
             entry["refs"].append(ref)
+        rows = calc.get("purchase") or []
+        bought = {r["material_code"] for r in rows}
+        # a material the model has purchase rows for is bought by them; any other one by its pieces
+        for p, from_rows in [(r, True) for r in rows] + [(p, False) for p in calc.get("pieces", [])
+                                                         if p["material_code"] not in bought]:
+            mat = materials.get(p["material_code"])
+            sku = _sku(mat, p["material_code"], item.color_code)
+            b = buy_groups.setdefault(sku, {"sku": sku, "material_code": p["material_code"],
+                                            "material_name": p.get("material_name"), "unit": (mat or {}).get("unit", "m"),
+                                            "bar_length_mm": (mat or {}).get("bar_length_mm"), "pieces": [],
+                                            "from_purchase": False})
+            extra = Decimal(0) if from_rows else Decimal(settings.saw_kerf_mm)
+            b["pieces"].append({"length_mm": Decimal(p["length_mm"]) + extra, "qty": int(p["qty"]) * item.qty})
+            b["from_purchase"] = b["from_purchase"] or from_rows
         for gl in calc.get("glass", []):
             code = gl.get("material_code") or item.glass_material_code
             qty = int(gl["qty"]) * item.qty
@@ -95,6 +112,7 @@ def generate_outputs(db: Session, wo: WorkOrder, offcuts: dict[str, list[dict]] 
     if offcuts is None:
         offcuts = available_offcuts(db, wo.branch_id, cut_groups.keys())
     cut_list, optimisation, costs, missing = [], [], [], set()
+    cut_total: dict[str, Decimal] = {}
     for sku, g in sorted(cut_groups.items()):
         # (group key is the SKU, so all its pieces share one colour)
         pieces = [{"length_mm": Decimal(k[0]), "angle_left": k[1], "angle_right": k[2], "label": k[3],
@@ -103,6 +121,7 @@ def generate_outputs(db: Session, wo: WorkOrder, offcuts: dict[str, list[dict]] 
         cut_list.append({"sku": sku, "material_code": g["material_code"], "material_name": g["material_name"],
                          "pieces": pieces, "total_pieces": sum(p["qty"] for p in pieces),
                          "total_length_mm": sum((p["length_mm"] * p["qty"] for p in pieces), Decimal(0))})
+        cut_total[sku] = cut_list[-1]["total_length_mm"]
         cost, _, _ = resolver.resolve(g["material_code"], g["color"])
         if g["bar_length_mm"]:
             plan = optimise([{"length_mm": p["length_mm"], "qty": p["qty"], "label": p["label"],
@@ -123,6 +142,28 @@ def generate_outputs(db: Session, wo: WorkOrder, offcuts: dict[str, list[dict]] 
         else:
             costs.append({"type": "profile", "sku": sku, "qty": consumed_m, "unit": "m", "unit_cost": cost,
                           "amount": money(consumed_m * cost)})
+
+    purchase = []
+    planned = {p["sku"]: p for p in optimisation}
+    for sku, b in sorted(buy_groups.items()):
+        total = sum((p["length_mm"] * p["qty"] for p in b["pieces"]), Decimal(0))
+        if not b["from_purchase"]:
+            total = cut_total.get(sku, total)              # the pieces themselves, without the saw cuts
+        row = {"sku": sku, "material_code": b["material_code"], "material_name": b["material_name"],
+               "unit": b["unit"], "total_length_mm": total, "count": sum(p["qty"] for p in b["pieces"]),
+               "from_purchase": b["from_purchase"]}
+        if not b["from_purchase"] and sku in planned:     # no purchase rows: what the cut plan takes
+            plan = planned[sku]
+            row.update(bars=plan["bars_count"], bar_length_mm=plan["bar_length_mm"],
+                       offcuts_used=len(plan["offcuts_used"]))
+        elif b["bar_length_mm"]:
+            # the lengths already hold the saw cuts: packed into bars with only the bar ends trimmed
+            plan = optimise(b["pieces"], bar_length_mm=Decimal(b["bar_length_mm"]), kerf_mm=Decimal(0),
+                            trim_mm=settings.bar_trim_mm, min_offcut_mm=settings.min_reusable_offcut_mm,
+                            stock=offcuts.get(sku, []))
+            row.update(bars=plan["bars_count"], bar_length_mm=Decimal(b["bar_length_mm"]),
+                       offcuts_used=len(plan["offcuts_used"]), too_long=len(plan["too_long"]))
+        purchase.append(row)
 
     glass_summary: dict[str, Decimal] = defaultdict(Decimal)
     for gl in glass:
@@ -148,6 +189,7 @@ def generate_outputs(db: Session, wo: WorkOrder, offcuts: dict[str, list[dict]] 
     return _jsonify({
         "cut_list": cut_list,
         "optimisation": optimisation,
+        "purchase": purchase,
         "waste_pct": (total_waste / total_bars_length * 100).quantize(Decimal("0.01")) if total_bars_length else Decimal(0),
         "glass": glass,
         "glass_area_by_type": dict(glass_summary),

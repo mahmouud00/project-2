@@ -32,7 +32,7 @@ function roleOf(element: string | null | undefined): string | undefined {
   return ROLES.find(([re]) => re.test(e))?.[1];
 }
 type Def = Required<S<"Definition">>;
-const EMPTY: Def = { params: [], formulas: [], pieces: [], glass: [], accessories: [], validations: [], drawing: [] };
+const EMPTY: Def = { params: [], formulas: [], pieces: [], glass: [], accessories: [], validations: [], drawing: [], purchase: [] };
 
 function normalize(d: any): Def {
   return { ...EMPTY, ...(d ?? {}) };
@@ -114,6 +114,7 @@ export default function ModelEditor({ systemId, modelId, tab }: { systemId: stri
         <Tabs value={tab} onChange={(t) => setQuery({ tab: t })} tabs={[
           { id: "info", label: "البيانات والصورة" }, { id: "params", label: "المتغيرات", count: def.params.length },
           { id: "pieces", label: "القطع والتخصيمات", count: def.pieces.length },
+          { id: "purchase", label: "حساب طلبية الشراء", count: def.purchase.length },
           { id: "glass", label: "الزجاج", count: def.glass.length }, { id: "accessories", label: "الإكسسوار", count: def.accessories.length },
           { id: "validations", label: "التحقق", count: def.validations.length },
           // the uploaded pictures are what documents show; the sketch tab only stays for models that already have one
@@ -157,6 +158,28 @@ export default function ModelEditor({ systemId, modelId, tab }: { systemId: stri
                 { value: "area_m2", label: "مساحة م²" }, { value: "number", label: "رقم" }] },
             ]} />
             </details>}
+          </>}
+          {tab === "purchase" && <>
+            <Help>اللي بيتطلب من المورد لكل قطعة: الطول اللي القطعة بتاخده من العود وانت بتشتري (بالهالك وقصّة المنشار والزوايا)، مكتوب بأسامي القطع
+              والمعادلات. مثلًا لو عندك قطعة اسمها <code>عرض_الضلفة</code> اكتب <code>عرض_الضلفة + 4</code>. <b>أمر التقطيع بيفضل من «القطع والتخصيمات» زي ما هو</b>،
+              وطلبية الشراء بتتحسب من هنا: البرنامج بيوزّع الأطوال دي على أعواد كاملة (بعد تشذيب طرفين العود) ويطلب عدد الأعواد. الخامة اللي مالهاش سطور هنا
+              بتتطلب من القطع زي الأول. بعد التعديل انشر القطاع عشان الأوامر الجديدة تاخد بيه.</Help>
+            <RowsEditor rows={def.purchase} onChange={set("purchase")} readOnly={!editable} addLabel="سطر شراء"
+              extraActions={<>
+                <Btn small icon="layers" disabled={!def.pieces.length} title="سطر لكل قطعة بطولها وعددها وخامتها، وبعدين زوّد عليه الهالك"
+                  onClick={() => set("purchase")([...def.purchase, ...def.pieces.filter((p) => p.key && !def.purchase.some((r) => r.key === p.key + "_شراء"))
+                    .map((p) => ({ key: p.key + "_شراء", label: p.label || p.key, material_code: p.material_code, length_expr: p.key,
+                      qty_expr: p.qty_expr || "1", condition: p.condition ?? null }))])}>سطر لكل قطعة</Btn>
+                <CopyRows systemId={systemId} modelId={modelId} section="purchase" keyField="key" rows={def.purchase} onChange={set("purchase")} />
+              </>}
+              blank={() => ({ key: "", label: "", material_code: "", length_expr: "", qty_expr: "1", condition: null })} columns={[
+                { key: "key", label: "الاسم", kind: "code", width: 130 },
+                { key: "label", label: "الوصف", width: 150 },
+                { key: "material_code", label: "الخامة", kind: "search", placeholder: "اختار…", options: matOptions, width: 210 },
+                { key: "length_expr", label: `الطول للشراء (${unit})`, kind: "expr" },
+                { key: "qty_expr", label: "العدد", kind: "expr", width: 110 },
+                { key: "condition", label: "شرط", kind: "expr", width: 120 },
+              ]} />
           </>}
           {tab === "glass" && <>
             <Help>مقاس كل لوح زجاج: معادلة العرض ومعادلة الارتفاع والعدد. لو اللوح مش مستطيل (زي زجاج الأرج نص الدايرة) اكتب معادلة مساحته، مثلًا <code>segment_area(width, height)</code>.</Help>
@@ -268,8 +291,9 @@ function CopyDeductions({ systemId, modelId, def, onCopy }: { systemId: string; 
   );
 }
 
-type Section = "params" | "glass" | "accessories" | "validations";
-const SECTION_NAME: Record<Section, string> = { params: "المتغيرات", glass: "الزجاج", accessories: "الإكسسوار", validations: "قواعد التحقق" };
+type Section = "params" | "glass" | "accessories" | "validations" | "purchase";
+const SECTION_NAME: Record<Section, string> = { params: "المتغيرات", glass: "الزجاج", accessories: "الإكسسوار", validations: "قواعد التحقق",
+  purchase: "سطور طلبية الشراء" };
 
 /** نسخ من نموذج تاني: pick a model (any system), tick its rows, and they are added here; a row with the same name
  * replaces this model's one. A copy: later edits of either model stay separate. */
@@ -538,6 +562,10 @@ function CalcResult({ res }: { res: Calc }) {
           <div className="card"><div className="card-h"><h3>القطع</h3></div><div className="card-b flush"><ElementPieces pieces={res.pieces} /></div></div>
           {!!res.glass?.length && <div className="card"><div className="card-h"><h3>الزجاج</h3></div><div className="card-b flush"><table><tbody>
             {res.glass.map((g: any) => <tr key={g.key}><td>{g.label || g.key}</td><td><Dim w={g.width_mm} h={g.height_mm} /></td><td className="num">× {g.qty}</td><td className="code">{g.material_code}</td></tr>)}
+          </tbody></table></div></div>}
+          {!!res.purchase?.length && <div className="card"><div className="card-h"><h3>حساب طلبية الشراء</h3></div><div className="card-b flush"><table><tbody>
+            {res.purchase.map((r: any) => <tr key={r.key}><td>{r.label || r.key}</td><td className="code">{r.material_code}</td>
+              <td className="num"><Len mm={r.length_mm} /></td><td className="num">× {r.qty}</td></tr>)}
           </tbody></table></div></div>}
           {!!res.accessories?.length && <div className="card"><div className="card-h"><h3>الإكسسوار</h3></div><div className="card-b flush"><table><tbody>
             {res.accessories.map((a: any) => <tr key={a.key}><td>{a.label || a.key}</td><td className="code">{a.material_code}</td><td className="num">{clean(a.qty)}</td></tr>)}

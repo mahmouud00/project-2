@@ -31,7 +31,7 @@ from app.engine.expr import NAME_ALIASES, Expression, ExprError, compile_expr, t
 UNIT_FACTOR = {"mm": Decimal(1), "cm": Decimal(10), "m": Decimal(1000)}
 # the Arabic spellings (العرض، الارتفاع، ...) are reserved too, so no parameter or formula can shadow them
 # Arabic names for the places a message points to (the library author reads them)
-SECTION_AR = {"pieces": "القطعة", "glass": "الزجاج", "accessories": "الإكسسوار"}
+SECTION_AR = {"pieces": "القطعة", "glass": "الزجاج", "accessories": "الإكسسوار", "purchase": "طلبية الشراء"}
 FIELD_AR = {"length_expr": "معادلة الطول", "qty_expr": "العدد", "angle_left": "زاوية 1", "angle_right": "زاوية 2",
             "width_expr": "معادلة العرض", "height_expr": "معادلة الارتفاع"}
 
@@ -77,6 +77,7 @@ class Result:
     glass: list[dict] = field(default_factory=list)
     accessories: list[dict] = field(default_factory=list)
     drawing: list[dict] = field(default_factory=list)
+    purchase: list[dict] = field(default_factory=list)
     issues: list[Issue] = field(default_factory=list)
 
     @property
@@ -88,7 +89,7 @@ class Result:
             "ok": self.ok, "inputs": _jsonify(self.inputs), "constants": _jsonify(self.constants),
             "values": _jsonify(self.values), "pieces": _jsonify(self.pieces), "glass": _jsonify(self.glass),
             "accessories": _jsonify(self.accessories), "drawing": _jsonify(self.drawing),
-            "issues": [i.as_dict() for i in self.issues],
+            "purchase": _jsonify(self.purchase), "issues": [i.as_dict() for i in self.issues],
         }
 
 
@@ -186,7 +187,7 @@ def check_definition(snapshot: dict) -> list[str]:
         errors.append(cycle)
     for section, exprs in (("pieces", ("length_expr", "qty_expr", "angle_left", "angle_right")),
                            ("glass", ("width_expr", "height_expr", "qty_expr")),
-                           ("accessories", ("qty_expr",))):
+                           ("accessories", ("qty_expr",)), ("purchase", ("length_expr", "qty_expr"))):
         for item in model.get(section, []):
             where = f"{SECTION_AR[section]} {item.get('key')}"
             for k in exprs:
@@ -378,7 +379,7 @@ def calculate(snapshot: dict, *, opening_width_mm, opening_height_mm, params: di
         raise CalcError(f"اسم القطعة هو نفس اسم ثابت أو متغير أو قيمة مساعدة: {'، '.join(sorted(clash))}",
                         code="NAME_CLASH")
     used = set()
-    for section in ("pieces", "glass", "accessories", "validations", "drawing"):
+    for section in ("pieces", "glass", "accessories", "validations", "drawing", "purchase"):
         for item in model.get(section, []):
             for k in ("length_expr", "qty_expr", "angle_left", "angle_right", "condition", "width_expr", "height_expr",
                       "area_expr", "expr", "x", "y", "w", "h"):
@@ -479,6 +480,22 @@ def calculate(snapshot: dict, *, opening_width_mm, opening_height_mm, params: di
     for p in result.pieces:
         if p.get("role") == "sash" and frame_max is not None and p["length_mm"] > frame_max:
             issues.append(Issue("error", "SASH_LARGER_THAN_FRAME", f"{p['label']}: أطول من الحلق", p["key"]))
+
+    # حساب طلبية الشراء: the length each piece takes from the bar when buying (the cut list keeps the pieces)
+    for item in model.get("purchase", []):
+        where = f"طلبية الشراء {item['key']}"
+        if not cond(item, where + "، الشرط"):
+            continue
+        qty = _int_qty(_eval(_compile(item.get("qty_expr", "1"), where), env, where), where, issues)
+        if qty == 0:
+            continue
+        length = _round_mm(to_decimal(_eval(_compile(item["length_expr"], where), env, where)) * factor, step, mode)
+        mat = materials.get(item["material_code"], {})
+        if length <= 0:
+            issues.append(Issue("error", "PURCHASE_NOT_POSITIVE", f"{item.get('label') or item['key']}: الطول {length} مم", where))
+        result.purchase.append({"key": item["key"], "label": item.get("label") or item["key"],
+                                "material_code": item["material_code"], "material_name": mat.get("name"),
+                                "length_mm": length, "qty": qty})
 
     for i, d in enumerate(model.get("drawing", [])):
         where = f"الرسمة رقم {i + 1}"

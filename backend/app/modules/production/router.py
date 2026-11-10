@@ -400,7 +400,20 @@ def material_needs(wo_id: uuid.UUID, dc=Depends(require("workorders.read"))):
     cost = {c["sku"]: Decimal(str(c["unit_cost"])) for c in out.get("costs", [])}
     needs: list[NeedOut] = []
     planned = {p["sku"]: p for p in out.get("optimisation", [])}
-    for g in out.get("cut_list", []):
+    if out.get("purchase") is not None:          # «حساب طلبية الشراء» (orders made before it: the cut plan below)
+        for b in out["purchase"]:
+            if b.get("bars") is not None:
+                qty = Decimal(str(b["bar_length_mm"])) * int(b["bars"]) / 1000
+                needs.append(NeedOut(kind="profile", sku=b["sku"], material_code=b["material_code"],
+                                     name=b.get("material_name") or b["material_code"], unit="m", qty=qty,
+                                     bars=int(b["bars"]), bar_length_mm=Decimal(str(b["bar_length_mm"])),
+                                     offcuts_used=int(b.get("offcuts_used") or 0)))
+            else:
+                unit = b.get("unit") or "m"
+                qty = Decimal(str(b["total_length_mm"])) / 1000 if unit == "m" else Decimal(str(b.get("count") or 0))
+                needs.append(NeedOut(kind="profile", sku=b["sku"], material_code=b["material_code"],
+                                     name=b.get("material_name") or b["material_code"], unit=unit, qty=qty))
+    for g in ([] if out.get("purchase") is not None else out.get("cut_list", [])):
         plan = planned.get(g["sku"])
         if plan:
             qty = Decimal(str(plan["bar_length_mm"])) * plan["bars_count"] / 1000

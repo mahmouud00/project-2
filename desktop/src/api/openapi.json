@@ -1452,6 +1452,198 @@
     ]
    }
   },
+  "/api/v1/system/backups/offsite": {
+   "get": {
+    "tags": [
+     "system"
+    ],
+    "summary": "Offsite Status",
+    "operationId": "offsite_status_api_v1_system_backups_offsite_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ]
+   },
+   "put": {
+    "tags": [
+     "system"
+    ],
+    "summary": "Offsite Configure",
+    "operationId": "offsite_configure_api_v1_system_backups_offsite_put",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/OffsiteIn"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ]
+   }
+  },
+  "/api/v1/system/clients": {
+   "get": {
+    "tags": [
+     "system"
+    ],
+    "summary": "Clients",
+    "description": "(Public) the newest desktop / phone program this server holds, to offer it to older ones.",
+    "operationId": "clients_api_v1_system_clients_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/system/clients/{kind}": {
+   "get": {
+    "tags": [
+     "system"
+    ],
+    "summary": "Client Download",
+    "operationId": "client_download_api_v1_system_clients__kind__get",
+    "parameters": [
+     {
+      "name": "kind",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Kind"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/system/update": {
+   "get": {
+    "tags": [
+     "system"
+    ],
+    "summary": "Update Status",
+    "operationId": "update_status_api_v1_system_update_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ]
+   },
+   "post": {
+    "tags": [
+     "system"
+    ],
+    "summary": "Upload Update",
+    "operationId": "upload_update_api_v1_system_update_post",
+    "requestBody": {
+     "content": {
+      "multipart/form-data": {
+       "schema": {
+        "$ref": "#/components/schemas/Body_upload_update_api_v1_system_update_post"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "202": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ]
+   }
+  },
   "/api/v1/company/logo": {
    "get": {
     "tags": [
@@ -1575,6 +1767,83 @@
          "additionalProperties": true,
          "type": "object",
          "title": "Response Update Company Api V1 Company Patch"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ]
+   }
+  },
+  "/api/v1/company/setup": {
+   "get": {
+    "tags": [
+     "org"
+    ],
+    "summary": "Setup Progress",
+    "description": "What a new factory has done of its first steps, read from its data (nothing to tick by hand).",
+    "operationId": "setup_progress_api_v1_company_setup_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "type": "object",
+         "title": "Response Setup Progress Api V1 Company Setup Get"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ]
+   }
+  },
+  "/api/v1/company/setup/dismiss": {
+   "post": {
+    "tags": [
+     "org"
+    ],
+    "summary": "Setup Dismiss",
+    "operationId": "setup_dismiss_api_v1_company_setup_dismiss_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/SetupDismiss"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "type": "object",
+         "title": "Response Setup Dismiss Api V1 Company Setup Dismiss Post"
         }
        }
       }
@@ -2747,6 +3016,73 @@
       "multipart/form-data": {
        "schema": {
         "$ref": "#/components/schemas/Body_import_models_excel_api_v1_library_models_import_post"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/library/systems/{system_id}/models/copy": {
+   "post": {
+    "tags": [
+     "library"
+    ],
+    "summary": "Copy Models To System",
+    "description": "نسخ نماذج لقطاع تاني (one of the company's own): new ones are copied whole, ones the other system already has\n(same name or code) only get what they lack. `apply=false` shows what would happen (nothing saved).",
+    "operationId": "copy_models_to_system_api_v1_library_systems__system_id__models_copy_post",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "system_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "System Id"
+      }
+     },
+     {
+      "name": "apply",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "boolean",
+       "default": false,
+       "title": "Apply"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ModelCopyIn"
        }
       }
      }
@@ -11853,6 +12189,20 @@
     ],
     "title": "Body_upload_media_api_v1_library_media_post"
    },
+   "Body_upload_update_api_v1_system_update_post": {
+    "properties": {
+     "file": {
+      "type": "string",
+      "contentMediaType": "application/octet-stream",
+      "title": "File"
+     }
+    },
+    "type": "object",
+    "required": [
+     "file"
+    ],
+    "title": "Body_upload_update_api_v1_system_update_post"
+   },
    "BranchIn": {
     "properties": {
      "code": {
@@ -12792,6 +13142,11 @@
       "type": "boolean",
       "title": "Two Factor For Admins",
       "default": false
+     },
+     "setup_dismissed": {
+      "type": "boolean",
+      "title": "Setup Dismissed",
+      "default": false
      }
     },
     "type": "object",
@@ -13514,6 +13869,14 @@
       },
       "type": "array",
       "title": "Drawing",
+      "default": []
+     },
+     "purchase": {
+      "items": {
+       "$ref": "#/components/schemas/PurchaseRow"
+      },
+      "type": "array",
+      "title": "Purchase",
       "default": []
      }
     },
@@ -17216,6 +17579,34 @@
     ],
     "title": "MediaOut"
    },
+   "ModelCopyIn": {
+    "properties": {
+     "to_system_id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "To System Id"
+     },
+     "model_ids": {
+      "items": {
+       "type": "string",
+       "format": "uuid"
+      },
+      "type": "array",
+      "title": "Model Ids"
+     },
+     "copy_constants": {
+      "type": "boolean",
+      "title": "Copy Constants",
+      "default": false
+     }
+    },
+    "type": "object",
+    "required": [
+     "to_system_id",
+     "model_ids"
+    ],
+    "title": "ModelCopyIn"
+   },
    "ModelIn": {
     "properties": {
      "system_id": {
@@ -17287,7 +17678,8 @@
        "glass": [],
        "accessories": [],
        "validations": [],
-       "drawing": []
+       "drawing": [],
+       "purchase": []
       }
      }
     },
@@ -17419,6 +17811,19 @@
      "version": {
       "type": "integer",
       "title": "Version"
+     },
+     "code": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 60,
+        "minLength": 1
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Code"
      },
      "name": {
       "anyOf": [
@@ -17811,6 +18216,22 @@
      "note"
     ],
     "title": "OffcutOut"
+   },
+   "OffsiteIn": {
+    "properties": {
+     "folder": {
+      "type": "string",
+      "title": "Folder",
+      "default": ""
+     },
+     "password": {
+      "type": "string",
+      "title": "Password",
+      "default": ""
+     }
+    },
+    "type": "object",
+    "title": "OffsiteIn"
    },
    "OpeningIn": {
     "properties": {
@@ -19632,6 +20053,51 @@
     "type": "object",
     "title": "PublishIn"
    },
+   "PurchaseRow": {
+    "properties": {
+     "key": {
+      "type": "string",
+      "title": "Key"
+     },
+     "label": {
+      "type": "string",
+      "title": "Label",
+      "default": ""
+     },
+     "material_code": {
+      "type": "string",
+      "title": "Material Code"
+     },
+     "length_expr": {
+      "type": "string",
+      "title": "Length Expr"
+     },
+     "qty_expr": {
+      "type": "string",
+      "title": "Qty Expr",
+      "default": "1"
+     },
+     "condition": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Condition"
+     }
+    },
+    "type": "object",
+    "required": [
+     "key",
+     "material_code",
+     "length_expr"
+    ],
+    "title": "PurchaseRow",
+    "description": "حساب طلبية الشراء: what is bought for a piece (its length in the bar with what is lost cutting it), written\nwith the model's names (pieces, helper values, variables, constants). The cut list still uses the pieces."
+   },
    "QuotationIn": {
     "properties": {
      "customer_id": {
@@ -20594,6 +21060,17 @@
      "groups"
     ],
     "title": "SearchOut"
+   },
+   "SetupDismiss": {
+    "properties": {
+     "dismissed": {
+      "type": "boolean",
+      "title": "Dismissed",
+      "default": true
+     }
+    },
+    "type": "object",
+    "title": "SetupDismiss"
    },
    "ShareIn": {
     "properties": {

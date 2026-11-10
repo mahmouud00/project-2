@@ -14,7 +14,7 @@ import { Drawing, MediaImg } from "./media";
 type Param = S<"Param">;
 export type Calc = {
   ok?: boolean; inputs?: Record<string, any>; values?: Record<string, string>; issues?: Issue[];
-  pieces?: Piece[]; glass?: any[]; accessories?: any[]; drawing?: any[]; meta?: Record<string, any>;
+  pieces?: Piece[]; glass?: any[]; accessories?: any[]; drawing?: any[]; purchase?: any[]; meta?: Record<string, any>;
 };
 export type Issue = { code: string; level: string; where?: string | null; message: string; item?: number };
 export type Piece = { key: string; label?: string; element?: string | null; side?: "width" | "height" | null; role?: string | null;

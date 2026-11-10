@@ -98,7 +98,7 @@ def _material_entry(m: Material, variants: list[MaterialVariant]) -> dict:
 
 def referenced_codes(definition: dict) -> set[str]:
     codes = set()
-    for section in ("pieces", "accessories", "glass"):
+    for section in ("pieces", "accessories", "glass", "purchase"):
         for item in definition.get(section, []):
             if item.get("material_code"):
                 codes.add(item["material_code"])

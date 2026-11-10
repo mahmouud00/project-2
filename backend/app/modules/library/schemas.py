@@ -264,6 +264,17 @@ class Accessory(BaseModel):
     _n = field_validator("key")(_ident)
 
 
+class PurchaseRow(BaseModel):
+    """حساب طلبية الشراء: what is bought for a piece (its length in the bar with what is lost cutting it), written
+    with the model's names (pieces, helper values, variables, constants). The cut list still uses the pieces."""
+    key: str
+    label: str = ""
+    material_code: str
+    length_expr: str
+    qty_expr: str = "1"
+    condition: str | None = None
+
+
 class Rule(BaseModel):
     expr: str
     level: Literal["error", "warning"] = "error"
@@ -290,6 +301,7 @@ class Definition(BaseModel):
     accessories: list[Accessory] = []
     validations: list[Rule] = []
     drawing: list[DrawingElement] = []
+    purchase: list[PurchaseRow] = []
 
 
 class ModelIn(BaseModel):

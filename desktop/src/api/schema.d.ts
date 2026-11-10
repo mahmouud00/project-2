@@ -538,6 +538,79 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/system/backups/offsite": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Offsite Status */
+        get: operations["offsite_status_api_v1_system_backups_offsite_get"];
+        /** Offsite Configure */
+        put: operations["offsite_configure_api_v1_system_backups_offsite_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/system/clients": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Clients
+         * @description (Public) the newest desktop / phone program this server holds, to offer it to older ones.
+         */
+        get: operations["clients_api_v1_system_clients_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/system/clients/{kind}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Client Download */
+        get: operations["client_download_api_v1_system_clients__kind__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/system/update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Update Status */
+        get: operations["update_status_api_v1_system_update_get"];
+        put?: never;
+        /** Upload Update */
+        post: operations["upload_update_api_v1_system_update_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/company/logo": {
         parameters: {
             query?: never;
@@ -575,6 +648,43 @@ export interface paths {
         head?: never;
         /** Update Company */
         patch: operations["update_company_api_v1_company_patch"];
+        trace?: never;
+    };
+    "/api/v1/company/setup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Setup Progress
+         * @description What a new factory has done of its first steps, read from its data (nothing to tick by hand).
+         */
+        get: operations["setup_progress_api_v1_company_setup_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/company/setup/dismiss": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Setup Dismiss */
+        post: operations["setup_dismiss_api_v1_company_setup_dismiss_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/library/media": {
@@ -820,6 +930,27 @@ export interface paths {
          *     made (nothing saved), `apply=true` imports everything or nothing. See `model_import` for the columns.
          */
         post: operations["import_models_excel_api_v1_library_models_import_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/library/systems/{system_id}/models/copy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Copy Models To System
+         * @description نسخ نماذج لقطاع تاني (one of the company's own): new ones are copied whole, ones the other system already has
+         *     (same name or code) only get what they lack. `apply=false` shows what would happen (nothing saved).
+         */
+        post: operations["copy_models_to_system_api_v1_library_systems__system_id__models_copy_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3189,6 +3320,11 @@ export interface components {
             /** File */
             file: string;
         };
+        /** Body_upload_update_api_v1_system_update_post */
+        Body_upload_update_api_v1_system_update_post: {
+            /** File */
+            file: string;
+        };
         /** BranchIn */
         BranchIn: {
             /** Code */
@@ -3568,6 +3704,11 @@ export interface components {
              * @default false
              */
             two_factor_for_admins: boolean;
+            /**
+             * Setup Dismissed
+             * @default false
+             */
+            setup_dismissed: boolean;
         };
         /** CompanyUpdate */
         CompanyUpdate: {
@@ -3788,6 +3929,11 @@ export interface components {
              * @default []
              */
             drawing: components["schemas"]["DrawingElement"][];
+            /**
+             * Purchase
+             * @default []
+             */
+            purchase: components["schemas"]["PurchaseRow"][];
         };
         /**
          * DeleteResult
@@ -5000,6 +5146,21 @@ export interface components {
              */
             url: string;
         };
+        /** ModelCopyIn */
+        ModelCopyIn: {
+            /**
+             * To System Id
+             * Format: uuid
+             */
+            to_system_id: string;
+            /** Model Ids */
+            model_ids: string[];
+            /**
+             * Copy Constants
+             * @default false
+             */
+            copy_constants: boolean;
+        };
         /** ModelIn */
         ModelIn: {
             /**
@@ -5048,7 +5209,8 @@ export interface components {
              *       "glass": [],
              *       "accessories": [],
              *       "validations": [],
-             *       "drawing": []
+             *       "drawing": [],
+             *       "purchase": []
              *     } */
             definition: components["schemas"]["Definition"];
         };
@@ -5107,6 +5269,8 @@ export interface components {
         ModelUpdate: {
             /** Version */
             version: number;
+            /** Code */
+            code?: string | null;
             /** Name */
             name?: string | null;
             /** Category */
@@ -5227,6 +5391,19 @@ export interface components {
             used_work_order_id: string | null;
             /** Note */
             note: string;
+        };
+        /** OffsiteIn */
+        OffsiteIn: {
+            /**
+             * Folder
+             * @default
+             */
+            folder: string;
+            /**
+             * Password
+             * @default
+             */
+            password: string;
         };
         /** OpeningIn */
         OpeningIn: {
@@ -5873,6 +6050,31 @@ export interface components {
              */
             notes: string;
         };
+        /**
+         * PurchaseRow
+         * @description حساب طلبية الشراء: what is bought for a piece (its length in the bar with what is lost cutting it), written
+         *     with the model's names (pieces, helper values, variables, constants). The cut list still uses the pieces.
+         */
+        PurchaseRow: {
+            /** Key */
+            key: string;
+            /**
+             * Label
+             * @default
+             */
+            label: string;
+            /** Material Code */
+            material_code: string;
+            /** Length Expr */
+            length_expr: string;
+            /**
+             * Qty Expr
+             * @default 1
+             */
+            qty_expr: string;
+            /** Condition */
+            condition?: string | null;
+        };
         /** QuotationIn */
         QuotationIn: {
             /**
@@ -6225,6 +6427,14 @@ export interface components {
             q: string;
             /** Groups */
             groups: components["schemas"]["Group"][];
+        };
+        /** SetupDismiss */
+        SetupDismiss: {
+            /**
+             * Dismissed
+             * @default true
+             */
+            dismissed: boolean;
         };
         /** ShareIn */
         ShareIn: {
@@ -8420,6 +8630,163 @@ export interface operations {
             };
         };
     };
+    offsite_status_api_v1_system_backups_offsite_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    offsite_configure_api_v1_system_backups_offsite_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OffsiteIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    clients_api_v1_system_clients_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    client_download_api_v1_system_clients__kind__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                kind: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_status_api_v1_system_update_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    upload_update_api_v1_system_update_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_upload_update_api_v1_system_update_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_logo_api_v1_company_logo_get: {
         parameters: {
             query?: never;
@@ -8507,6 +8874,63 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["CompanyUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    setup_progress_api_v1_company_setup_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    setup_dismiss_api_v1_company_setup_dismiss_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetupDismiss"];
             };
         };
         responses: {
@@ -9222,6 +9646,43 @@ export interface operations {
         requestBody: {
             content: {
                 "multipart/form-data": components["schemas"]["Body_import_models_excel_api_v1_library_models_import_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    copy_models_to_system_api_v1_library_systems__system_id__models_copy_post: {
+        parameters: {
+            query?: {
+                apply?: boolean;
+            };
+            header?: never;
+            path: {
+                system_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ModelCopyIn"];
             };
         };
         responses: {
