@@ -104,6 +104,7 @@ function QuotationDetail({ id }: { id: string }) {
   const q = useLoad(() => api.get<Quote>(`/quotations/${id}`), [id]);
   useTitle(q.data ? `عرض سعر ${q.data.number}` : "…", <Crumbs items={[{ label: "عروض الأسعار", to: "quotations" }]} />, [q.data?.number]);
   const [lineEdit, setLineEdit] = useState<Line | "new" | null>(null);
+  const [dupe, setDupe] = useState<Line | null>(null);   // «شباك زيه»: a new line with the same specifications
   const [allPpm, setAllPpm] = useState(false);
   const [del, setDel] = useState<Line | null>(null);
   const [printing, setPrinting] = useState(false);
@@ -202,9 +203,10 @@ function QuotationDetail({ id }: { id: string }) {
           { key: "p", label: "سعر المتر", width: 150, render: (l) => (
             <PpmCell line={l} editable={editable} busy={busy} onSave={(v) => setPpm(l, v)} />) },
           { key: "t", label: "التكلفة", num: true, render: (l) => <b><Money v={l.line_total} /></b> },
-          ...(editable ? [{ key: "x", label: "", width: 80, render: (l: Line) => (
+          ...(editable ? [{ key: "x", label: "", width: 120, render: (l: Line) => (
             <div className="row" style={{ gap: 4 }}>
               <Btn small icon="edit" onClick={() => setLineEdit(l)} />
+              <Btn small icon="copy" title="شباك زيه في مكان تاني" onClick={() => setDupe(l)} />
               <Btn small icon="trash" kind="danger" onClick={() => setDel(l)} />
             </div>) }] : []),
         ]} />
@@ -234,6 +236,10 @@ function QuotationDetail({ id }: { id: string }) {
           total_height_mm: lineEdit.total_height_mm, top_model_id: lineEdit.top_model_id }}
         onSave={saveLine(lineEdit === "new" ? null : lineEdit)}
         draftKey={`quote-line:${id}:${lineEdit === "new" ? "new" : lineEdit.id}`} draftBase={lineEdit === "new" ? "new" : lineEdit.version} />}
+      {dupe && <ItemForm title="شباك زيه في مكان تاني" withPrice onClose={() => setDupe(null)}
+        initial={{ ...dupe, qty: 1, location: "", manual_unit_price: dupe.manual_unit_price, price_per_m2: dupe.price_per_m2,
+          total_height_mm: dupe.total_height_mm, top_model_id: dupe.top_model_id }}
+        onSave={saveLine(null)} draftKey={`quote-line:${id}:dupe`} draftBase="new" />}
       {del && <Confirm title="حذف البند" danger yes="حذف" busy={busy} onClose={() => setDel(null)} text={`هتحذف ${del.model_name} (${del.location || "بدون مكان"}).`}
         onYes={() => run(async () => { q.set(await api.del<Quote>(`/quotation-lines/${del.id}`)); setDel(null); })} />}
       {printing && <PrintPreview path={`/quotations/${id}/print`} title={`عرض سعر ${quote.number}`} onClose={() => setPrinting(false)} />}

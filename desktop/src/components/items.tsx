@@ -167,7 +167,11 @@ export function ItemForm({ title, initial, onClose, onSave, withPrice, requireMo
   const hasArch = !!d.total_height_mm && !!d.opening_height_mm && Number(d.total_height_mm) > Number(d.opening_height_mm);
   const archHeight = hasArch ? s.len(subDec(d.total_height_mm!, d.opening_height_mm!)) : "";
   const unitLabel = s.unit === "cm" ? " سم" : " مم";
-  const valid = (!requireModel || d.model_id) && d.opening_width_mm && d.opening_height_mm && Number(d.qty) > 0;
+  // one window per line, each with where it goes on site (two of the same size are two lines); a line saved before
+  // with a count keeps it until it is split
+  const legacyQty = Number(initial?.qty ?? 1) > 1;
+  const valid = (!requireModel || d.model_id) && d.opening_width_mm && d.opening_height_mm && Number(d.qty) > 0
+    && !!(d.location ?? "").trim();
 
   return (
     <Modal title={title} size="xwide" onClose={onClose} footer={<>
@@ -193,8 +197,11 @@ export function ItemForm({ title, initial, onClose, onSave, withPrice, requireMo
           <ParamFields params={params} values={d.params ?? {}} onChange={(p) => setD((x) => ({ ...x, params: p }))} unit={model?.system.unit ?? "mm"} />
           <Field label="اللون"><ColorSelect value={d.color_code} onChange={(v) => setD((x) => ({ ...x, color_code: v }))} /></Field>
           <Field label="الزجاج"><GlassSelect value={d.glass_material_code} onChange={(v) => setD((x) => ({ ...x, glass_material_code: v }))} /></Field>
-          <Field label="المكان"><TextIn value={d.location} onChange={(v) => setD((x) => ({ ...x, location: v }))} placeholder="صالة، مطبخ…" /></Field>
-          <Field label="العدد"><NumIn value={String(d.qty ?? "")} onChange={(v) => setD((x) => ({ ...x, qty: v.replace(/\D/g, "") }))} /></Field>
+          <Field label="المكان في الموقع" hint="الدور والمكان، مثلًا: الدور الأول · أوضة النوم. كل شباك ليه سطر لوحده بمكانه"
+            error={(d.location ?? "").trim() ? null : "اكتب مكان الشباك"}>
+            <TextIn value={d.location} onChange={(v) => setD((x) => ({ ...x, location: v }))} placeholder="الدور الأول · الصالة" /></Field>
+          {legacyQty && <Field label="العدد (بند قديم)" hint="البنود الجديدة شباك واحد لكل سطر. خليه 1 واعمل باقي الشبابيك سطور بأماكنها">
+            <NumIn value={String(d.qty ?? "")} onChange={(v) => setD((x) => ({ ...x, qty: v.replace(/\D/g, "") }))} /></Field>}
           {withPrice && (
             <Field label="سعر المتر" hint="المساحة (بحد أدنى) × سعر المتر. الدليل (العادل والأعلى) ظاهر في البند بعد الحفظ">
               <NumIn value={d.price_per_m2 ?? ""} onChange={(v) => setD((x) => ({ ...x, price_per_m2: v || null }))} />

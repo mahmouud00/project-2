@@ -356,10 +356,12 @@ def create_quotation(body: QuotationIn, dc=Depends(require("quotes.create"))):
                                 .order_by(SurveyOpening.position)):
                 if o.model_id is None:
                     raise ValidationFailed(f"Opening '{o.location}' has no model", code="OPENING_WITHOUT_MODEL")
-                lines.append(LineIn(location=o.location, model_id=o.model_id, opening_width_mm=o.opening_width_mm,
-                                    total_height_mm=o.total_height_mm, top_model_id=o.top_model_id,
-                                    opening_height_mm=o.opening_height_mm, params=o.params, color_code=o.color_code,
-                                    glass_material_code=o.glass_material_code, qty=o.qty, notes=o.notes))
+                # one line per window: two of the same size are two lines, each with its own place on site
+                for _ in range(max(int(o.qty or 1), 1)):
+                    lines.append(LineIn(location=o.location, model_id=o.model_id, opening_width_mm=o.opening_width_mm,
+                                        total_height_mm=o.total_height_mm, top_model_id=o.top_model_id,
+                                        opening_height_mm=o.opening_height_mm, params=o.params, color_code=o.color_code,
+                                        glass_material_code=o.glass_material_code, qty=1, notes=o.notes))
     q = Quotation(number=next_number(db, "quote", "QT", branch.code), customer_id=customer.id, branch_id=branch.id,
                   survey_id=body.survey_id, issue_date=date.today(),
                   valid_until=body.valid_until or date.today() + timedelta(days=settings.quote_validity_days),

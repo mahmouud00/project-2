@@ -53,13 +53,13 @@ def test_full_cycle(platform, tenant_a, tenant_b, client):
         "customer_id": customer["id"], "branch_id": branch["id"], "survey_id": survey["id"]})
     assert q.status_code == 201, q.text
     q = q.json()
-    assert len(q["lines"]) == 2 and q["price_list_id"] is None
+    assert len(q["lines"]) == 3 and q["price_list_id"] is None      # the survey's 2 windows in the hall: 2 lines
     line = q["lines"][0]
     assert D(line["unit_cost"]) > 0 and line["cost_breakdown"]["missing_costs"] == []
     # the guide: fair = cost + 20 %, top = cost + 30 %; no price until the salesperson types one
     assert D(line["fair_unit_price"]) == money(D(line["unit_cost"]) * D("1.2"))
     assert D(line["top_unit_price"]) == money(D(line["unit_cost"]) * D("1.3"))
-    assert D(line["unit_price"]) == 0 and not line["priced"] and q["unpriced_lines"] == 2
+    assert D(line["unit_price"]) == 0 and not line["priced"] and q["unpriced_lines"] == 3
     r = client.post(f"/api/v1/quotations/{q['id']}/status", headers=h, json={"version": q["version"], "status": "sent"})
     assert r.status_code == 409 and r.json()["error"]["code"] == "QUOTE_UNPRICED"
     q = price_at_top(client, h, q)
@@ -111,7 +111,7 @@ def test_full_cycle(platform, tenant_a, tenant_b, client):
     assert frame["total_pieces"] == 12  # (2 openings x qty 2 + 1) ... 3 windows x 4 frame pieces
     plan = next(p for p in out["optimisation"] if p["sku"] == f"{code}-FRAME-W")
     assert plan["bars_count"] >= 1 and D(plan["waste_pct"]) >= 0
-    assert len(out["glass"]) == 2 and out["glass"][0]["material_code"] == f"{code}-GLASS6"
+    assert len(out["glass"]) == 3 and out["glass"][0]["material_code"] == f"{code}-GLASS6"   # one row per window line
     assert {a["sku"] for a in out["accessories"]} == {f"{code}-HANDLE-W", f"{code}-WHEEL-W"}
     assert D(out["material_cost_total"]) > 0 and out["missing_costs"] == []
     assert out["drawings"][0]["model_image_id"] == lib["image"]["id"] and out["drawings"][0]["elements"]

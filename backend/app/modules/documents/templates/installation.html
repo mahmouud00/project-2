@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block docmeta %}
+  <div>أمر تصنيع: <b class="num">{{ wo.number }}</b></div>
+  {% if job %}<div>الموعد: <span class="num">{{ job.scheduled_at.strftime("%Y-%m-%d %H:%M") }}</span></div>{% endif %}
+  <div>عدد الشبابيك: <b class="num">{{ units|length }}</b></div>
+{% endblock %}
+{% block content %}
+<div class="meta">
+  <div class="box"><h4>العميل</h4><b>{{ customer.name }}</b>
+    <div>{% if customer.phone %}<span class="num">{{ customer.phone }}</span>{% endif %}</div>
+    <div>{{ address or customer.address or "" }}</div></div>
+  <div class="box" style="display:flex;gap:10px;align-items:center">
+    <div style="flex:1"><h4>التركيب</h4>
+      {% if job %}<div>الفني: <b>{{ technician or "" }}</b></div>{% endif %}
+      {% if job and job.notes %}<div class="small">{{ job.notes }}</div>{% endif %}
+      <div class="small">المقاسات بالسنتيمتر (العرض × الارتفاع). كل شباك برقمه زي ما هو مكتوب على قطعه في المصنع.</div></div>
+    {% if place %}<div style="text-align:center">{{ qr(place) }}<div class="small">المكان على الخريطة</div></div>{% endif %}
+  </div>
+</div>
+<table>
+  <tr><th>رقم الشباك</th><th>المكان</th><th class="draw">الشكل</th><th>النموذج</th><th>الفتحة</th><th>التصنيع</th><th>المواصفات</th><th>اتركب</th></tr>
+  {% for u in units %}
+  <tr>
+    <td class="num" style="font-size:16px"><b>{{ u.no }}</b></td>
+    <td><b>{{ u.location or "—" }}</b>{% if u.of %}<div class="small">{{ u.of }}</div>{% endif %}</td>
+    <td class="draw">{{ drawing(u.drawing, u.width_mm, u.height_mm, 120, 90, label_w=u.opening_width_mm, label_h=u.opening_height_mm) }}</td>
+    <td><b>{{ u.model_name }}</b><div class="small num">{{ u.model_code }}</div></td>
+    <td>{{ size(u.opening_width_mm, u.opening_height_mm) }}</td>
+    <td>{{ size(u.width_mm, u.height_mm) }}</td>
+    <td class="small">{% if u.color %}<div>اللون: {{ u.color }}</div>{% endif %}{% if u.glass %}<div>الزجاج: {{ u.glass }}</div>{% endif %}
+      {% for p in u.params %}<div>{{ p }}</div>{% endfor %}{% if u.notes %}<div>{{ u.notes }}</div>{% endif %}</td>
+    <td style="width:46px"><div style="width:22px;height:22px;border:1.5px solid #94A3B8;border-radius:4px;margin:auto"></div></td>
+  </tr>
+  {% endfor %}
+</table>
+<div class="terms">ملاحظات التركيب: ......................................................................................................................................................</div>
+<div class="stamp"><div>توقيع الفني</div><div>استلام العميل (الاسم والتوقيع)</div></div>
+{% endblock %}

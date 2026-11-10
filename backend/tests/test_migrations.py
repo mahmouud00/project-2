@@ -178,7 +178,7 @@ def test_upgrade_from_old_revision_keeps_data():
     assert {"maintenance.delete", "field.manage"} <= set(after["roles"][str(p["admin_role"])]["permissions"])
     assert "maintenance.create" in set(after["roles"][str(p["sales_role"])]["permissions"])
     techs = [r for r in after["roles"].values() if r["code"] == "technician" and r["company_id"] == str(cid)]
-    assert len(techs) == 1 and techs[0]["permissions"] == ["field.self"] and techs[0]["is_builtin"]
+    assert len(techs) == 1 and techs[0]["permissions"] == ["field.self", "field.install_doc"] and techs[0]["is_builtin"]
     # 0011: no warehouse tables or links; orders kept; inventory permissions gone; accounts confirm purchases
     for t in ("warehouses", "stock_movements", "stock_balances", "stock_transfers"):
         assert t not in after
@@ -205,6 +205,9 @@ def test_upgrade_from_old_revision_keeps_data():
     # 0016: nothing is hidden by the upgrade; the administrator may erase at once
     assert all(r["deleted_at"] is None for t in ("profile_systems", "materials") for r in after[t].values())
     assert "delete.permanent" in set(after["roles"][str(p["admin_role"])]["permissions"])
+    # 0020: the administrator (and the built-in technician) may see the installation order
+    assert "field.install_doc" in set(after["roles"][str(p["admin_role"])]["permissions"])
+    assert "field.install_doc" not in set(after["roles"][str(p["sales_role"])]["permissions"])
     # 0012: orders already in production count as confirmed sales; accounts confirm sales; manager roles
     assert wo["sale_status"] == "approved" and wo["sale_approval_note"] == "قبل تأكيد الحسابات"
     assert {"sales.approve", "notify.accounts"} <= acc

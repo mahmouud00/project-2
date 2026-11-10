@@ -84,6 +84,7 @@ function WorkOrderDetail({ id, tab }: { id: string; tab: string }) {
   const wo = useLoad(() => api.get<WO>(`/work-orders/${id}`), [id]);
   useTitle(wo.data ? `أمر تصنيع ${wo.data.number}` : "…", <Crumbs items={[{ label: "أوامر التصنيع", to: "work-orders" }]} />, [wo.data?.number]);
   const [printing, setPrinting] = useState(false);
+  const [installDoc, setInstallDoc] = useState(false);
   const [saleDecision, setSaleDecision] = useState<boolean | null>(null);
   const [paying, setPaying] = useState(false);
   const [cancel, setCancel] = useState(false);
@@ -132,6 +133,7 @@ function WorkOrderDetail({ id, tab }: { id: string; tab: string }) {
             <Progress pct={w.progress_pct} late={w.late} /></div>
           <div className="end row wrap">
             <Btn icon="print" onClick={() => setPrinting(true)}>كشف التقطيع</Btn>
+            {s.can("field.install_doc", w.branch_id) && <Btn icon="print" onClick={() => setInstallDoc(true)}>أمر التركيب</Btn>}
             {s.can("purchasing.create", w.branch_id) && w.stage !== "cancelled" && <Btn icon="cart" onClick={() => setOrdering(true)}>طلبية بضاعة</Btn>}
             {s.can("field.manage", w.branch_id) && w.stage !== "cancelled" &&
               <Btn icon="truck" onClick={() => setAssign(true)}>مهمة تركيب</Btn>}
@@ -201,6 +203,7 @@ function WorkOrderDetail({ id, tab }: { id: string; tab: string }) {
       {assign && <AssignJob job={{ kind: "installation", customer_id: w.customer_id, branch_id: w.branch_id, work_order_id: w.id }}
         onClose={() => setAssign(false)} onSaved={() => undefined} />}
       {printing && <PrintPreview path={`/work-orders/${id}/print/cut-list`} title={`كشف تقطيع ${w.number}`} onClose={() => setPrinting(false)} />}
+      {installDoc && <PrintPreview path={`/work-orders/${id}/print/installation`} title={`أمر تركيب ${w.number}`} onClose={() => setInstallDoc(false)} />}
       {saleDecision !== null && <SaleDecisionForm wo={w} approve={saleDecision} onClose={() => setSaleDecision(null)} onSaved={(x) => wo.set(x)} />}
       {paying && <PaymentForm onClose={() => setPaying(false)} onSaved={() => wo.reload()}
         initial={{ direction: "in", party_type: "customer", party_id: w.customer_id, work_order_id: w.id }} />}

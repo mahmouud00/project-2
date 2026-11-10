@@ -196,6 +196,63 @@ def print_cut_list(wo_id: uuid.UUID, dc=Depends(require("workorders.read"))):
                  customer=db.get(Customer, wo.customer_id))
 
 
+def _installation(db, ctx, wo, job=None) -> HTMLResponse:
+    """أمر التركيب: every window on its own row (two of the same size are two rows), numbered as on the cut sheet,
+    with where it goes, its model, sizes and specifications; a box to tick and the customer's signature."""
+    from app.modules.org.models import User
+    from app.modules.production.models import WorkOrderItem
+
+    look = _Lookups(db)
+    units, no = [], 0
+    for item in db.scalars(select(WorkOrderItem).where(WorkOrderItem.work_order_id == wo.id).order_by(WorkOrderItem.position)):
+        model = db.get(ProductModel, item.model_id)
+        inputs = (item.calc or {}).get("inputs", {})
+        for k in range(item.qty):
+            no += 1
+            units.append({"no": no, "location": item.location, "of": f"{k + 1} من {item.qty}" if item.qty > 1 else "",
+                          "model_name": model.name if model else "", "model_code": model.code if model else "",
+                          "opening_width_mm": item.opening_width_mm, "opening_height_mm": item.opening_height_mm,
+                          "width_mm": inputs.get("width_mm"), "height_mm": inputs.get("height_mm"),
+                          "drawing": (item.calc or {}).get("drawing", []),
+                          "color": look.colors.get(item.color_code or "", item.color_code),
+                          "glass": look.glass(item.glass_material_code), "params": look.params(item.model_id, item.params),
+                          "notes": getattr(item, "notes", "") or ""})
+    customer = db.get(Customer, wo.customer_id)
+    tech = db.get(User, job.technician_id) if job is not None else None
+    from app.modules.documents.render import map_link
+    place = map_link(job.location_url, job.latitude, job.longitude) if job is not None else ""
+    log_pii(db, ctx, "customer", [customer.id], "export", ["name", "phone", "address", "location"])
+    db.commit()
+    return _page("installation.html", db, ctx, title="أمر تركيب", wo=wo, job=job, units=units, customer=customer,
+                 technician=tech.full_name if tech else "", address=(job.address if job is not None else None),
+                 place=place)
+
+
+@router.get("/work-orders/{wo_id}/print/installation", response_class=HTMLResponse)
+def print_installation(wo_id: uuid.UUID, dc=Depends(get_db_and_ctx)):
+    from app.modules.production.models import WorkOrder
+
+    db, ctx = dc
+    wo = get_or_404(db, WorkOrder, wo_id)
+    ctx.require("field.install_doc", wo.branch_id)
+    return _installation(db, ctx, wo)
+
+
+@router.get("/field/jobs/{job_id}/installation-order", response_class=HTMLResponse)
+def print_job_installation(job_id: uuid.UUID, dc=Depends(get_db_and_ctx)):
+    """The installation order of a technician's installation job: the office or the job's own technician."""
+    from app.core.errors import Conflict
+    from app.modules.field.router import _job
+    from app.modules.production.models import WorkOrder
+
+    db, ctx = dc
+    job = _job(db, ctx, job_id)
+    ctx.require("field.install_doc", job.branch_id)
+    if job.work_order_id is None:
+        raise Conflict("This job has no work order", code="NO_WORK_ORDER")
+    return _installation(db, ctx, get_or_404(db, WorkOrder, job.work_order_id), job)
+
+
 class ReportSection(BaseModel):
     title: str = Field("", max_length=200)
     kv: list[tuple[str, str]] = Field(default_factory=list, max_length=200)

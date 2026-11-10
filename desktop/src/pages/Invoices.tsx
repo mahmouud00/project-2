@@ -224,7 +224,7 @@ function LineForm({ invoice, line, onClose, onSaved }: { invoice: Invoice; line:
   const item = d.kind !== "service";
   return (
     <Modal title={line ? "تعديل البند" : "بند جديد"} size="wide" onClose={onClose} footer={<>
-      <Btn kind="primary" busy={busy} disabled={!d.unit_price || !(Number(d.qty) > 0) || (!item && !d.description)} onClick={save}>حفظ</Btn><Btn onClick={onClose}>رجوع</Btn></>}>
+      <Btn kind="primary" busy={busy} disabled={!d.unit_price || !(Number(d.qty) > 0) || (!item && !d.description) || (item && !d.location.trim())} onClick={save}>حفظ</Btn><Btn onClick={onClose}>رجوع</Btn></>}>
       <div className="grid g2">
         {!line && <Field label="النوع" className="span-all"><Select value={d.kind} onChange={set("kind")} options={[
           { value: "service", label: "خدمة (تركيب، نقل، صيانة…)" }, { value: "item", label: "شباك / باب" }]} /></Field>}
@@ -234,8 +234,9 @@ function LineForm({ invoice, line, onClose, onSaved }: { invoice: Invoice; line:
         {item && !line && <Field label="اللون"><ColorSelect value={d.color_code} onChange={set("color_code")} /></Field>}
         {item && !line && <Field label="الزجاج"><GlassSelect value={d.glass_material_code} onChange={set("glass_material_code")} /></Field>}
         <Field label="البيان" className={item ? "" : "span-all"}><TextIn value={d.description} onChange={set("description")} autoFocus /></Field>
-        {item && <Field label="المكان"><TextIn value={d.location} onChange={set("location")} /></Field>}
-        <Field label="الكمية"><NumIn value={d.qty} onChange={set("qty")} /></Field>
+        {item && <Field label="المكان في الموقع" hint="كل شباك سطر لوحده بمكانه (الدور والمكان)"
+          error={d.location.trim() ? null : "اكتب مكان الشباك"}><TextIn value={d.location} onChange={set("location")} /></Field>}
+        {(!item || Number(line?.qty ?? 1) > 1) && <Field label="الكمية"><NumIn value={d.qty} onChange={set("qty")} /></Field>}
         <Field label="سعر الوحدة"><NumIn value={d.unit_price} onChange={set("unit_price")} /></Field>
         <Field label="خصم %"><NumIn value={d.discount_pct} onChange={set("discount_pct")} unit="%" /></Field>
       </div>

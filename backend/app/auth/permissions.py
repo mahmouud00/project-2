@@ -57,6 +57,7 @@ PERMISSIONS: dict[str, str] = {
     "field.manage": "توزيع مهام المعاينة والتركيب والصيانة على الفنيين",
     "field.delete": "حذف مهام الفنيين",
     "field.self": "فني: يشوف مهامه من الموبايل ويبعت مكانه وهو في المهمة",
+    "field.install_doc": "أمر التركيب: يشوفه ويحمّله PDF (الشبابيك بأماكنها ومقاساتها)",
     "notify.accounts": "إشعارات الحسابات: بيعة أو أمر شراء مستني تأكيد",
     "notify.sales": "إشعارات المبيعات: أي تحديث على العملاء وعروض الأسعار والتحصيل",
     "notify.production": "إشعارات التصنيع: بيعة اتأكدت وكل نقل مرحلة في أوامر التصنيع",
@@ -99,7 +100,7 @@ DEFAULT_ROLES: dict[str, dict] = {
         "workorders.stage", "surveys.read", "purchasing.read", "purchasing.create", "notify.production"]},
     "field_manager": {"name": "مدير تركيبات", "permissions": [
         "customers.read", "surveys.read", "workorders.read", "maintenance.read", "maintenance.create",
-        "maintenance.write", "field.read", "field.manage", "notify.field"]},
+        "maintenance.write", "field.read", "field.manage", "field.install_doc", "notify.field"]},
     "hr": {"name": "موارد بشرية", "permissions": ["hr.read", "hr.create", "hr.write", "hr.delete"]},
-    "technician": {"name": "فني", "permissions": ["field.self"]},
+    "technician": {"name": "فني", "permissions": ["field.self", "field.install_doc"]},
 }

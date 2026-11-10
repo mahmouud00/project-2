@@ -10,6 +10,7 @@ import { useSession } from "../state/session";
 import { useToast } from "../state/toast";
 import { Btn, Card, Chip, Confirm, Modal, PageHead, Select, Table, Tabs } from "../components/ui";
 import { DeleteBtn } from "../components/actions";
+import { PrintPreview } from "../components/media";
 import { MapBtn, mapUrl, openMap } from "../components/field";
 import { watchPosition, type Fix } from "../lib/geo";
 import { CustomerName } from "../components/pickers";
@@ -119,6 +120,7 @@ function Jobs() {
   const [tech, setTech] = useState("");
   const [track, setTrack] = useState<Job | null>(null);
   const [cancel, setCancel] = useState<Job | null>(null);
+  const [install, setInstall] = useState<Job | null>(null);
   const mine = !s.can("field.read");
   const techs = useLoad(() => mine ? Promise.resolve([]) : api.get<{ id: string; full_name: string }[]>("/field/technician-users"), []);
   const jobs = useLoad(() => api.get<Job[]>("/field/jobs", { day: day || undefined, status: status || undefined, technician_id: tech || undefined,
@@ -145,6 +147,8 @@ function Jobs() {
         { key: "a", label: "العنوان", render: (j) => <span className="small muted">{j.address ?? ""}</span> },
         { key: "x", label: "", render: (j) => <div className="row" style={{ gap: 4, justifyContent: "flex-end" }}>
           <MapBtn place={j} label="" />
+          {j.kind === "installation" && j.work_order_id && s.can("field.install_doc", j.branch_id) &&
+            <Btn small icon="print" onClick={() => setInstall(j)}>أمر التركيب</Btn>}
           {!mine && (j.started_at || j.status === "done") && <Btn small onClick={() => setTrack(j)}>المسار</Btn>}
           {s.can("field.manage", j.branch_id) && ["scheduled", "on_way", "arrived"].includes(j.status) &&
             <Btn small kind="danger" busy={busy} onClick={() => setCancel(j)}>إلغاء</Btn>}
@@ -155,6 +159,8 @@ function Jobs() {
         </div> },
       ]} />
       {track && <Track job={track} onClose={() => setTrack(null)} />}
+      {install && <PrintPreview path={`/field/jobs/${install.id}/installation-order`} title={`أمر تركيب ${install.reference}`}
+        onClose={() => setInstall(null)} />}
       {cancel && <Confirm danger title="إلغاء المهمة" text={`إلغاء مهمة ${JOB_KINDS[cancel.kind]} للعميل ${cancel.customer_name}؟`} busy={busy}
         onClose={() => setCancel(null)} onYes={() => { move(cancel, "cancelled"); setCancel(null); }} />}
     </div>
@@ -198,7 +204,9 @@ function MyJobs() {
   useTitle("مهامي");
   const toast = useToast();
   const { busy, run } = useAction(toast.err);
+  const s = useSession();
   const jobs = useLoad(() => api.get<Job[]>("/field/jobs", { mine: true }), []);
+  const [install, setInstall] = useState<Job | null>(null);
   const [gps, setGps] = useState<"off" | "on" | string>("off");
   const active = (jobs.data ?? []).some((j) => j.status === "on_way" || j.status === "arrived");
   useEffect(() => { const t = setInterval(jobs.reload, 60000); return () => clearInterval(t); }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -247,6 +255,8 @@ function MyJobs() {
               {j.customer_phone && <Btn icon="phone" onClick={() => openMap(`tel:${j.customer_phone}`).catch(() => undefined)}>
                 <span className="num">{j.customer_phone}</span></Btn>}
               {map && <Btn icon="map" onClick={() => openMap(map).catch(() => toast.err("ماقدرتش أفتح الخريطة."))}>الخريطة</Btn>}
+              {j.kind === "installation" && j.work_order_id && s.can("field.install_doc") &&
+                <Btn icon="print" onClick={() => setInstall(j)}>أمر التركيب</Btn>}
             </div>
             {(next[j.status] ?? []).length > 0 && <div className="row wrap mt" style={{ gap: 8 }}>
               {next[j.status].map(([to, label, kind]) => (
@@ -256,6 +266,8 @@ function MyJobs() {
           </Card>
         );
       })}
+      {install && <PrintPreview path={`/field/jobs/${install.id}/installation-order`} title={`أمر تركيب ${install.reference}`}
+        onClose={() => setInstall(null)} />}
     </div>
   );
 }
