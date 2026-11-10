@@ -201,7 +201,9 @@ export default function ModelEditor({ systemId, modelId, tab }: { systemId: stri
               ]} />
           </>}
           {tab === "accessories" && <>
-            <Help>الإكسسوار بالكمية لكل شباك (مقابض، سكاكات، عجل…).</Help>
+            <Help>الإكسسوار بالكمية لكل شباك (مقابض، سكاكات، عجل…). <b>الشرط</b> بيحدد إمتى الإكسسوار ده يتحسب، مثلًا من مقاس لمقاس:
+              <code>60 &lt; ارتفاع_الضلفة &lt;= 90</code> (أكبر من 60 ولحد 90)، أو <code>ارتفاع_الضلفة &gt; 60 و ارتفاع_الضلفة &lt;= 90</code>.
+              خلّي طرف واحد بـ <code>&lt;=</code> عشان المقاس اللي على الحد بالظبط (90 مثلًا) يدخل في واحد منهم.</Help>
             <RowsEditor rows={def.accessories} onChange={set("accessories")} readOnly={!editable} addLabel="إكسسوار"
               extraActions={<CopyRows systemId={systemId} modelId={modelId} section="accessories" keyField="key" rows={def.accessories} onChange={set("accessories")} />}
               blank={() => ({ key: "", label: "", material_code: "", qty_expr: "1", condition: null })} columns={[

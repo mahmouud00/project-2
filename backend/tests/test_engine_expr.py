@@ -59,3 +59,12 @@ def test_if_is_lazy():
 
 def test_division_precision():
     assert abs(ev("(300 + 11.2) / 3") - D("103.733333333333333333333")) < D("1e-20")
+
+
+def test_chained_comparison_means_both():
+    from decimal import Decimal
+    from app.engine.expr import compile_expr
+    e = compile_expr("60 < ارتفاع_الضلفة <= 90")
+    assert [e.evaluate({"ارتفاع_الضلفة": Decimal(v)}) for v in (60, 61, 90, 91)] == [False, True, True, False]
+    assert compile_expr("1 < 2 < 3 < 4").evaluate({}) is True
+    assert compile_expr("3 > 2 > 2").evaluate({}) is False

@@ -7,7 +7,7 @@ Grammar (lowest to highest precedence):
     or       := and ("or" and)*
     and      := not ("and" not)*
     not      := "not" not | cmp
-    cmp      := sum (("<"|"<="|">"|">="|"=="|"!=") sum)?
+    cmp      := sum (("<"|"<="|">"|">="|"=="|"!=") sum)*     a < b <= c  means  a < b and b <= c
     sum      := term (("+"|"-") term)*
     term     := unary (("*"|"/"|"%") unary)*
     unary    := ("-"|"+") unary | atom
@@ -301,10 +301,15 @@ class _Parser:
 
     def cmp(self, d):
         left = self.sum(d + 1)
-        if self.peek().value in ("<", "<=", ">", ">=", "==", "!="):
+        result = None
+        while self.peek().value in ("<", "<=", ">", ">=", "==", "!="):
+            # a chain (60 < ارتفاع_الضلفة <= 90) is each pair joined with "and", as written on paper
             op = self.take().value
-            left = self.node("cmp", op, left, self.sum(d + 1), depth=d)
-        return left
+            right = self.sum(d + 1)
+            pair = self.node("cmp", op, left, right, depth=d)
+            result = pair if result is None else self.node("and", result, pair, depth=d)
+            left = right
+        return left if result is None else result
 
     def sum(self, d):
         left = self.term(d + 1)
