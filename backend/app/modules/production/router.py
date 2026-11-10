@@ -26,7 +26,7 @@ from app.tenancy.context import require
 
 router = APIRouter(tags=["production"])
 
-FROZEN_STAGES = ("manufacturing", "assembly", "quality", "delivered")
+FROZEN_STAGES = ("manufacturing", "assembly", "quality", "installation", "delivered")
 
 
 class WorkOrderIn(BaseModel):
@@ -284,7 +284,9 @@ def change_stage(wo_id: uuid.UUID, body: StageIn, dc=Depends(require("workorders
         if current in ("delivered", "cancelled"):
             raise Conflict("Cannot cancel", code="INVALID_TRANSITION")
     else:
-        if current == "cancelled" or body.to not in STAGES or STAGES.index(body.to) != STAGES.index(current) + 1:
+        skip_installation = current == "quality" and body.to == "delivered"     # the customer takes it himself
+        if current == "cancelled" or body.to not in STAGES or (
+                STAGES.index(body.to) != STAGES.index(current) + 1 and not skip_installation):
             raise Conflict(f"Cannot go from {current} to {body.to}", code="INVALID_TRANSITION",
                            details={"allowed": STAGES[STAGES.index(current) + 1] if current in STAGES[:-1] else None})
         if body.to == "approved":
@@ -314,6 +316,8 @@ def change_stage(wo_id: uuid.UUID, body: StageIn, dc=Depends(require("workorders
     who = customer_name(db, wo.customer_id)
     alert(db, ctx, "production", wo.branch_id, title, who, f"work-orders/{wo.id}")
     alert(db, ctx, "sales", wo.branch_id, title, who, f"work-orders/{wo.id}")
+    if body.to == "installation":     # the installations manager gives it to a technician
+        alert(db, ctx, "field", wo.branch_id, f"أمر {wo.number} جاهز للتركيب: اسنده لفني", who, "field?tab=install")
     db.commit()
     return _wo_out(db, wo, ctx=ctx)
 

@@ -9,7 +9,7 @@ import { DeleteBtn } from "../components/actions";
 import { AssignJob, Progress } from "../components/field";
 import { BranchName, ColorName, CustomerName, ModelThumb, SalespersonName, SalespersonSelect } from "../components/pickers";
 import { Issues, ParamLabels, type Issue } from "../components/items";
-import { Drawing, MediaImg, PrintPreview } from "../components/media";
+import { DocView, Drawing, MediaImg, PrintPreview } from "../components/media";
 import { STAGES, STAGE_COLOR, STAGE_NAMES, UNITS, lookups } from "../lib/lookups";
 import { go, setQuery } from "../lib/router";
 import { date, dateTime } from "../lib/format";
@@ -84,7 +84,6 @@ function WorkOrderDetail({ id, tab }: { id: string; tab: string }) {
   const wo = useLoad(() => api.get<WO>(`/work-orders/${id}`), [id]);
   useTitle(wo.data ? `أمر تصنيع ${wo.data.number}` : "…", <Crumbs items={[{ label: "أوامر التصنيع", to: "work-orders" }]} />, [wo.data?.number]);
   const [printing, setPrinting] = useState(false);
-  const [installDoc, setInstallDoc] = useState(false);
   const [saleDecision, setSaleDecision] = useState<boolean | null>(null);
   const [paying, setPaying] = useState(false);
   const [cancel, setCancel] = useState(false);
@@ -133,10 +132,9 @@ function WorkOrderDetail({ id, tab }: { id: string; tab: string }) {
             <Progress pct={w.progress_pct} late={w.late} /></div>
           <div className="end row wrap">
             <Btn icon="print" onClick={() => setPrinting(true)}>كشف التقطيع</Btn>
-            {s.can("field.install_doc", w.branch_id) && <Btn icon="print" onClick={() => setInstallDoc(true)}>أمر التركيب</Btn>}
             {s.can("purchasing.create", w.branch_id) && w.stage !== "cancelled" && <Btn icon="cart" onClick={() => setOrdering(true)}>طلبية بضاعة</Btn>}
-            {s.can("field.manage", w.branch_id) && w.stage !== "cancelled" &&
-              <Btn icon="truck" onClick={() => setAssign(true)}>مهمة تركيب</Btn>}
+            {s.can("field.manage", w.branch_id) && w.stage === "installation" &&
+              <Btn kind="primary" icon="truck" onClick={() => setAssign(true)}>إسناد التركيب لفني</Btn>}
             {w.quotation_id && w.sale_status !== "approved" && ["survey", "quotation"].includes(w.stage) && s.can("sales.approve", w.branch_id) && <>
               <Btn kind="success" icon="check" onClick={() => setSaleDecision(true)}>تأكيد البيعة</Btn>
               {w.sale_status !== "rejected" && <Btn kind="danger" onClick={() => setSaleDecision(false)}>رفض البيعة</Btn>}</>}
@@ -154,6 +152,9 @@ function WorkOrderDetail({ id, tab }: { id: string; tab: string }) {
             <div style={{ width: 280 }}><TextIn value={note} onChange={setNote} placeholder="ملاحظة على النقل (اختياري)" /></div>
             {next && <Btn kind="primary" icon="arrow" busy={busy} disabled={next === "approved" && w.sale_status !== "approved"}
               onClick={() => move(next)}>نقل لـ {STAGE_NAMES[next]}</Btn>}
+            {w.stage === "quality" && <Btn icon="arrow" busy={busy} onClick={() => move("delivered")}
+              title="العميل هيستلم بنفسه، من غير تركيب">تسليم من غير تركيب</Btn>}
+            {w.stage === "installation" && <span className="muted small">بيتنقل لـ «تسليم» لوحده لما الفني يخلّص مهمة التركيب.</span>}
             {next === "approved" && w.sale_status !== "approved" && <span className="muted small">مستني تأكيد الحسابات على البيعة.</span>}
             <Btn kind="danger" icon="ban" className="end" onClick={() => setCancel(true)}>إلغاء الأمر</Btn>
           </div>
@@ -165,8 +166,10 @@ function WorkOrderDetail({ id, tab }: { id: string; tab: string }) {
           { id: "items", label: "الأصناف", count: w.items?.length },
           { id: "mfg", label: "التقطيع والزجاج والإكسسوار" },
           { id: "cut", label: "خطة الأعواد" },
+          { id: "install", label: "أمر التركيب", hidden: !["installation", "delivered"].includes(w.stage) || !s.can("field.install_doc", w.branch_id) },
           { id: "log", label: "سجل المراحل", count: w.stage_log?.length },
         ]} />
+        {tab === "install" && <div className="card-b"><DocView path={`/work-orders/${id}/print/installation`} title={`أمر تركيب ${w.number}`} /></div>}
         {tab === "items" && <Table rows={w.items} columns={[
           { key: "p", label: "#", width: 36, render: (i) => <span className="num muted">{i.position}</span> },
           { key: "img", label: "", width: 76, render: (i) => <ModelThumb modelId={i.model_id} /> },
@@ -203,7 +206,6 @@ function WorkOrderDetail({ id, tab }: { id: string; tab: string }) {
       {assign && <AssignJob job={{ kind: "installation", customer_id: w.customer_id, branch_id: w.branch_id, work_order_id: w.id }}
         onClose={() => setAssign(false)} onSaved={() => undefined} />}
       {printing && <PrintPreview path={`/work-orders/${id}/print/cut-list`} title={`كشف تقطيع ${w.number}`} onClose={() => setPrinting(false)} />}
-      {installDoc && <PrintPreview path={`/work-orders/${id}/print/installation`} title={`أمر تركيب ${w.number}`} onClose={() => setInstallDoc(false)} />}
       {saleDecision !== null && <SaleDecisionForm wo={w} approve={saleDecision} onClose={() => setSaleDecision(null)} onSaved={(x) => wo.set(x)} />}
       {paying && <PaymentForm onClose={() => setPaying(false)} onSaved={() => wo.reload()}
         initial={{ direction: "in", party_type: "customer", party_id: w.customer_id, work_order_id: w.id }} />}

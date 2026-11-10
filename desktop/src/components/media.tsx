@@ -97,6 +97,23 @@ export function Drawing({ elements, w, h, maxW = 150, maxH = 110, dims, labelW, 
 }
 
 /** Shows a printable document from the server (A4 HTML with the company's logo) and prints it. */
+/** A printed document shown on the page itself (not in a window), with its print / PDF button. */
+export function DocView({ path, title }: { path: string; title: string }) {
+  const [html, setHtml] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const frame = useRef<HTMLIFrameElement>(null);
+  useEffect(() => { setHtml(null); setError(null); api.text(path).then(setHtml).catch((e) => setError(errorText(e))); }, [path]);
+  if (error) return <div className="notice warn">{error}</div>;
+  return (
+    <div className="col">
+      <div className="row"><Btn kind="primary" icon="print" disabled={!html} onClick={() => frame.current?.contentWindow?.print()}>طباعة / حفظ PDF</Btn>
+        <span className="muted small">لحفظه PDF اختار "Microsoft Print to PDF" من شاشة الطباعة.</span></div>
+      {html ? <iframe ref={frame} className="print-frame" srcDoc={html} sandbox="allow-modals allow-same-origin" title={title} />
+        : <div className="empty"><span className="spinner" /></div>}
+    </div>
+  );
+}
+
 export function PrintPreview({ path, body, title, onClose }:
   { path: string; body?: unknown; title: string; onClose: () => void }) {
   const [html, setHtml] = useState<string | null>(null);

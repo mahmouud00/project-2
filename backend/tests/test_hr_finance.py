@@ -217,7 +217,7 @@ def test_sale_needs_accounts_and_notifications_reach_each_section(platform, tena
     tech = _make_user(tenant_a, client, "tech9", "technician")
     from datetime import datetime, timedelta, timezone
     job = client.post("/api/v1/field/jobs", headers=h, json={
-        "kind": "installation", "customer_id": customer["id"], "branch_id": branch["id"], "work_order_id": wo["id"],
+        "kind": "maintenance", "customer_id": customer["id"], "branch_id": branch["id"],
         "technician_id": tech["id"], "scheduled_at": (datetime.now(timezone.utc) + timedelta(hours=3)).isoformat()}).json()
     ht = tenant_a.headers("tech9", "user-pass-123")
     assert any("عندك مهمة" in x["title"] for x in inbox(ht)["items"])

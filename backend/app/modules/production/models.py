@@ -11,9 +11,11 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.db.base import Base, Entity, IdMixin, SoftDeleteMixin, TenantMixin, utcnow
 
 # Order of the workflow; "cancelled" is reachable from any stage before delivery.
-STAGES = ("survey", "quotation", "approved", "manufacturing", "assembly", "quality", "delivered")
+# "installation" (التركيب) comes once the order is made: the installations manager gives it to a technician;
+# an order the customer takes himself goes from "quality" straight to "delivered"
+STAGES = ("survey", "quotation", "approved", "manufacturing", "assembly", "quality", "installation", "delivered")
 STAGE_NAMES = {"survey": "معاينة", "quotation": "عرض سعر", "approved": "موافقة وعربون", "manufacturing": "تصنيع",
-               "assembly": "تجميع", "quality": "جودة", "delivered": "تسليم", "cancelled": "ملغي"}
+               "assembly": "تجميع", "quality": "جودة", "installation": "تركيب", "delivered": "تسليم", "cancelled": "ملغي"}
 
 
 class WorkOrder(Base, Entity, SoftDeleteMixin):

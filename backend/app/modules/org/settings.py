@@ -52,10 +52,11 @@ class CompanySettings(BaseModel):
     min_reusable_offcut_mm: Decimal = Field(Decimal(400), ge=0, description="أقصر فضلة بتتشال (أقل منها هالك)")
     quote_terms: str = ""
     # Planned days for each work order stage (progress %, expected delivery, late warning)
-    stage_durations_days: dict[Literal["survey", "quotation", "approved", "manufacturing", "assembly", "quality"],
+    stage_durations_days: dict[Literal["survey", "quotation", "approved", "manufacturing", "assembly", "quality",
+                                       "installation"],
                                Decimal] = Field(default_factory=lambda: {
         "survey": Decimal(2), "quotation": Decimal(3), "approved": Decimal(2), "manufacturing": Decimal(7),
-        "assembly": Decimal(3), "quality": Decimal(1)})
+        "assembly": Decimal(3), "quality": Decimal(1), "installation": Decimal(1)})
     # Unit the desktop app shows and accepts lengths in. The API always speaks millimetres.
     length_unit: Literal["cm", "mm"] = "cm"
     # administrators (who manage users) must use two-step login with an authenticator app

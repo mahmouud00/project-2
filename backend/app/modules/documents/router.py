@@ -199,9 +199,13 @@ def print_cut_list(wo_id: uuid.UUID, dc=Depends(require("workorders.read"))):
 def _installation(db, ctx, wo, job=None) -> HTMLResponse:
     """أمر التركيب: every window on its own row (two of the same size are two rows), numbered as on the cut sheet,
     with where it goes, its model, sizes and specifications; a box to tick and the customer's signature."""
+    from app.core.errors import Conflict
     from app.modules.org.models import User
     from app.modules.production.models import WorkOrderItem
 
+    if wo.stage not in ("installation", "delivered"):     # it appears once the order is made
+        raise Conflict("The installation order appears when the order reaches installation",
+                       code="NOT_READY_FOR_INSTALLATION", details={"stage": wo.stage})
     look = _Lookups(db)
     units, no = [], 0
     for item in db.scalars(select(WorkOrderItem).where(WorkOrderItem.work_order_id == wo.id).order_by(WorkOrderItem.position)):

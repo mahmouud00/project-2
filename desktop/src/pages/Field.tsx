@@ -11,7 +11,7 @@ import { useToast } from "../state/toast";
 import { Btn, Card, Chip, Confirm, Modal, PageHead, Select, Table, Tabs } from "../components/ui";
 import { DeleteBtn } from "../components/actions";
 import { PrintPreview } from "../components/media";
-import { MapBtn, mapUrl, openMap } from "../components/field";
+import { AssignJob, MapBtn, mapUrl, openMap } from "../components/field";
 import { watchPosition, type Fix } from "../lib/geo";
 import { CustomerName } from "../components/pickers";
 import { JOB_KINDS, JOB_STATUS } from "../lib/lookups";
@@ -24,7 +24,7 @@ type Tech = S<"TechnicianOut">;
 export default function FieldPage({ route }: PageProps) {
   const s = useSession();
   if (!s.can("field.read") && !s.can("field.manage") && s.can("field.self")) return <MyJobs />;
-  return <Office tab={route.query.tab ?? "map"} />;
+  return <Office tab={route.query.tab ?? (s.can("field.read") ? "map" : "install")} />;
 }
 
 function Office({ tab }: { tab: string }) {
@@ -35,11 +35,48 @@ function Office({ tab }: { tab: string }) {
       <PhoneLink />
       <Card flush>
         <Tabs value={tab} onChange={(t) => setQuery({ tab: t })} tabs={[
+          { id: "install", label: "التركيبات", hidden: !s.can("field.read") && !s.can("field.install_doc") },
           { id: "map", label: "مكان الفنيين", hidden: !s.can("field.read") },
           { id: "jobs", label: "المهام" },
         ]} />
-        <div className="card-b">{tab === "jobs" || !s.can("field.read") ? <Jobs /> : <TechMap />}</div>
+        <div className="card-b">{tab === "install" ? <Installations />
+          : tab === "jobs" || !s.can("field.read") ? (s.can("field.read") || s.can("field.self") ? <Jobs /> : <Installations />) : <TechMap />}</div>
       </Card>
+    </div>
+  );
+}
+
+type Install = { work_order_id: string; number: string; branch_id: string; customer_id: string; customer_name: string;
+  address: string | null; windows: number; entered_at: string | null; job_id: string | null; job_status: string | null;
+  technician_name: string; scheduled_at: string | null };
+
+/** التركيبات: orders whose manufacturing is done (stage «تركيب»): the installations manager gives each to a technician;
+ *  the installation order (every window with where it goes) is there for whoever may see it. */
+function Installations() {
+  const s = useSession();
+  const list = useLoad(() => api.get<Install[]>("/field/installations"), []);
+  const [assign, setAssign] = useState<Install | null>(null);
+  const [doc, setDoc] = useState<Install | null>(null);
+  return (
+    <div className="col">
+      <div className="muted small">الأوامر اللي خلص تصنيعها ووصلت لمرحلة «تركيب». مدير التركيبات يسند كل أمر لفني، والأمر بيتقفل «تسليم» لوحده لما الفني يخلّص.</div>
+      <Table rows={list.data} loading={list.loading} rowKey={(i) => i.work_order_id} empty="مفيش أوامر مستنية تركيب" columns={[
+        { key: "n", label: "الأمر", render: (i) => <a style={{ cursor: "pointer" }} onClick={() => go(`work-orders/${i.work_order_id}`)}><b className="num">{i.number}</b></a> },
+        { key: "c", label: "العميل", render: (i) => <span>{i.customer_name}<div className="small muted">{i.address ?? ""}</div></span> },
+        { key: "w", label: "الشبابيك", num: true, render: (i) => <span className="num">{i.windows}</span> },
+        { key: "e", label: "جاهز من", render: (i) => <span className="num small">{dateTime(i.entered_at)}</span> },
+        { key: "t", label: "الفني", render: (i) => i.job_id
+          ? <span>{i.technician_name}<div className="small muted num">{dateTime(i.scheduled_at)} · {JOB_STATUS[i.job_status ?? ""]?.[0] ?? i.job_status}</div></span>
+          : <Chip color="amber">مستني فني</Chip> },
+        { key: "x", label: "", render: (i) => <div className="row" style={{ gap: 4, justifyContent: "flex-end" }}>
+          {s.can("field.install_doc", i.branch_id) && <Btn small icon="print" onClick={() => setDoc(i)}>أمر التركيب</Btn>}
+          {s.can("field.manage", i.branch_id) && <Btn small kind={i.job_id ? undefined : "primary"} icon="truck" onClick={() => setAssign(i)}>
+            {i.job_id ? "فني تاني" : "إسناد لفني"}</Btn>}
+        </div> },
+      ]} />
+      {assign && <AssignJob job={{ kind: "installation", customer_id: assign.customer_id, branch_id: assign.branch_id, work_order_id: assign.work_order_id }}
+        onClose={() => setAssign(null)} onSaved={() => { setAssign(null); list.reload(); }} />}
+      {doc && <PrintPreview path={`/work-orders/${doc.work_order_id}/print/installation`} title={`أمر تركيب ${doc.number}`} onClose={() => setDoc(null)} />}
     </div>
   );
 }

@@ -11,7 +11,7 @@ import { date } from "../lib/format";
 import { setQuery } from "../lib/router";
 
 import { STAGE_NAMES, lookups } from "../lib/lookups";
-const WORK_STAGES = ["survey", "quotation", "approved", "manufacturing", "assembly", "quality"] as const;
+const WORK_STAGES = ["survey", "quotation", "approved", "manufacturing", "assembly", "quality", "installation"] as const;
 const BRANCH_KINDS: Record<string, string> = { factory: "مصنع", warehouse: "مخزن", showroom: "معرض", office: "مكتب" };
 
 export default function Settings({ route }: PageProps) {

@@ -291,6 +291,9 @@ def create_job(body: JobIn, dc=Depends(require("field.manage"))):
             source = get_or_404(db, model, data[key])
             if source.customer_id != customer.id:
                 raise ValidationFailed("Linked record of another customer", code="WRONG_CUSTOMER")
+    if body.kind == "installation" and isinstance(source, WorkOrder) and source.stage not in ("installation", "delivered"):
+        raise Conflict("The order reaches installation after its manufacturing", code="NOT_READY_FOR_INSTALLATION",
+                       details={"stage": source.stage})
     # the place: as typed, else from the survey / maintenance request, else the customer's address
     if source is not None and not data.get("location_url") and getattr(source, "location_url", None):
         data.update(location_url=source.location_url, latitude=source.latitude, longitude=source.longitude)
@@ -373,8 +376,78 @@ def job_status(job_id: uuid.UUID, body: JobStatusIn, dc=Depends(get_db_and_ctx))
     if job.status == "done" and job.kind == "installation":
         alert(db, ctx, "sales", job.branch_id, f"التركيب خلص عند {customer_name(db, job.customer_id)}", body.note or "",
               f"customers/{job.customer_id}")
+        _installed(db, ctx, job)
     db.commit()
     return _job_out(db, job)
+
+
+def _installed(db, ctx, job: FieldJob) -> None:
+    """The last open installation job of an order is done: the order is delivered."""
+    if job.work_order_id is None:
+        return
+    wo = db.get(WorkOrder, job.work_order_id)
+    if wo is None or wo.stage != "installation":
+        return
+    open_jobs = db.scalar(select(func.count()).select_from(FieldJob).where(
+        FieldJob.work_order_id == wo.id, FieldJob.kind == "installation", FieldJob.deleted_at.is_(None),
+        FieldJob.id != job.id, FieldJob.status.in_(("scheduled", "on_way", "arrived"))))
+    if open_jobs:
+        return
+    from app.modules.production.router import _log_stage
+    before = snapshot(wo)
+    wo.stage = "delivered"
+    _log_stage(db, ctx, wo, "installation", "delivered", "التركيب خلص")
+    audit(db, wo, "update", before)
+
+
+# ---------------------------------------------------------------- installations waiting for a technician
+class InstallationOut(BaseModel):
+    work_order_id: uuid.UUID
+    number: str
+    branch_id: uuid.UUID
+    customer_id: uuid.UUID
+    customer_name: str
+    address: str | None = None
+    windows: int
+    stage: str
+    entered_at: datetime | None = None
+    job_id: uuid.UUID | None = None
+    job_status: str | None = None
+    technician_name: str = ""
+    scheduled_at: datetime | None = None
+
+
+@router.get("/field/installations", response_model=list[InstallationOut])
+def installations(dc=Depends(get_db_and_ctx)):
+    """Orders in the installation stage (التركيب): who installs them and when, or still waiting for a technician."""
+    from app.modules.production.models import WorkOrderItem, WorkOrderStageLog
+
+    db, ctx = dc
+    if not (ctx.can("field.read") or ctx.can("field.install_doc")):
+        ctx.require("field.read")
+    stmt = select(WorkOrder).where(WorkOrder.deleted_at.is_(None), WorkOrder.stage == "installation")
+    stmt = branch_scope(stmt, ctx, "field.read" if ctx.can("field.read") else "field.install_doc", WorkOrder.branch_id)
+    out = []
+    for wo in db.scalars(stmt.order_by(WorkOrder.updated_at)):
+        customer = db.get(Customer, wo.customer_id)
+        job = db.scalar(select(FieldJob).where(FieldJob.work_order_id == wo.id, FieldJob.kind == "installation",
+                                               FieldJob.deleted_at.is_(None), FieldJob.status != "cancelled")
+                        .order_by(FieldJob.scheduled_at.desc()).limit(1))
+        tech = db.get(User, job.technician_id) if job else None
+        entered = db.scalar(select(func.max(WorkOrderStageLog.at)).where(WorkOrderStageLog.work_order_id == wo.id,
+                                                                        WorkOrderStageLog.to_stage == "installation"))
+        out.append(InstallationOut(
+            work_order_id=wo.id, number=wo.number, branch_id=wo.branch_id, customer_id=wo.customer_id,
+            customer_name=customer.name if customer else "", address=customer.address if customer else None,
+            windows=db.scalar(select(func.coalesce(func.sum(WorkOrderItem.qty), 0)).where(
+                WorkOrderItem.work_order_id == wo.id)) or 0,
+            stage=wo.stage, entered_at=entered, job_id=job.id if job else None, job_status=job.status if job else None,
+            technician_name=tech.full_name if tech else "", scheduled_at=job.scheduled_at if job else None))
+    if out:
+        from app.core.pii import log_pii
+        log_pii(db, ctx, "customer", list({o.customer_id for o in out}), "view", ["name", "address"])
+        db.commit()
+    return out
 
 
 @deletable(router, "/field/jobs/{job_id}", "field/jobs", ("مهمة فني", FieldJob, None))

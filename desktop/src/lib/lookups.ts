@@ -36,13 +36,13 @@ export const lookups = {
   customer: (id: string) => cached("customer:" + id, () => api.get<S<"CustomerOut">>(`/customers/${id}`)),
 };
 
-export const STAGES = ["survey", "quotation", "approved", "manufacturing", "assembly", "quality", "delivered"] as const;
+export const STAGES = ["survey", "quotation", "approved", "manufacturing", "assembly", "quality", "installation", "delivered"] as const;
 export const STAGE_NAMES: Record<string, string> = {
   survey: "معاينة", quotation: "عرض سعر", approved: "موافقة وعربون", manufacturing: "تصنيع", assembly: "تجميع",
-  quality: "جودة", delivered: "تسليم", cancelled: "ملغي",
+  quality: "جودة", installation: "تركيب", delivered: "تسليم", cancelled: "ملغي",
 };
 export const STAGE_COLOR: Record<string, "blue" | "green" | "amber" | "red" | "gray" | "violet"> = {
-  survey: "gray", quotation: "blue", approved: "violet", manufacturing: "amber", assembly: "amber", quality: "blue",
+  survey: "gray", quotation: "blue", approved: "violet", manufacturing: "amber", assembly: "amber", quality: "blue", installation: "violet",
   delivered: "green", cancelled: "red",
 };
 
