@@ -125,6 +125,8 @@ class POLineOut(ORMModel):
     qty: Decimal
     unit_cost: Decimal
     received_qty: Decimal
+    name: str = ""            # the material's name (and its colour), so the order is read without the codes
+    unit: str = ""
 
 
 class POOut(Record):
@@ -147,8 +149,23 @@ class POOut(Record):
 
 def _po_out(db, po) -> POOut:
     out = POOut.model_validate(po)
-    out.lines = [POLineOut.model_validate(l) for l in db.scalars(
-        select(PurchaseOrderLine).where(PurchaseOrderLine.purchase_order_id == po.id).order_by(PurchaseOrderLine.position))]
+    lines = db.scalars(select(PurchaseOrderLine).where(PurchaseOrderLine.purchase_order_id == po.id)
+                       .order_by(PurchaseOrderLine.position)).all()
+    out.lines = [POLineOut.model_validate(l) for l in lines]
+    if lines:
+        from app.modules.library.models import Color, Material, MaterialVariant
+        mats = {m.id: m for m in db.scalars(select(Material).where(Material.id.in_({l.material_id for l in lines})))}
+        variants = {(v.material_id, v.sku): v for v in db.scalars(select(MaterialVariant).where(
+            MaterialVariant.material_id.in_(list(mats)), MaterialVariant.sku.in_({l.sku for l in lines})))}
+        colors = {c.code: c.name for c in db.scalars(select(Color))}
+        for o, l in zip(out.lines, lines):
+            m = mats.get(l.material_id)
+            if m is None:
+                continue
+            v = variants.get((m.id, l.sku))
+            color = colors.get(v.color_code, v.color_code) if v is not None else ""
+            o.name = (v.name if v is not None and v.name else m.name) + (f" · {color}" if color else "")
+            o.unit = m.unit
     return out
 
 

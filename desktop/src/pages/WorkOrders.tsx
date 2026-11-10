@@ -239,10 +239,10 @@ function WorkOrderEdit({ wo, onClose, onSaved }: { wo: WO; onClose: () => void; 
 
 // ---------------------------------------------------------------- manufacturing outputs
 type CutPiece = { length_mm: string; angle_left?: string; angle_right?: string; label?: string; element?: string | null;
-  side?: "width" | "height" | null; qty: number; refs?: string[] };
+  side?: "width" | "height" | null; qty: number; refs?: string[]; windows?: string };
 type Outputs = {
   cut_list: { sku: string; material_code: string; material_name: string; pieces: CutPiece[]; total_pieces: number; total_length_mm: string }[];
-  optimisation: { sku: string; bar_length_mm: string; bars_count: number; bars: { bar_no: number; pieces: { length_mm: string; label?: string }[]; used_mm: string;
+  optimisation: { sku: string; bar_length_mm: string; bars_count: number; bars: { bar_no: number; pieces: { length_mm: string; label?: string; side?: string | null; unit?: number }[]; used_mm: string;
     offcut_mm: string; offcut_reusable: boolean; waste_mm: string; length_mm?: string; from_offcut?: string | null }[]; waste_pct: string;
     reusable_offcuts_mm: (string | number)[]; offcuts_used?: { id: string; length_mm: string }[];
     too_long?: unknown[] }[];
@@ -252,7 +252,7 @@ type Outputs = {
   accessories: { sku: string; material_code: string; material_name: string; qty: string; unit: string }[];
   costs: { type: string; sku: string; qty: string; unit: string; unit_cost: string | null; amount: string | null }[];
   material_cost_total: string; missing_costs?: string[];
-  drawings: { item: number; location: string; qty: number; model_name: string; model_image_id: string | null; opening_width_mm: string;
+  drawings: { item: number; location: string; qty: number; units?: number[]; model_name: string; model_image_id: string | null; opening_width_mm: string;
     opening_height_mm: string; width_mm: string; height_mm: string; elements: any[] }[];
   issues: Issue[];
 };
@@ -267,7 +267,8 @@ function Manufacturing({ o }: { o: Outputs }) {
           <div key={d.item} className="card" style={{ padding: 12 }}>
             <div className="row top">
               <MediaImg id={d.model_image_id} />
-              <div className="grow"><b>{d.model_name}</b><div className="muted small">{d.location} · عدد <span className="num">{d.qty}</span></div>
+              <div className="grow"><b>{d.model_name}</b>{!!d.units?.length && <Chip color="blue">شباك <span dir="ltr" className="num">{d.units.length > 1 ? `${d.units[0]}–${d.units[d.units.length - 1]}` : d.units[0]}</span></Chip>}
+                <div className="muted small">{d.location} · عدد <span className="num">{d.qty}</span></div>
                 <div className="small">فتحة <Dim w={d.opening_width_mm} h={d.opening_height_mm} /></div>
                 <div className="small">تصنيع <Dim w={d.width_mm} h={d.height_mm} /></div></div>
               <Drawing elements={d.elements} w={d.width_mm} h={d.height_mm} maxW={110} maxH={90} />
@@ -281,7 +282,7 @@ function Manufacturing({ o }: { o: Outputs }) {
             <span className="end muted small">القطع <span className="num">{m.total_pieces}</span> · الطول <span className="num"><Len mm={m.total_length_mm} /></span> {s.unit === "cm" ? "سم" : "مم"}</span></div>
           <div className="card-b flush">
             <table>
-              <thead><tr><th>العنصر</th><th>عرض / ارتفاع</th><th className="n">الطول ({s.unit === "cm" ? "سم" : "مم"})</th><th className="n">العدد</th><th>الزاوية</th><th>للأصناف</th></tr></thead>
+              <thead><tr><th>العنصر</th><th>عرض / ارتفاع</th><th className="n">الطول ({s.unit === "cm" ? "سم" : "مم"})</th><th className="n">العدد</th><th>الزاوية</th><th>للشبابيك</th></tr></thead>
               <tbody>
                 {m.pieces.map((p, i) => (
                   <tr key={i}>
@@ -290,7 +291,7 @@ function Manufacturing({ o }: { o: Outputs }) {
                     <td className="n"><b><Len mm={p.length_mm} /></b></td>
                     <td className="n num">{p.qty}</td>
                     <td className="num">{p.angle_left}° / {p.angle_right}°</td>
-                    <td className="muted small">{(p.refs ?? []).join("، ")}</td>
+                    <td className="small">{p.windows ? <b className="num" dir="ltr">{p.windows}</b> : <span className="muted">{(p.refs ?? []).join("، ")}</span>}</td>
                   </tr>
                 ))}
               </tbody>
@@ -331,6 +332,12 @@ function Manufacturing({ o }: { o: Outputs }) {
   );
 }
 
+/** What the cutter writes on a piece: «عرض 2», «ارتفاع 1», or the piece's name and the window. */
+export function pieceMark(p: { side?: string | null; label?: string; unit?: number }): string {
+  const what = p.side === "width" ? "عرض" : p.side === "height" ? "ارتفاع" : (p.label ?? "");
+  return `${what} ${p.unit ?? ""}`.trim();
+}
+
 function BarPlans({ o }: { o: Outputs }) {
   const s = useSession();
   const names = Object.fromEntries(o.cut_list.map((c) => [c.sku, c.material_name]));
@@ -348,7 +355,8 @@ function BarPlans({ o }: { o: Outputs }) {
                 <div key={b.bar_no} className="row">
                   <span className="num muted small" style={{ width: 24 }} title={b.from_offcut ? "فضلة من المخزون" : ""}>{b.from_offcut ? "♻" : b.bar_no}</span>
                   <div className="bar-plan" style={{ width: `${(Number(b.length_mm ?? bar) / bar) * 100}%` }}>
-                    {b.pieces.map((p, i) => <span key={i} style={{ width: `${(Number(p.length_mm) / Number(b.length_mm ?? bar)) * 100}%` }} title={`${p.label ?? ""} ${s.len(p.length_mm)}`}>{s.len(p.length_mm)}</span>)}
+                    {b.pieces.map((p, i) => <span key={i} style={{ width: `${(Number(p.length_mm) / Number(b.length_mm ?? bar)) * 100}%` }}
+                      title={`${p.label ?? ""} ${s.len(p.length_mm)}${p.unit ? ` · شباك ${p.unit}` : ""}`}>{s.len(p.length_mm)}{p.unit ? <b className="bar-mark">{pieceMark(p)}</b> : null}</span>)}
                     {Number(b.offcut_mm) > 0 && <span className={b.offcut_reusable ? "off" : "waste"} style={{ width: `${(Number(b.offcut_mm) / Number(b.length_mm ?? bar)) * 100}%` }}
                       title={(b.offcut_reusable ? "فضلة تتشال " : "هالك ") + s.len(b.offcut_mm)}>{s.len(b.offcut_mm)}</span>}
                   </div>

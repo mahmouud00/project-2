@@ -24,6 +24,19 @@ def _sku(material: dict | None, code: str, color: str | None) -> str:
     return code
 
 
+def unit_ranges(units) -> str:
+    """[1, 1, 2, 3, 5] -> "1–3، 5" (the windows a row of the cut list is for)."""
+    nums = sorted(set(int(u) for u in units))
+    out, i = [], 0
+    while i < len(nums):
+        j = i
+        while j + 1 < len(nums) and nums[j + 1] == nums[j] + 1:
+            j += 1
+        out.append(str(nums[i]) if i == j else f"{nums[i]}–{nums[j]}")
+        i = j + 1
+    return "، ".join(out)
+
+
 def available_offcuts(db: Session, branch_id, skus=None, lock: bool = False) -> dict[str, list[dict]]:
     """Offcuts in stock at the order's branch, per SKU (locked while an order takes them)."""
     from app.modules.production.models import Offcut
@@ -50,6 +63,7 @@ def generate_outputs(db: Session, wo: WorkOrder, offcuts: dict[str, list[dict]] 
     # what is bought per SKU: the model's «حساب طلبية الشراء» rows when it has them, else its pieces (each with a
     # saw cut, as the cut list); the cut list itself always comes from the pieces
     buy_groups: dict[str, dict] = {}
+    next_unit = 1          # every window of the order gets its own number (شباك 1، 2، …) for the cutter to mark pieces
 
     for item in items:
         if item.formula_set_version_id not in versions:
@@ -57,6 +71,8 @@ def generate_outputs(db: Session, wo: WorkOrder, offcuts: dict[str, list[dict]] 
         materials = versions[item.formula_set_version_id]["materials"]
         calc = item.calc
         ref = f"{item.position}" + (f" ({item.location})" if item.location else "")
+        units = list(range(next_unit, next_unit + item.qty))
+        next_unit += item.qty
         for issue in calc.get("issues", []):
             issues.append({**issue, "item": item.position})
         for p in calc.get("pieces", []):
@@ -71,6 +87,7 @@ def generate_outputs(db: Session, wo: WorkOrder, offcuts: dict[str, list[dict]] 
             entry = g["pieces"][key]
             entry["qty"] += int(p["qty"]) * item.qty
             entry["refs"].append(ref)
+            entry.setdefault("units", []).extend(u for u in units for _ in range(int(p["qty"])))
         rows = calc.get("purchase") or []
         bought = {r["material_code"] for r in rows}
         # a material the model has purchase rows for is bought by them; any other one by its pieces
@@ -100,7 +117,7 @@ def generate_outputs(db: Session, wo: WorkOrder, offcuts: dict[str, list[dict]] 
                         "unit": a.get("unit"), "color": item.color_code})
             acc["qty"] += Decimal(a["qty"]) * item.qty
         model = db.get(ProductModel, item.model_id)
-        drawings.append({"item": item.position, "location": item.location, "qty": item.qty,
+        drawings.append({"item": item.position, "location": item.location, "qty": item.qty, "units": units,
                          "model_code": model.code if model else None, "model_name": model.name if model else None,
                          "model_image_id": str(img) if (img := model_image(model, item.color_code)) else None,
                          "opening_width_mm": str(item.opening_width_mm), "opening_height_mm": str(item.opening_height_mm),
@@ -116,7 +133,9 @@ def generate_outputs(db: Session, wo: WorkOrder, offcuts: dict[str, list[dict]] 
     for sku, g in sorted(cut_groups.items()):
         # (group key is the SKU, so all its pieces share one colour)
         pieces = [{"length_mm": Decimal(k[0]), "angle_left": k[1], "angle_right": k[2], "label": k[3],
-                   "element": k[4], "side": k[5], "qty": v["qty"], "refs": v["refs"]} for k, v in g["pieces"].items()]
+                   "element": k[4], "side": k[5], "qty": v["qty"], "refs": v["refs"],
+                   "units": sorted(v.get("units", [])), "windows": unit_ranges(v.get("units", []))}
+                  for k, v in g["pieces"].items()]
         pieces.sort(key=lambda p: p["length_mm"], reverse=True)
         cut_list.append({"sku": sku, "material_code": g["material_code"], "material_name": g["material_name"],
                          "pieces": pieces, "total_pieces": sum(p["qty"] for p in pieces),
@@ -124,7 +143,8 @@ def generate_outputs(db: Session, wo: WorkOrder, offcuts: dict[str, list[dict]] 
         cut_total[sku] = cut_list[-1]["total_length_mm"]
         cost, _, _ = resolver.resolve(g["material_code"], g["color"])
         if g["bar_length_mm"]:
-            plan = optimise([{"length_mm": p["length_mm"], "qty": p["qty"], "label": p["label"],
+            plan = optimise([{"length_mm": p["length_mm"], "qty": p["qty"], "label": p["label"], "side": p["side"],
+                              "element": p["element"], "units": p["units"],
                               "angle_left": p["angle_left"], "angle_right": p["angle_right"]} for p in pieces],
                             bar_length_mm=Decimal(g["bar_length_mm"]), kerf_mm=settings.saw_kerf_mm,
                             trim_mm=settings.bar_trim_mm, min_offcut_mm=settings.min_reusable_offcut_mm,

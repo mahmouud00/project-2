@@ -152,8 +152,9 @@ function PODetail({ id }: { id: string }) {
       </Card>
       <Card title="الأصناف" flush>
         <Table rows={p.lines} columns={[
+          { key: "n", label: "الخامة", render: (l) => <b>{l.name || l.sku}</b> },
           { key: "sku", label: "الكود", render: (l) => <span className="code">{l.sku}</span> },
-          { key: "q", label: "الكمية", num: true, render: (l) => <Qty v={l.qty} /> },
+          { key: "q", label: "الكمية", num: true, render: (l) => <span><Qty v={l.qty} /> <span className="muted small">{UNIT_AR[l.unit ?? ""] ?? ""}</span></span> },
           { key: "r", label: "المستلم", num: true, render: (l) => <span className={Number(l.received_qty) >= Number(l.qty) ? "success-text bold" : ""}><Qty v={l.received_qty} /></span> },
           { key: "c", label: "تكلفة الوحدة", num: true, render: (l) => <Money v={l.unit_cost} /> },
         ]} />
@@ -169,6 +170,8 @@ function PODetail({ id }: { id: string }) {
   );
 }
 
+const UNIT_AR: Record<string, string> = { m: "متر", pcs: "قطعة", set: "طقم", roll: "لفة", m2: "م²", kg: "كجم", l: "لتر" };
+
 function Receive({ po, onClose, onSaved }: { po: PO; onClose: () => void; onSaved: () => void }) {
   const toast = useToast();
   const { busy, run } = useAction(toast.err);
@@ -182,9 +185,9 @@ function Receive({ po, onClose, onSaved }: { po: PO; onClose: () => void; onSave
       toast.ok("اتسجل الاستلام."); onSaved(); onClose();
     })}>تسجيل الاستلام</Btn><Btn onClick={onClose}>رجوع</Btn></>}>
       <table className="editor-table">
-        <thead><tr><th>الكود</th><th className="n">المطلوب</th><th className="n">اتستلم قبل كده</th><th>المستلم دلوقتي</th></tr></thead>
+        <thead><tr><th>الخامة</th><th className="n">المطلوب</th><th className="n">اتستلم قبل كده</th><th>المستلم دلوقتي</th></tr></thead>
         <tbody>{(po.lines ?? []).map((l) => (
-          <tr key={l.id}><td><span className="code">{l.sku}</span></td><td className="n"><Qty v={l.qty} /></td><td className="n"><Qty v={l.received_qty} /></td>
+          <tr key={l.id}><td><b>{l.name || l.sku}</b> <span className="code small">{l.sku}</span></td><td className="n"><Qty v={l.qty} /></td><td className="n"><Qty v={l.received_qty} /></td>
             <td><NumIn value={qty[l.id]} onChange={(v) => setQty((x) => ({ ...x, [l.id]: v }))} /></td></tr>))}</tbody>
       </table>
       <div className="mt"><Check checked={updateCost} onChange={setUpdateCost} label="سعر الشراء ده يبقى تكلفة الخامة عند الشركة" /></div>

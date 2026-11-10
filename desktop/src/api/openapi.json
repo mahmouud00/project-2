@@ -18948,6 +18948,16 @@
      "received_qty": {
       "type": "string",
       "title": "Received Qty"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name",
+      "default": ""
+     },
+     "unit": {
+      "type": "string",
+      "title": "Unit",
+      "default": ""
      }
     },
     "type": "object",

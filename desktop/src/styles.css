@@ -309,7 +309,7 @@ textarea.input { min-height: 70px; resize: vertical; }
 .totals { width: 320px; }
 .totals .r { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid var(--line); }
 .totals .r.big { font-size: 16px; font-weight: 800; border-bottom: 0; border-top: 2px solid var(--text); margin-top: 4px; padding-top: 8px; }
-.bar-plan { display: flex; height: 18px; border-radius: 4px; overflow: hidden; border: 1px solid var(--border); direction: ltr; }
+.bar-plan { display: flex; height: 30px; border-radius: 4px; overflow: hidden; border: 1px solid var(--border); direction: ltr; }
 .bar-plan span { border-inline-end: 1px solid var(--card); font-size: 10px; display: grid; place-items: center; color: var(--text);
   background: var(--primary-soft); overflow: hidden; }
 .bar-plan span.off { background: var(--success-soft); }
@@ -552,3 +552,5 @@ tr[hidden] { display: none; }
 .ss-opt { padding: 6px 8px; border-radius: 6px; cursor: pointer; font-size: 13px; }
 .ss-opt.hi { background: var(--primary-soft); }
 .ss-opt.on { font-weight: 700; color: var(--primary); }
+
+.bar-mark { display: block; font-size: 9.5px; font-weight: 700; color: var(--primary); line-height: 1.1; }

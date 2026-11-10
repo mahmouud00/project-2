@@ -46,8 +46,11 @@ def optimise(pieces: list[dict], *, bar_length_mm: Decimal, kerf_mm: Decimal = D
     usable = bar_length_mm - 2 * trim_mm
     singles, too_long = [], []
     for p in pieces:
-        for _ in range(int(p["qty"])):
-            item = {k: v for k, v in p.items() if k != "qty"}
+        units = p.get("units") or []            # the window each piece is for (one number per piece), when given
+        for i in range(int(p["qty"])):
+            item = {k: v for k, v in p.items() if k not in ("qty", "units")}
+            if i < len(units):
+                item["unit"] = units[i]
             item["length_mm"] = Decimal(p["length_mm"])
             (too_long if item["length_mm"] > usable else singles).append(item)
     singles.sort(key=lambda x: x["length_mm"], reverse=True)

@@ -5627,6 +5627,16 @@ export interface components {
             unit_cost: string;
             /** Received Qty */
             received_qty: string;
+            /**
+             * Name
+             * @default
+             */
+            name: string;
+            /**
+             * Unit
+             * @default
+             */
+            unit: string;
         };
         /** POOut */
         POOut: {

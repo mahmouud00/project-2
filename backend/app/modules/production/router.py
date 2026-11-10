@@ -439,6 +439,8 @@ def material_needs(wo_id: uuid.UUID, dc=Depends(require("workorders.read"))):
                              name=a.get("material_name") or a["material_code"], unit=a.get("unit") or "pcs",
                              qty=Decimal(str(a["qty"]))))
     for n in needs:
+        if n.name == n.material_code and (m := find_material(db, n.material_code)) is not None:
+            n.name = m.name                       # orders calculated before names were kept show the name too
         n.unit_cost = cost.get(n.sku)
         n.qty = n.qty.quantize(Decimal("0.001"))
     return needs
