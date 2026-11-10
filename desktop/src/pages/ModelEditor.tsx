@@ -67,7 +67,10 @@ export default function ModelEditor({ systemId, modelId, tab }: { systemId: stri
   const m = model.data;
   const editable = canEdit(m);
   const unit = system.data.unit === "cm" ? "سم" : "مم";
-  const matOptions = [...(materials.data ?? []), ...(allMaterials.data ?? []).filter((x) => x.system_id !== systemId)]
+  const matList = [...(materials.data ?? []), ...(allMaterials.data ?? []).filter((x) => x.system_id !== systemId)];
+  const matOptions = matList.map((x) => ({ value: x.code, label: `${x.code} · ${x.name}` }));
+  // طلبية الشراء is for profiles (and their reinforcement) only: accessories are bought from the accessories tab
+  const barOptions = matList.filter((x) => x.kind === "profile" || x.kind === "reinforcement")
     .map((x) => ({ value: x.code, label: `${x.code} · ${x.name}` }));
   const names = [...(constants.data ?? []).map((c) => c.name), ...def.params.map((p) => p.name), ...def.formulas.map((f) => f.key)];
 
@@ -160,14 +163,15 @@ export default function ModelEditor({ systemId, modelId, tab }: { systemId: stri
             </details>}
           </>}
           {tab === "purchase" && <>
-            <Help>اللي بيتطلب من المورد لكل قطعة: الطول اللي القطعة بتاخده من العود وانت بتشتري (بالهالك وقصّة المنشار والزوايا)، مكتوب بأسامي القطع
+            <Help><b>للقطاعات والحديد بس</b> (الإكسسوار بيتطلب من تاب الإكسسوار زي ما هو). اللي بيتطلب من المورد لكل قطعة: الطول اللي القطعة بتاخده من العود وانت بتشتري (بالهالك وقصّة المنشار والزوايا)، مكتوب بأسامي القطع
               والمعادلات. مثلًا لو عندك قطعة اسمها <code>عرض_الضلفة</code> اكتب <code>عرض_الضلفة + 4</code>. <b>أمر التقطيع بيفضل من «القطع والتخصيمات» زي ما هو</b>،
               وطلبية الشراء بتتحسب من هنا: البرنامج بيوزّع الأطوال دي على أعواد كاملة (بعد تشذيب طرفين العود) ويطلب عدد الأعواد. الخامة اللي مالهاش سطور هنا
               بتتطلب من القطع زي الأول. بعد التعديل انشر القطاع عشان الأوامر الجديدة تاخد بيه.</Help>
             <RowsEditor rows={def.purchase} onChange={set("purchase")} readOnly={!editable} addLabel="سطر شراء"
               extraActions={<>
                 <Btn small icon="layers" disabled={!def.pieces.length} title="سطر لكل قطعة بطولها وعددها وخامتها، وبعدين زوّد عليه الهالك"
-                  onClick={() => set("purchase")([...def.purchase, ...def.pieces.filter((p) => p.key && !def.purchase.some((r) => r.key === p.key + "_شراء"))
+                  onClick={() => set("purchase")([...def.purchase, ...def.pieces.filter((p) => p.key && !def.purchase.some((r) => r.key === p.key + "_شراء")
+                    && barOptions.some((o) => o.value === p.material_code))
                     .map((p) => ({ key: p.key + "_شراء", label: p.label || p.key, material_code: p.material_code, length_expr: p.key,
                       qty_expr: p.qty_expr || "1", condition: p.condition ?? null }))])}>سطر لكل قطعة</Btn>
                 <CopyRows systemId={systemId} modelId={modelId} section="purchase" keyField="key" rows={def.purchase} onChange={set("purchase")} />
@@ -175,7 +179,7 @@ export default function ModelEditor({ systemId, modelId, tab }: { systemId: stri
               blank={() => ({ key: "", label: "", material_code: "", length_expr: "", qty_expr: "1", condition: null })} columns={[
                 { key: "key", label: "الاسم", kind: "code", width: 130 },
                 { key: "label", label: "الوصف", width: 150 },
-                { key: "material_code", label: "الخامة", kind: "search", placeholder: "اختار…", options: matOptions, width: 210 },
+                { key: "material_code", label: "القطاع", kind: "search", placeholder: "اختار…", options: barOptions, width: 210 },
                 { key: "length_expr", label: `الطول للشراء (${unit})`, kind: "expr" },
                 { key: "qty_expr", label: "العدد", kind: "expr", width: 110 },
                 { key: "condition", label: "شرط", kind: "expr", width: 120 },

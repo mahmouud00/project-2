@@ -52,3 +52,14 @@ def test_purchase_rows_are_checked(platform, client):
     client.patch(f"/api/v1/library/models/{model['id']}", headers=platform.h, json={"version": model["version"], "definition": d})
     errors = client.post(f"/api/v1/library/models/{model['id']}/check", headers=platform.h).json()["errors"]
     assert any("طلبية الشراء" in str(e) and "no_such_name" in str(e) for e in errors), errors
+
+
+def test_purchase_rows_are_for_profiles_only(platform, client):
+    from tests.library_helpers import build_library
+    lib = build_library(client, platform, code="PURACC", publish=False)
+    model = client.get(f"/api/v1/library/models/{lib['model']['id']}", headers=platform.h).json()
+    d = model["definition"]
+    d["purchase"] = [{"key": "h", "material_code": "PURACC-HANDLE", "length_expr": "1"}]
+    client.patch(f"/api/v1/library/models/{model['id']}", headers=platform.h, json={"version": model["version"], "definition": d})
+    errors = client.post(f"/api/v1/library/models/{model['id']}/check", headers=platform.h).json()["errors"]
+    assert any("للقطاعات والحديد بس" in str(e) for e in errors), errors

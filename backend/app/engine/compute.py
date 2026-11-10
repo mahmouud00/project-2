@@ -200,6 +200,8 @@ def check_definition(snapshot: dict) -> list[str]:
                 errors.append(f"{where}: الخامة {code} مش موجودة في المكتبة")
             if section == "glass" and code and code not in materials:
                 errors.append(f"{where}: الخامة {code} مش موجودة في المكتبة")
+            if section == "purchase" and code in materials and materials[code].get("kind") not in ("profile", "reinforcement"):
+                errors.append(f"{where}: طلبية الشراء للقطاعات والحديد بس؛ {code} بيتطلب من تاب الإكسسوار")
     for i, v in enumerate(model.get("validations", [])):
         chk(v.get("expr"), f"التحقق رقم {i + 1}")
     for i, d in enumerate(model.get("drawing", [])):
