@@ -1715,6 +1715,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/work-orders/{wo_id}/recalculate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Recalculate
+         * @description تحديث بآخر معادلات منشورة: every item is calculated again with its system's current published version (a
+         *     model changed and published after the quotation). Asked for on purpose, before manufacturing starts: an order
+         *     never changes by itself when the formulas are updated. Prices stay as agreed.
+         */
+        post: operations["recalculate_api_v1_work_orders__wo_id__recalculate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/work-orders/{wo_id}/manufacturing": {
         parameters: {
             query?: never;
@@ -2274,6 +2296,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/work-orders/{wo_id}/print/installation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Print Installation */
+        get: operations["print_installation_api_v1_work_orders__wo_id__print_installation_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/field/jobs/{job_id}/installation-order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Print Job Installation
+         * @description The installation order of a technician's installation job: the office or the job's own technician.
+         */
+        get: operations["print_job_installation_api_v1_field_jobs__job_id__installation_order_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/documents/report": {
         parameters: {
             query?: never;
@@ -2413,6 +2472,26 @@ export interface paths {
          * @description The technician (or the office) moves the job along: on the way -> arrived -> done.
          */
         post: operations["job_status_api_v1_field_jobs__job_id__status_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/field/installations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Installations
+         * @description Orders in the installation stage (التركيب): who installs them and when, or still waiting for a technician.
+         */
+        get: operations["installations_api_v1_field_installations_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -4432,6 +4511,47 @@ export interface components {
             /** Items */
             items: components["schemas"]["NotificationOut"][];
         };
+        /** InstallationOut */
+        InstallationOut: {
+            /**
+             * Work Order Id
+             * Format: uuid
+             */
+            work_order_id: string;
+            /** Number */
+            number: string;
+            /**
+             * Branch Id
+             * Format: uuid
+             */
+            branch_id: string;
+            /**
+             * Customer Id
+             * Format: uuid
+             */
+            customer_id: string;
+            /** Customer Name */
+            customer_name: string;
+            /** Address */
+            address?: string | null;
+            /** Windows */
+            windows: number;
+            /** Stage */
+            stage: string;
+            /** Entered At */
+            entered_at?: string | null;
+            /** Job Id */
+            job_id?: string | null;
+            /** Job Status */
+            job_status?: string | null;
+            /**
+             * Technician Name
+             * @default
+             */
+            technician_name: string;
+            /** Scheduled At */
+            scheduled_at?: string | null;
+        };
         /** InvoiceIn */
         InvoiceIn: {
             /** Customer Id */
@@ -5637,6 +5757,8 @@ export interface components {
              * @default
              */
             unit: string;
+            /** Bar Length Mm */
+            bar_length_mm?: string | null;
         };
         /** POOut */
         POOut: {
@@ -11548,6 +11670,37 @@ export interface operations {
             };
         };
     };
+    recalculate_api_v1_work_orders__wo_id__recalculate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                wo_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkOrderOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_outputs_api_v1_work_orders__wo_id__manufacturing_get: {
         parameters: {
             query?: never;
@@ -12889,6 +13042,68 @@ export interface operations {
             };
         };
     };
+    print_installation_api_v1_work_orders__wo_id__print_installation_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                wo_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/html": string;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    print_job_installation_api_v1_field_jobs__job_id__installation_order_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/html": string;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     print_report_api_v1_documents_report_post: {
         parameters: {
             query?: never;
@@ -13284,6 +13499,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    installations_api_v1_field_installations_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InstallationOut"][];
                 };
             };
         };

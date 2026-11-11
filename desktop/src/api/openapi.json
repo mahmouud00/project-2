@@ -6104,6 +6104,55 @@
     }
    }
   },
+  "/api/v1/work-orders/{wo_id}/recalculate": {
+   "post": {
+    "tags": [
+     "production"
+    ],
+    "summary": "Recalculate",
+    "description": "تحديث بآخر معادلات منشورة: every item is calculated again with its system's current published version (a\nmodel changed and published after the quotation). Asked for on purpose, before manufacturing starts: an order\nnever changes by itself when the formulas are updated. Prices stay as agreed.",
+    "operationId": "recalculate_api_v1_work_orders__wo_id__recalculate_post",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "wo_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Wo Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/WorkOrderOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/v1/work-orders/{wo_id}/manufacturing": {
    "get": {
     "tags": [
@@ -8459,6 +8508,103 @@
     }
    }
   },
+  "/api/v1/work-orders/{wo_id}/print/installation": {
+   "get": {
+    "tags": [
+     "documents"
+    ],
+    "summary": "Print Installation",
+    "operationId": "print_installation_api_v1_work_orders__wo_id__print_installation_get",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "wo_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Wo Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "text/html": {
+        "schema": {
+         "type": "string"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/field/jobs/{job_id}/installation-order": {
+   "get": {
+    "tags": [
+     "documents"
+    ],
+    "summary": "Print Job Installation",
+    "description": "The installation order of a technician's installation job: the office or the job's own technician.",
+    "operationId": "print_job_installation_api_v1_field_jobs__job_id__installation_order_get",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "job_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Job Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "text/html": {
+        "schema": {
+         "type": "string"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/v1/documents/report": {
    "post": {
     "tags": [
@@ -9166,6 +9312,37 @@
       }
      }
     }
+   }
+  },
+  "/api/v1/field/installations": {
+   "get": {
+    "tags": [
+     "field"
+    ],
+    "summary": "Installations",
+    "description": "Orders in the installation stage (التركيب): who installs them and when, or still waiting for a technician.",
+    "operationId": "installations_api_v1_field_installations_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "items": {
+          "$ref": "#/components/schemas/InstallationOut"
+         },
+         "type": "array",
+         "title": "Response Installations Api V1 Field Installations Get"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ]
    }
   },
   "/api/v1/field/locations": {
@@ -13123,7 +13300,8 @@
         "approved",
         "manufacturing",
         "assembly",
-        "quality"
+        "quality",
+        "installation"
        ]
       },
       "type": "object",
@@ -15272,6 +15450,115 @@
      "items"
     ],
     "title": "Inbox"
+   },
+   "InstallationOut": {
+    "properties": {
+     "work_order_id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Work Order Id"
+     },
+     "number": {
+      "type": "string",
+      "title": "Number"
+     },
+     "branch_id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Branch Id"
+     },
+     "customer_id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Customer Id"
+     },
+     "customer_name": {
+      "type": "string",
+      "title": "Customer Name"
+     },
+     "address": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Address"
+     },
+     "windows": {
+      "type": "integer",
+      "title": "Windows"
+     },
+     "stage": {
+      "type": "string",
+      "title": "Stage"
+     },
+     "entered_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Entered At"
+     },
+     "job_id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "uuid"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Job Id"
+     },
+     "job_status": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Job Status"
+     },
+     "technician_name": {
+      "type": "string",
+      "title": "Technician Name",
+      "default": ""
+     },
+     "scheduled_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Scheduled At"
+     }
+    },
+    "type": "object",
+    "required": [
+     "work_order_id",
+     "number",
+     "branch_id",
+     "customer_id",
+     "customer_name",
+     "windows",
+     "stage"
+    ],
+    "title": "InstallationOut"
    },
    "InvoiceIn": {
     "properties": {
@@ -18958,6 +19245,17 @@
       "type": "string",
       "title": "Unit",
       "default": ""
+     },
+     "bar_length_mm": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Bar Length Mm"
      }
     },
     "type": "object",

@@ -400,6 +400,7 @@ function GoodsOrder({ wo, onClose }: { wo: WO; onClose: () => void }) {
   const sups = useLoad(() => lookups.suppliers(), []);
   useLoad(() => api.get<S<"NeedOut">[]>(`/work-orders/${wo.id}/material-needs`).then((n) => setLines(n.map((x) => ({ ...x, include: true })))), [wo.id]);
   const qtyOf = (n: Need) => Number(n.qty);
+  const barM = (n: Need) => (n.bars && n.bar_length_mm ? Number(n.bar_length_mm) / 1000 : 0);   // metres in one bar
   const set = (i: number, patch: Partial<Need>) => setLines((x) => x!.map((l, j) => j === i ? { ...l, ...patch } : l));
   const chosen = (lines ?? []).filter((n) => n.include && qtyOf(n) > 0);
   const total = chosen.reduce((t, n) => t + qtyOf(n) * Number(n.unit_cost ?? 0), 0);
@@ -424,11 +425,17 @@ function GoodsOrder({ wo, onClose }: { wo: WO; onClose: () => void }) {
           { key: "n", label: "الخامة", render: (n) => n.name },
           { key: "b", label: "التفاصيل", render: (n) => <span className="small muted">{n.bars ? `${n.bars} عود × ${Number(n.bar_length_mm) / 1000} م`
             : n.pieces ? `${n.pieces} لوح` : ""}{n.offcuts_used ? ` · + ${n.offcuts_used} فضلة من المخزون` : ""}</span> },
-          { key: "q", label: "الكمية", num: true, render: (n) => <span className="num bold">{qtyOf(n).toLocaleString("en", { maximumFractionDigits: 3 })} {UNITS[n.unit] ?? n.unit}</span> },
-          { key: "c", label: "سعر الوحدة", num: true, width: 130, render: (n, i) => <NumIn value={String(n.unit_cost ?? "")} onChange={(v) => set(i, { unit_cost: v || null })} /> },
+          { key: "q", label: "الكمية", num: true, render: (n) => barM(n)
+            ? <span><b className="num">{n.bars}</b> عود<div className="small muted num">{qtyOf(n).toLocaleString("en", { maximumFractionDigits: 3 })} م</div></span>
+            : <span className="num bold">{qtyOf(n).toLocaleString("en", { maximumFractionDigits: 3 })} {UNITS[n.unit] ?? n.unit}</span> },
+          // a profile is priced per bar here (what the supplier quotes); the order keeps it per metre
+          { key: "c", label: "السعر", num: true, width: 150, render: (n, i) => barM(n)
+            ? <span><NumIn value={n.unit_cost == null || n.unit_cost === "" ? "" : String(+(Number(n.unit_cost) * barM(n)).toFixed(2))}
+                onChange={(v) => set(i, { unit_cost: v ? String(Number(v) / barM(n)) : null })} /><span className="small muted">للعود</span></span>
+            : <NumIn value={String(n.unit_cost ?? "")} onChange={(v) => set(i, { unit_cost: v || null })} /> },
         ]} />
       )}
-      <div className="row mt"><span className="muted small">القطاعات بأعواد كاملة (بعد تحسين التقطيع) بالمتر، والزجاج بالمتر المربع، والإكسسوار حسب كل نموذج × عدد الوحدات.</span>
+      <div className="row mt"><span className="muted small">القطاعات بأعواد كاملة (بعد تحسين التقطيع)، وسعرها للعود، والزجاج بالمتر المربع، والإكسسوار حسب كل نموذج × عدد الوحدات.</span>
         <b className="end">الإجمالي التقريبي: <Money v={total.toFixed(2)} /></b></div>
     </Modal>
   );

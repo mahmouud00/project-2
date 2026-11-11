@@ -127,6 +127,7 @@ class POLineOut(ORMModel):
     received_qty: Decimal
     name: str = ""            # the material's name (and its colour), so the order is read without the codes
     unit: str = ""
+    bar_length_mm: Decimal | None = None   # profiles: the quantity (metres) is shown and received as whole bars
 
 
 class POOut(Record):
@@ -166,6 +167,8 @@ def _po_out(db, po) -> POOut:
             color = colors.get(v.color_code, v.color_code) if v is not None else ""
             o.name = (v.name if v is not None and v.name else m.name) + (f" · {color}" if color else "")
             o.unit = m.unit
+            if m.unit == "m" and m.bar_length_mm:
+                o.bar_length_mm = m.bar_length_mm
     return out
 
 

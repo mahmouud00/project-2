@@ -154,9 +154,11 @@ function PODetail({ id }: { id: string }) {
         <Table rows={p.lines} columns={[
           { key: "n", label: "الخامة", render: (l) => <b>{l.name || l.sku}</b> },
           { key: "sku", label: "الكود", render: (l) => <span className="code">{l.sku}</span> },
-          { key: "q", label: "الكمية", num: true, render: (l) => <span><Qty v={l.qty} /> <span className="muted small">{UNIT_AR[l.unit ?? ""] ?? ""}</span></span> },
-          { key: "r", label: "المستلم", num: true, render: (l) => <span className={Number(l.received_qty) >= Number(l.qty) ? "success-text bold" : ""}><Qty v={l.received_qty} /></span> },
-          { key: "c", label: "تكلفة الوحدة", num: true, render: (l) => <Money v={l.unit_cost} /> },
+          { key: "q", label: "الكمية", num: true, render: (l) => <QtyBars l={l} v={l.qty} /> },
+          { key: "r", label: "المستلم", num: true, render: (l) => <span className={Number(l.received_qty) >= Number(l.qty) ? "success-text bold" : ""}><QtyBars l={l} v={l.received_qty} /></span> },
+          { key: "c", label: "السعر", num: true, render: (l) => barM(l)
+            ? <span><Money v={(Number(l.unit_cost) * barM(l)).toFixed(2)} /> <span className="muted small">للعود</span></span>
+            : <span><Money v={l.unit_cost} /> <span className="muted small">{UNIT_AR[l.unit ?? ""] ? "لل" + UNIT_AR[l.unit ?? ""] : ""}</span></span> },
         ]} />
       </Card>
       {p.approved_at && <Card title={p.status === "rejected" ? "رفض الحسابات" : "تأكيد الحسابات"}>
@@ -170,25 +172,40 @@ function PODetail({ id }: { id: string }) {
   );
 }
 
+/** Metres in one bar for a profile line (its quantity is kept in metres, read and received in bars). */
+const barM = (l: { unit?: string | null; bar_length_mm?: string | number | null }) =>
+  l.unit === "m" && l.bar_length_mm ? Number(l.bar_length_mm) / 1000 : 0;
+
+function QtyBars({ l, v }: { l: { unit?: string | null; bar_length_mm?: string | number | null }; v: string | number }) {
+  const m = barM(l);
+  if (!m) return <span><Qty v={v} /> <span className="muted small">{UNIT_AR[l.unit ?? ""] ?? ""}</span></span>;
+  const bars = Number(v) / m;
+  return <span><b className="num">{+bars.toFixed(2)}</b> عود<div className="small muted num">{+Number(v).toFixed(3)} م</div></span>;
+}
+
 const UNIT_AR: Record<string, string> = { m: "متر", pcs: "قطعة", set: "طقم", roll: "لفة", m2: "م²", kg: "كجم", l: "لتر" };
 
 function Receive({ po, onClose, onSaved }: { po: PO; onClose: () => void; onSaved: () => void }) {
   const toast = useToast();
   const { busy, run } = useAction(toast.err);
-  const [qty, setQty] = useState<Record<string, string>>(() => Object.fromEntries((po.lines ?? []).map((l) =>
-    [l.id, String(Math.max(0, Number(l.qty) - Number(l.received_qty)))])));
+  // profiles are counted in bars here; the order keeps metres
+  const [qty, setQty] = useState<Record<string, string>>(() => Object.fromEntries((po.lines ?? []).map((l) => {
+    const left = Math.max(0, Number(l.qty) - Number(l.received_qty));
+    return [l.id, String(barM(l) ? +(left / barM(l)).toFixed(2) : left)];
+  })));
+  const metres = (l: NonNullable<PO["lines"]>[number], v: string) => (barM(l) ? String(+(Number(v) * barM(l)).toFixed(4)) : v);
   const [updateCost, setUpdateCost] = useState(true);
   return (
     <Modal title="استلام من المورد" size="wide" onClose={onClose} footer={<><Btn kind="success" busy={busy} onClick={() => run(async () => {
       await api.post(`/purchase-orders/${po.id}/receive`, { version: po.version, update_company_cost: updateCost,
-        lines: Object.entries(qty).filter(([, q]) => Number(q) > 0).map(([line_id, q]) => ({ line_id, qty: q })) });
+        lines: (po.lines ?? []).filter((l) => Number(qty[l.id]) > 0).map((l) => ({ line_id: l.id, qty: metres(l, qty[l.id]) })) });
       toast.ok("اتسجل الاستلام."); onSaved(); onClose();
     })}>تسجيل الاستلام</Btn><Btn onClick={onClose}>رجوع</Btn></>}>
       <table className="editor-table">
         <thead><tr><th>الخامة</th><th className="n">المطلوب</th><th className="n">اتستلم قبل كده</th><th>المستلم دلوقتي</th></tr></thead>
         <tbody>{(po.lines ?? []).map((l) => (
-          <tr key={l.id}><td><b>{l.name || l.sku}</b> <span className="code small">{l.sku}</span></td><td className="n"><Qty v={l.qty} /></td><td className="n"><Qty v={l.received_qty} /></td>
-            <td><NumIn value={qty[l.id]} onChange={(v) => setQty((x) => ({ ...x, [l.id]: v }))} /></td></tr>))}</tbody>
+          <tr key={l.id}><td><b>{l.name || l.sku}</b> <span className="code small">{l.sku}</span></td><td className="n"><QtyBars l={l} v={l.qty} /></td><td className="n"><QtyBars l={l} v={l.received_qty} /></td>
+            <td><NumIn value={qty[l.id]} onChange={(v) => setQty((x) => ({ ...x, [l.id]: v }))} unit={barM(l) ? "عود" : undefined} /></td></tr>))}</tbody>
       </table>
       <div className="mt"><Check checked={updateCost} onChange={setUpdateCost} label="سعر الشراء ده يبقى تكلفة الخامة عند الشركة" /></div>
     </Modal>
