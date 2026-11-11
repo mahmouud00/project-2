@@ -1,5 +1,36 @@
 /** Turns what a screen shows (its tables and detail boxes) into a printable report for `POST /documents/report`. */
-export type ReportSection = { title: string; kv: [string, string][]; columns: string[]; rows: string[][]; nums: number[] };
+export type ReportSection = { title: string; kv: [string, string][]; columns: string[]; rows: string[][]; nums: number[];
+  pics?: string[][][] };
+
+// the drawings use the screen's colours (CSS variables): on paper they are drawn in these
+const PAPER: Record<string, string> = { "--card": "#FFFFFF", "--stroke": "#475569", "--gray-soft": "#E5E7EB", "--glass": "#DBEAFE",
+  "--muted": "#64748B", "--primary": "#5048E5", "--text": "#1B2533", "--border": "#CBD5E1" };
+
+/** The pictures in a cell (a model's photo, a window's drawing) as inline images for the printout; icons left out. */
+export function cellPics(cell: Element): string[] {
+  const out: string[] = [];
+  for (const el of Array.from(cell.querySelectorAll("img, svg"))) {
+    if (out.length >= 3) break;
+    try {
+      if (el instanceof HTMLImageElement) {
+        if (!el.complete || !el.naturalWidth) continue;
+        const scale = Math.min(1, 220 / Math.max(el.naturalWidth, el.naturalHeight));
+        const c = document.createElement("canvas");
+        c.width = Math.round(el.naturalWidth * scale);
+        c.height = Math.round(el.naturalHeight * scale);
+        c.getContext("2d")!.drawImage(el, 0, 0, c.width, c.height);
+        out.push(c.toDataURL("image/png"));
+      } else if (el instanceof SVGSVGElement && !el.closest(".icon, button") && el.getBoundingClientRect().width >= 40) {
+        const copy = el.cloneNode(true) as SVGSVGElement;
+        copy.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+        const text = new XMLSerializer().serializeToString(copy)
+          .replace(/var\((--[\w-]+)\)/g, (_, v: string) => PAPER[v] ?? "#475569");
+        out.push("data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(text))));
+      }
+    } catch { /* a picture that cannot be copied (another site's) is left out */ }
+  }
+  return out;
+}
 export type Report = { title: string; subtitle: string; sections: ReportSection[] };
 
 const SKIP = new Set(["BUTTON", "SCRIPT", "STYLE", "SVG", "IMG", "svg"]);

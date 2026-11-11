@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import base64
+import re
 import uuid
 from datetime import datetime
 from decimal import Decimal
@@ -257,12 +258,22 @@ def print_job_installation(job_id: uuid.UUID, dc=Depends(get_db_and_ctx)):
     return _installation(db, ctx, get_or_404(db, WorkOrder, job.work_order_id), job)
 
 
+_PIC = re.compile(r"^data:image/(png|jpeg|webp|svg\+xml);base64,[A-Za-z0-9+/=]+$")
+
+
+def _safe_pic(uri) -> bool:
+    """A picture sent with a report: an inline image only (never a link), at most ~600 KB."""
+    return isinstance(uri, str) and len(uri) <= 800_000 and bool(_PIC.match(uri))
+
+
 class ReportSection(BaseModel):
     title: str = Field("", max_length=200)
     kv: list[tuple[str, str]] = Field(default_factory=list, max_length=200)
     columns: list[str] = Field(default_factory=list, max_length=30)
     rows: list[list[str]] = Field(default_factory=list, max_length=5000)
     nums: list[int] = Field(default_factory=list, max_length=30)
+    # pictures in the cells (a model's photo, a window's drawing), same shape as rows: data:image URIs only
+    pics: list[list[list[str]]] = Field(default_factory=list, max_length=5000)
 
 
 class ReportIn(BaseModel):
@@ -278,7 +289,9 @@ def print_report(body: ReportIn, dc=Depends(get_db_and_ctx)):
     user sees (headers and rows as text); nothing is read from the database except the company branding."""
     db, ctx = dc
     landscape = body.landscape if body.landscape is not None else any(len(s.columns) > 7 for s in body.sections)
-    sections = [{**s.model_dump(), "rows": [(r + [""] * len(s.columns))[:len(s.columns)] for r in s.rows]}
+    sections = [{**s.model_dump(), "rows": [(r + [""] * len(s.columns))[:len(s.columns)] for r in s.rows],
+                 "pics": [[[u for u in cell if _safe_pic(u)][:3] for cell in row][:len(s.columns)]
+                          for row in s.pics][:len(s.rows)]}
                 for s in body.sections]
     return _page("report.html", db, ctx, title=body.title, subtitle=body.subtitle, landscape=landscape,
                  sections=sections)

@@ -24,3 +24,12 @@ def test_report_as_excel(tenant_a, client):
 
 def test_excel_export_needs_login(client):
     assert client.post("/api/v1/documents/report.xlsx", json={"title": "x", "sections": []}).status_code == 401
+
+
+def test_report_pictures_are_inline_images_only(tenant_a, client):
+    png = "data:image/png;base64,iVBORw0KGgo="
+    body = {"title": "بنود", "sections": [{"title": "", "columns": ["الشكل", "السعر"], "rows": [["شباك", "10"], ["باب", "20"]],
+            "pics": [[[png, "https://evil.example/x.png", "javascript:alert(1)"], []], [["data:text/html;base64,PHA+"], []]]}]}
+    r = client.post("/api/v1/documents/report", headers=tenant_a.h, json=body)
+    assert r.status_code == 200, r.text
+    assert png in r.text and "evil.example" not in r.text and "javascript:" not in r.text and "data:text/html" not in r.text

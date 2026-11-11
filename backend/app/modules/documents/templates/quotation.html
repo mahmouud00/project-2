@@ -11,7 +11,7 @@
 </div>
 <table class="qt">
   <tr><th>رقم النموذج</th><th>العرض<br><span class="small">سم</span></th><th>الارتفاع<br><span class="small">سم</span></th>
-    <th>العدد</th><th>مساحة الفتحة<br><span class="small">م²</span></th><th>المساحة الكلية<br><span class="small">م²</span></th>
+    <th>العدد</th><th>مساحة الفتحة<br><span class="small">م²</span></th>
     <th class="draw">نوع وشكل النموذج</th><th>سعر المتر</th><th>التكلفة</th></tr>
   {% for l in lines %}
   <tr>
@@ -19,7 +19,6 @@
     <td class="num">{{ l.opening_width_mm | cm }}</td>
     <td class="num">{{ l.opening_height_mm | cm }}{% if l.total_height_mm %}<div class="small">كلي {{ l.total_height_mm | cm }}</div>{% endif %}</td>
     <td class="num">{{ l.qty }}</td>
-    <td class="num">{{ l.billed_area }}{% if l.area != l.billed_area %}<div class="small">الفعلية {{ l.area }}</div>{% endif %}</td>
     <td class="num">{{ l.total_area }}</td>
     <td class="draw">{% if l.image %}<img src="{{ l.image }}" alt=""><br>{% endif %}{{ drawing(l.drawing, l.width_mm, l.height_mm, 140, 100, label_w=l.opening_width_mm, label_h=l.opening_height_mm) }}
       <div><b>{{ l.model_name }}</b>{% if l.location %} · {{ l.location }}{% endif %}</div>
@@ -30,7 +29,7 @@
     <td class="num"><b>{{ l.line_total | money }}</b></td>
   </tr>
   {% endfor %}
-  <tr class="sum"><td colspan="5">إجمالي المساحة</td><td class="num"><b>{{ total_area }}</b></td><td colspan="3"></td></tr>
+  <tr class="sum"><td colspan="4">إجمالي المساحة</td><td class="num"><b>{{ total_area }}</b></td><td colspan="3"></td></tr>
 </table>
 <style>.qt th, .qt td { text-align: center; } .qt .sum td { border-top: 1.5px solid #1B2533; font-weight: 700; }</style>
 <table class="totals">

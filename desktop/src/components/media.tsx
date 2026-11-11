@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ReactElement } from "react";
+import { saveFile } from "../lib/save";
 import { api, errorText } from "../api/client";
 import { Btn, Modal } from "./ui";
 import { useToast } from "../state/toast";
@@ -125,11 +126,8 @@ export function PrintPreview({ path, body, title, onClose }:
   const print = () => frame.current?.contentWindow?.print();
   const save = () => {
     if (!html) return;
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob([html], { type: "text/html" }));
-    a.download = title.replace(/[\\/:*?"<>|]+/g, "-") + ".html";
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+    saveFile(title.replace(/[\\/:*?"<>|]+/g, "-") + ".html", new Blob([html], { type: "text/html" }))
+      .then((path) => toast.ok(path ? `اتحفظ في التنزيلات: ${path}` : "اتنزل الملف.")).catch((e) => toast.err(errorText(e)));
   };
   return (
     <Modal title={title} onClose={onClose} size="xwide" footer={<>

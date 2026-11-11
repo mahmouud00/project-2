@@ -185,11 +185,8 @@ function QuotationDetail({ id }: { id: string }) {
           { key: "h", label: "الارتفاع", num: true, render: (l) => (
             <div><Len mm={l.opening_height_mm} />{l.total_height_mm && <div className="muted small">كلي <Len mm={l.total_height_mm} /></div>}</div>) },
           { key: "q", label: "العدد", num: true, render: (l) => <span className="num">{l.qty}</span> },
-          { key: "a", label: "مساحة الفتحة", num: true, render: (l) => (
-            <div><span className="num">{mulMoney(l.billed_area_m2, "1")}</span>
-              {l.area_m2 !== l.billed_area_m2 && Number(l.area_m2) < Number(l.billed_area_m2) &&
-                <div className="faint small" title="أقل من الحد الأدنى للمساحة، فبتتحسب بالحد الأدنى">الفعلية <span className="num">{mulMoney(l.area_m2, "1")}</span></div>}</div>) },
-          { key: "ta", label: "المساحة الكلية", num: true, render: (l) => <b className="num">{mulMoney(l.billed_area_m2, l.qty)}</b> },
+          // the area the line is billed on (a legacy line with a count: all its windows)
+          { key: "a", label: "مساحة الفتحة", num: true, render: (l) => <span className="num">{mulMoney(l.billed_area_m2, l.qty)}</span> },
           { key: "m", label: "نوع وشكل النموذج", render: (l) => (
             <div className="row" style={{ gap: 8 }}>
               <MediaImg id={l.model_image_id} />

@@ -15,6 +15,8 @@
   .kvs div { border-bottom: 1px dotted #DDE3EA; padding: 3px 0; }
   .kvs span { color: #6A7686; margin-inline-end: 6px; }
   .count { margin-top: 4px; font-size: 10px; color: #6A7686; }
+  .pics { display: flex; gap: 4px; align-items: center; margin-bottom: 3px; }
+  .pics img { max-width: 90px; max-height: 70px; object-fit: contain; }
 </style>
 {% for s in sections %}
 <section>
@@ -23,7 +25,8 @@
   {% if s.columns %}
   <table class="rep">
     <thead><tr>{% for c in s.columns %}<th{% if loop.index0 in s.nums %} class="n"{% endif %}>{{ c }}</th>{% endfor %}</tr></thead>
-    <tbody>{% for r in s.rows %}<tr>{% for v in r %}<td{% if loop.index0 in s.nums %} class="n"{% endif %}>{{ v }}</td>{% endfor %}</tr>{% endfor %}</tbody>
+    <tbody>{% for r in s.rows %}{% set rpics = s.pics[loop.index0] if s.pics and loop.index0 < s.pics|length else [] %}<tr>{% for v in r %}<td{% if loop.index0 in s.nums %} class="n"{% endif %}>
+      {%- set cp = rpics[loop.index0] if loop.index0 < rpics|length else [] %}{% if cp %}<div class="pics">{% for u in cp %}<img src="{{ u }}" alt="">{% endfor %}</div>{% endif %}{{ v }}</td>{% endfor %}</tr>{% endfor %}</tbody>
   </table>
   <div class="count">عدد السطور: <span class="num">{{ s.rows | length }}</span></div>
   {% endif %}

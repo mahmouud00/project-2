@@ -3,6 +3,12 @@
 All notable changes are listed here. Versions follow Semantic Versioning (MAJOR.MINOR.PATCH).
 
 ## [Unreleased]
+### Fixed
+- Excel (and every other file the desktop program saves: a printout copy, a library package, the materials template, a customer's data) did nothing: WebView2 drops a browser-style download, so the program now writes the file to Downloads itself (`save_download`, the bytes as the raw request body) and shows it in Explorer.
+- The WhatsApp button and the «فيه نسخة جديدة» download were refused by the program's link rules: wa.me / api.whatsapp.com and the server's `/api/v1/system/clients/` are now allowed.
+- A table's PDF has its pictures: a model's photo and the window's drawing are sent with the report as inline images (only `data:image/…;base64`, at most three per cell) and printed in their cells.
+### Changed
+- The quotation (screen and printout) no longer shows «المساحة الكلية» nor the actual area under «مساحة الفتحة»: one window per line, the area shown is the one it is billed on.
 ### Added
 - Profiles in purchase orders are read in bars: the goods order from a work order shows the number of bars and takes the supplier's price per bar, the purchase order page shows quantities and prices per bar (metres beside them), and receiving counts bars. The order still keeps metres and a price per metre underneath, so costs and the company prices are unchanged. `bar_length_mm` on purchase order lines.
 - «تحديث بآخر معادلات منشورة» in a work order (before manufacturing): every item is calculated again with its system's current published version and the cut sheet is rebuilt; prices stay as agreed. An order never changes by itself when the formulas are updated, so a model fixed and published after the quotation reaches the order only this way. `POST /work-orders/{id}/recalculate`.

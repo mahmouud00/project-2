@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { api, CLIENT_VERSION, store } from "../api/client";
 import { inDesktop } from "../lib/discovery";
 import { openMap } from "./field";
+import { useToast } from "../state/toast";
 
 type Client = { version: string; size: number; file: string; url: string } | null;
 
@@ -19,6 +20,7 @@ const SKIP = "update.skip";
 
 export function UpdateBanner() {
   const [offer, setOffer] = useState<Client>(null);
+  const toast = useToast();
   const phone = /Android/i.test(navigator.userAgent);
   useEffect(() => {
     if (!inDesktop() && !phone) return;           // the browser version is always the server's own
@@ -37,7 +39,8 @@ export function UpdateBanner() {
     <div className="banner info row" style={{ gap: 10 }}>
       <span className="grow">فيه نسخة جديدة من البرنامج <b className="num">{offer.version}</b> (عندك <span className="num">{CLIENT_VERSION}</span>).
         {phone ? " نزّلها وافتحها عشان تتسطب فوق القديمة." : " نزّلها وشغّلها، وهتتسطب فوق القديمة والبيانات زي ما هي."}</span>
-      <button className="btn primary sm" onClick={() => openMap(store.server + offer.url)}>
+      {/* the installer downloads in the browser (Edge on the PC) from the server */}
+      <button className="btn primary sm" onClick={() => openMap(store.server + offer.url).catch(() => toast.err("ماقدرتش أفتح التحميل."))}>
         تحديث ({Math.max(1, Math.round(offer.size / 1048576))} ميجا)</button>
       <button className="btn ghost sm" onClick={later}>بعدين</button>
     </div>

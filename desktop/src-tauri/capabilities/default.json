@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Main window: core features, notifications, opening map links (Google Maps / OpenStreetMap only). No file system or shell access.",
+  "description": "Main window: core features, notifications, opening map / WhatsApp links and the update downloads of the server, saving exported files to Downloads and showing them. No file system or shell access.",
   "windows": [
     "main"
   ],
@@ -30,9 +30,22 @@
         },
         {
           "url": "tel:*"
+        },
+        {
+          "url": "https://wa.me/*"
+        },
+        {
+          "url": "https://api.whatsapp.com/*"
+        },
+        {
+          "url": "http://*/api/v1/system/clients/*"
+        },
+        {
+          "url": "https://*/api/v1/system/clients/*"
         }
       ]
     },
-    "notification:default"
+    "notification:default",
+    "opener:allow-reveal-item-in-dir"
   ]
 }

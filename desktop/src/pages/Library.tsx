@@ -1,6 +1,7 @@
 // المكتبة: MYTech authors systems / materials / models once and publishes them for every customer.
 // Customers see library rows read-only, add their own calibration, and may keep private systems.
 import { useState, type ReactNode } from "react";
+import { saveFile } from "../lib/save";
 import { api, errorText, raw, type S } from "../api/client";
 import { type PageProps, useRecordHistory, useTitle } from "../lib/title";
 import { useAction, useLoad } from "../lib/hooks";
@@ -715,12 +716,8 @@ function Packages() {
     const r = await raw("/library/packages/export", { method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ system_codes: codes, notes }) });
     if (!r.ok) throw new Error((await r.json().catch(() => null))?.error?.message ?? "Export failed");
-    const blob = await r.blob();
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = `mytech-library-${new Date().toISOString().slice(0, 10)}.zip`;
-    a.click();
-    toast.ok("اتعملت الحزمة. وقّعها بأداة الترخيص (توقيع حزمة) قبل ما تبعتها للعملاء.");
+    const path = await saveFile(`mytech-library-${new Date().toISOString().slice(0, 10)}.zip`, await r.blob());
+    toast.ok(`اتعملت الحزمة${path ? ` (${path})` : ""}. وقّعها بأداة الترخيص (توقيع حزمة) قبل ما تبعتها للعملاء.`);
   });
 
   return (
@@ -884,10 +881,8 @@ function ExcelImport() {
     }
   });
   const template = () => run(async () => {
-    const url = URL.createObjectURL(await api.blob("/library/import-excel/template"));
-    const a = document.createElement("a");
-    a.href = url; a.download = "قالب-الخامات.xlsx"; a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    const path = await saveFile("قالب-الخامات.xlsx", await api.blob("/library/import-excel/template"));
+    toast.ok(path ? `اتحفظ في التنزيلات: ${path}` : "اتنزل الملف.");
   });
   const r = report;
   return (

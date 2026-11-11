@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { saveFile } from "../lib/save";
 import { api, type S } from "../api/client";
 import { type PageProps, useRecordHistory, useTitle } from "../lib/title";
 import { useAction, useDebounced, useLoad, when } from "../lib/hooks";
@@ -127,10 +128,8 @@ function CustomerDetail({ id, tab: tabQuery }: { id: string; tab?: string }) {
 
   const exportData = () => run(async () => {
     const data = await api.get<unknown>(`/privacy/subjects/customer/${id}/export`);
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }));
-    a.download = `customer-${cu.code}.json`;
-    a.click();
+    const path = await saveFile(`customer-${cu.code}.json`, new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }));
+    toast.ok(path ? `اتحفظ في التنزيلات: ${path}` : "اتنزل الملف.");
   });
 
   return (

@@ -111,9 +111,10 @@ def test_quotation_print_columns(platform, tenant_a, client):
         "lines": [{"model_id": lib["model"]["id"], "opening_width_mm": 800, "opening_height_mm": 900, "qty": 3,
                    "color_code": "W", "glass_material_code": "QPR-GLASS6", "price_per_m2": "1100"}]}).json()
     html = client.get(f"/api/v1/quotations/{q['id']}/print", headers=h).text
-    for text in ("رقم النموذج", "مساحة الفتحة", "المساحة الكلية", "نوع وشكل النموذج", "سعر المتر", "التكلفة",
-                 lib["model"]["code"], "1,100.00", "3,300.00", "الفعلية 0.72", ">3.00<"):
+    for text in ("رقم النموذج", "مساحة الفتحة", "نوع وشكل النموذج", "سعر المتر", "التكلفة",
+                 lib["model"]["code"], "1,100.00", "3,300.00", ">3.00<"):
         assert text in html, text
+    assert "المساحة الكلية" not in html and "الفعلية" not in html     # one window per line: the billed area only
 
 
 def test_survey_list_carries_openings(platform, tenant_a, client):

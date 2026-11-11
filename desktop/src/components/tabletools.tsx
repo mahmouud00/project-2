@@ -1,8 +1,9 @@
 // The tools above every table: a quick filter over the rows on screen, which columns to show (remembered per table),
 // and Excel / PDF of exactly what is shown (filtered rows, chosen columns, in the shown order).
 import { useState, type ReactNode, type RefObject } from "react";
+import { saveFile } from "../lib/save";
 import { errorText, raw } from "../api/client";
-import { textOf, type Report, type ReportSection } from "../lib/printpage";
+import { cellPics, textOf, type Report, type ReportSection } from "../lib/printpage";
 import { useToast } from "../state/toast";
 import { Icon } from "./icons";
 import { PrintPreview } from "./media";
@@ -12,9 +13,12 @@ export function tableReport(table: HTMLTableElement, title: string): Report {
   const head = Array.from(table.tHead?.rows[0]?.cells ?? []);
   const keep = head.map((c, i) => [i, textOf(c).replace(/[▲▼]/g, "").trim()] as const).filter(([, t]) => t !== "");
   const body = Array.from(table.tBodies).flatMap((b) => Array.from(b.rows)).filter((r) => !r.hidden);
-  const rows = body.map((r) => keep.map(([i]) => (r.cells[i] ? textOf(r.cells[i]) : ""))).filter((r) => r.some((v) => v !== ""));
+  const kept = body.filter((r) => keep.some(([i]) => r.cells[i] && textOf(r.cells[i]) !== ""));
+  const rows = kept.map((r) => keep.map(([i]) => (r.cells[i] ? textOf(r.cells[i]) : "")));
+  const pics = kept.map((r) => keep.map(([i]) => (r.cells[i] ? cellPics(r.cells[i]) : [])));
   const nums = keep.map(([i], j) => (head[i].classList.contains("n") ? j : -1)).filter((j) => j >= 0);
-  const section: ReportSection = { title, kv: [], columns: keep.map(([, t]) => t), rows, nums };
+  const section: ReportSection = { title, kv: [], columns: keep.map(([, t]) => t), rows, nums,
+    pics: pics.some((r) => r.some((c) => c.length)) ? pics : undefined };
   const page = document.querySelector(".page-title")?.textContent?.trim() ?? "";
   return { title: title || page || "تقرير", subtitle: title && page && title !== page ? page : "", sections: [section] };
 }
@@ -39,16 +43,10 @@ export function TableTools({ tableRef, filter, setFilter, columns, hidden, setHi
     if (!r) return;
     setBusy(true);
     try {
-      const res = await raw("/documents/report.xlsx", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(r) });
+      const res = await raw("/documents/report.xlsx", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...r, sections: r.sections.map((x) => ({ ...x, pics: undefined })) }) });
       if (!res.ok) throw new Error((await res.json().catch(() => null))?.error?.message ?? "Export failed");
-      const url = URL.createObjectURL(await res.blob());
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `${r.title.replace(/[\\/:*?"<>|]/g, " ").trim() || "تقرير"}.xlsx`;
-      document.body.appendChild(a);       // the file name is only kept for a link that is in the page
-      a.click();
-      a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 2000);
+      const path = await saveFile(`${r.title.replace(/[\\/:*?"<>|]/g, " ").trim() || "تقرير"}.xlsx`, await res.blob());
+      toast.ok(path ? `اتحفظ في التنزيلات: ${path}` : "اتنزل الملف.");
     } catch (e) {
       toast.err(errorText(e));
     } finally {
