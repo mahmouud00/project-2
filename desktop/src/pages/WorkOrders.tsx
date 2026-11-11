@@ -84,6 +84,7 @@ function WorkOrderDetail({ id, tab }: { id: string; tab: string }) {
   const wo = useLoad(() => api.get<WO>(`/work-orders/${id}`), [id]);
   useTitle(wo.data ? `أمر تصنيع ${wo.data.number}` : "…", <Crumbs items={[{ label: "أوامر التصنيع", to: "work-orders" }]} />, [wo.data?.number]);
   const [printing, setPrinting] = useState(false);
+  const [recalc, setRecalc] = useState(false);
   const [saleDecision, setSaleDecision] = useState<boolean | null>(null);
   const [paying, setPaying] = useState(false);
   const [cancel, setCancel] = useState(false);
@@ -187,7 +188,10 @@ function WorkOrderDetail({ id, tab }: { id: string; tab: string }) {
             <div className="row">
               {w.outputs_generated_at ? <span className="muted small">اتعملت في <span className="num">{dateTime(w.outputs_generated_at as string)}</span>{frozen && " · مجمّدة بعد بدء التصنيع"}</span>
                 : <span className="muted small">معاينة (هتتجمد لما التصنيع يبدأ)</span>}
-              {!frozen && s.can("workorders.write", w.branch_id) && <Btn small icon="refresh" busy={busy} className="end" onClick={regen}>إعادة الحساب</Btn>}
+              {!frozen && s.can("workorders.write", w.branch_id) && <>
+                <Btn small icon="refresh" busy={busy} className="end" onClick={regen}>إعادة الحساب</Btn>
+                <Btn small icon="calc" busy={busy} onClick={() => setRecalc(true)}
+                  title="لو عدّلت النموذج ونشرت القطاع بعد عرض السعر">تحديث بآخر معادلات منشورة</Btn></>}
             </div>
             {outputs.error && <ErrorBox text={outputs.error} />}
             {outputs.loading && !outputs.data && <Loading />}
@@ -205,6 +209,9 @@ function WorkOrderDetail({ id, tab }: { id: string; tab: string }) {
       {ordering && <GoodsOrder wo={w} onClose={() => setOrdering(false)} />}
       {assign && <AssignJob job={{ kind: "installation", customer_id: w.customer_id, branch_id: w.branch_id, work_order_id: w.id }}
         onClose={() => setAssign(false)} onSaved={() => undefined} />}
+      {recalc && <Confirm title="تحديث بآخر معادلات منشورة" yes="تحديث" busy={busy} onClose={() => setRecalc(false)}
+        text="كل الشبابيك في الأمر هتتحسب تاني بآخر نسخة منشورة من قطاعها (القطع والخامات وطلبية الشراء)، وورقة التقطيع هتتعمل من جديد. الأسعار مش هتتغير. التعديل في النموذج لازم يكون اتنشر الأول من المكتبة («النشر والنسخ»)، وده مش متاح بعد ما التصنيع يبدأ."
+        onYes={() => run(async () => { await api.post(`/work-orders/${id}/recalculate`); setRecalc(false); wo.reload(); outputs.reload(); toast.ok("اتحسب الأمر بآخر معادلات منشورة."); })} />}
       {printing && <PrintPreview path={`/work-orders/${id}/print/cut-list`} title={`كشف تقطيع ${w.number}`} onClose={() => setPrinting(false)} />}
       {saleDecision !== null && <SaleDecisionForm wo={w} approve={saleDecision} onClose={() => setSaleDecision(null)} onSaved={(x) => wo.set(x)} />}
       {paying && <PaymentForm onClose={() => setPaying(false)} onSaved={() => wo.reload()}

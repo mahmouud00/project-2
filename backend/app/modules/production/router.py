@@ -367,6 +367,41 @@ def generate(wo_id: uuid.UUID, dc=Depends(require("workorders.write"))):
     return wo.outputs
 
 
+@router.post("/work-orders/{wo_id}/recalculate", response_model=WorkOrderOut)
+def recalculate(wo_id: uuid.UUID, dc=Depends(require("workorders.write"))):
+    """تحديث بآخر معادلات منشورة: every item is calculated again with its system's current published version (a
+    model changed and published after the quotation). Asked for on purpose, before manufacturing starts: an order
+    never changes by itself when the formulas are updated. Prices stay as agreed."""
+    from app.modules.library.service import calculate_model
+
+    db, ctx = dc
+    wo = _get_wo(db, ctx, wo_id, "workorders.write")
+    if wo.stage in FROZEN_STAGES or wo.stage == "cancelled":
+        raise Conflict("Outputs are frozen once manufacturing started", code="OUTPUTS_FROZEN")
+    items = list(db.scalars(select(WorkOrderItem).where(WorkOrderItem.work_order_id == wo.id)
+                            .order_by(WorkOrderItem.position)))
+    errors = []
+    for item in items:
+        calc = calculate_model(db, ctx, item.model_id, opening_width_mm=item.opening_width_mm,
+                               opening_height_mm=item.opening_height_mm, params=item.params or {})
+        bad = [i for i in calc["issues"] if i["level"] == "error"]
+        if bad:
+            errors.append({"item": item.position, "location": item.location, "issues": bad})
+            continue
+        before = snapshot(item)
+        item.calc = calc
+        item.formula_set_version_id = uuid.UUID(calc["meta"]["formula_set_version_id"])
+        audit(db, item, "update", before, note="تحديث بآخر معادلات منشورة")
+    if errors:
+        db.rollback()
+        raise ValidationFailed("Some items cannot be made with the current formulas", code="CALC_INVALID",
+                               details=errors)
+    wo.outputs = generate_outputs(db, wo)
+    wo.outputs_generated_at = utcnow()
+    db.commit()
+    return _wo_out(db, wo, ctx=ctx)
+
+
 @router.get("/work-orders/{wo_id}/manufacturing")
 def get_outputs(wo_id: uuid.UUID, dc=Depends(require("workorders.read"))):
     db, ctx = dc
