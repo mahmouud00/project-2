@@ -193,7 +193,7 @@ def print_cut_list(wo_id: uuid.UUID, dc=Depends(require("workorders.read"))):
     outputs = wo.outputs or generate_outputs(db, wo)
     log_pii(db, ctx, "customer", [wo.customer_id], "export", ["name"])
     db.commit()
-    return _page("cutlist.html", db, ctx, title="كشف تقطيع", wo=wo, outputs=outputs,
+    return _page("cutlist.html", db, ctx, title="كشف تقطيع", wo=wo, outputs=outputs, landscape=True,
                  customer=db.get(Customer, wo.customer_id))
 
 
