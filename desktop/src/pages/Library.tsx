@@ -105,11 +105,14 @@ function Systems({ selected, tab }: { selected?: string; tab: string }) {
 function SystemForm({ system, onClose, onSaved }: { system?: System; onClose: () => void; onSaved: (s: System) => void }) {
   const toast = useToast();
   const { busy, run } = useAction(toast.err);
-  const [d, setD] = useState<Partial<System>>(system ?? { material_type: "upvc", unit: "cm", rounding_step_mm: "0", rounding_mode: "half_up", status: "trial", supplier: "", description: "" });
+  const [d, setD] = useState<Partial<System>>(system ?? { material_type: "upvc", unit: "cm", rounding_step_mm: "0", rounding_mode: "half_up", status: "trial", supplier: "", description: "",
+    miter_frame_mm: "0", miter_sash_mm: "0", miter_bead_mm: "0", saw_kerf_mm: "0", bar_start_waste_mm: "0" });
   const set = (k: keyof System) => (v: any) => setD((x) => ({ ...x, [k]: v }));
   const save = () => run(async () => {
     const body = { name: d.name, supplier: d.supplier ?? "", unit: d.unit, rounding_step_mm: d.rounding_step_mm || "0", rounding_mode: d.rounding_mode,
-      status: d.status, description: d.description ?? "", image_id: d.image_id ?? null };
+      status: d.status, description: d.description ?? "", image_id: d.image_id ?? null,
+      miter_frame_mm: d.miter_frame_mm || "0", miter_sash_mm: d.miter_sash_mm || "0", miter_bead_mm: d.miter_bead_mm || "0",
+      saw_kerf_mm: d.saw_kerf_mm || "0", bar_start_waste_mm: d.bar_start_waste_mm || "0" };
     const out = system ? await api.patch<System>(`/library/systems/${system.id}`, { ...body, version: system.version })
       : await api.post<System>("/library/systems", { ...body, code: d.code, material_type: d.material_type });
     onSaved(out);
@@ -132,6 +135,13 @@ function SystemForm({ system, onClose, onSaved }: { system?: System; onClose: ()
         <Field label="طريقة التقريب"><Select value={d.rounding_mode} onChange={set("rounding_mode")}
           options={[{ value: "half_up", label: "لأقرب قيمة" }, { value: "up", label: "لفوق" }, { value: "down", label: "لتحت" }]} /></Field>
         <Field label="وصف" className="span-all"><TextArea value={d.description} onChange={set("description")} rows={2} /></Field>
+        <div className="span-all"><b>التقطيع</b> <span className="muted small">— بيدخل في خطة الأعواد وطلبية الشراء بس، وأطوال القطع زي ما هي.
+          قطعة حلق أو ضلفة أو باكتة مقصوصة 45° بتاخد من العود طولها + شطفها مرة واحدة.</span></div>
+        <Field label="شطف زاوية 45 للحلق"><LenIn mm={d.miter_frame_mm} onChange={(mm) => set("miter_frame_mm")(mm ?? "0")} /></Field>
+        <Field label="شطف زاوية 45 للضلفة"><LenIn mm={d.miter_sash_mm} onChange={(mm) => set("miter_sash_mm")(mm ?? "0")} /></Field>
+        <Field label="شطف زاوية 45 للباكتة"><LenIn mm={d.miter_bead_mm} onChange={(mm) => set("miter_bead_mm")(mm ?? "0")} /></Field>
+        <Field label="سُمك سلاح المنشار" hint="بيتخصم مع كل قصّة"><LenIn mm={d.saw_kerf_mm} onChange={(mm) => set("saw_kerf_mm")(mm ?? "0")} /></Field>
+        <Field label="هالك بداية العود" hint="بيتشال من أول كل عود جديد"><LenIn mm={d.bar_start_waste_mm} onChange={(mm) => set("bar_start_waste_mm")(mm ?? "0")} /></Field>
       </div>
     </Modal>
   );

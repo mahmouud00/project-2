@@ -62,6 +62,11 @@ class SystemIn(BaseModel):
     status: Status = "trial"
     description: str = ""
     image_id: uuid.UUID | None = None
+    miter_frame_mm: Decimal = Field(Decimal(0), ge=0, le=500)
+    miter_sash_mm: Decimal = Field(Decimal(0), ge=0, le=500)
+    miter_bead_mm: Decimal = Field(Decimal(0), ge=0, le=500)
+    saw_kerf_mm: Decimal = Field(Decimal(0), ge=0, le=50)
+    bar_start_waste_mm: Decimal = Field(Decimal(0), ge=0, le=1000)
 
 
 class SystemUpdate(VersionedUpdate):
@@ -74,6 +79,11 @@ class SystemUpdate(VersionedUpdate):
     description: str | None = None
     image_id: uuid.UUID | None = None
     is_active: bool | None = None
+    miter_frame_mm: Decimal | None = Field(None, ge=0, le=500)
+    miter_sash_mm: Decimal | None = Field(None, ge=0, le=500)
+    miter_bead_mm: Decimal | None = Field(None, ge=0, le=500)
+    saw_kerf_mm: Decimal | None = Field(None, ge=0, le=50)
+    bar_start_waste_mm: Decimal | None = Field(None, ge=0, le=1000)
 
 
 class SystemOut(Record):
@@ -91,6 +101,11 @@ class SystemOut(Record):
     is_active: bool
     current_version_id: uuid.UUID | None
     is_library: bool = False
+    miter_frame_mm: Decimal = Decimal(0)
+    miter_sash_mm: Decimal = Decimal(0)
+    miter_bead_mm: Decimal = Decimal(0)
+    saw_kerf_mm: Decimal = Decimal(0)
+    bar_start_waste_mm: Decimal = Decimal(0)
 
 
 class ConstantIn(BaseModel):

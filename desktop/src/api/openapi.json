@@ -20994,6 +20994,20 @@
       "type": "array",
       "maxItems": 30,
       "title": "Nums"
+     },
+     "pics": {
+      "items": {
+       "items": {
+        "items": {
+         "type": "string"
+        },
+        "type": "array"
+       },
+       "type": "array"
+      },
+      "type": "array",
+      "maxItems": 5000,
+      "title": "Pics"
      }
     },
     "type": "object",
@@ -22591,6 +22605,76 @@
        }
       ],
       "title": "Image Id"
+     },
+     "miter_frame_mm": {
+      "anyOf": [
+       {
+        "type": "number",
+        "maximum": 500.0,
+        "minimum": 0.0
+       },
+       {
+        "type": "string"
+       }
+      ],
+      "title": "Miter Frame Mm",
+      "default": "0"
+     },
+     "miter_sash_mm": {
+      "anyOf": [
+       {
+        "type": "number",
+        "maximum": 500.0,
+        "minimum": 0.0
+       },
+       {
+        "type": "string"
+       }
+      ],
+      "title": "Miter Sash Mm",
+      "default": "0"
+     },
+     "miter_bead_mm": {
+      "anyOf": [
+       {
+        "type": "number",
+        "maximum": 500.0,
+        "minimum": 0.0
+       },
+       {
+        "type": "string"
+       }
+      ],
+      "title": "Miter Bead Mm",
+      "default": "0"
+     },
+     "saw_kerf_mm": {
+      "anyOf": [
+       {
+        "type": "number",
+        "maximum": 50.0,
+        "minimum": 0.0
+       },
+       {
+        "type": "string"
+       }
+      ],
+      "title": "Saw Kerf Mm",
+      "default": "0"
+     },
+     "bar_start_waste_mm": {
+      "anyOf": [
+       {
+        "type": "number",
+        "maximum": 1000.0,
+        "minimum": 0.0
+       },
+       {
+        "type": "string"
+       }
+      ],
+      "title": "Bar Start Waste Mm",
+      "default": "0"
      }
     },
     "type": "object",
@@ -22709,6 +22793,31 @@
       "type": "boolean",
       "title": "Is Library",
       "default": false
+     },
+     "miter_frame_mm": {
+      "type": "string",
+      "title": "Miter Frame Mm",
+      "default": "0"
+     },
+     "miter_sash_mm": {
+      "type": "string",
+      "title": "Miter Sash Mm",
+      "default": "0"
+     },
+     "miter_bead_mm": {
+      "type": "string",
+      "title": "Miter Bead Mm",
+      "default": "0"
+     },
+     "saw_kerf_mm": {
+      "type": "string",
+      "title": "Saw Kerf Mm",
+      "default": "0"
+     },
+     "bar_start_waste_mm": {
+      "type": "string",
+      "title": "Bar Start Waste Mm",
+      "default": "0"
      }
     },
     "type": "object",
@@ -22852,6 +22961,86 @@
        }
       ],
       "title": "Is Active"
+     },
+     "miter_frame_mm": {
+      "anyOf": [
+       {
+        "type": "number",
+        "maximum": 500.0,
+        "minimum": 0.0
+       },
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Miter Frame Mm"
+     },
+     "miter_sash_mm": {
+      "anyOf": [
+       {
+        "type": "number",
+        "maximum": 500.0,
+        "minimum": 0.0
+       },
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Miter Sash Mm"
+     },
+     "miter_bead_mm": {
+      "anyOf": [
+       {
+        "type": "number",
+        "maximum": 500.0,
+        "minimum": 0.0
+       },
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Miter Bead Mm"
+     },
+     "saw_kerf_mm": {
+      "anyOf": [
+       {
+        "type": "number",
+        "maximum": 50.0,
+        "minimum": 0.0
+       },
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Saw Kerf Mm"
+     },
+     "bar_start_waste_mm": {
+      "anyOf": [
+       {
+        "type": "number",
+        "maximum": 1000.0,
+        "minimum": 0.0
+       },
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Bar Start Waste Mm"
      }
     },
     "type": "object",

@@ -6408,6 +6408,8 @@ export interface components {
             rows?: string[][];
             /** Nums */
             nums?: number[];
+            /** Pics */
+            pics?: string[][][];
         };
         /** ReverseIn */
         ReverseIn: {
@@ -6951,6 +6953,31 @@ export interface components {
             description: string;
             /** Image Id */
             image_id?: string | null;
+            /**
+             * Miter Frame Mm
+             * @default 0
+             */
+            miter_frame_mm: number | string;
+            /**
+             * Miter Sash Mm
+             * @default 0
+             */
+            miter_sash_mm: number | string;
+            /**
+             * Miter Bead Mm
+             * @default 0
+             */
+            miter_bead_mm: number | string;
+            /**
+             * Saw Kerf Mm
+             * @default 0
+             */
+            saw_kerf_mm: number | string;
+            /**
+             * Bar Start Waste Mm
+             * @default 0
+             */
+            bar_start_waste_mm: number | string;
         };
         /** SystemOut */
         SystemOut: {
@@ -6999,6 +7026,31 @@ export interface components {
              * @default false
              */
             is_library: boolean;
+            /**
+             * Miter Frame Mm
+             * @default 0
+             */
+            miter_frame_mm: string;
+            /**
+             * Miter Sash Mm
+             * @default 0
+             */
+            miter_sash_mm: string;
+            /**
+             * Miter Bead Mm
+             * @default 0
+             */
+            miter_bead_mm: string;
+            /**
+             * Saw Kerf Mm
+             * @default 0
+             */
+            saw_kerf_mm: string;
+            /**
+             * Bar Start Waste Mm
+             * @default 0
+             */
+            bar_start_waste_mm: string;
         };
         /** SystemUpdate */
         SystemUpdate: {
@@ -7022,6 +7074,16 @@ export interface components {
             image_id?: string | null;
             /** Is Active */
             is_active?: boolean | null;
+            /** Miter Frame Mm */
+            miter_frame_mm?: number | string | null;
+            /** Miter Sash Mm */
+            miter_sash_mm?: number | string | null;
+            /** Miter Bead Mm */
+            miter_bead_mm?: number | string | null;
+            /** Saw Kerf Mm */
+            saw_kerf_mm?: number | string | null;
+            /** Bar Start Waste Mm */
+            bar_start_waste_mm?: number | string | null;
         };
         /** TechnicianOut */
         TechnicianOut: {

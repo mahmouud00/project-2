@@ -24,6 +24,34 @@ def _sku(material: dict | None, code: str, color: str | None) -> str:
     return code
 
 
+NO_CUT = {"code": "", "miter_frame_mm": Decimal(0), "miter_sash_mm": Decimal(0), "miter_bead_mm": Decimal(0),
+          "saw_kerf_mm": Decimal(0), "bar_start_waste_mm": Decimal(0)}
+MITER_ROLE = {"frame": "miter_frame_mm", "sash": "miter_sash_mm", "bead": "miter_bead_mm"}
+
+
+def system_cutting(db: Session, model_id, cache: dict) -> dict:
+    """How the bars of the model's system are cut (its values as they are now: machine settings, not formulas)."""
+    from app.modules.library.models import ProfileSystem
+
+    if model_id not in cache:
+        model = db.get(ProductModel, model_id)
+        system = db.get(ProfileSystem, model.system_id) if model else None
+        cache[model_id] = NO_CUT if system is None else {
+            "code": system.code, **{k: Decimal(getattr(system, k) or 0) for k in NO_CUT if k != "code"}}
+    return cache[model_id]
+
+
+def miter_extra(piece: dict, cut: dict) -> Decimal:
+    """A frame / sash / bead piece cut at 45° (at either end) takes its role's allowance once more from the bar."""
+    field = MITER_ROLE.get(piece.get("role") or "")
+    if not field:
+        return Decimal(0)
+    angles = (piece.get("angle_left"), piece.get("angle_right"))
+    if any(a is not None and abs(Decimal(str(a)) - 45) < Decimal("0.5") for a in angles):
+        return cut[field]
+    return Decimal(0)
+
+
 def unit_ranges(units) -> str:
     """[1, 1, 2, 3, 5] -> "1–3، 5" (the windows a row of the cut list is for)."""
     nums = sorted(set(int(u) for u in units))
@@ -63,6 +91,7 @@ def generate_outputs(db: Session, wo: WorkOrder, offcuts: dict[str, list[dict]] 
     # what is bought per SKU: the model's «حساب طلبية الشراء» rows when it has them, else its pieces (each with a
     # saw cut, as the cut list); the cut list itself always comes from the pieces
     buy_groups: dict[str, dict] = {}
+    systems: dict = {}
     next_unit = 1          # every window of the order gets its own number (شباك 1، 2، …) for the cutter to mark pieces
 
     for item in items:
@@ -70,6 +99,7 @@ def generate_outputs(db: Session, wo: WorkOrder, offcuts: dict[str, list[dict]] 
             versions[item.formula_set_version_id] = db.get(FormulaSetVersion, item.formula_set_version_id).snapshot
         materials = versions[item.formula_set_version_id]["materials"]
         calc = item.calc
+        cut = system_cutting(db, item.model_id, systems)
         ref = f"{item.position}" + (f" ({item.location})" if item.location else "")
         units = list(range(next_unit, next_unit + item.qty))
         next_unit += item.qty
@@ -82,8 +112,9 @@ def generate_outputs(db: Session, wo: WorkOrder, offcuts: dict[str, list[dict]] 
                 "sku": sku, "material_code": p["material_code"], "material_name": p.get("material_name"),
                 "unit": (mat or {}).get("unit", "m"), "bar_length_mm": (mat or {}).get("bar_length_mm"),
                 "color": item.color_code, "pieces": defaultdict(lambda: {"qty": 0, "refs": []})})
+            g.setdefault("cut", cut)
             key = (p["length_mm"], p["angle_left"], p["angle_right"], p.get("label", p["key"]),
-                   p.get("element"), p.get("side"))
+                   p.get("element"), p.get("side"), miter_extra(p, cut))
             entry = g["pieces"][key]
             entry["qty"] += int(p["qty"]) * item.qty
             entry["refs"].append(ref)
@@ -99,7 +130,8 @@ def generate_outputs(db: Session, wo: WorkOrder, offcuts: dict[str, list[dict]] 
                                             "material_name": p.get("material_name"), "unit": (mat or {}).get("unit", "m"),
                                             "bar_length_mm": (mat or {}).get("bar_length_mm"), "pieces": [],
                                             "from_purchase": False})
-            extra = Decimal(0) if from_rows else Decimal(settings.saw_kerf_mm)
+            b.setdefault("cut", cut)
+            extra = Decimal(0) if from_rows else cut["saw_kerf_mm"] + miter_extra(p, cut)
             b["pieces"].append({"length_mm": Decimal(p["length_mm"]) + extra, "qty": int(p["qty"]) * item.qty})
             b["from_purchase"] = b["from_purchase"] or from_rows
         for gl in calc.get("glass", []):
@@ -133,7 +165,7 @@ def generate_outputs(db: Session, wo: WorkOrder, offcuts: dict[str, list[dict]] 
     for sku, g in sorted(cut_groups.items()):
         # (group key is the SKU, so all its pieces share one colour)
         pieces = [{"length_mm": Decimal(k[0]), "angle_left": k[1], "angle_right": k[2], "label": k[3],
-                   "element": k[4], "side": k[5], "qty": v["qty"], "refs": v["refs"],
+                   "element": k[4], "side": k[5], "extra_mm": k[6], "qty": v["qty"], "refs": v["refs"],
                    "units": sorted(v.get("units", [])), "windows": unit_ranges(v.get("units", []))}
                   for k, v in g["pieces"].items()]
         pieces.sort(key=lambda p: p["length_mm"], reverse=True)
@@ -143,11 +175,12 @@ def generate_outputs(db: Session, wo: WorkOrder, offcuts: dict[str, list[dict]] 
         cut_total[sku] = cut_list[-1]["total_length_mm"]
         cost, _, _ = resolver.resolve(g["material_code"], g["color"])
         if g["bar_length_mm"]:
+            cut = g.get("cut") or NO_CUT
             plan = optimise([{"length_mm": p["length_mm"], "qty": p["qty"], "label": p["label"], "side": p["side"],
-                              "element": p["element"], "units": p["units"],
+                              "element": p["element"], "units": p["units"], "extra_mm": p["extra_mm"],
                               "angle_left": p["angle_left"], "angle_right": p["angle_right"]} for p in pieces],
-                            bar_length_mm=Decimal(g["bar_length_mm"]), kerf_mm=settings.saw_kerf_mm,
-                            trim_mm=settings.bar_trim_mm, min_offcut_mm=settings.min_reusable_offcut_mm,
+                            bar_length_mm=Decimal(g["bar_length_mm"]), kerf_mm=cut["saw_kerf_mm"],
+                            start_mm=cut["bar_start_waste_mm"], min_offcut_mm=settings.min_reusable_offcut_mm,
                             stock=offcuts.get(sku, []))
             plan["sku"] = sku
             for t in plan["too_long"]:
@@ -179,8 +212,8 @@ def generate_outputs(db: Session, wo: WorkOrder, offcuts: dict[str, list[dict]] 
         elif b["bar_length_mm"]:
             # the lengths already hold the saw cuts: packed into bars with only the bar ends trimmed
             plan = optimise(b["pieces"], bar_length_mm=Decimal(b["bar_length_mm"]), kerf_mm=Decimal(0),
-                            trim_mm=settings.bar_trim_mm, min_offcut_mm=settings.min_reusable_offcut_mm,
-                            stock=offcuts.get(sku, []))
+                            start_mm=(b.get("cut") or NO_CUT)["bar_start_waste_mm"],
+                            min_offcut_mm=settings.min_reusable_offcut_mm, stock=offcuts.get(sku, []))
             row.update(bars=plan["bars_count"], bar_length_mm=Decimal(b["bar_length_mm"]),
                        offcuts_used=len(plan["offcuts_used"]), too_long=len(plan["too_long"]))
         purchase.append(row)
@@ -219,6 +252,7 @@ def generate_outputs(db: Session, wo: WorkOrder, offcuts: dict[str, list[dict]] 
         "missing_costs": sorted(missing),
         "drawings": drawings,
         "issues": issues,
-        "settings": {"saw_kerf_mm": settings.saw_kerf_mm, "bar_trim_mm": settings.bar_trim_mm,
-                     "min_reusable_offcut_mm": settings.min_reusable_offcut_mm},
+        "settings": {"min_reusable_offcut_mm": settings.min_reusable_offcut_mm,
+                     "systems": {c["code"]: {n: str(v) for n, v in c.items() if n != "code"}
+                                 for c in systems.values() if c is not NO_CUT}},
     })

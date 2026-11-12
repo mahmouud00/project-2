@@ -155,6 +155,9 @@ def test_upgrade_from_old_revision_keeps_data():
     assert float(after["system_constants"][str(u["k_safe"])]["value"]) == 0.05
     assert float(after["company_calibrations"][str(u["cal"])]["delta"]) == 0.1
     assert after["profile_systems"][str(u["kept"])]["unit"] == "mm"
+    # 0021: how bars are cut is on each system now; the company had no saw / trim values, so 0
+    assert float(after["profile_systems"][str(u["safe"])]["saw_kerf_mm"]) == 0
+    assert float(after["profile_systems"][str(u["safe"])]["bar_start_waste_mm"]) == 0
     assert float(after["system_constants"][str(u["k_kept"])]["value"]) == 6
     for table, key in (("profile_systems", "safe"), ("profile_systems", "kept"), ("system_constants", "k_safe"),
                        ("system_constants", "k_kept"), ("company_calibrations", "cal"), ("product_models", "model")):

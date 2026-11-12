@@ -67,6 +67,14 @@ class ProfileSystem(Base, LibraryEntity, SoftDeleteMixin):
     description: Mapped[str] = mapped_column(Text, default="")
     image_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("media_files.id"), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    # how this system's bars are cut (the cutting plan and so what is bought; never the cut lengths themselves):
+    # a piece cut at 45° takes its role's allowance once more from the bar, every cut the saw's thickness,
+    # and every bar loses its start
+    miter_frame_mm: Mapped[Decimal] = mapped_column(Numeric(10, 2), default=Decimal(0), server_default="0")
+    miter_sash_mm: Mapped[Decimal] = mapped_column(Numeric(10, 2), default=Decimal(0), server_default="0")
+    miter_bead_mm: Mapped[Decimal] = mapped_column(Numeric(10, 2), default=Decimal(0), server_default="0")
+    saw_kerf_mm: Mapped[Decimal] = mapped_column(Numeric(10, 2), default=Decimal(0), server_default="0")
+    bar_start_waste_mm: Mapped[Decimal] = mapped_column(Numeric(10, 2), default=Decimal(0), server_default="0")
     current_version_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
 
 

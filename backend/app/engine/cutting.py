@@ -24,26 +24,28 @@ class Bar:
     used: Decimal = Decimal(0)  # pieces + kerfs between them
     offcut_id: str | None = None   # an offcut from stock, not a new bar
 
-    def need(self, length: Decimal, kerf: Decimal) -> Decimal:
-        return length + (kerf if self.pieces else Decimal(0))
+    def need(self, length: Decimal, kerf: Decimal, extra: Decimal = Decimal(0)) -> Decimal:
+        return length + extra + (kerf if self.pieces else Decimal(0))
 
     def remaining(self) -> Decimal:
         return self.usable - self.used
 
     def add(self, piece: dict, kerf: Decimal) -> None:
-        self.used += self.need(piece["length_mm"], kerf)
+        self.used += self.need(piece["length_mm"], kerf, piece.get("extra_mm", Decimal(0)))
         self.pieces.append(piece)
 
     def recompute(self, kerf: Decimal) -> None:
-        self.used = sum((p["length_mm"] for p in self.pieces), Decimal(0)) + kerf * max(len(self.pieces) - 1, 0)
+        self.used = sum((p["length_mm"] + p.get("extra_mm", Decimal(0)) for p in self.pieces), Decimal(0)) \
+            + kerf * max(len(self.pieces) - 1, 0)
 
 
 def optimise(pieces: list[dict], *, bar_length_mm: Decimal, kerf_mm: Decimal = Decimal(0),
              trim_mm: Decimal = Decimal(0), min_offcut_mm: Decimal = Decimal(0),
-             stock: list[dict] | None = None) -> dict:
-    """pieces: [{"length_mm": Decimal, "qty": int, ...extra kept as-is}]; stock: [{"id", "length_mm"}] offcuts."""
+             stock: list[dict] | None = None, start_mm: Decimal = Decimal(0)) -> dict:
+    """pieces: [{"length_mm": Decimal, "qty": int, "extra_mm": bar taken beyond the length (a 45° cut),
+    ...extra kept as-is}]; stock: [{"id", "length_mm"}] offcuts; start_mm: lost at the start of a new bar."""
     bar_length_mm, kerf_mm, trim_mm = Decimal(bar_length_mm), Decimal(kerf_mm), Decimal(trim_mm)
-    usable = bar_length_mm - 2 * trim_mm
+    usable = bar_length_mm - 2 * trim_mm - Decimal(start_mm)
     singles, too_long = [], []
     for p in pieces:
         units = p.get("units") or []            # the window each piece is for (one number per piece), when given
@@ -52,15 +54,16 @@ def optimise(pieces: list[dict], *, bar_length_mm: Decimal, kerf_mm: Decimal = D
             if i < len(units):
                 item["unit"] = units[i]
             item["length_mm"] = Decimal(p["length_mm"])
-            (too_long if item["length_mm"] > usable else singles).append(item)
-    singles.sort(key=lambda x: x["length_mm"], reverse=True)
+            item["extra_mm"] = Decimal(p.get("extra_mm") or 0)
+            (too_long if item["length_mm"] + item["extra_mm"] > usable else singles).append(item)
+    singles.sort(key=lambda x: x["length_mm"] + x["extra_mm"], reverse=True)
 
     bars: list[Bar] = [Bar(Decimal(o["length_mm"]), Decimal(o["length_mm"]), offcut_id=str(o["id"]))
                        for o in sorted(stock or [], key=lambda o: Decimal(o["length_mm"]))]
     for item in singles:
         best, best_left = None, None
         for bar in bars:
-            left = bar.remaining() - bar.need(item["length_mm"], kerf_mm)
+            left = bar.remaining() - bar.need(item["length_mm"], kerf_mm, item["extra_mm"])
             if left >= 0 and (best_left is None or left < best_left):
                 best, best_left = bar, left
         if best is None:
@@ -110,7 +113,8 @@ def _improve(bars: list[Bar], kerf: Decimal) -> None:
         for piece in sorted(victim.pieces, key=lambda p: p["length_mm"], reverse=True):
             target = None
             for b in others:
-                need = piece["length_mm"] + (kerf if b.pieces or any(t is b for _, t in plan) else 0)
+                need = piece["length_mm"] + piece.get("extra_mm", Decimal(0)) + \
+                    (kerf if b.pieces or any(t is b for _, t in plan) else 0)
                 if trial[id(b)] - need >= 0 and (target is None or trial[id(b)] < trial[id(target)]):
                     target = b
             if target is None:

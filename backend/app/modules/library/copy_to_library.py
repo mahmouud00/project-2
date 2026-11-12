@@ -126,7 +126,10 @@ class _Copier:
                             supplier=src.supplier, material_type=src.material_type, unit=src.unit,
                             rounding_step_mm=src.rounding_step_mm, rounding_mode=src.rounding_mode,
                             status=src.status, description=src.description, image_id=self.media_id(src.image_id),
-                            is_active=src.is_active, current_version_id=None, created_by=self.user)
+                            is_active=src.is_active, current_version_id=None, created_by=self.user,
+                            miter_frame_mm=src.miter_frame_mm, miter_sash_mm=src.miter_sash_mm,
+                            miter_bead_mm=src.miter_bead_mm, saw_kerf_mm=src.saw_kerf_mm,
+                            bar_start_waste_mm=src.bar_start_waste_mm)
         self.db.add(new)
         self.db.flush()
         for c in self.db.scalars(select(SystemConstant).where(SystemConstant.system_id == src.id)):
