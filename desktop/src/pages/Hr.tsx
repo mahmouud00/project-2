@@ -11,6 +11,7 @@ import { DeleteBtn } from "../components/actions";
 import { QUOTE_STATUS, STAGE_NAMES, invalidate } from "../lib/lookups";
 import { go, setQuery } from "../lib/router";
 import { date, today } from "../lib/format";
+import { Attendance } from "./Attendance";
 
 type Emp = S<"EmployeeOut">;
 type Entry = S<"EntryOut">;
@@ -37,8 +38,8 @@ function HrHome({ tab }: { tab: string }) {
   return (
     <Card flush>
       <Tabs value={tab} onChange={(t) => setQuery({ tab: t })} tabs={[{ id: "employees", label: "الموظفين" },
-        { id: "payroll", label: "كشوف المرتبات" }]} />
-      <div className="card-b">{tab === "payroll" ? <Payroll /> : <Employees />}</div>
+        { id: "attendance", label: "الحضور والانصراف" }, { id: "payroll", label: "كشوف المرتبات" }]} />
+      <div className="card-b">{tab === "payroll" ? <Payroll /> : tab === "attendance" ? <Attendance /> : <Employees />}</div>
     </Card>
   );
 }
@@ -89,12 +90,13 @@ function EmployeeForm({ employee, onClose, onSaved }: { employee?: Emp; onClose:
   const [d, setD] = useState({ full_name: e?.full_name ?? "", job_title: e?.job_title ?? "", department: e?.department ?? "sales",
     branch_id: e?.branch_id ?? branch ?? "", phone: e?.phone ?? "", national_id: e?.national_id ?? "", address: e?.address ?? "",
     hire_date: e?.hire_date ?? "", base_salary: e?.base_salary ?? "0", annual_leave_days: e?.annual_leave_days ?? "21",
-    user_id: e?.user_id ?? "", notes: e?.notes ?? "", status: e?.status ?? "active", end_date: e?.end_date ?? "" });
+    user_id: e?.user_id ?? "", notes: e?.notes ?? "", attendance_pin: e?.attendance_pin ?? "", status: e?.status ?? "active", end_date: e?.end_date ?? "" });
   const set = (k: keyof typeof d) => (v: string) => setD((x) => ({ ...x, [k]: v }));
   const save = () => run(async () => {
     const body = { full_name: d.full_name, job_title: d.job_title, department: d.department, branch_id: d.branch_id,
       phone: d.phone || null, national_id: d.national_id || null, address: d.address || null, hire_date: d.hire_date || null,
-      base_salary: d.base_salary || "0", annual_leave_days: d.annual_leave_days || "0", user_id: d.user_id || null, notes: d.notes };
+      base_salary: d.base_salary || "0", annual_leave_days: d.annual_leave_days || "0", user_id: d.user_id || null, notes: d.notes,
+      attendance_pin: d.attendance_pin.trim() || null };
     const out = e ? await api.patch<Emp>(`/employees/${e.id}`, { ...body, version: e.version, status: d.status, end_date: d.end_date || null })
       : await api.post<Emp>("/employees", body);
     invalidate("salespeople");
@@ -120,6 +122,7 @@ function EmployeeForm({ employee, onClose, onSaved }: { employee?: Emp; onClose:
         <Field label="حسابه على البرنامج" hint="لو بيدخل البرنامج: مبيعاته بتتسجل باسمه أوتوماتيك">
           <Select value={d.user_id} onChange={set("user_id")} placeholder="مالوش حساب"
             options={(users.data ?? []).map((u) => ({ value: u.id, label: `${u.full_name} (${u.username})` }))} /></Field>
+        <Field label="رقم البصمة" hint="رقمه على جهاز البصمة (User ID)"><TextIn value={d.attendance_pin} onChange={set("attendance_pin")} code /></Field>
         {e && <Field label="الحالة"><Select value={d.status} onChange={set("status")}
           options={[{ value: "active", label: "شغال" }, { value: "left", label: "ساب الشغل" }]} /></Field>}
         {e && d.status === "left" && <Field label="تاريخ ترك الشغل"><input type="date" className="input" value={d.end_date}
@@ -171,7 +174,8 @@ function EmployeeProfile({ id, tab }: { id: string; tab: string }) {
           {tab === "info" && <KV items={[
             ["التليفون", <span className="num">{e.phone ?? "—"}</span>], ["الرقم القومي", <span className="num">{e.national_id ?? "—"}</span>],
             ["العنوان", e.address ?? "—"], ["تاريخ التعيين", <span className="num">{date(e.hire_date)}</span>],
-            ["رصيد الإجازات السنوي", `${Number(e.annual_leave_days)} يوم`], ["ملاحظات", e.notes || "—"],
+            ["رصيد الإجازات السنوي", `${Number(e.annual_leave_days)} يوم`],
+            ["رقم البصمة", <span className="num">{e.attendance_pin ?? "—"}</span>], ["ملاحظات", e.notes || "—"],
           ]} />}
           {tab === "entries" && <Entries emp={e} onChange={summary.reload} />}
           {tab === "leaves" && <Leaves emp={e} onChange={summary.reload} />}

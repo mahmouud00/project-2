@@ -50,6 +50,8 @@ def create_app() -> FastAPI:
     app.include_router(tech_pages)
     from app.modules.sharing.pages import router as share_pages   # what a customer opens from a shared link: /s/...
     app.include_router(share_pages)
+    from app.modules.hr.attendance import device_router   # fingerprint devices push punches to /iclock/...
+    app.include_router(device_router)
     return app
 
 
@@ -107,6 +109,7 @@ MODULE_ROUTERS: list[str] = [
     "app.modules.documents.router",
     "app.modules.field.router",
     "app.modules.hr.router",
+    "app.modules.hr.attendance",
     "app.modules.finance.router",
     "app.modules.notifications.router",
     "app.modules.deletions.router",

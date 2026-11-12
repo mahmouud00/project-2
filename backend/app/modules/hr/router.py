@@ -23,6 +23,7 @@ from app.core.numbering import next_number
 from app.core.pii import log_pii
 from app.db.base import utcnow
 from app.modules.crm.router import branch_scope, get_or_404
+from app.modules.hr.attendance import check_pin, link_pin
 from app.modules.hr.models import DEPARTMENTS, Employee, EmployeeEntry, Leave, PayrollRun, Payslip
 from app.modules.org.models import Branch, User
 from app.tenancy.context import require
@@ -59,6 +60,7 @@ class EmployeeIn(BaseModel):
     base_salary: Decimal = Field(Decimal(0), ge=0)
     annual_leave_days: Decimal = Field(Decimal(21), ge=0)
     notes: str = ""
+    attendance_pin: str | None = Field(None, max_length=20)
 
 
 class EmployeeUpdate(VersionedUpdate):
@@ -76,6 +78,7 @@ class EmployeeUpdate(VersionedUpdate):
     base_salary: Decimal | None = Field(None, ge=0)
     annual_leave_days: Decimal | None = Field(None, ge=0)
     notes: str | None = None
+    attendance_pin: str | None = Field(None, max_length=20)
 
 
 class EmployeeOut(Record):
@@ -94,6 +97,7 @@ class EmployeeOut(Record):
     base_salary: Decimal
     annual_leave_days: Decimal
     notes: str
+    attendance_pin: str | None = None
 
 
 class EmployeeBrief(ORMModel):
@@ -163,12 +167,15 @@ def create_employee(body: EmployeeIn, dc=Depends(require("hr.create"))):
     get_or_404(db, Branch, body.branch_id)
     _check_user(db, body.user_id)
     data = body.model_dump()
+    data["attendance_pin"] = (data.get("attendance_pin") or "").strip() or None
+    check_pin(db, data["attendance_pin"])
     data["code"] = data["code"] or next_number(db, "employee", "EM")
     if db.scalar(select(Employee).where(Employee.code == data["code"])):
         raise Conflict("Employee code exists", code="DUPLICATE_CODE")
     e = Employee(**data)
     db.add(e)
     db.flush()
+    link_pin(db, e)
     audit(db, e, "create")
     log_pii(db, ctx, "employee", [e.id], "create", [k for k in EMPLOYEE_PII if data.get(k)])
     db.commit()
@@ -197,8 +204,13 @@ def update_employee(eid: uuid.UUID, body: EmployeeUpdate, dc=Depends(require("hr
         _check_user(db, data["user_id"])
     if data.get("status") == "left" and not data.get("end_date") and not e.end_date:
         data["end_date"] = date.today()
+    if "attendance_pin" in data:
+        data["attendance_pin"] = (data["attendance_pin"] or "").strip() or None
+        check_pin(db, data["attendance_pin"], e.id)
     before = snapshot(e)
     apply_changes(e, data)
+    db.flush()
+    link_pin(db, e)
     audit(db, e, "update", before)
     log_pii(db, ctx, "employee", [e.id], "update", [k for k in data if k in EMPLOYEE_PII])
     db.commit()

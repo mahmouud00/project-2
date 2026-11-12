@@ -10736,6 +10736,371 @@
     }
    }
   },
+  "/api/v1/attendance/devices": {
+   "get": {
+    "tags": [
+     "attendance"
+    ],
+    "summary": "List Devices",
+    "operationId": "list_devices_api_v1_attendance_devices_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/FingerprintDevicesOut"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ]
+   },
+   "post": {
+    "tags": [
+     "attendance"
+    ],
+    "summary": "Add Device",
+    "operationId": "add_device_api_v1_attendance_devices_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/FingerprintDeviceIn"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/FingerprintDeviceOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ]
+   }
+  },
+  "/api/v1/attendance/devices/{device_id}": {
+   "patch": {
+    "tags": [
+     "attendance"
+    ],
+    "summary": "Update Device",
+    "operationId": "update_device_api_v1_attendance_devices__device_id__patch",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "device_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Device Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/FingerprintDeviceUpdate"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/FingerprintDeviceOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/attendance/punches": {
+   "get": {
+    "tags": [
+     "attendance"
+    ],
+    "summary": "List Punches",
+    "operationId": "list_punches_api_v1_attendance_punches_get",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "date_from",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string",
+         "format": "date"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Date From"
+      }
+     },
+     {
+      "name": "date_to",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string",
+         "format": "date"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Date To"
+      }
+     },
+     {
+      "name": "employee_id",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string",
+         "format": "uuid"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Employee Id"
+      }
+     },
+     {
+      "name": "limit",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "maximum": 500,
+       "minimum": 1,
+       "default": 50,
+       "title": "Limit"
+      }
+     },
+     {
+      "name": "offset",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "minimum": 0,
+       "default": 0,
+       "title": "Offset"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Page_PunchOut_"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/attendance/days": {
+   "get": {
+    "tags": [
+     "attendance"
+    ],
+    "summary": "Attendance Days",
+    "description": "Each employee's first and last punch per day (a night shift past midnight shows as two days).",
+    "operationId": "attendance_days_api_v1_attendance_days_get",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "date_from",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string",
+         "format": "date"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Date From"
+      }
+     },
+     {
+      "name": "date_to",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string",
+         "format": "date"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Date To"
+      }
+     },
+     {
+      "name": "employee_id",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string",
+         "format": "uuid"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Employee Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/DayOut"
+         },
+         "title": "Response Attendance Days Api V1 Attendance Days Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/attendance/unlinked": {
+   "get": {
+    "tags": [
+     "attendance"
+    ],
+    "summary": "Unlinked Pins",
+    "description": "Numbers on the device no employee has yet: give them to the employees (their file → رقم البصمة).",
+    "operationId": "unlinked_pins_api_v1_attendance_unlinked_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "items": {
+          "$ref": "#/components/schemas/UnlinkedOut"
+         },
+         "type": "array",
+         "title": "Response Unlinked Pins Api V1 Attendance Unlinked Get"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ]
+   }
+  },
   "/api/v1/assets": {
    "get": {
     "tags": [
@@ -13991,6 +14356,68 @@
     ],
     "title": "CustomerUpdate"
    },
+   "DayOut": {
+    "properties": {
+     "day": {
+      "type": "string",
+      "format": "date",
+      "title": "Day"
+     },
+     "employee_id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "uuid"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Employee Id"
+     },
+     "employee_name": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Employee Name"
+     },
+     "pin": {
+      "type": "string",
+      "title": "Pin"
+     },
+     "first": {
+      "type": "string",
+      "format": "date-time",
+      "title": "First"
+     },
+     "last": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Last"
+     },
+     "punches": {
+      "type": "integer",
+      "title": "Punches"
+     }
+    },
+    "type": "object",
+    "required": [
+     "day",
+     "employee_id",
+     "employee_name",
+     "pin",
+     "first",
+     "last",
+     "punches"
+    ],
+    "title": "DayOut",
+    "description": "One employee's day: first and last punch."
+   },
    "Definition": {
     "properties": {
      "params": {
@@ -14533,6 +14960,18 @@
       "type": "string",
       "title": "Notes",
       "default": ""
+     },
+     "attendance_pin": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 20
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Attendance Pin"
      }
     },
     "type": "object",
@@ -14682,6 +15121,17 @@
      "notes": {
       "type": "string",
       "title": "Notes"
+     },
+     "attendance_pin": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Attendance Pin"
      }
     },
     "type": "object",
@@ -14882,6 +15332,18 @@
        }
       ],
       "title": "Notes"
+     },
+     "attendance_pin": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 20
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Attendance Pin"
      }
     },
     "type": "object",
@@ -15201,6 +15663,227 @@
     },
     "type": "object",
     "title": "ExportIn"
+   },
+   "FingerprintDeviceIn": {
+    "properties": {
+     "serial": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{4,40}$",
+      "title": "Serial"
+     },
+     "name": {
+      "type": "string",
+      "maxLength": 120,
+      "title": "Name",
+      "default": ""
+     },
+     "branch_id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "uuid"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Branch Id"
+     }
+    },
+    "type": "object",
+    "required": [
+     "serial"
+    ],
+    "title": "FingerprintDeviceIn"
+   },
+   "FingerprintDeviceOut": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Id"
+     },
+     "version": {
+      "type": "integer",
+      "title": "Version"
+     },
+     "created_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Created At"
+     },
+     "updated_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Updated At"
+     },
+     "serial": {
+      "type": "string",
+      "title": "Serial"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "branch_id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "uuid"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Branch Id"
+     },
+     "is_active": {
+      "type": "boolean",
+      "title": "Is Active"
+     },
+     "last_seen_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Last Seen At"
+     },
+     "last_punch_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Last Punch At"
+     },
+     "info": {
+      "type": "string",
+      "title": "Info"
+     },
+     "punches": {
+      "type": "integer",
+      "title": "Punches",
+      "default": 0
+     },
+     "online": {
+      "type": "boolean",
+      "title": "Online",
+      "default": false
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "version",
+     "serial",
+     "name",
+     "branch_id",
+     "is_active",
+     "last_seen_at",
+     "last_punch_at",
+     "info"
+    ],
+    "title": "FingerprintDeviceOut"
+   },
+   "FingerprintDeviceUpdate": {
+    "properties": {
+     "version": {
+      "type": "integer",
+      "title": "Version"
+     },
+     "name": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 120
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Name"
+     },
+     "branch_id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "uuid"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Branch Id"
+     },
+     "is_active": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Is Active"
+     }
+    },
+    "type": "object",
+    "required": [
+     "version"
+    ],
+    "title": "FingerprintDeviceUpdate"
+   },
+   "FingerprintDevicesOut": {
+    "properties": {
+     "devices": {
+      "items": {
+       "$ref": "#/components/schemas/FingerprintDeviceOut"
+      },
+      "type": "array",
+      "title": "Devices"
+     },
+     "server_addresses": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Server Addresses"
+     },
+     "server_port": {
+      "type": "integer",
+      "title": "Server Port"
+     }
+    },
+    "type": "object",
+    "required": [
+     "devices",
+     "server_addresses",
+     "server_port"
+    ],
+    "title": "FingerprintDevicesOut"
    },
    "Formula": {
     "properties": {
@@ -19758,6 +20441,37 @@
     ],
     "title": "Page[POOut]"
    },
+   "Page_PunchOut_": {
+    "properties": {
+     "items": {
+      "items": {
+       "$ref": "#/components/schemas/PunchOut"
+      },
+      "type": "array",
+      "title": "Items"
+     },
+     "total": {
+      "type": "integer",
+      "title": "Total"
+     },
+     "limit": {
+      "type": "integer",
+      "title": "Limit"
+     },
+     "offset": {
+      "type": "integer",
+      "title": "Offset"
+     }
+    },
+    "type": "object",
+    "required": [
+     "items",
+     "total",
+     "limit",
+     "offset"
+    ],
+    "title": "Page[PunchOut]"
+   },
    "Page_QuotationOut_": {
     "properties": {
      "items": {
@@ -20360,6 +21074,70 @@
     },
     "type": "object",
     "title": "PublishIn"
+   },
+   "PunchOut": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Id"
+     },
+     "punched_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Punched At"
+     },
+     "pin": {
+      "type": "string",
+      "title": "Pin"
+     },
+     "employee_id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "uuid"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Employee Id"
+     },
+     "employee_name": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Employee Name"
+     },
+     "device_serial": {
+      "type": "string",
+      "title": "Device Serial"
+     },
+     "state": {
+      "type": "integer",
+      "title": "State"
+     },
+     "verify": {
+      "type": "integer",
+      "title": "Verify"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "punched_at",
+     "pin",
+     "employee_id",
+     "device_serial",
+     "state",
+     "verify"
+    ],
+    "title": "PunchOut"
    },
    "PurchaseRow": {
     "properties": {
@@ -23451,6 +24229,30 @@
      "reversed"
     ],
     "title": "TxOut"
+   },
+   "UnlinkedOut": {
+    "properties": {
+     "pin": {
+      "type": "string",
+      "title": "Pin"
+     },
+     "punches": {
+      "type": "integer",
+      "title": "Punches"
+     },
+     "last": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Last"
+     }
+    },
+    "type": "object",
+    "required": [
+     "pin",
+     "punches",
+     "last"
+    ],
+    "title": "UnlinkedOut"
    },
    "UserIn": {
     "properties": {

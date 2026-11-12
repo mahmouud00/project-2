@@ -4,7 +4,7 @@ import uuid
 from datetime import date, datetime
 from decimal import Decimal
 
-from sqlalchemy import Date, DateTime, ForeignKey, Numeric, String, Text, UniqueConstraint
+from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Integer, Numeric, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -36,6 +36,7 @@ class Employee(Base, Entity, SoftDeleteMixin):
     base_salary: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal(0))
     annual_leave_days: Mapped[Decimal] = mapped_column(Numeric(6, 2), default=Decimal(21))
     notes: Mapped[str] = mapped_column(Text, default="")
+    attendance_pin: Mapped[str | None] = mapped_column(String(20), nullable=True, index=True)   # رقمه على جهاز البصمة
 
 
 class EmployeeEntry(Base, Entity, SoftDeleteMixin):
@@ -101,3 +102,34 @@ class Payslip(Base, Entity):
     net: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal(0))     # handed to the employee
     cash_transaction_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True),
                                                                   ForeignKey("cash_transactions.id"), nullable=True)
+
+
+class AttendanceDevice(Base, Entity):
+    """جهاز بصمة (ZKTeco ADMS / push). It identifies itself by its serial number only, so a serial belongs to one
+    company on the whole server. A stopped device (is_active false) is answered but what it sends is not kept."""
+    __tablename__ = "attendance_devices"
+    __table_args__ = (UniqueConstraint("serial"),)
+
+    serial: Mapped[str] = mapped_column(String(40))
+    name: Mapped[str] = mapped_column(String(120), default="")
+    branch_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("branches.id"), nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    last_seen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_punch_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=False), nullable=True)
+    attlog_stamp: Mapped[str | None] = mapped_column(String(40), nullable=True)   # where the device continues from
+    info: Mapped[str] = mapped_column(String(200), default="")                    # firmware / push version
+
+
+class AttendancePunch(Base, Entity):
+    """One fingerprint / face punch as the device sent it. `punched_at` is the device's own clock (factory local
+    time, no time zone). Never edited: a wrong punch is answered in the attendance review, not here."""
+    __tablename__ = "attendance_punches"
+    __table_args__ = (UniqueConstraint("company_id", "device_serial", "pin", "punched_at"),)
+
+    device_serial: Mapped[str] = mapped_column(String(40))
+    pin: Mapped[str] = mapped_column(String(20), index=True)
+    employee_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("employees.id"),
+                                                          nullable=True, index=True)
+    punched_at: Mapped[datetime] = mapped_column(DateTime(timezone=False), index=True)
+    state: Mapped[int] = mapped_column(Integer, default=0)     # device status: 0 in, 1 out, 2/3 break, 4/5 overtime
+    verify: Mapped[int] = mapped_column(Integer, default=0)    # 1 finger, 15 face, 3/4 password / card ...

@@ -2879,6 +2879,98 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/attendance/devices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Devices */
+        get: operations["list_devices_api_v1_attendance_devices_get"];
+        put?: never;
+        /** Add Device */
+        post: operations["add_device_api_v1_attendance_devices_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/attendance/devices/{device_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Device */
+        patch: operations["update_device_api_v1_attendance_devices__device_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/attendance/punches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Punches */
+        get: operations["list_punches_api_v1_attendance_punches_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/attendance/days": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Attendance Days
+         * @description Each employee's first and last punch per day (a night shift past midnight shows as two days).
+         */
+        get: operations["attendance_days_api_v1_attendance_days_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/attendance/unlinked": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Unlinked Pins
+         * @description Numbers on the device no employee has yet: give them to the employees (their file → رقم البصمة).
+         */
+        get: operations["unlinked_pins_api_v1_attendance_unlinked_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/assets": {
         parameters: {
             query?: never;
@@ -3971,6 +4063,35 @@ export interface components {
             /** Notes */
             notes?: string | null;
         };
+        /**
+         * DayOut
+         * @description One employee's day: first and last punch.
+         */
+        DayOut: {
+            /**
+             * Day
+             * Format: date
+             */
+            day: string;
+            /** Employee Id */
+            employee_id: string | null;
+            /** Employee Name */
+            employee_name: string | null;
+            /** Pin */
+            pin: string;
+            /**
+             * First
+             * Format: date-time
+             */
+            first: string;
+            /**
+             * Last
+             * Format: date-time
+             */
+            last: string;
+            /** Punches */
+            punches: number;
+        };
         /** Definition */
         Definition: {
             /**
@@ -4224,6 +4345,8 @@ export interface components {
              * @default
              */
             notes: string;
+            /** Attendance Pin */
+            attendance_pin?: string | null;
         };
         /** EmployeeOut */
         EmployeeOut: {
@@ -4271,6 +4394,8 @@ export interface components {
             annual_leave_days: string;
             /** Notes */
             notes: string;
+            /** Attendance Pin */
+            attendance_pin?: string | null;
         };
         /** EmployeeUpdate */
         EmployeeUpdate: {
@@ -4304,6 +4429,8 @@ export interface components {
             annual_leave_days?: number | string | null;
             /** Notes */
             notes?: string | null;
+            /** Attendance Pin */
+            attendance_pin?: string | null;
         };
         /** Entry */
         Entry: {
@@ -4411,6 +4538,76 @@ export interface components {
              * @default
              */
             notes: string;
+        };
+        /** FingerprintDeviceIn */
+        FingerprintDeviceIn: {
+            /** Serial */
+            serial: string;
+            /**
+             * Name
+             * @default
+             */
+            name: string;
+            /** Branch Id */
+            branch_id?: string | null;
+        };
+        /** FingerprintDeviceOut */
+        FingerprintDeviceOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Version */
+            version: number;
+            /** Created At */
+            created_at?: string | null;
+            /** Updated At */
+            updated_at?: string | null;
+            /** Serial */
+            serial: string;
+            /** Name */
+            name: string;
+            /** Branch Id */
+            branch_id: string | null;
+            /** Is Active */
+            is_active: boolean;
+            /** Last Seen At */
+            last_seen_at: string | null;
+            /** Last Punch At */
+            last_punch_at: string | null;
+            /** Info */
+            info: string;
+            /**
+             * Punches
+             * @default 0
+             */
+            punches: number;
+            /**
+             * Online
+             * @default false
+             */
+            online: boolean;
+        };
+        /** FingerprintDeviceUpdate */
+        FingerprintDeviceUpdate: {
+            /** Version */
+            version: number;
+            /** Name */
+            name?: string | null;
+            /** Branch Id */
+            branch_id?: string | null;
+            /** Is Active */
+            is_active?: boolean | null;
+        };
+        /** FingerprintDevicesOut */
+        FingerprintDevicesOut: {
+            /** Devices */
+            devices: components["schemas"]["FingerprintDeviceOut"][];
+            /** Server Addresses */
+            server_addresses: string[];
+            /** Server Port */
+            server_port: number;
         };
         /** Formula */
         Formula: {
@@ -5933,6 +6130,17 @@ export interface components {
             /** Offset */
             offset: number;
         };
+        /** Page[PunchOut] */
+        Page_PunchOut_: {
+            /** Items */
+            items: components["schemas"]["PunchOut"][];
+            /** Total */
+            total: number;
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+        };
         /** Page[QuotationOut] */
         Page_QuotationOut_: {
             /** Items */
@@ -6181,6 +6389,31 @@ export interface components {
              * @default
              */
             notes: string;
+        };
+        /** PunchOut */
+        PunchOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Punched At
+             * Format: date-time
+             */
+            punched_at: string;
+            /** Pin */
+            pin: string;
+            /** Employee Id */
+            employee_id: string | null;
+            /** Employee Name */
+            employee_name?: string | null;
+            /** Device Serial */
+            device_serial: string;
+            /** State */
+            state: number;
+            /** Verify */
+            verify: number;
         };
         /**
          * PurchaseRow
@@ -7238,6 +7471,18 @@ export interface components {
             reverses_id: string | null;
             /** Reversed */
             reversed: boolean;
+        };
+        /** UnlinkedOut */
+        UnlinkedOut: {
+            /** Pin */
+            pin: string;
+            /** Punches */
+            punches: number;
+            /**
+             * Last
+             * Format: date-time
+             */
+            last: string;
         };
         /** UserIn */
         UserIn: {
@@ -14400,6 +14645,182 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_devices_api_v1_attendance_devices_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FingerprintDevicesOut"];
+                };
+            };
+        };
+    };
+    add_device_api_v1_attendance_devices_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FingerprintDeviceIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FingerprintDeviceOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_device_api_v1_attendance_devices__device_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                device_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FingerprintDeviceUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FingerprintDeviceOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_punches_api_v1_attendance_punches_get: {
+        parameters: {
+            query?: {
+                date_from?: string | null;
+                date_to?: string | null;
+                employee_id?: string | null;
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_PunchOut_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    attendance_days_api_v1_attendance_days_get: {
+        parameters: {
+            query?: {
+                date_from?: string | null;
+                date_to?: string | null;
+                employee_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DayOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    unlinked_pins_api_v1_attendance_unlinked_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnlinkedOut"][];
                 };
             };
         };
