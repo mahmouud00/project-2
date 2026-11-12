@@ -136,6 +136,7 @@ function SystemForm({ system, onClose, onSaved }: { system?: System; onClose: ()
           options={[{ value: "half_up", label: "لأقرب قيمة" }, { value: "up", label: "لفوق" }, { value: "down", label: "لتحت" }]} /></Field>
         <Field label="وصف" className="span-all"><TextArea value={d.description} onChange={set("description")} rows={2} /></Field>
         <div className="span-all"><b>التقطيع</b> <span className="muted small">— بيدخل في خطة الأعواد وطلبية الشراء بس، وأطوال القطع زي ما هي.
+          بيتطبق على طول من غير نشر («إعادة الحساب» في أمر التصنيع).
           قطعة حلق أو ضلفة أو باكتة مقصوصة 45° بتاخد من العود طولها + شطفها مرة واحدة.</span></div>
         <Field label="شطف زاوية 45 للحلق"><LenIn mm={d.miter_frame_mm} onChange={(mm) => set("miter_frame_mm")(mm ?? "0")} /></Field>
         <Field label="شطف زاوية 45 للضلفة"><LenIn mm={d.miter_sash_mm} onChange={(mm) => set("miter_sash_mm")(mm ?? "0")} /></Field>
@@ -605,7 +606,9 @@ function Publish({ system, editable, onChanged }: { system: System; editable: bo
     setFailure(null);
     try {
       const v = await api.post<S<"VersionOut">>(`/library/systems/${system.id}/publish`, { notes });
-      toast.ok(`اتنشرت النسخة رقم ${v.version_no}.`);
+      if (v.id === system.current_version_id)        // nothing changed in the formulas or the models since it
+        toast.info(`مفيش تغيير في المعادلات أو النماذج من آخر نسخة (#${v.version_no})، فمفيش نسخة جديدة. قيم التقطيع (الشطف والمنشار وهالك العود) مش محتاجة نشر: بتتطبق على طول.`);
+      else toast.ok(`اتنشرت النسخة رقم ${v.version_no}.`);
       setNotes("");
       versions.reload();
       onChanged();
