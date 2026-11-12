@@ -4608,6 +4608,16 @@ export interface components {
             server_addresses: string[];
             /** Server Port */
             server_port: number;
+            /**
+             * Server Domain
+             * @default false
+             */
+            server_domain: boolean;
+            /**
+             * Server Https
+             * @default false
+             */
+            server_https: boolean;
         };
         /** Formula */
         Formula: {

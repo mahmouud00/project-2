@@ -15875,6 +15875,16 @@
      "server_port": {
       "type": "integer",
       "title": "Server Port"
+     },
+     "server_domain": {
+      "type": "boolean",
+      "title": "Server Domain",
+      "default": false
+     },
+     "server_https": {
+      "type": "boolean",
+      "title": "Server Https",
+      "default": false
      }
     },
     "type": "object",

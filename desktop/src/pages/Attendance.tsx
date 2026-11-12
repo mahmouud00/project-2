@@ -85,9 +85,11 @@ function DevicesCard() {
           <li>Server Address: <b className="num" dir="ltr">{addr}</b>{(list.data?.server_addresses?.length ?? 0) > 1 &&
             <span className="muted"> (أو: <span className="num" dir="ltr">{list.data!.server_addresses.slice(1).join("، ")}</span>)</span>}</li>
           <li>Server Port: <b className="num">{list.data?.server_port ?? 8000}</b></li>
-          <li>Enable Domain Name: <b>OFF</b> · Enable Proxy Server: <b>OFF</b> · HTTPS: <b>OFF</b></li>
+          <li>Enable Domain Name: <b>{list.data?.server_domain ? "ON" : "OFF"}</b> · Enable Proxy Server: <b>OFF</b> ·
+            HTTPS: <b>{list.data?.server_https ? "ON" : "OFF"}</b></li>
         </ul>
-        الجهاز لازم يكون متوصل بنفس شبكة جهاز السيرفر، وجهاز السيرفر ياخد IP ثابت. الرقم التسلسلي (SN) مكتوب على ظهر الجهاز
+        {list.data?.server_domain ? "الجهاز لازم يكون متوصل بإنترنت المصنع (السيرفر على السحابة)."
+          : "الجهاز لازم يكون متوصل بنفس شبكة جهاز السيرفر، وجهاز السيرفر ياخد IP ثابت."} الرقم التسلسلي (SN) مكتوب على ظهر الجهاز
         أو في القائمة ← <b>System Info</b> ← <b>Device Info</b>. أول ما يتصل بيبعت كل البصمات اللي عليه، ولو الشبكة وقعت بيحتفظ بيها ويبعتها بعدين.
       </div>
       {adding && <AddDevice onClose={() => setAdding(false)} onSaved={list.reload} />}

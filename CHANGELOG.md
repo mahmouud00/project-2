@@ -4,7 +4,7 @@ All notable changes are listed here. Versions follow Semantic Versioning (MAJOR.
 
 ## [Unreleased]
 ### Added
-- Attendance straight from the fingerprint device (ZKTeco ADMS push, e.g. uFace402 Plus): register the device by its serial, set the server address on the device, and every punch arrives by itself (kept once, matched to the employee by «رقم البصمة»). HR → «الحضور والانصراف» shows each employee's first and last punch per day, numbers not linked to anyone yet, and each device's status. See docs/ATTENDANCE.md.
+- Attendance straight from the fingerprint device (ZKTeco ADMS push, e.g. uFace402 Plus): register the device by its serial, set the server address on the device, and every punch arrives by itself (kept once, matched to the employee by «رقم البصمة»). HR → «الحضور والانصراف» shows each employee's first and last punch per day, numbers not linked to anyone yet, and each device's status. On the cloud server (PUBLIC_URL set) the device page shows the domain, port 443 and HTTPS. See docs/ATTENDANCE.md.
 ### Changed
 - How bars are cut is set on each system (library ← system ← «بيانات القطاع» ← التقطيع), no longer in the company data: the 45° allowance of a frame, a sash and a bead piece (a piece cut at 45° takes its length + that allowance once from the bar), the saw's thickness (every cut) and the waste at a bar's start (start only). The cut lengths never change; the bar plan, the material cost and what is bought do. A piece's role (frame / sash / bead) comes from its element's name. Migration 0021: a company's own systems start with the company's former saw / trim values (the trim taken at the start only now), MYTech's library systems at 0.
 ### Fixed

@@ -81,7 +81,7 @@ def test_device_pushes_punches(tenant_a, tenant_b, client):
     devices = client.get("/api/v1/attendance/devices", headers=h).json()
     d = devices["devices"][0]
     assert d["punches"] == 3 and d["online"] and d["last_punch_at"].endswith("17:02:10") and "pushver=2.4.1" in d["info"]
-    assert devices["server_port"] > 0
+    assert devices["server_port"] > 0 and devices["server_domain"] is False
 
     # the other company sees nothing of it
     assert client.get("/api/v1/attendance/devices", headers=tenant_b.h).json()["devices"] == []
@@ -92,3 +92,12 @@ def test_device_pushes_punches(tenant_a, tenant_b, client):
     assert r.status_code == 200, r.text
     client.post(f"/iclock/cdata?SN={SN}&table=ATTLOG", content="1\t2026-11-13 08:00:00\t0\t1\n")
     assert client.get("/api/v1/attendance/punches?date_from=2026-11-13&date_to=2026-11-13", headers=h).json()["total"] == 0
+
+
+def test_cloud_server_tells_its_public_address(tenant_a, client, monkeypatch):
+    from app.core.config import get_settings
+
+    monkeypatch.setattr(get_settings(), "public_url", "https://app.mytech.example")
+    d = client.get("/api/v1/attendance/devices", headers=tenant_a.h).json()
+    assert d["server_addresses"] == ["app.mytech.example"] and d["server_port"] == 443
+    assert d["server_domain"] and d["server_https"]

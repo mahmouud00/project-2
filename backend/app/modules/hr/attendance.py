@@ -223,6 +223,8 @@ class FingerprintDevicesOut(BaseModel):
     devices: list[FingerprintDeviceOut]
     server_addresses: list[str]
     server_port: int
+    server_domain: bool = False      # the address is a domain name (the cloud server): «Enable Domain Name» ON
+    server_https: bool = False
 
 
 def server_addresses() -> list[str]:
@@ -255,8 +257,17 @@ def _device_out(db, dev: AttendanceDevice) -> FingerprintDeviceOut:
 def list_devices(dc=Depends(require("hr.read"))):
     db, _ = dc
     devs = db.scalars(select(AttendanceDevice).order_by(AttendanceDevice.created_at)).all()
-    return FingerprintDevicesOut(devices=[_device_out(db, d) for d in devs], server_addresses=server_addresses(),
-                      server_port=get_settings().http_port)
+    devices = [_device_out(db, d) for d in devs]
+    public = get_settings().public_url.strip()
+    if public:                                     # the cloud server: the device calls its public address
+        from urllib.parse import urlsplit
+        u = urlsplit(public if "://" in public else "http://" + public)
+        https = u.scheme == "https"
+        host = u.hostname or ""
+        return FingerprintDevicesOut(devices=devices, server_addresses=[host], server_port=u.port or (443 if https else 80),
+                                     server_domain=not re.fullmatch(r"[\d.]+", host), server_https=https)
+    return FingerprintDevicesOut(devices=devices, server_addresses=server_addresses(),
+                                 server_port=get_settings().http_port)
 
 
 @router.post("/devices", response_model=FingerprintDeviceOut, status_code=201)

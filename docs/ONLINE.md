@@ -38,6 +38,7 @@ MEDIA_DIR=/var/lib/mytech/media      (أو storage مشترك لو فيه أكت
    - دعم WebSocket على `/api/v1/system/events`.
    - حد أقصى لحجم الرفع 500MB (عشان حزم المكتبة).
    - rate limiting على `/api/v1/auth/*`.
+   - `/iclock/*` (أجهزة البصمة) يعدّي للـ API، ولو أجهزة مابتدعمش HTTPS يتسمح بيه على HTTP بورت 80 من غير تحويل (شوف `docs/ATTENDANCE.md`).
 5. **الشركات والاشتراكات** من أداة MYTech على السيرفر:
    ```
    python -m tools.vendor_admin create-company --code ACME --name "..." --admin admin
