@@ -110,6 +110,7 @@ MODULE_ROUTERS: list[str] = [
     "app.modules.field.router",
     "app.modules.hr.router",
     "app.modules.hr.attendance",
+    "app.modules.hr.payrules",
     "app.modules.finance.router",
     "app.modules.notifications.router",
     "app.modules.deletions.router",

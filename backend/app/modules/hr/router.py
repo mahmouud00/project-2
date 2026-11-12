@@ -61,6 +61,8 @@ class EmployeeIn(BaseModel):
     annual_leave_days: Decimal = Field(Decimal(21), ge=0)
     notes: str = ""
     attendance_pin: str | None = Field(None, max_length=20)
+    pay_policy_id: uuid.UUID | None = None
+    manager_id: uuid.UUID | None = None
 
 
 class EmployeeUpdate(VersionedUpdate):
@@ -79,6 +81,8 @@ class EmployeeUpdate(VersionedUpdate):
     annual_leave_days: Decimal | None = Field(None, ge=0)
     notes: str | None = None
     attendance_pin: str | None = Field(None, max_length=20)
+    pay_policy_id: uuid.UUID | None = None
+    manager_id: uuid.UUID | None = None
 
 
 class EmployeeOut(Record):
@@ -98,6 +102,8 @@ class EmployeeOut(Record):
     annual_leave_days: Decimal
     notes: str
     attendance_pin: str | None = None
+    pay_policy_id: uuid.UUID | None = None
+    manager_id: uuid.UUID | None = None
 
 
 class EmployeeBrief(ORMModel):
@@ -116,6 +122,17 @@ def _employee(db, ctx, eid, permission="hr.read") -> Employee:
     e = get_or_404(db, Employee, eid)
     ctx.require(permission, e.branch_id)
     return e
+
+
+def _check_links(db, data: dict, employee_id=None) -> None:
+    from app.modules.hr.models import PayPolicy
+
+    if data.get("pay_policy_id"):
+        get_or_404(db, PayPolicy, data["pay_policy_id"])
+    if data.get("manager_id"):
+        if data["manager_id"] == employee_id:
+            raise ValidationFailed("An employee is not their own manager", code="SELF_MANAGER")
+        get_or_404(db, Employee, data["manager_id"])
 
 
 def _check_user(db, user_id):
@@ -169,6 +186,7 @@ def create_employee(body: EmployeeIn, dc=Depends(require("hr.create"))):
     data = body.model_dump()
     data["attendance_pin"] = (data.get("attendance_pin") or "").strip() or None
     check_pin(db, data["attendance_pin"])
+    _check_links(db, data)
     data["code"] = data["code"] or next_number(db, "employee", "EM")
     if db.scalar(select(Employee).where(Employee.code == data["code"])):
         raise Conflict("Employee code exists", code="DUPLICATE_CODE")
@@ -207,6 +225,7 @@ def update_employee(eid: uuid.UUID, body: EmployeeUpdate, dc=Depends(require("hr
     if "attendance_pin" in data:
         data["attendance_pin"] = (data["attendance_pin"] or "").strip() or None
         check_pin(db, data["attendance_pin"], e.id)
+    _check_links(db, data, e.id)
     before = snapshot(e)
     apply_changes(e, data)
     db.flush()
@@ -323,8 +342,10 @@ def employee_sales(eid: uuid.UUID, year: int | None = None, dc=Depends(require("
 # ---------------------------------------------------------------- bonuses, deductions, advances
 class EntryIn(BaseModel):
     employee_id: uuid.UUID
-    kind: str = Field(pattern="^(bonus|deduction|advance)$")
-    amount: Decimal = Field(gt=0)
+    kind: str = Field(pattern="^(bonus|deduction|advance|piecework)$")
+    amount: Decimal | None = Field(None, gt=0)
+    quantity: Decimal | None = Field(None, gt=0)      # piecework: how many openings
+    rate: Decimal | None = Field(None, ge=0)          # piecework: per opening
     entry_date: date | None = None
     month: str | None = Field(None, pattern=MONTH)   # default: the month of entry_date
     installment: Decimal | None = Field(None, gt=0)   # advance: taken back per month (default: all at once)
@@ -338,6 +359,8 @@ class EntryOut(Record):
     entry_date: date
     month: str
     amount: Decimal
+    quantity: Decimal | None = None
+    rate: Decimal | None = None
     installment: Decimal | None
     repaid: Decimal
     cash_transaction_id: uuid.UUID | None
@@ -359,8 +382,16 @@ def create_entry(body: EntryIn, dc=Depends(require("hr.create"))):
     db, ctx = dc
     e = _employee(db, ctx, body.employee_id, "hr.create")
     when = body.entry_date or date.today()
+    amount = body.amount
+    if body.kind == "piecework":
+        if body.quantity is None or body.rate is None:
+            raise ValidationFailed("Write how many and the price of one", code="PIECEWORK_INCOMPLETE")
+        amount = body.quantity * body.rate
+    if not amount or amount <= 0:
+        raise ValidationFailed("Write the amount", code="AMOUNT_REQUIRED")
     entry = EmployeeEntry(employee_id=e.id, kind=body.kind, entry_date=when, month=body.month or when.strftime("%Y-%m"),
-                          amount=_money(body.amount), note=body.note)
+                          amount=_money(amount), note=body.note, quantity=body.quantity if body.kind == "piecework" else None,
+                          rate=body.rate if body.kind == "piecework" else None)
     if body.kind == "advance":
         from app.modules.treasury.models import Cashbox
         from app.modules.treasury.router import post_cash
@@ -369,7 +400,7 @@ def create_entry(body: EntryIn, dc=Depends(require("hr.create"))):
             raise ValidationFailed("Choose the cashbox the advance is paid from", code="CASHBOX_REQUIRED")
         box = get_or_404(db, Cashbox, body.cashbox_id)
         ctx.require("treasury.create", box.branch_id)
-        entry.installment = _money(min(body.installment or body.amount, body.amount))
+        entry.installment = _money(min(body.installment or amount, amount))
         tx = post_cash(db, ctx, box, direction="out", amount=entry.amount, party_type="employee", party_id=e.id,
                        note=f"سلفة {e.code}" + (f" - {body.note}" if body.note else ""))
         entry.cash_transaction_id = tx.id
@@ -515,6 +546,21 @@ class PayslipOut(ORMModel):
     gross: Decimal
     net: Decimal
     cash_transaction_id: uuid.UUID | None
+    department: str = ""
+    manager_name: str = ""
+    policy_name: str = ""
+    present_days: Decimal = Decimal(0)
+    absent_days: Decimal = Decimal(0)
+    late_minutes: int = 0
+    attendance_deduction: Decimal = Decimal(0)
+    overtime_minutes: int = 0
+    overtime_amount: Decimal = Decimal(0)
+    allowances: Decimal = Decimal(0)
+    piecework: Decimal = Decimal(0)
+    collections: Decimal = Decimal(0)
+    commission: Decimal = Decimal(0)
+    commission_forced: bool = False
+    review_days: int = 0
 
 
 class RunOut(Record):
@@ -534,9 +580,16 @@ def _run_out(db, ctx, run: PayrollRun, with_slips: bool = True) -> RunOut:
     if with_slips:
         rows = db.execute(select(Payslip, Employee).join(Employee, Employee.id == Payslip.employee_id)
                           .where(Payslip.run_id == run.id).order_by(Employee.full_name)).all()
+        from app.modules.hr.models import PayPolicy
+
+        managers = {e.id: e.full_name for e in db.scalars(select(Employee).where(
+            Employee.id.in_({emp.manager_id for _, emp in rows if emp.manager_id})))} if rows else {}
+        policies = {p.id: p.name for p in db.scalars(select(PayPolicy))}
         for slip, emp in rows:
             o = PayslipOut.model_validate(slip)
             o.month, o.employee_code, o.employee_name, o.job_title = run.month, emp.code, emp.full_name, emp.job_title
+            o.department, o.manager_name = emp.department, managers.get(emp.manager_id, "")
+            o.policy_name = policies.get(emp.pay_policy_id, "")
             out.payslips.append(o)
         log_pii(db, ctx, "employee", [emp.id for _, emp in rows], "view", ["full_name"])
     return out
@@ -550,7 +603,14 @@ def _run(db, ctx, run_id, permission) -> PayrollRun:
 
 def _calculate(db, run: PayrollRun) -> None:
     """(Re)build the payslips of a draft run from the employees, their entries, unpaid leave and advances."""
+    from app.modules.hr.models import PayPolicy
+    from app.modules.hr.policy import Rules, collections, commission, month_attendance
+
     start, end = _month_bounds(run.month)
+    forced = set(db.scalars(select(Payslip.employee_id).where(Payslip.run_id == run.id,
+                                                              Payslip.commission_forced.is_(True))))
+    policies = {p.id: Rules.model_validate(p.rules or {}) for p in db.scalars(select(PayPolicy).where(
+        PayPolicy.deleted_at.is_(None)))}
     db.query(Payslip).filter(Payslip.run_id == run.id).delete()
     db.flush()
     taken = set(db.scalars(select(Payslip.employee_id).join(PayrollRun, PayrollRun.id == Payslip.run_id).where(
@@ -568,6 +628,13 @@ def _calculate(db, run: PayrollRun) -> None:
                                                          EmployeeEntry.deleted_at.is_(None))).all()
         bonuses = sum((x.amount for x in entries if x.kind == "bonus" and x.month == run.month), Decimal(0))
         deductions = sum((x.amount for x in entries if x.kind == "deduction" and x.month == run.month), Decimal(0))
+        piece = sum((x.amount for x in entries if x.kind == "piecework" and x.month == run.month), Decimal(0))
+        rules = policies.get(e.pay_policy_id)
+        att = month_attendance(db, e, rules, start, end) if rules else None
+        collected = collections(db, e.id, start, end) if rules and rules.commission_rate > 0 else Decimal(0)
+        comm = commission(rules, collected, e.id in forced) if rules else Decimal(0)
+        cut = att["attendance_deduction"] if att else Decimal(0)
+        plus = (att["overtime_amount"] + att["allowances"]) if att else Decimal(0)
         unpaid = Decimal(0)
         for lv in db.scalars(select(Leave).where(Leave.employee_id == e.id, Leave.deleted_at.is_(None),
                                                  Leave.status == "approved", Leave.kind == "unpaid",
@@ -577,7 +644,7 @@ def _calculate(db, run: PayrollRun) -> None:
             unpaid += (lv.days * inside / span) if span else Decimal(0)
         unpaid = unpaid.quantize(CENT)
         leave_cut = _money(e.base_salary / 30 * unpaid)
-        gross = _money(e.base_salary + bonuses - deductions - leave_cut)
+        gross = _money(e.base_salary + bonuses + piece + plus + comm - deductions - leave_cut - cut)
         repay = Decimal(0)
         room = max(gross, Decimal(0))
         for adv in sorted((x for x in entries if x.kind == "advance" and x.month <= run.month),
@@ -588,7 +655,15 @@ def _calculate(db, run: PayrollRun) -> None:
         repay = _money(repay)
         slip = Payslip(run_id=run.id, employee_id=e.id, base_salary=e.base_salary, bonuses=bonuses,
                        deductions=deductions, unpaid_leave_days=unpaid, unpaid_leave_deduction=leave_cut,
-                       advance_repayment=repay, gross=gross, net=_money(max(gross, Decimal(0)) - repay))
+                       advance_repayment=repay, gross=gross, net=_money(max(gross, Decimal(0)) - repay),
+                       piecework=_money(piece), collections=collected, commission=comm,
+                       commission_forced=e.id in forced)
+        if att:
+            for k in ("present_days", "absent_days", "late_minutes", "attendance_deduction", "overtime_minutes",
+                      "overtime_amount", "allowances", "review_days"):
+                setattr(slip, k, att[k])
+            slip.details = {"days": att["days"], "day_pay": str(att["day_pay"]), "hour_pay": str(att["hour_pay"]),
+                            "travel_days": att["travel_days"]}
         db.add(slip)
         total += slip.net
     run.total = _money(total)
@@ -682,7 +757,7 @@ def pay_run(run_id: uuid.UUID, body: PayIn, dc=Depends(require("hr.payroll"))):
                 adv.repaid += take
                 left -= take
         for x in db.scalars(select(EmployeeEntry).where(EmployeeEntry.employee_id == emp.id,
-                                                        EmployeeEntry.kind.in_(("bonus", "deduction")),
+                                                        EmployeeEntry.kind.in_(("bonus", "deduction", "piecework")),
                                                         EmployeeEntry.month == run.month,
                                                         EmployeeEntry.deleted_at.is_(None))):
             x.payslip_id = slip.id

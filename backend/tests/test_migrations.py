@@ -208,6 +208,10 @@ def test_upgrade_from_old_revision_keeps_data():
     # 0016: nothing is hidden by the upgrade; the administrator may erase at once
     assert all(r["deleted_at"] is None for t in ("profile_systems", "materials") for r in after[t].values())
     assert "delete.permanent" in set(after["roles"][str(p["admin_role"])]["permissions"])
+    # 0023: nobody gets a pay policy by the upgrade (paid as before); old payslips keep their numbers
+    assert all(e.get("pay_policy_id") is None for e in after.get("employees", {}).values())
+    assert all(float(x.get("attendance_deduction", 0)) == 0 for x in after.get("payslips", {}).values())
+    assert not after.get("pay_policies") and not after.get("attendance_days")
     # 0022: fingerprint devices are new tables; no employee gets a fingerprint number by the upgrade
     assert not after.get("attendance_devices") and not after.get("attendance_punches")
     assert all(e.get("attendance_pin") is None for e in after.get("employees", {}).values())

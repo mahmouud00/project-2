@@ -113,6 +113,14 @@ def store_punches(dev: AttendanceDevice, punches: list[dict], stamp: str | None)
             res = db.execute(insert(AttendancePunch).values(rows).on_conflict_do_nothing(
                 index_elements=["company_id", "device_serial", "pin", "punched_at"]).returning(AttendancePunch.id))
             new += len(res.all())
+        # a morning punch on the device when the app has one too (or the other way): the manager picks one
+        from types import SimpleNamespace
+
+        from app.modules.hr.payrules import warn_two_starts
+        for emp_id, day in {(who[p["pin"]], p["punched_at"].date()) for p in punches
+                            if p["pin"] in who and p["punched_at"].hour < 13}:
+            emp = db.get(Employee, emp_id)
+            warn_two_starts(db, SimpleNamespace(user_id=None), emp, day)
         values = {"last_seen_at": utcnow()}
         if punches:
             newest = max(p["punched_at"] for p in punches)

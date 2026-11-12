@@ -115,7 +115,9 @@ async function start() {
   clearInterval(timer); timer = setInterval(load, 60000);
 }
 
+let att = null;
 async function load() {
+  try { att = await call("GET", "/attendance/me").catch(() => null); } catch (e) { att = null; }
   try { jobs = await call("GET", "/field/jobs?mine=true"); render(); syncTracking(); }
   catch (e) { $("#app").innerHTML = `<div class="card err">${esc(e.message)}</div>`; }
 }
@@ -132,8 +134,10 @@ function render() {
   const banner = !active ? "" : !window.isSecureContext || !navigator.geolocation
     ? `<div class="track warn">مكانك مش بيتبعت: الموبايل محتاج اتصال آمن (https) بالسيرفر عشان يدّي المكان. كلّم المدير.</div>`
     : `<div class="track on" id="trk">📍 مكانك بيتبعت للمكتب لحد ما تخلّص المهمة.</div>`;
-  if (!jobs.length) { $("#app").innerHTML = `<div class="empty">مفيش مهام ليك دلوقتي 👌</div>`; return; }
-  $("#app").innerHTML = banner + jobs.map((j) => {
+  const punch = att && att.can_punch ? `<div class="card"><button class="btn primary" id="punch">✋ بصمة (حضور / انصراف)</button>
+    <div class="muted" style="margin-top:6px">${att.punches.length ? "بصمات النهارده: " + att.punches.map((p) => esc(p.at.slice(11, 16)) + (p.source === "app" ? " 📱" : "")).join(" · ") : "مفيش بصمات النهارده لسه"}</div></div>` : "";
+  if (!jobs.length) { $("#app").innerHTML = punch + `<div class="empty">مفيش مهام ليك دلوقتي 👌</div>`; bindPunch(); return; }
+  $("#app").innerHTML = punch + banner + jobs.map((j) => {
     const when = new Date(j.scheduled_at).toLocaleString("ar-EG", { weekday: "long", hour: "numeric", minute: "2-digit", day: "numeric", month: "numeric" });
     const map = mapUrl(j);
     const act = { scheduled: [["on_way", "أنا في الطريق", "amber"], ["arrived", "وصلت", "primary"]],
@@ -151,6 +155,24 @@ function render() {
     </div>`;
   }).join("");
   document.querySelectorAll("[data-job]").forEach((b) => b.onclick = () => move(b.dataset.job, b.dataset.to, b));
+  bindPunch();
+}
+
+function bindPunch() {
+  const b = $("#punch");
+  if (!b) return;
+  b.onclick = () => {
+    if (!navigator.geolocation || !window.isSecureContext) { alert("المكان مش متاح: الموبايل محتاج اتصال آمن (https) بالسيرفر."); return; }
+    b.disabled = true;
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+      try {
+        await call("POST", "/attendance/my-punch", { latitude: +pos.coords.latitude.toFixed(6), longitude: +pos.coords.longitude.toFixed(6),
+          accuracy_m: pos.coords.accuracy != null ? Math.round(pos.coords.accuracy) : null });
+        alert("اتسجلت البصمة."); load();
+      } catch (e) { alert(e.message); b.disabled = false; }
+    }, () => { alert("شغّل الـ Location واسمح للصفحة تستخدمه."); b.disabled = false; },
+    { enableHighAccuracy: true, timeout: 30000, maximumAge: 0 });
+  };
 }
 
 async function move(id, to, btn) {

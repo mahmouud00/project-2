@@ -11101,6 +11101,822 @@
     ]
    }
   },
+  "/api/v1/pay-policies": {
+   "get": {
+    "tags": [
+     "hr"
+    ],
+    "summary": "List Policies",
+    "operationId": "list_policies_api_v1_pay_policies_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "items": {
+          "$ref": "#/components/schemas/PolicyOut"
+         },
+         "type": "array",
+         "title": "Response List Policies Api V1 Pay Policies Get"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ]
+   },
+   "post": {
+    "tags": [
+     "hr"
+    ],
+    "summary": "Create Policy",
+    "operationId": "create_policy_api_v1_pay_policies_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/PolicyIn"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PolicyOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ]
+   }
+  },
+  "/api/v1/pay-policies/defaults": {
+   "get": {
+    "tags": [
+     "hr"
+    ],
+    "summary": "Policy Defaults",
+    "description": "The fields of a policy and their starting values (for a new policy).",
+    "operationId": "policy_defaults_api_v1_pay_policies_defaults_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ]
+   }
+  },
+  "/api/v1/pay-policies/{policy_id}": {
+   "patch": {
+    "tags": [
+     "hr"
+    ],
+    "summary": "Update Policy",
+    "operationId": "update_policy_api_v1_pay_policies__policy_id__patch",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "policy_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Policy Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/PolicyUpdate"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PolicyOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "delete": {
+    "tags": [
+     "hr"
+    ],
+    "summary": "Delete Policy",
+    "description": "يطلب الحذف: بيتحذف نهائي بعد ٣٠ يوم، أو فورًا بصلاحية الحذف النهائي.",
+    "operationId": "delete_policy_api_v1_pay_policies__policy_id__delete",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "policy_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Policy Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/DeleteResult"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/pay-policies/templates": {
+   "post": {
+    "tags": [
+     "hr"
+    ],
+    "summary": "Create Templates",
+    "description": "Starting policies (الإدارة، المبيعات، المصنع، التركيبات) and zones (القاهرة، الجيزة، العاشر، العبور), only\nthose the company does not have yet. Everything in them is editable afterwards.",
+    "operationId": "create_templates_api_v1_pay_policies_templates_post",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "items": {
+          "$ref": "#/components/schemas/PolicyOut"
+         },
+         "type": "array",
+         "title": "Response Create Templates Api V1 Pay Policies Templates Post"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ]
+   }
+  },
+  "/api/v1/work-zones": {
+   "get": {
+    "tags": [
+     "hr"
+    ],
+    "summary": "List Zones",
+    "operationId": "list_zones_api_v1_work_zones_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "items": {
+          "$ref": "#/components/schemas/ZoneOut"
+         },
+         "type": "array",
+         "title": "Response List Zones Api V1 Work Zones Get"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ]
+   },
+   "post": {
+    "tags": [
+     "hr"
+    ],
+    "summary": "Create Zone",
+    "operationId": "create_zone_api_v1_work_zones_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ZoneIn"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ZoneOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ]
+   }
+  },
+  "/api/v1/work-zones/{zone_id}": {
+   "patch": {
+    "tags": [
+     "hr"
+    ],
+    "summary": "Update Zone",
+    "operationId": "update_zone_api_v1_work_zones__zone_id__patch",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "zone_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Zone Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ZoneUpdate"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ZoneOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "delete": {
+    "tags": [
+     "hr"
+    ],
+    "summary": "Delete Zone",
+    "description": "يطلب الحذف: بيتحذف نهائي بعد ٣٠ يوم، أو فورًا بصلاحية الحذف النهائي.",
+    "operationId": "delete_zone_api_v1_work_zones__zone_id__delete",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "zone_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Zone Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/DeleteResult"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/public-holidays": {
+   "get": {
+    "tags": [
+     "hr"
+    ],
+    "summary": "List Holidays",
+    "operationId": "list_holidays_api_v1_public_holidays_get",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "year",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "integer"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Year"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/HolidayOut"
+         },
+         "title": "Response List Holidays Api V1 Public Holidays Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "post": {
+    "tags": [
+     "hr"
+    ],
+    "summary": "Create Holiday",
+    "operationId": "create_holiday_api_v1_public_holidays_post",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/HolidayIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HolidayOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/public-holidays/{holiday_id}": {
+   "delete": {
+    "tags": [
+     "hr"
+    ],
+    "summary": "Delete Holiday",
+    "description": "يطلب الحذف: بيتحذف نهائي بعد ٣٠ يوم، أو فورًا بصلاحية الحذف النهائي.",
+    "operationId": "delete_holiday_api_v1_public_holidays__holiday_id__delete",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "holiday_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Holiday Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/DeleteResult"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/attendance/month": {
+   "get": {
+    "tags": [
+     "hr"
+    ],
+    "summary": "Employee Month",
+    "description": "Day by day: the kind, first and last punch, lateness, overtime, what is deducted / added, and what needs a\nlook; with the totals and (for sales) the collections and the commission.",
+    "operationId": "employee_month_api_v1_attendance_month_get",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "employee_id",
+      "in": "query",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Employee Id"
+      }
+     },
+     {
+      "name": "month",
+      "in": "query",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "pattern": "^\\d{4}-(0[1-9]|1[0-2])$",
+       "title": "Month"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/attendance/days/{employee_id}/{day}": {
+   "put": {
+    "tags": [
+     "hr"
+    ],
+    "summary": "Mark Day",
+    "description": "HR's decision on one day. The installations manager (field.manage) may only pick which morning punch\ncounts when the device and the app both have one.",
+    "operationId": "mark_day_api_v1_attendance_days__employee_id___day__put",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "employee_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Employee Id"
+      }
+     },
+     {
+      "name": "day",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "date",
+       "title": "Day"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/DayMarkIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/attendance/me": {
+   "get": {
+    "tags": [
+     "hr"
+    ],
+    "summary": "My Attendance",
+    "description": "For the phone: may this user punch from the app, and today's punches.",
+    "operationId": "my_attendance_api_v1_attendance_me_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ]
+   }
+  },
+  "/api/v1/attendance/my-punch": {
+   "post": {
+    "tags": [
+     "hr"
+    ],
+    "summary": "App Punch",
+    "description": "بصمة من الموبايل: the time is the server's, the place is the phone's.",
+    "operationId": "app_punch_api_v1_attendance_my_punch_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/AppPunchIn"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ]
+   }
+  },
+  "/api/v1/payslips/{slip_id}/commission": {
+   "post": {
+    "tags": [
+     "hr"
+    ],
+    "summary": "Force Commission",
+    "description": "The direct manager allowed the commission this month although the collections are under the minimum.",
+    "operationId": "force_commission_api_v1_payslips__slip_id__commission_post",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "slip_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Slip Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ForceIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/v1/assets": {
    "get": {
     "tags": [
@@ -12149,6 +12965,56 @@
      "qty_expr"
     ],
     "title": "Accessory"
+   },
+   "AppPunchIn": {
+    "properties": {
+     "latitude": {
+      "anyOf": [
+       {
+        "type": "number",
+        "maximum": 90.0,
+        "minimum": -90.0
+       },
+       {
+        "type": "string"
+       }
+      ],
+      "title": "Latitude"
+     },
+     "longitude": {
+      "anyOf": [
+       {
+        "type": "number",
+        "maximum": 180.0,
+        "minimum": -180.0
+       },
+       {
+        "type": "string"
+       }
+      ],
+      "title": "Longitude"
+     },
+     "accuracy_m": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Accuracy M"
+     }
+    },
+    "type": "object",
+    "required": [
+     "latitude",
+     "longitude"
+    ],
+    "title": "AppPunchIn"
    },
    "ApproveIn": {
     "properties": {
@@ -14356,6 +15222,89 @@
     ],
     "title": "CustomerUpdate"
    },
+   "DayMarkIn": {
+    "properties": {
+     "kind": {
+      "anyOf": [
+       {
+        "type": "string",
+        "pattern": "^(normal|install|travel|off)$"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Kind"
+     },
+     "excuse": {
+      "type": "string",
+      "pattern": "^(none|permission|notified|excused)$",
+      "title": "Excuse",
+      "default": "none"
+     },
+     "permission_minutes": {
+      "type": "integer",
+      "maximum": 1440.0,
+      "minimum": 0.0,
+      "title": "Permission Minutes",
+      "default": 0
+     },
+     "manual_in": {
+      "anyOf": [
+       {
+        "type": "string",
+        "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Manual In"
+     },
+     "manual_out": {
+      "anyOf": [
+       {
+        "type": "string",
+        "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Manual Out"
+     },
+     "start_source": {
+      "anyOf": [
+       {
+        "type": "string",
+        "pattern": "^(device|app)$"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Start Source"
+     },
+     "note": {
+      "type": "string",
+      "title": "Note",
+      "default": ""
+     },
+     "version": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Version"
+     }
+    },
+    "type": "object",
+    "title": "DayMarkIn"
+   },
    "DayOut": {
     "properties": {
      "day": {
@@ -14972,6 +15921,30 @@
        }
       ],
       "title": "Attendance Pin"
+     },
+     "pay_policy_id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "uuid"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Pay Policy Id"
+     },
+     "manager_id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "uuid"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Manager Id"
      }
     },
     "type": "object",
@@ -15132,6 +16105,30 @@
        }
       ],
       "title": "Attendance Pin"
+     },
+     "pay_policy_id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "uuid"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Pay Policy Id"
+     },
+     "manager_id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "uuid"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Manager Id"
      }
     },
     "type": "object",
@@ -15344,6 +16341,30 @@
        }
       ],
       "title": "Attendance Pin"
+     },
+     "pay_policy_id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "uuid"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Pay Policy Id"
+     },
+     "manager_id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "uuid"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Manager Id"
      }
     },
     "type": "object",
@@ -15433,7 +16454,7 @@
      },
      "kind": {
       "type": "string",
-      "pattern": "^(bonus|deduction|advance)$",
+      "pattern": "^(bonus|deduction|advance|piecework)$",
       "title": "Kind"
      },
      "amount": {
@@ -15444,9 +16465,42 @@
        },
        {
         "type": "string"
+       },
+       {
+        "type": "null"
        }
       ],
       "title": "Amount"
+     },
+     "quantity": {
+      "anyOf": [
+       {
+        "type": "number",
+        "exclusiveMinimum": 0.0
+       },
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Quantity"
+     },
+     "rate": {
+      "anyOf": [
+       {
+        "type": "number",
+        "minimum": 0.0
+       },
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Rate"
      },
      "entry_date": {
       "anyOf": [
@@ -15508,8 +16562,7 @@
     "type": "object",
     "required": [
      "employee_id",
-     "kind",
-     "amount"
+     "kind"
     ],
     "title": "EntryIn"
    },
@@ -15569,6 +16622,28 @@
      "amount": {
       "type": "string",
       "title": "Amount"
+     },
+     "quantity": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Quantity"
+     },
+     "rate": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Rate"
      },
      "installment": {
       "anyOf": [
@@ -15895,6 +16970,19 @@
     ],
     "title": "FingerprintDevicesOut"
    },
+   "ForceIn": {
+    "properties": {
+     "forced": {
+      "type": "boolean",
+      "title": "Forced"
+     }
+    },
+    "type": "object",
+    "required": [
+     "forced"
+    ],
+    "title": "ForceIn"
+   },
    "Formula": {
     "properties": {
      "key": {
@@ -16122,6 +17210,80 @@
      "path"
     ],
     "title": "Hit"
+   },
+   "HolidayIn": {
+    "properties": {
+     "day": {
+      "type": "string",
+      "format": "date",
+      "title": "Day"
+     },
+     "name": {
+      "type": "string",
+      "maxLength": 120,
+      "title": "Name",
+      "default": ""
+     }
+    },
+    "type": "object",
+    "required": [
+     "day"
+    ],
+    "title": "HolidayIn"
+   },
+   "HolidayOut": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Id"
+     },
+     "version": {
+      "type": "integer",
+      "title": "Version"
+     },
+     "created_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Created At"
+     },
+     "updated_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Updated At"
+     },
+     "day": {
+      "type": "string",
+      "format": "date",
+      "title": "Day"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "version",
+     "day",
+     "name"
+    ],
+    "title": "HolidayOut"
    },
    "Inbox": {
     "properties": {
@@ -20883,6 +22045,81 @@
        }
       ],
       "title": "Cash Transaction Id"
+     },
+     "department": {
+      "type": "string",
+      "title": "Department",
+      "default": ""
+     },
+     "manager_name": {
+      "type": "string",
+      "title": "Manager Name",
+      "default": ""
+     },
+     "policy_name": {
+      "type": "string",
+      "title": "Policy Name",
+      "default": ""
+     },
+     "present_days": {
+      "type": "string",
+      "title": "Present Days",
+      "default": "0"
+     },
+     "absent_days": {
+      "type": "string",
+      "title": "Absent Days",
+      "default": "0"
+     },
+     "late_minutes": {
+      "type": "integer",
+      "title": "Late Minutes",
+      "default": 0
+     },
+     "attendance_deduction": {
+      "type": "string",
+      "title": "Attendance Deduction",
+      "default": "0"
+     },
+     "overtime_minutes": {
+      "type": "integer",
+      "title": "Overtime Minutes",
+      "default": 0
+     },
+     "overtime_amount": {
+      "type": "string",
+      "title": "Overtime Amount",
+      "default": "0"
+     },
+     "allowances": {
+      "type": "string",
+      "title": "Allowances",
+      "default": "0"
+     },
+     "piecework": {
+      "type": "string",
+      "title": "Piecework",
+      "default": "0"
+     },
+     "collections": {
+      "type": "string",
+      "title": "Collections",
+      "default": "0"
+     },
+     "commission": {
+      "type": "string",
+      "title": "Commission",
+      "default": "0"
+     },
+     "commission_forced": {
+      "type": "boolean",
+      "title": "Commission Forced",
+      "default": false
+     },
+     "review_days": {
+      "type": "integer",
+      "title": "Review Days",
+      "default": 0
      }
     },
     "type": "object",
@@ -21027,6 +22264,156 @@
      "longitude"
     ],
     "title": "PointOut"
+   },
+   "PolicyIn": {
+    "properties": {
+     "code": {
+      "type": "string",
+      "maxLength": 40,
+      "minLength": 1,
+      "title": "Code"
+     },
+     "name": {
+      "type": "string",
+      "maxLength": 120,
+      "minLength": 1,
+      "title": "Name"
+     },
+     "rules": {
+      "additionalProperties": true,
+      "type": "object",
+      "title": "Rules"
+     },
+     "notes": {
+      "type": "string",
+      "title": "Notes",
+      "default": ""
+     }
+    },
+    "type": "object",
+    "required": [
+     "code",
+     "name"
+    ],
+    "title": "PolicyIn"
+   },
+   "PolicyOut": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Id"
+     },
+     "version": {
+      "type": "integer",
+      "title": "Version"
+     },
+     "created_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Created At"
+     },
+     "updated_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Updated At"
+     },
+     "code": {
+      "type": "string",
+      "title": "Code"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "rules": {
+      "additionalProperties": true,
+      "type": "object",
+      "title": "Rules"
+     },
+     "notes": {
+      "type": "string",
+      "title": "Notes"
+     },
+     "employees": {
+      "type": "integer",
+      "title": "Employees",
+      "default": 0
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "version",
+     "code",
+     "name",
+     "rules",
+     "notes"
+    ],
+    "title": "PolicyOut"
+   },
+   "PolicyUpdate": {
+    "properties": {
+     "version": {
+      "type": "integer",
+      "title": "Version"
+     },
+     "name": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 120,
+        "minLength": 1
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Name"
+     },
+     "rules": {
+      "anyOf": [
+       {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Rules"
+     },
+     "notes": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Notes"
+     }
+    },
+    "type": "object",
+    "required": [
+     "version"
+    ],
+    "title": "PolicyUpdate"
    },
    "PriceApprovalIn": {
     "properties": {
@@ -25014,6 +26401,254 @@
      "version"
     ],
     "title": "WorkOrderUpdate"
+   },
+   "ZoneIn": {
+    "properties": {
+     "name": {
+      "type": "string",
+      "maxLength": 120,
+      "minLength": 1,
+      "title": "Name"
+     },
+     "latitude": {
+      "anyOf": [
+       {
+        "type": "number",
+        "maximum": 90.0,
+        "minimum": -90.0
+       },
+       {
+        "type": "string"
+       }
+      ],
+      "title": "Latitude"
+     },
+     "longitude": {
+      "anyOf": [
+       {
+        "type": "number",
+        "maximum": 180.0,
+        "minimum": -180.0
+       },
+       {
+        "type": "string"
+       }
+      ],
+      "title": "Longitude"
+     },
+     "radius_km": {
+      "anyOf": [
+       {
+        "type": "number",
+        "maximum": 500.0,
+        "exclusiveMinimum": 0.0
+       },
+       {
+        "type": "string"
+       }
+      ],
+      "title": "Radius Km"
+     },
+     "transport_allowance": {
+      "anyOf": [
+       {
+        "type": "number",
+        "minimum": 0.0
+       },
+       {
+        "type": "string"
+       }
+      ],
+      "title": "Transport Allowance",
+      "default": "0"
+     },
+     "is_active": {
+      "type": "boolean",
+      "title": "Is Active",
+      "default": true
+     }
+    },
+    "type": "object",
+    "required": [
+     "name",
+     "latitude",
+     "longitude",
+     "radius_km"
+    ],
+    "title": "ZoneIn"
+   },
+   "ZoneOut": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Id"
+     },
+     "version": {
+      "type": "integer",
+      "title": "Version"
+     },
+     "created_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Created At"
+     },
+     "updated_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Updated At"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "latitude": {
+      "type": "string",
+      "title": "Latitude"
+     },
+     "longitude": {
+      "type": "string",
+      "title": "Longitude"
+     },
+     "radius_km": {
+      "type": "string",
+      "title": "Radius Km"
+     },
+     "transport_allowance": {
+      "type": "string",
+      "title": "Transport Allowance"
+     },
+     "is_active": {
+      "type": "boolean",
+      "title": "Is Active"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "version",
+     "name",
+     "latitude",
+     "longitude",
+     "radius_km",
+     "transport_allowance",
+     "is_active"
+    ],
+    "title": "ZoneOut"
+   },
+   "ZoneUpdate": {
+    "properties": {
+     "version": {
+      "type": "integer",
+      "title": "Version"
+     },
+     "name": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 120,
+        "minLength": 1
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Name"
+     },
+     "latitude": {
+      "anyOf": [
+       {
+        "type": "number",
+        "maximum": 90.0,
+        "minimum": -90.0
+       },
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Latitude"
+     },
+     "longitude": {
+      "anyOf": [
+       {
+        "type": "number",
+        "maximum": 180.0,
+        "minimum": -180.0
+       },
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Longitude"
+     },
+     "radius_km": {
+      "anyOf": [
+       {
+        "type": "number",
+        "maximum": 500.0,
+        "exclusiveMinimum": 0.0
+       },
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Radius Km"
+     },
+     "transport_allowance": {
+      "anyOf": [
+       {
+        "type": "number",
+        "minimum": 0.0
+       },
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Transport Allowance"
+     },
+     "is_active": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Is Active"
+     }
+    },
+    "type": "object",
+    "required": [
+     "version"
+    ],
+    "title": "ZoneUpdate"
    },
    "app__modules__invoicing__router__LineIn": {
     "properties": {

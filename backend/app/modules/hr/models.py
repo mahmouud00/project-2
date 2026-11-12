@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import uuid
-from datetime import date, datetime
+from datetime import date, datetime, time
 from decimal import Decimal
 
-from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Integer, Numeric, String, Text, UniqueConstraint
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Integer, Numeric, String, Text, Time, UniqueConstraint
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base, Entity, SoftDeleteMixin
@@ -37,6 +37,9 @@ class Employee(Base, Entity, SoftDeleteMixin):
     annual_leave_days: Mapped[Decimal] = mapped_column(Numeric(6, 2), default=Decimal(21))
     notes: Mapped[str] = mapped_column(Text, default="")
     attendance_pin: Mapped[str | None] = mapped_column(String(20), nullable=True, index=True)   # رقمه على جهاز البصمة
+    pay_policy_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("pay_policies.id"),
+                                                            nullable=True, index=True)
+    manager_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("employees.id"), nullable=True)
 
 
 class EmployeeEntry(Base, Entity, SoftDeleteMixin):
@@ -45,7 +48,7 @@ class EmployeeEntry(Base, Entity, SoftDeleteMixin):
     __tablename__ = "employee_entries"
 
     employee_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("employees.id"), index=True)
-    kind: Mapped[str] = mapped_column(String(20))            # bonus | deduction | advance
+    kind: Mapped[str] = mapped_column(String(20))            # bonus | deduction | advance | piecework
     entry_date: Mapped[date] = mapped_column(Date)
     month: Mapped[str] = mapped_column(String(7), index=True)   # YYYY-MM: the salary it applies to / first repayment
     amount: Mapped[Decimal] = mapped_column(Numeric(14, 2))
@@ -55,6 +58,8 @@ class EmployeeEntry(Base, Entity, SoftDeleteMixin):
                                                                   ForeignKey("cash_transactions.id"), nullable=True)
     payslip_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)   # bonus/deduction paid
     note: Mapped[str] = mapped_column(Text, default="")
+    quantity: Mapped[Decimal | None] = mapped_column(Numeric(12, 2), nullable=True)   # piecework: openings
+    rate: Mapped[Decimal | None] = mapped_column(Numeric(14, 2), nullable=True)       # piecework: per opening
 
 
 class Leave(Base, Entity, SoftDeleteMixin):
@@ -102,6 +107,72 @@ class Payslip(Base, Entity):
     net: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal(0))     # handed to the employee
     cash_transaction_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True),
                                                                   ForeignKey("cash_transactions.id"), nullable=True)
+    # from the attendance and the pay policy (0 when the employee has no policy)
+    present_days: Mapped[Decimal] = mapped_column(Numeric(6, 2), default=Decimal(0))
+    absent_days: Mapped[Decimal] = mapped_column(Numeric(6, 2), default=Decimal(0))
+    late_minutes: Mapped[int] = mapped_column(Integer, default=0)
+    attendance_deduction: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal(0))
+    overtime_minutes: Mapped[int] = mapped_column(Integer, default=0)
+    overtime_amount: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal(0))
+    allowances: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal(0))   # travel / holidays / meals / transport
+    piecework: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal(0))
+    collections: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal(0))
+    commission: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal(0))
+    commission_forced: Mapped[bool] = mapped_column(Boolean, default=False)   # the manager allowed it under the minimum
+    review_days: Mapped[int] = mapped_column(Integer, default=0)              # days the attendance review must look at
+    details: Mapped[dict] = mapped_column(JSONB, default=dict)
+
+
+class PayPolicy(Base, Entity, SoftDeleteMixin):
+    """سياسة مرتبات وحضور (الإدارة، المبيعات، المصنع، التركيبات…): every number in `rules` is the company's own and
+    editable; see app.modules.hr.policy.Rules for what each one means."""
+    __tablename__ = "pay_policies"
+    __table_args__ = (UniqueConstraint("company_id", "code"),)
+
+    code: Mapped[str] = mapped_column(String(40))
+    name: Mapped[str] = mapped_column(String(120))
+    rules: Mapped[dict] = mapped_column(JSONB, default=dict)
+    notes: Mapped[str] = mapped_column(Text, default="")
+
+
+class WorkZone(Base, Entity):
+    """A place counted as «inside» (القاهرة، الجيزة، العاشر، العبور…): an installation there is a normal installation
+    day (with its transport allowance); anywhere outside every zone is a travel day."""
+    __tablename__ = "work_zones"
+
+    name: Mapped[str] = mapped_column(String(120))
+    latitude: Mapped[Decimal] = mapped_column(Numeric(9, 6))
+    longitude: Mapped[Decimal] = mapped_column(Numeric(9, 6))
+    radius_km: Mapped[Decimal] = mapped_column(Numeric(8, 2))
+    transport_allowance: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal(0))
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+
+
+class PublicHoliday(Base, Entity):
+    __tablename__ = "public_holidays"
+    __table_args__ = (UniqueConstraint("company_id", "day"),)
+
+    day: Mapped[date] = mapped_column(Date)
+    name: Mapped[str] = mapped_column(String(120), default="")
+
+
+class AttendanceDay(Base, Entity):
+    """What HR (or the installations manager) decided about one employee's day: its kind when the automatic one is
+    wrong, an excuse (إذن / غياب بتبليغ), times written by hand, which morning punch counts when there are two
+    (device and app). Nothing here changes the punches themselves."""
+    __tablename__ = "attendance_days"
+    __table_args__ = (UniqueConstraint("company_id", "employee_id", "day"),)
+
+    employee_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("employees.id"), index=True)
+    day: Mapped[date] = mapped_column(Date, index=True)
+    kind: Mapped[str | None] = mapped_column(String(20), nullable=True)      # normal | install | travel | off
+    excuse: Mapped[str] = mapped_column(String(20), default="none")          # none | permission | notified | excused
+    permission_minutes: Mapped[int] = mapped_column(Integer, default=0)
+    manual_in: Mapped[time | None] = mapped_column(Time, nullable=True)
+    manual_out: Mapped[time | None] = mapped_column(Time, nullable=True)
+    start_source: Mapped[str | None] = mapped_column(String(10), nullable=True)   # device | app (two morning punches)
+    conflict_notified: Mapped[bool] = mapped_column(Boolean, default=False)
+    note: Mapped[str] = mapped_column(Text, default="")
 
 
 class AttendanceDevice(Base, Entity):
@@ -133,3 +204,6 @@ class AttendancePunch(Base, Entity):
     punched_at: Mapped[datetime] = mapped_column(DateTime(timezone=False), index=True)
     state: Mapped[int] = mapped_column(Integer, default=0)     # device status: 0 in, 1 out, 2/3 break, 4/5 overtime
     verify: Mapped[int] = mapped_column(Integer, default=0)    # 1 finger, 15 face, 3/4 password / card ...
+    source: Mapped[str] = mapped_column(String(10), default="device")   # device | app (the phone, with its place)
+    latitude: Mapped[Decimal | None] = mapped_column(Numeric(9, 6), nullable=True)
+    longitude: Mapped[Decimal | None] = mapped_column(Numeric(9, 6), nullable=True)

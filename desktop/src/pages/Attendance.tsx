@@ -5,7 +5,8 @@ import { useAction, useLoad } from "../lib/hooks";
 import { useSession } from "../state/session";
 import { useToast } from "../state/toast";
 import { Btn, Card, Chip, ErrorBox, Field, Modal, PageHead, Table, TextIn } from "../components/ui";
-import { go } from "../lib/router";
+import { go, setQuery, useRoute } from "../lib/router";
+import { Money, NumIn, Select } from "../components/ui";
 import { date, dateTime, today } from "../lib/format";
 
 type Device = S<"FingerprintDeviceOut">;
@@ -19,6 +20,7 @@ const hours = (a: string, b: string) => {
 };
 
 export function Attendance() {
+  const route = useRoute();
   const [from, setFrom] = useState(today());
   const [to, setTo] = useState(today());
   const days = useLoad(() => api.get<Day[]>("/attendance/days", { date_from: from, date_to: to }), [from, to]);
@@ -29,6 +31,8 @@ export function Attendance() {
   }, [days.reload, unlinked.reload]);
   return (
     <div className="col" style={{ gap: 14 }}>
+      <EmployeeMonth employee={route.query.employee ?? ""} month={route.query.month ?? today().slice(0, 7)} />
+      <h3 style={{ margin: "6px 0 0" }}>الحضور يوم بيوم</h3>
       <PageHead>
         <Field label="من"><input type="date" className="input" value={from} onChange={(e) => setFrom(e.target.value)} /></Field>
         <Field label="إلى"><input type="date" className="input" value={to} onChange={(e) => setTo(e.target.value)} /></Field>
@@ -116,6 +120,105 @@ function AddDevice({ onClose, onSaved }: { onClose: () => void; onSaved: () => v
         <Field label="الرقم التسلسلي (SN)" hint="على ظهر الجهاز، أو القائمة ← System Info ← Device Info">
           <TextIn value={serial} onChange={setSerial} code autoFocus /></Field>
         <Field label="اسم الجهاز" hint="مثلًا: بوابة المصنع"><TextIn value={name} onChange={setName} /></Field>
+      </div>
+    </Modal>
+  );
+}
+
+
+// ---------------------------------------------------------------- مراجعة شهر موظف
+type MonthDay = { day: string; kind: string; first: string | null; last: string | null; punches: number; late: number;
+  overtime: number; deduct_days: string; deduct_minutes: number; extra: string; flags: string[];
+  mark: null | { version: number; kind: string | null; excuse: string; permission_minutes: number; start_source: string | null;
+    note: string; manual_in: string | null; manual_out: string | null } };
+type Month = { days: MonthDay[]; present_days: string; absent_days: string; late_minutes: number; attendance_deduction: string;
+  overtime_minutes: number; overtime_amount: string; allowances: string; review_days: number; day_pay: string;
+  collections: string; commission: string; commission_min: string };
+
+const KINDS: Record<string, [string, "gray" | "green" | "amber" | "red" | "blue" | "violet"]> = {
+  normal: ["عادي", "gray"], install: ["تركيب", "blue"], travel: ["سفر", "violet"], off: ["إجازة", "green"],
+  leave: ["إجازة متسجلة", "green"], absent: ["غياب", "red"], excused: ["معذور", "amber"], not_counted: ["مش محسوب", "gray"] };
+const EXCUSES: Record<string, string> = { none: "مفيش", permission: "إذن", notified: "غياب بتبليغ", excused: "معذور (مايتخصمش)" };
+const WEEK = ["الاتنين", "التلات", "الأربع", "الخميس", "الجمعة", "السبت", "الحد"];
+
+function EmployeeMonth({ employee, month }: { employee: string; month: string }) {
+  const people = useLoad(() => api.get<S<"Page_EmployeeOut_">>("/employees", { status: "active", limit: 500 })
+    .then((p) => p.items.filter((e) => e.pay_policy_id)), []);
+  const data = useLoad(() => employee ? api.get<Month>("/attendance/month", { employee_id: employee, month }) : Promise.resolve(null),
+    [employee, month]);
+  const [edit, setEdit] = useState<MonthDay | null>(null);
+  const m = data.data;
+  return (
+    <Card title="مراجعة شهر موظف" actions={<div className="row" style={{ gap: 8 }}>
+      <div style={{ width: 220 }}><Select value={employee} onChange={(v) => setQuery({ employee: v || undefined, month })}
+        placeholder="اختار موظف (ليه سياسة مرتب)…" options={(people.data ?? []).map((e) => ({ value: e.id, label: e.full_name }))} /></div>
+      <input type="month" className="input" style={{ width: 150 }} value={month} onChange={(e) => setQuery({ employee: employee || undefined, month: e.target.value })} />
+    </div>}>
+      {data.error && <ErrorBox text={data.error} onRetry={data.reload} />}
+      {!employee && <div className="muted small">اختار موظف عشان تشوف شهره يوم بيوم: الحضور، التأخير، الغياب، الأوفر تايم، السفر، واللي محتاج مراجعة. دوس على أي يوم عشان تعدّله.</div>}
+      {m && <>
+        <div className="row wrap" style={{ gap: 14, marginBottom: 10 }}>
+          <span>حضور <b className="num">{Number(m.present_days)}</b> يوم</span>
+          <span>غياب <b className="num">{Number(m.absent_days)}</b></span>
+          <span>تأخير <b className="num">{m.late_minutes}</b> دقيقة</span>
+          <span>خصم الغياب والتأخير <b className="danger-text"><Money v={m.attendance_deduction} /></b></span>
+          <span>أوفر تايم <b className="num">{Math.round(m.overtime_minutes / 6) / 10}</b> ساعة = <b><Money v={m.overtime_amount} /></b></span>
+          <span>سفر وبدلات <b><Money v={m.allowances} /></b></span>
+          {Number(m.collections) > 0 && <span>التحصيل <b><Money v={m.collections} /></b> · العمولة <b><Money v={m.commission} /></b>
+            {Number(m.commission) === 0 && <span className="muted small"> (أقل من <Money v={m.commission_min} />)</span>}</span>}
+          {m.review_days > 0 && <Chip color="amber">{m.review_days} يوم محتاج مراجعة</Chip>}
+        </div>
+        <Table rows={m.days.filter((d) => d.kind !== "not_counted")} rowKey={(d) => d.day} onRow={(d) => setEdit(d)} empty="مفيش أيام محسوبة (الموظف لسه مابصمش)" columns={[
+          { key: "d", label: "اليوم", render: (d) => <span className="num">{WEEK[(new Date(d.day).getDay() + 6) % 7]} {date(d.day)}</span> },
+          { key: "k", label: "النوع", render: (d) => <Chip color={KINDS[d.kind]?.[1]}>{KINDS[d.kind]?.[0] ?? d.kind}</Chip> },
+          { key: "i", label: "الحضور", num: true, render: (d) => <span className="num">{d.first ? clock(d.first) : "—"}</span> },
+          { key: "o", label: "الانصراف", num: true, render: (d) => <span className="num">{d.last ? clock(d.last) : "—"}</span> },
+          { key: "l", label: "تأخير", num: true, render: (d) => d.late ? <span className="num">{d.late} د</span> : "" },
+          { key: "x", label: "الخصم", num: true, render: (d) => <span className="danger-text num">{Number(d.deduct_days) ? `${Number(d.deduct_days)} يوم` : ""}
+            {d.deduct_minutes ? ` ${d.deduct_minutes} د` : ""}</span> },
+          { key: "t", label: "أوفر تايم", num: true, render: (d) => d.overtime ? <span className="num">{d.overtime} د</span> : "" },
+          { key: "e", label: "إضافة", num: true, render: (d) => Number(d.extra) ? <Money v={d.extra} /> : "" },
+          { key: "m", label: "ملاحظات", render: (d) => <span className="small">{d.flags.map((f, i) => <Chip key={i} color="amber">{f}</Chip>)}
+            {d.mark && d.mark.excuse !== "none" && <Chip>{EXCUSES[d.mark.excuse]}{d.mark.excuse === "permission" ? ` ${d.mark.permission_minutes} د` : ""}</Chip>}
+            {d.mark?.note && <span className="muted"> {d.mark.note}</span>}</span> },
+        ]} />
+      </>}
+      {edit && <DayForm employee={employee} d={edit} onClose={() => setEdit(null)} onSaved={data.reload} />}
+    </Card>
+  );
+}
+
+function DayForm({ employee, d, onClose, onSaved }: { employee: string; d: MonthDay; onClose: () => void; onSaved: () => void }) {
+  const s = useSession();
+  const toast = useToast();
+  const { busy, run } = useAction(toast.err);
+  const m = d.mark;
+  const full = s.can("hr.write");
+  const [v, setV] = useState({ kind: m?.kind ?? "", excuse: m?.excuse ?? "none", permission_minutes: String(m?.permission_minutes ?? 0),
+    manual_in: m?.manual_in ?? "", manual_out: m?.manual_out ?? "", start_source: m?.start_source ?? "", note: m?.note ?? "" });
+  const set = (k: keyof typeof v) => (x: string) => setV((y) => ({ ...y, [k]: x }));
+  const save = () => run(async () => {
+    await api.put(`/attendance/days/${employee}/${d.day}`, { kind: v.kind || null, excuse: v.excuse,
+      permission_minutes: Number(v.permission_minutes) || 0, manual_in: v.manual_in || null, manual_out: v.manual_out || null,
+      start_source: v.start_source || null, note: v.note, version: m?.version ?? null });
+    toast.ok("اتحفظ. إعادة حساب كشف المرتبات بتطبقه.");
+    onSaved(); onClose();
+  });
+  const twoStarts = d.flags.some((f) => f.includes("بصمتين")) || !!m?.start_source;
+  return (
+    <Modal title={`يوم ${date(d.day)}`} onClose={onClose} footer={<><Btn kind="primary" busy={busy} onClick={save}>حفظ</Btn><Btn onClick={onClose}>رجوع</Btn></>}>
+      <div className="grid g2">
+        {full && <>
+          <Field label="نوع اليوم" hint="فاضي = حسب السيستم (مهام التركيب والمناطق والإجازات)"><Select value={v.kind} onChange={set("kind")} placeholder="أوتوماتيك"
+            options={[{ value: "normal", label: "عادي" }, { value: "install", label: "تركيب" }, { value: "travel", label: "سفر" }, { value: "off", label: "إجازة" }]} /></Field>
+          <Field label="عذر"><Select value={v.excuse} onChange={set("excuse")} options={Object.entries(EXCUSES).map(([value, label]) => ({ value, label }))} /></Field>
+          {v.excuse === "permission" && <Field label="مدة الإذن (دقيقة)"><NumIn value={v.permission_minutes} onChange={set("permission_minutes")} /></Field>}
+          <Field label="حضور بالإيد" hint="لو مابصمش"><input type="time" className="input" value={v.manual_in} onChange={(e) => set("manual_in")(e.target.value)} /></Field>
+          <Field label="انصراف بالإيد"><input type="time" className="input" value={v.manual_out} onChange={(e) => set("manual_out")(e.target.value)} /></Field>
+        </>}
+        {twoStarts && <Field label="بصمة بداية اليوم المعتمدة" className="span-all"><Select value={v.start_source} onChange={set("start_source")} placeholder="الأبدر"
+          options={[{ value: "device", label: "جهاز البصمة" }, { value: "app", label: "الموبايل" }]} /></Field>}
+        {full && <Field label="ملاحظة" className="span-all"><TextIn value={v.note} onChange={set("note")} /></Field>}
       </div>
     </Modal>
   );

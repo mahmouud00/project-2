@@ -2971,6 +2971,265 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/pay-policies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Policies */
+        get: operations["list_policies_api_v1_pay_policies_get"];
+        put?: never;
+        /** Create Policy */
+        post: operations["create_policy_api_v1_pay_policies_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pay-policies/defaults": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Policy Defaults
+         * @description The fields of a policy and their starting values (for a new policy).
+         */
+        get: operations["policy_defaults_api_v1_pay_policies_defaults_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pay-policies/{policy_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete Policy
+         * @description يطلب الحذف: بيتحذف نهائي بعد ٣٠ يوم، أو فورًا بصلاحية الحذف النهائي.
+         */
+        delete: operations["delete_policy_api_v1_pay_policies__policy_id__delete"];
+        options?: never;
+        head?: never;
+        /** Update Policy */
+        patch: operations["update_policy_api_v1_pay_policies__policy_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/pay-policies/templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Templates
+         * @description Starting policies (الإدارة، المبيعات، المصنع، التركيبات) and zones (القاهرة، الجيزة، العاشر، العبور), only
+         *     those the company does not have yet. Everything in them is editable afterwards.
+         */
+        post: operations["create_templates_api_v1_pay_policies_templates_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/work-zones": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Zones */
+        get: operations["list_zones_api_v1_work_zones_get"];
+        put?: never;
+        /** Create Zone */
+        post: operations["create_zone_api_v1_work_zones_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/work-zones/{zone_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete Zone
+         * @description يطلب الحذف: بيتحذف نهائي بعد ٣٠ يوم، أو فورًا بصلاحية الحذف النهائي.
+         */
+        delete: operations["delete_zone_api_v1_work_zones__zone_id__delete"];
+        options?: never;
+        head?: never;
+        /** Update Zone */
+        patch: operations["update_zone_api_v1_work_zones__zone_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/public-holidays": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Holidays */
+        get: operations["list_holidays_api_v1_public_holidays_get"];
+        put?: never;
+        /** Create Holiday */
+        post: operations["create_holiday_api_v1_public_holidays_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public-holidays/{holiday_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete Holiday
+         * @description يطلب الحذف: بيتحذف نهائي بعد ٣٠ يوم، أو فورًا بصلاحية الحذف النهائي.
+         */
+        delete: operations["delete_holiday_api_v1_public_holidays__holiday_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/attendance/month": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Employee Month
+         * @description Day by day: the kind, first and last punch, lateness, overtime, what is deducted / added, and what needs a
+         *     look; with the totals and (for sales) the collections and the commission.
+         */
+        get: operations["employee_month_api_v1_attendance_month_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/attendance/days/{employee_id}/{day}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Mark Day
+         * @description HR's decision on one day. The installations manager (field.manage) may only pick which morning punch
+         *     counts when the device and the app both have one.
+         */
+        put: operations["mark_day_api_v1_attendance_days__employee_id___day__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/attendance/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * My Attendance
+         * @description For the phone: may this user punch from the app, and today's punches.
+         */
+        get: operations["my_attendance_api_v1_attendance_me_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/attendance/my-punch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * App Punch
+         * @description بصمة من الموبايل: the time is the server's, the place is the phone's.
+         */
+        post: operations["app_punch_api_v1_attendance_my_punch_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payslips/{slip_id}/commission": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Force Commission
+         * @description The direct manager allowed the commission this month although the collections are under the minimum.
+         */
+        post: operations["force_commission_api_v1_payslips__slip_id__commission_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/assets": {
         parameters: {
             query?: never;
@@ -3297,6 +3556,15 @@ export interface components {
             qty_expr: string;
             /** Condition */
             condition?: string | null;
+        };
+        /** AppPunchIn */
+        AppPunchIn: {
+            /** Latitude */
+            latitude: number | string;
+            /** Longitude */
+            longitude: number | string;
+            /** Accuracy M */
+            accuracy_m?: number | string | null;
         };
         /** ApproveIn */
         ApproveIn: {
@@ -4063,6 +4331,34 @@ export interface components {
             /** Notes */
             notes?: string | null;
         };
+        /** DayMarkIn */
+        DayMarkIn: {
+            /** Kind */
+            kind?: string | null;
+            /**
+             * Excuse
+             * @default none
+             */
+            excuse: string;
+            /**
+             * Permission Minutes
+             * @default 0
+             */
+            permission_minutes: number;
+            /** Manual In */
+            manual_in?: string | null;
+            /** Manual Out */
+            manual_out?: string | null;
+            /** Start Source */
+            start_source?: string | null;
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+            /** Version */
+            version?: number | null;
+        };
         /**
          * DayOut
          * @description One employee's day: first and last punch.
@@ -4347,6 +4643,10 @@ export interface components {
             notes: string;
             /** Attendance Pin */
             attendance_pin?: string | null;
+            /** Pay Policy Id */
+            pay_policy_id?: string | null;
+            /** Manager Id */
+            manager_id?: string | null;
         };
         /** EmployeeOut */
         EmployeeOut: {
@@ -4396,6 +4696,10 @@ export interface components {
             notes: string;
             /** Attendance Pin */
             attendance_pin?: string | null;
+            /** Pay Policy Id */
+            pay_policy_id?: string | null;
+            /** Manager Id */
+            manager_id?: string | null;
         };
         /** EmployeeUpdate */
         EmployeeUpdate: {
@@ -4431,6 +4735,10 @@ export interface components {
             notes?: string | null;
             /** Attendance Pin */
             attendance_pin?: string | null;
+            /** Pay Policy Id */
+            pay_policy_id?: string | null;
+            /** Manager Id */
+            manager_id?: string | null;
         };
         /** Entry */
         Entry: {
@@ -4466,7 +4774,11 @@ export interface components {
             /** Kind */
             kind: string;
             /** Amount */
-            amount: number | string;
+            amount?: number | string | null;
+            /** Quantity */
+            quantity?: number | string | null;
+            /** Rate */
+            rate?: number | string | null;
             /** Entry Date */
             entry_date?: string | null;
             /** Month */
@@ -4510,6 +4822,10 @@ export interface components {
             month: string;
             /** Amount */
             amount: string;
+            /** Quantity */
+            quantity?: string | null;
+            /** Rate */
+            rate?: string | null;
             /** Installment */
             installment: string | null;
             /** Repaid */
@@ -4619,6 +4935,11 @@ export interface components {
              */
             server_https: boolean;
         };
+        /** ForceIn */
+        ForceIn: {
+            /** Forced */
+            forced: boolean;
+        };
         /** Formula */
         Formula: {
             /** Key */
@@ -4710,6 +5031,40 @@ export interface components {
             query: {
                 [key: string]: string;
             };
+        };
+        /** HolidayIn */
+        HolidayIn: {
+            /**
+             * Day
+             * Format: date
+             */
+            day: string;
+            /**
+             * Name
+             * @default
+             */
+            name: string;
+        };
+        /** HolidayOut */
+        HolidayOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Version */
+            version: number;
+            /** Created At */
+            created_at?: string | null;
+            /** Updated At */
+            updated_at?: string | null;
+            /**
+             * Day
+             * Format: date
+             */
+            day: string;
+            /** Name */
+            name: string;
         };
         /** Inbox */
         Inbox: {
@@ -6320,6 +6675,81 @@ export interface components {
             net: string;
             /** Cash Transaction Id */
             cash_transaction_id: string | null;
+            /**
+             * Department
+             * @default
+             */
+            department: string;
+            /**
+             * Manager Name
+             * @default
+             */
+            manager_name: string;
+            /**
+             * Policy Name
+             * @default
+             */
+            policy_name: string;
+            /**
+             * Present Days
+             * @default 0
+             */
+            present_days: string;
+            /**
+             * Absent Days
+             * @default 0
+             */
+            absent_days: string;
+            /**
+             * Late Minutes
+             * @default 0
+             */
+            late_minutes: number;
+            /**
+             * Attendance Deduction
+             * @default 0
+             */
+            attendance_deduction: string;
+            /**
+             * Overtime Minutes
+             * @default 0
+             */
+            overtime_minutes: number;
+            /**
+             * Overtime Amount
+             * @default 0
+             */
+            overtime_amount: string;
+            /**
+             * Allowances
+             * @default 0
+             */
+            allowances: string;
+            /**
+             * Piecework
+             * @default 0
+             */
+            piecework: string;
+            /**
+             * Collections
+             * @default 0
+             */
+            collections: string;
+            /**
+             * Commission
+             * @default 0
+             */
+            commission: string;
+            /**
+             * Commission Forced
+             * @default false
+             */
+            commission_forced: boolean;
+            /**
+             * Review Days
+             * @default 0
+             */
+            review_days: number;
         };
         /**
          * Piece
@@ -6374,6 +6804,64 @@ export interface components {
             longitude: string;
             /** Accuracy M */
             accuracy_m?: string | null;
+        };
+        /** PolicyIn */
+        PolicyIn: {
+            /** Code */
+            code: string;
+            /** Name */
+            name: string;
+            /** Rules */
+            rules?: {
+                [key: string]: unknown;
+            };
+            /**
+             * Notes
+             * @default
+             */
+            notes: string;
+        };
+        /** PolicyOut */
+        PolicyOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Version */
+            version: number;
+            /** Created At */
+            created_at?: string | null;
+            /** Updated At */
+            updated_at?: string | null;
+            /** Code */
+            code: string;
+            /** Name */
+            name: string;
+            /** Rules */
+            rules: {
+                [key: string]: unknown;
+            };
+            /** Notes */
+            notes: string;
+            /**
+             * Employees
+             * @default 0
+             */
+            employees: number;
+        };
+        /** PolicyUpdate */
+        PolicyUpdate: {
+            /** Version */
+            version: number;
+            /** Name */
+            name?: string | null;
+            /** Rules */
+            rules?: {
+                [key: string]: unknown;
+            } | null;
+            /** Notes */
+            notes?: string | null;
         };
         /** PriceApprovalIn */
         PriceApprovalIn: {
@@ -7760,6 +8248,70 @@ export interface components {
             deposit_required?: number | string | null;
             /** Salesperson Id */
             salesperson_id?: string | null;
+        };
+        /** ZoneIn */
+        ZoneIn: {
+            /** Name */
+            name: string;
+            /** Latitude */
+            latitude: number | string;
+            /** Longitude */
+            longitude: number | string;
+            /** Radius Km */
+            radius_km: number | string;
+            /**
+             * Transport Allowance
+             * @default 0
+             */
+            transport_allowance: number | string;
+            /**
+             * Is Active
+             * @default true
+             */
+            is_active: boolean;
+        };
+        /** ZoneOut */
+        ZoneOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Version */
+            version: number;
+            /** Created At */
+            created_at?: string | null;
+            /** Updated At */
+            updated_at?: string | null;
+            /** Name */
+            name: string;
+            /** Latitude */
+            latitude: string;
+            /** Longitude */
+            longitude: string;
+            /** Radius Km */
+            radius_km: string;
+            /** Transport Allowance */
+            transport_allowance: string;
+            /** Is Active */
+            is_active: boolean;
+        };
+        /** ZoneUpdate */
+        ZoneUpdate: {
+            /** Version */
+            version: number;
+            /** Name */
+            name?: string | null;
+            /** Latitude */
+            latitude?: number | string | null;
+            /** Longitude */
+            longitude?: number | string | null;
+            /** Radius Km */
+            radius_km?: number | string | null;
+            /** Transport Allowance */
+            transport_allowance?: number | string | null;
+            /** Is Active */
+            is_active?: boolean | null;
         };
         /** LineIn */
         app__modules__invoicing__router__LineIn: {
@@ -14831,6 +15383,535 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UnlinkedOut"][];
+                };
+            };
+        };
+    };
+    list_policies_api_v1_pay_policies_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PolicyOut"][];
+                };
+            };
+        };
+    };
+    create_policy_api_v1_pay_policies_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PolicyIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PolicyOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    policy_defaults_api_v1_pay_policies_defaults_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    delete_policy_api_v1_pay_policies__policy_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                policy_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeleteResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_policy_api_v1_pay_policies__policy_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                policy_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PolicyUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PolicyOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_templates_api_v1_pay_policies_templates_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PolicyOut"][];
+                };
+            };
+        };
+    };
+    list_zones_api_v1_work_zones_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ZoneOut"][];
+                };
+            };
+        };
+    };
+    create_zone_api_v1_work_zones_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ZoneIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ZoneOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_zone_api_v1_work_zones__zone_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                zone_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeleteResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_zone_api_v1_work_zones__zone_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                zone_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ZoneUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ZoneOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_holidays_api_v1_public_holidays_get: {
+        parameters: {
+            query?: {
+                year?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HolidayOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_holiday_api_v1_public_holidays_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HolidayIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HolidayOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_holiday_api_v1_public_holidays__holiday_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                holiday_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeleteResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    employee_month_api_v1_attendance_month_get: {
+        parameters: {
+            query: {
+                employee_id: string;
+                month: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    mark_day_api_v1_attendance_days__employee_id___day__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                employee_id: string;
+                day: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DayMarkIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    my_attendance_api_v1_attendance_me_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    app_punch_api_v1_attendance_my_punch_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AppPunchIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    force_commission_api_v1_payslips__slip_id__commission_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slip_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ForceIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

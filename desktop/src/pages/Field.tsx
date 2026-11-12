@@ -271,6 +271,7 @@ function MyJobs() {
     <div className="col" style={{ gap: 12, maxWidth: 640, marginInline: "auto" }}>
       {active && <div className={"notice " + (gps === "on" ? "ok" : "warn")}>
         {gps === "on" ? "📍 مكانك بيتبعت للمكتب لحد ما تخلّص المهمة." : gps === "off" ? "بيجهّز المكان…" : gps}</div>}
+      <AppPunch />
       {jobs.loading && !jobs.data && <div className="empty"><span className="spinner" /></div>}
       {jobs.data && !jobs.data.length && <div className="empty">مفيش مهام ليك دلوقتي 👌</div>}
       {(jobs.data ?? []).map((j) => {
@@ -306,5 +307,40 @@ function MyJobs() {
       {install && <PrintPreview path={`/field/jobs/${install.id}/installation-order`} title={`أمر تركيب ${install.reference}`}
         onClose={() => setInstall(null)} />}
     </div>
+  );
+}
+
+
+/** بصمة من الموبايل (لو سياسة مرتبه بتسمح): أول اليوم لو مش هيعدّي على المصنع، وآخر اليوم وهو سايب الموقع. */
+function AppPunch() {
+  const toast = useToast();
+  const me = useLoad(() => api.get<{ can_punch: boolean; punches: { at: string; source: string }[] }>("/attendance/me").catch(() => null), []);
+  const [busy, setBusy] = useState(false);
+  if (!me.data?.can_punch) return null;
+  const punch = async () => {
+    setBusy(true);
+    let stop: (() => void) | null = null;
+    let done = false;
+    const finish = (msg?: string) => { if (done) return; done = true; stop?.(); setBusy(false); if (msg) toast.err(msg); };
+    const timer = setTimeout(() => finish("ماقدرتش أجيب مكانك: شغّل الـ Location وجرّب تاني."), 40000);
+    stop = await watchPosition((f) => {
+      if (done) return;
+      clearTimeout(timer);
+      api.post("/attendance/my-punch", { latitude: f.latitude.toFixed(6), longitude: f.longitude.toFixed(6),
+        accuracy_m: f.accuracy != null ? Math.round(f.accuracy) : null })
+        .then(() => { toast.ok("اتسجلت البصمة."); me.reload(); finish(); })
+        .catch((e) => finish(e instanceof Error ? e.message : String(e)));
+    }, (msg) => { clearTimeout(timer); finish(msg); });
+    if (done) stop();
+  };
+  const times = me.data.punches.map((p) => `${p.at.slice(11, 16)}${p.source === "app" ? " 📱" : ""}`);
+  return (
+    <Card>
+      <div className="row wrap" style={{ gap: 10, alignItems: "center" }}>
+        <Btn kind="primary" icon="hand" busy={busy} onClick={punch}>بصمة (حضور / انصراف)</Btn>
+        <span className="muted small">{times.length ? <>بصمات النهارده: <span className="num">{times.join(" · ")}</span></> : "مفيش بصمات النهارده لسه"}</span>
+      </div>
+      <div className="muted small mt">ابصم من هنا أول اليوم لو مش هتعدّي على المصنع، وآخر اليوم وانت سايب الموقع. مكانك بيتسجل مع البصمة.</div>
+    </Card>
   );
 }

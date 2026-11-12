@@ -12,6 +12,7 @@ import { QUOTE_STATUS, STAGE_NAMES, invalidate } from "../lib/lookups";
 import { go, setQuery } from "../lib/router";
 import { date, today } from "../lib/format";
 import { Attendance } from "./Attendance";
+import { PolicySettings } from "./PayPolicies";
 
 type Emp = S<"EmployeeOut">;
 type Entry = S<"EntryOut">;
@@ -21,7 +22,7 @@ type Run = S<"RunOut">;
 export const DEPARTMENTS: Record<string, string> = { sales: "مبيعات", production: "إنتاج", installation: "تركيبات",
   survey: "معاينات", accounts: "حسابات", hr: "موارد بشرية", admin: "إدارة", other: "أخرى" };
 const ENTRY_KINDS: Record<string, [string, "green" | "red" | "amber"]> = {
-  bonus: ["حافز", "green"], deduction: ["خصم", "red"], advance: ["سلفة", "amber"] };
+  bonus: ["حافز", "green"], deduction: ["خصم", "red"], advance: ["سلفة", "amber"], piecework: ["بالقطعة", "green"] };
 const LEAVE_KINDS: Record<string, string> = { annual: "اعتيادي", sick: "مرضي", unpaid: "من غير مرتب", other: "أخرى" };
 const LEAVE_STATUS: Record<string, [string, "gray" | "green" | "red"]> = {
   requested: ["طلب", "gray"], approved: ["موافق عليها", "green"], rejected: ["مرفوضة", "red"] };
@@ -38,8 +39,10 @@ function HrHome({ tab }: { tab: string }) {
   return (
     <Card flush>
       <Tabs value={tab} onChange={(t) => setQuery({ tab: t })} tabs={[{ id: "employees", label: "الموظفين" },
-        { id: "attendance", label: "الحضور والانصراف" }, { id: "payroll", label: "كشوف المرتبات" }]} />
-      <div className="card-b">{tab === "payroll" ? <Payroll /> : tab === "attendance" ? <Attendance /> : <Employees />}</div>
+        { id: "attendance", label: "الحضور والانصراف" }, { id: "payroll", label: "كشوف المرتبات" },
+        { id: "policies", label: "سياسات المرتبات" }]} />
+      <div className="card-b">{tab === "payroll" ? <Payroll /> : tab === "attendance" ? <Attendance /> : tab === "policies"
+        ? <PolicySettings /> : <Employees />}</div>
     </Card>
   );
 }
@@ -85,18 +88,21 @@ function EmployeeForm({ employee, onClose, onSaved }: { employee?: Emp; onClose:
   const toast = useToast();
   const { busy, run } = useAction(toast.err);
   const branch = useDefaultBranch("hr.create");
+  const policies = useLoad(() => api.get<S<"PolicyOut">[]>("/pay-policies").catch(() => []), []);
+  const people = useLoad(() => api.get<S<"Page_EmployeeOut_">>("/employees", { status: "active", limit: 500 }).then((p) => p.items).catch(() => []), []);
   const users = useLoad(() => api.get<S<"Page_UserOut_">>("/users", { limit: 500 }).then((p) => p.items).catch(() => []), []);
   const e = employee;
   const [d, setD] = useState({ full_name: e?.full_name ?? "", job_title: e?.job_title ?? "", department: e?.department ?? "sales",
     branch_id: e?.branch_id ?? branch ?? "", phone: e?.phone ?? "", national_id: e?.national_id ?? "", address: e?.address ?? "",
     hire_date: e?.hire_date ?? "", base_salary: e?.base_salary ?? "0", annual_leave_days: e?.annual_leave_days ?? "21",
-    user_id: e?.user_id ?? "", notes: e?.notes ?? "", attendance_pin: e?.attendance_pin ?? "", status: e?.status ?? "active", end_date: e?.end_date ?? "" });
+    user_id: e?.user_id ?? "", notes: e?.notes ?? "", attendance_pin: e?.attendance_pin ?? "",
+    pay_policy_id: e?.pay_policy_id ?? "", manager_id: e?.manager_id ?? "", status: e?.status ?? "active", end_date: e?.end_date ?? "" });
   const set = (k: keyof typeof d) => (v: string) => setD((x) => ({ ...x, [k]: v }));
   const save = () => run(async () => {
     const body = { full_name: d.full_name, job_title: d.job_title, department: d.department, branch_id: d.branch_id,
       phone: d.phone || null, national_id: d.national_id || null, address: d.address || null, hire_date: d.hire_date || null,
       base_salary: d.base_salary || "0", annual_leave_days: d.annual_leave_days || "0", user_id: d.user_id || null, notes: d.notes,
-      attendance_pin: d.attendance_pin.trim() || null };
+      attendance_pin: d.attendance_pin.trim() || null, pay_policy_id: d.pay_policy_id || null, manager_id: d.manager_id || null };
     const out = e ? await api.patch<Emp>(`/employees/${e.id}`, { ...body, version: e.version, status: d.status, end_date: d.end_date || null })
       : await api.post<Emp>("/employees", body);
     invalidate("salespeople");
@@ -122,6 +128,11 @@ function EmployeeForm({ employee, onClose, onSaved }: { employee?: Emp; onClose:
         <Field label="حسابه على البرنامج" hint="لو بيدخل البرنامج: مبيعاته بتتسجل باسمه أوتوماتيك">
           <Select value={d.user_id} onChange={set("user_id")} placeholder="مالوش حساب"
             options={(users.data ?? []).map((u) => ({ value: u.id, label: `${u.full_name} (${u.username})` }))} /></Field>
+        <Field label="سياسة المرتب والحضور" hint="مواعيده، التأخير، الغياب، الأوفر تايم، العمولة">
+          <Select value={d.pay_policy_id} onChange={set("pay_policy_id")} placeholder="من غير (المرتب + الحوافز − الخصومات)"
+            options={(policies.data ?? []).map((p) => ({ value: p.id, label: p.name }))} /></Field>
+        <Field label="المدير المباشر"><Select value={d.manager_id} onChange={set("manager_id")} placeholder="—"
+          options={(people.data ?? []).filter((x) => x.id !== e?.id).map((x) => ({ value: x.id, label: x.full_name }))} /></Field>
         <Field label="رقم البصمة" hint="رقمه على جهاز البصمة (User ID)"><TextIn value={d.attendance_pin} onChange={set("attendance_pin")} code /></Field>
         {e && <Field label="الحالة"><Select value={d.status} onChange={set("status")}
           options={[{ value: "active", label: "شغال" }, { value: "left", label: "ساب الشغل" }]} /></Field>}
@@ -175,7 +186,8 @@ function EmployeeProfile({ id, tab }: { id: string; tab: string }) {
             ["التليفون", <span className="num">{e.phone ?? "—"}</span>], ["الرقم القومي", <span className="num">{e.national_id ?? "—"}</span>],
             ["العنوان", e.address ?? "—"], ["تاريخ التعيين", <span className="num">{date(e.hire_date)}</span>],
             ["رصيد الإجازات السنوي", `${Number(e.annual_leave_days)} يوم`],
-            ["رقم البصمة", <span className="num">{e.attendance_pin ?? "—"}</span>], ["ملاحظات", e.notes || "—"],
+            ["رقم البصمة", <span className="num">{e.attendance_pin ?? "—"}</span>],
+            ["سياسة المرتب", e.pay_policy_id ? <PolicyName id={e.pay_policy_id} /> : "—"], ["ملاحظات", e.notes || "—"],
           ]} />}
           {tab === "entries" && <Entries emp={e} onChange={summary.reload} />}
           {tab === "leaves" && <Leaves emp={e} onChange={summary.reload} />}
@@ -199,6 +211,7 @@ function Entries({ emp, onChange }: { emp: Emp; onChange: () => void }) {
       <PageHead>{create && <>
         <Btn kind="success" icon="plus" onClick={() => setAdding("bonus")}>حافز</Btn>
         <Btn kind="danger" icon="plus" onClick={() => setAdding("deduction")}>خصم</Btn>
+        <Btn icon="plus" onClick={() => setAdding("piecework")}>شغل بالقطعة</Btn>
         {s.can("treasury.create") && <Btn icon="cash" onClick={() => setAdding("advance")}>سلفة</Btn>}</>}
       </PageHead>
       <Table rows={list.data} loading={list.loading} empty="مفيش حركات" columns={[
@@ -207,7 +220,8 @@ function Entries({ emp, onChange }: { emp: Emp; onChange: () => void }) {
         { key: "m", label: "على مرتب شهر", render: (x) => <span className="num">{x.month}</span> },
         { key: "a", label: "المبلغ", num: true, render: (x) => <b><Money v={x.amount} /></b> },
         { key: "r", label: "السلفة", render: (x) => x.kind === "advance" ? <span className="small">اتسدد <Money v={x.repaid} /> · قسط <Money v={x.installment} /></span> : "" },
-        { key: "n", label: "ملاحظة", render: (x) => <span className="small muted">{x.note}</span> },
+        { key: "n", label: "ملاحظة", render: (x) => <span className="small muted">{x.kind === "piecework" && x.quantity
+          ? `${Number(x.quantity)} × ${Number(x.rate)} · ` : ""}{x.note}</span> },
         { key: "p", label: "", render: (x) => x.payslip_id ? <Chip color="green">اتصرف</Chip> : null },
         { key: "x", label: "", width: 80, render: (x) => x.kind !== "advance" && !x.payslip_id && s.can("hr.delete", emp.branch_id) &&
           <DeleteBtn path={`/employee-entries/${x.id}`} what={`ال${ENTRY_KINDS[x.kind]?.[0]}`} onDone={reload} /> },
@@ -221,19 +235,32 @@ function Entries({ emp, onChange }: { emp: Emp; onChange: () => void }) {
 function EntryForm({ emp, kind, onClose, onSaved }: { emp: Emp; kind: string; onClose: () => void; onSaved: () => void }) {
   const toast = useToast();
   const { busy, run } = useAction(toast.err);
-  const [d, setD] = useState({ amount: "", entry_date: today(), month: thisMonth(), installment: "", cashbox_id: "", note: "" });
+  const [d, setD] = useState({ amount: "", entry_date: today(), month: thisMonth(), installment: "", cashbox_id: "", note: "",
+    quantity: "", rate: "" });
   const set = (k: keyof typeof d) => (v: string) => setD((x) => ({ ...x, [k]: v }));
   const advance = kind === "advance";
+  const piece = kind === "piecework";
+  const policy = useLoad(() => emp.pay_policy_id ? api.get<S<"PolicyOut">[]>("/pay-policies")
+    .then((ps) => ps.find((p) => p.id === emp.pay_policy_id) ?? null) : Promise.resolve(null), [emp.pay_policy_id]);
+  const rates = ((policy.data?.rules?.piece_rates ?? []) as { name: string; rate: string }[]);
   return (
     <Modal title={`${ENTRY_KINDS[kind][0]} · ${emp.full_name}`} onClose={onClose} footer={<><Btn kind="primary" busy={busy}
-      disabled={!Number(d.amount) || (advance && !d.cashbox_id)} onClick={() => run(async () => {
-        await api.post("/employee-entries", { employee_id: emp.id, kind, amount: d.amount, entry_date: d.entry_date || null,
+      disabled={piece ? !(Number(d.quantity) && Number(d.rate)) : !Number(d.amount) || (advance && !d.cashbox_id)} onClick={() => run(async () => {
+        await api.post("/employee-entries", { employee_id: emp.id, kind, entry_date: d.entry_date || null,
+          ...(piece ? { quantity: d.quantity, rate: d.rate } : { amount: d.amount }),
           month: d.month || null, note: d.note, ...(advance ? { installment: d.installment || null, cashbox_id: d.cashbox_id } : {}) });
         toast.ok(advance ? "اتصرفت السلفة من الخزينة." : "اتسجل.");
         onSaved(); onClose();
       })}>حفظ</Btn><Btn onClick={onClose}>رجوع</Btn></>}>
       <div className="grid g2">
-        <Field label="المبلغ"><NumIn value={d.amount} onChange={set("amount")} autoFocus /></Field>
+        {piece ? <>
+          <Field label="عدد الفتحات"><NumIn value={d.quantity} onChange={set("quantity")} autoFocus /></Field>
+          <Field label="سعر الفتحة" hint={rates.length ? "" : "الأسعار بتتحط في سياسة المرتب"}>
+            {rates.length > 0 && <Select value="" placeholder="اختار من الأسعار…" onChange={(v) => set("rate")(v)}
+              options={rates.map((r) => ({ value: String(r.rate), label: `${r.name} (${Number(r.rate)})` }))} />}
+            <NumIn value={d.rate} onChange={set("rate")} unit="ج" /></Field>
+          <div className="span-all muted small">الإجمالي: <b><Money v={(Number(d.quantity) || 0) * (Number(d.rate) || 0)} /></b></div>
+        </> : <Field label="المبلغ"><NumIn value={d.amount} onChange={set("amount")} autoFocus /></Field>}
         <Field label="التاريخ"><input type="date" className="input" value={d.entry_date} onChange={(e) => set("entry_date")(e.target.value)} /></Field>
         <Field label={advance ? "أول قسط من مرتب شهر" : "على مرتب شهر"}><input type="month" className="input" value={d.month}
           onChange={(e) => set("month")(e.target.value)} /></Field>
@@ -395,7 +422,8 @@ function NewRun({ onClose, onSaved }: { onClose: () => void; onSaved: (r: Run) =
       <div className="col">
         <Field label="الشهر"><input type="month" className="input" value={d.month} onChange={(e) => setD((x) => ({ ...x, month: e.target.value }))} /></Field>
         <Field label="الفرع"><BranchSelect value={d.branch_id} onChange={(v) => setD((x) => ({ ...x, branch_id: v }))} perm="hr.payroll" /></Field>
-        <div className="muted small">الكشف بيتحسب لكل موظفين الفرع: المرتب + الحوافز − الخصومات − الإجازات من غير مرتب − قسط السلفة.</div>
+        <div className="muted small">الكشف بيتحسب لكل موظفين الفرع: المرتب + الحوافز والشغل بالقطعة − الخصومات − الإجازات من غير مرتب − قسط السلفة.
+          واللي ليه سياسة مرتب: كمان خصم الغياب والتأخير، والأوفر تايم، والسفر والبدلات، وعمولة المبيعات على التحصيل.</div>
       </div>
     </Modal>
   );
@@ -408,10 +436,15 @@ function RunDetail({ id, onBack }: { id: string; onBack: () => void }) {
   const r = useLoad(() => api.get<Run>(`/payroll-runs/${id}`), [id]);
   const [paying, setPaying] = useState(false);
   const [box, setBox] = useState("");
+  const [dept, setDept] = useState("");
   if (r.error) return <ErrorBox text={r.error} onRetry={r.reload} />;
   if (!r.data) return <Loading />;
   const x = r.data;
   const draft = x.status === "draft";
+  const slips = x.payslips.filter((p) => !dept || p.department === dept);
+  const depts = [...new Set(x.payslips.map((p) => p.department))];
+  const sum = (k: keyof S<"PayslipOut">) => slips.reduce((t, p) => t + Number(p[k] ?? 0), 0);
+  const force = (p: S<"PayslipOut">) => run(async () => { r.set(await api.post<Run>(`/payslips/${p.id}/commission`, { forced: !p.commission_forced })); });
   return (
     <div className="col">
       <PageHead title={`كشف مرتبات ${x.month} · ${x.number}`}>
@@ -422,12 +455,35 @@ function RunDetail({ id, onBack }: { id: string; onBack: () => void }) {
           <DeleteBtn small={false} path={`/payroll-runs/${id}`} what={`كشف ${x.month}`} onDone={onBack} /></>}
         {!draft && <Chip color="green">اتصرف {date(String(x.paid_at ?? ""))}</Chip>}
       </PageHead>
-      <Table rows={x.payslips} rowKey={(p) => p.id} empty="مفيش موظفين في الفرع ده" columns={[
-        { key: "e", label: "الموظف", render: (p) => <a style={{ cursor: "pointer" }} onClick={() => go(`hr/${p.employee_id}`)}><b>{p.employee_name}</b></a> },
-        { key: "j", label: "الوظيفة", render: (p) => <span className="small muted">{p.job_title}</span> },
-        ...SLIP_COLUMNS,
+      {depts.length > 1 && <div className="row" style={{ gap: 8 }}>
+        <span className="muted small">الإدارة:</span>
+        <div style={{ width: 180 }}><Select value={dept} onChange={setDept} placeholder="كل الإدارات"
+          options={depts.map((d) => ({ value: d, label: DEPARTMENTS[d] ?? d }))} /></div>
+        <span className="muted small">اختار إدارة واطبع كشفها من زرار الطباعة فوق الجدول.</span></div>}
+      <Table rows={slips} rowKey={(p) => p.id} tools empty="مفيش موظفين في الفرع ده" columns={[
+        { key: "e", label: "اسم الموظف", render: (p) => <a style={{ cursor: "pointer" }} onClick={() => go(`hr/${p.employee_id}`)}><b>{p.employee_name}</b></a> },
+        { key: "dp", label: "الإدارة", render: (p) => DEPARTMENTS[p.department] ?? p.department },
+        { key: "j", label: "المسمى الوظيفي", render: (p) => <span className="small muted">{p.job_title}</span> },
+        { key: "b", label: "الراتب الأساسي", num: true, render: (p) => <Money v={p.base_salary} /> },
+        { key: "pd", label: "أيام الحضور", num: true, render: (p) => p.policy_name ? <span className="num">{Number(p.present_days)}</span> : "—" },
+        { key: "ab", label: "أيام الغياب", num: true, render: (p) => p.policy_name ? <span className="num">{Number(p.absent_days)}</span> : "—" },
+        { key: "lm", label: "دقائق التأخير", num: true, render: (p) => p.policy_name ? <span className="num">{p.late_minutes}</span> : "—" },
+        { key: "ad", label: "خصم الغياب والتأخير", num: true, render: (p) => <span className="danger-text"><Money v={p.attendance_deduction} /></span> },
+        { key: "od", label: "خصومات أخرى", num: true, render: (p) => <span className="danger-text"><Money v={Number(p.deductions) + Number(p.unpaid_leave_deduction)} /></span> },
+        { key: "ot", label: "أوفر تايم", num: true, render: (p) => p.overtime_minutes ? <span title={`${Math.round(p.overtime_minutes / 6) / 10} ساعة`}><Money v={p.overtime_amount} /></span> : "—" },
+        { key: "al", label: "سفر وبدلات", num: true, render: (p) => <Money v={p.allowances} /> },
+        { key: "bo", label: "إضافات", num: true, render: (p) => <span className="success-text"><Money v={Number(p.bonuses) + Number(p.piecework)} /></span> },
+        { key: "cm", label: "عمولة", num: true, render: (p) => Number(p.collections) || Number(p.commission) ? <span title={`التحصيل ${Number(p.collections).toLocaleString("ar-EG")}`}>
+          <Money v={p.commission} />{draft && s.can("hr.payroll", x.branch_id) && (Number(p.commission) === 0 || p.commission_forced) && Number(p.collections) > 0 &&
+            <Btn small className="ms" busy={busy} onClick={() => force(p)}>{p.commission_forced ? "إلغاء السماح" : "سماح من المدير"}</Btn>}</span> : "—" },
+        { key: "av", label: "قسط سلفة", num: true, render: (p) => <Money v={p.advance_repayment} /> },
+        { key: "n", label: "صافي الراتب", num: true, render: (p) => <b><Money v={p.net} /></b> },
+        { key: "mg", label: "المدير المباشر", render: (p) => <span className="small">{p.manager_name}</span> },
+        { key: "rv", label: "ملحوظات", render: (p) => p.review_days ? <a style={{ cursor: "pointer" }} onClick={() => go("hr", { tab: "attendance", employee: p.employee_id, month: x.month })}>
+          <Chip color="amber">{p.review_days} يوم محتاج مراجعة</Chip></a> : "" },
+        { key: "sg", label: "توقيع الموظف", render: () => "" },
       ]} />
-      <div className="row"><span className="end">إجمالي الصافي: <b><Money v={x.total} cur /></b></span></div>
+      <div className="row"><span className="end">إجمالي الصافي{dept ? ` (${DEPARTMENTS[dept] ?? dept})` : ""}: <b><Money v={dept ? sum("net") : x.total} cur /></b></span></div>
       {paying && (
         <Modal title={`صرف مرتبات ${x.month}`} onClose={() => setPaying(false)} footer={<><Btn kind="success" busy={busy} disabled={!box}
           onClick={() => run(async () => {
@@ -442,4 +498,9 @@ function RunDetail({ id, onBack }: { id: string; onBack: () => void }) {
       )}
     </div>
   );
+}
+
+function PolicyName({ id }: { id: string }) {
+  const ps = useLoad(() => api.get<S<"PolicyOut">[]>("/pay-policies").catch(() => []), []);
+  return <>{ps.data?.find((p) => p.id === id)?.name ?? "…"}</>;
 }
