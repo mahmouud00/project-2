@@ -107,6 +107,7 @@ def generate_outputs(db: Session, wo: WorkOrder, offcuts: dict[str, list[dict]] 
     # saw cut, as the cut list); the cut list itself always comes from the pieces
     buy_groups: dict[str, dict] = {}
     systems: dict = {}
+    unit_places: dict[int, str] = {}   # window number -> where it goes on site
     next_unit = 1          # every window of the order gets its own number (شباك 1، 2، …) for the cutter to mark pieces
 
     for item in items:
@@ -118,6 +119,8 @@ def generate_outputs(db: Session, wo: WorkOrder, offcuts: dict[str, list[dict]] 
         ref = f"{item.position}" + (f" ({item.location})" if item.location else "")
         units = list(range(next_unit, next_unit + item.qty))
         next_unit += item.qty
+        for u in units:
+            unit_places[u] = item.location or ""
         for issue in calc.get("issues", []):
             issues.append({**issue, "item": item.position})
         for p in calc.get("pieces", []):
@@ -198,6 +201,10 @@ def generate_outputs(db: Session, wo: WorkOrder, offcuts: dict[str, list[dict]] 
                             start_mm=cut["bar_start_waste_mm"], min_offcut_mm=settings.min_reusable_offcut_mm,
                             stock=offcuts.get(sku, []))
             plan["sku"] = sku
+            for bar in plan["bars"]:              # the cutter writes «ع 1 - الدور الأول شقة 1» on each piece
+                for piece in bar["pieces"]:
+                    if piece.get("unit") is not None:
+                        piece["location"] = unit_places.get(piece["unit"], "")
             for t in plan["too_long"]:
                 issues.append({"level": "error", "code": "PIECE_LONGER_THAN_BAR", "message": f"{sku}: {t['length_mm']} mm",
                                "where": sku})

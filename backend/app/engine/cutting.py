@@ -85,7 +85,8 @@ def optimise(pieces: list[dict], *, bar_length_mm: Decimal, kerf_mm: Decimal = D
         total_waste += waste
         out_bars.append({"bar_no": i, "pieces": bar.pieces, "used_mm": bar.used, "offcut_mm": leftover,
                          "offcut_reusable": reusable, "waste_mm": waste, "length_mm": bar.length,
-                         "from_offcut": bar.offcut_id})
+                         "from_offcut": bar.offcut_id, "kerf_mm": kerf_mm,
+                         "start_mm": Decimal(0) if bar.offcut_id else bar.length - bar.usable})
     new_bars = [b for b in bars if b.offcut_id is None]
     used_stock = [{"id": b.offcut_id, "length_mm": b.length} for b in bars if b.offcut_id]
     total_length = bar_length_mm * len(new_bars) + sum((b.length for b in bars if b.offcut_id), Decimal(0))

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { api, type S } from "../api/client";
 import { type PageProps, useRecordHistory, useTitle } from "../lib/title";
 import { useAction, useLoad, when } from "../lib/hooks";
@@ -254,7 +254,8 @@ type CutPiece = { length_mm: string; angle_left?: string; angle_right?: string; 
   side?: "width" | "height" | null; qty: number; refs?: string[]; windows?: string };
 type Outputs = {
   cut_list: { sku: string; material_code: string; material_name: string; pieces: CutPiece[]; total_pieces: number; total_length_mm: string }[];
-  optimisation: { sku: string; bar_length_mm: string; bars_count: number; bars: { bar_no: number; pieces: { length_mm: string; label?: string; side?: string | null; unit?: number }[]; used_mm: string;
+  optimisation: { sku: string; bar_length_mm: string; bars_count: number; bars: { bar_no: number; pieces: { length_mm: string; label?: string; side?: string | null; unit?: number; location?: string; extra_mm?: string }[];
+    start_mm?: string; used_mm: string;
     offcut_mm: string; offcut_reusable: boolean; waste_mm: string; length_mm?: string; from_offcut?: string | null }[]; waste_pct: string;
     reusable_offcuts_mm: (string | number)[]; offcuts_used?: { id: string; length_mm: string }[];
     too_long?: unknown[] }[];
@@ -345,9 +346,10 @@ function Manufacturing({ o }: { o: Outputs }) {
 }
 
 /** What the cutter writes on a piece: «عرض 2», «ارتفاع 1», or the piece's name and the window. */
-export function pieceMark(p: { side?: string | null; label?: string; unit?: number }): string {
-  const what = p.side === "width" ? "عرض" : p.side === "height" ? "ارتفاع" : (p.label ?? "");
-  return `${what} ${p.unit ?? ""}`.trim();
+export function pieceMark(p: { side?: string | null; label?: string; unit?: number; location?: string }): string {
+  const what = p.side === "width" ? "ع" : p.side === "height" ? "ط" : (p.label ?? "");
+  const mark = `${what} ${p.unit ?? ""}`.trim();
+  return p.location ? `${mark} - ${p.location}` : mark;
 }
 
 function BarPlans({ o }: { o: Outputs }) {
@@ -367,8 +369,14 @@ function BarPlans({ o }: { o: Outputs }) {
                 <div key={b.bar_no} className="row">
                   <span className="num muted small" style={{ width: 24 }} title={b.from_offcut ? "فضلة من المخزون" : ""}>{b.from_offcut ? "♻" : b.bar_no}</span>
                   <div className="bar-plan" style={{ width: `${(Number(b.length_mm ?? bar) / bar) * 100}%` }}>
-                    {b.pieces.map((p, i) => <span key={i} style={{ width: `${(Number(p.length_mm) / Number(b.length_mm ?? bar)) * 100}%` }}
-                      title={`${p.label ?? ""} ${s.len(p.length_mm)}${p.unit ? ` · شباك ${p.unit}` : ""}`}>{s.len(p.length_mm)}{p.unit ? <b className="bar-mark">{pieceMark(p)}</b> : null}</span>)}
+                    {Number(b.start_mm) > 0 && <span className="bar-start" style={{ width: `${(Number(b.start_mm) / Number(b.length_mm ?? bar)) * 100}%` }}
+                      title={`هالك بداية العود ${s.len(b.start_mm)}`}>{s.len(b.start_mm)}</span>}
+                    {b.pieces.map((p, i) => <Fragment key={i}>
+                      <span style={{ width: `${(Number(p.length_mm) / Number(b.length_mm ?? bar)) * 100}%` }}
+                        title={`${p.label ?? ""} ${s.len(p.length_mm)}${p.unit ? ` · ${pieceMark(p)}` : ""}`}>{s.len(p.length_mm)}{p.unit ? <b className="bar-mark" dir="rtl">{pieceMark(p)}</b> : null}</span>
+                      {Number(p.extra_mm) > 0 && <span className="bar-miter" style={{ width: `${(Number(p.extra_mm) / Number(b.length_mm ?? bar)) * 100}%` }}
+                        title={`شطف زاوية 45: ${s.len(p.extra_mm)}`}>{s.len(p.extra_mm)}</span>}
+                    </Fragment>)}
                     {Number(b.offcut_mm) > 0 && <span className={b.offcut_reusable ? "off" : "waste"} style={{ width: `${(Number(b.offcut_mm) / Number(b.length_mm ?? bar)) * 100}%` }}
                       title={(b.offcut_reusable ? "فضلة تتشال " : "هالك ") + s.len(b.offcut_mm)}>{s.len(b.offcut_mm)}</span>}
                   </div>

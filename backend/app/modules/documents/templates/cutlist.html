@@ -30,7 +30,8 @@
 {% for bar in plan.bars %}{% set blen = (bar.length_mm or plan.bar_length_mm)|float %}
 <div style="display:flex;direction:ltr;height:24px;border:1px solid #CBD5E1;margin:2px 0;font-size:9px;width:{{ blen / (plan.bar_length_mm|float) * 100 }}%">
   {% if bar.from_offcut %}<div style="padding:0 3px;background:#FEF3C7">♻ {{ blen | cm }}</div>{% endif %}
-  {% for p in bar.pieces %}<div style="width:{{ (p.length_mm|float) / blen * 100 }}%;background:#E0E7FF;border-right:1px solid #fff;text-align:center;line-height:1.1">{{ p.length_mm | cm }}{% if p.unit %}<br><b dir="rtl">{% if p.side == "width" %}عرض{% elif p.side == "height" %}ارتفاع{% else %}{{ p.label }}{% endif %} {{ p.unit }}</b>{% endif %}</div>{% endfor %}
+  {% if bar.start_mm and (bar.start_mm|float) > 0 %}<div style="width:{{ (bar.start_mm|float) / blen * 100 }}%;min-width:10px;background:#FDECEC;color:#B42318;text-align:center">{{ bar.start_mm | cm }}</div>{% endif %}
+  {% for p in bar.pieces %}<div style="width:{{ (p.length_mm|float) / blen * 100 }}%;background:#E0E7FF;border-right:1px solid #fff;text-align:center;line-height:1.1;overflow:hidden">{{ p.length_mm | cm }}{% if p.unit %}<br><b dir="rtl" style="white-space:nowrap">{% if p.side == "width" %}ع{% elif p.side == "height" %}ط{% else %}{{ p.label }}{% endif %} {{ p.unit }}{% if p.location %} - {{ p.location }}{% endif %}</b>{% endif %}</div>{% if p.extra_mm and (p.extra_mm|float) > 0 %}<div style="width:{{ (p.extra_mm|float) / blen * 100 }}%;min-width:8px;background:#FEF3C7;color:#92400E;text-align:center">{{ p.extra_mm | cm }}</div>{% endif %}{% endfor %}
   <div style="flex:1;background:{% if bar.offcut_reusable %}#E7F6EC{% else %}#FDECEC{% endif %};text-align:center">{{ bar.offcut_mm | cm }}</div>
 </div>
 {% endfor %}
