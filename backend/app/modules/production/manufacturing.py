@@ -41,9 +41,24 @@ def system_cutting(db: Session, model_id, cache: dict) -> dict:
     return cache[model_id]
 
 
+_ROLE_WORDS = (("حلق", "frame"), ("ضلف", "sash"), ("باكت", "bead"), ("frame", "frame"), ("sash", "sash"), ("bead", "bead"))
+
+
+def _role_from_name(piece: dict) -> str | None:
+    """A piece saved without a role: its element's (or label's) name says it, as in the model editor."""
+    for text in (piece.get("element"), piece.get("label"), piece.get("key"), piece.get("material_name")):
+        t = (text or "").strip().replace("أ", "ا").replace("إ", "ا").lower()
+        for word in t.replace("_", " ").split():
+            word = word[2:] if word.startswith("ال") and len(word) > 3 else word      # «الحلق» is a frame too
+            for prefix, role in _ROLE_WORDS:
+                if word.startswith(prefix):
+                    return role
+    return None
+
+
 def miter_extra(piece: dict, cut: dict) -> Decimal:
     """A frame / sash / bead piece cut at 45° (at either end) takes its role's allowance once more from the bar."""
-    field = MITER_ROLE.get(piece.get("role") or "")
+    field = MITER_ROLE.get(piece.get("role") or "") or MITER_ROLE.get(_role_from_name(piece) or "")
     if not field:
         return Decimal(0)
     angles = (piece.get("angle_left"), piece.get("angle_right"))
