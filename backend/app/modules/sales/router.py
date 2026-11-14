@@ -29,6 +29,13 @@ router = APIRouter(tags=["sales"])
 
 
 # ---------------------------------------------------------------- quotations
+def survey_glass(o) -> str | None:
+    """The glass as written on the survey sheet: «عاكس بني - سنجل»."""
+    layers = {"single": "سنجل", "double": "دبل"}.get(o.glass_layers or "")
+    text = " - ".join(x for x in ((o.glass_color or "").strip(), layers) if x)
+    return text[:120] or None
+
+
 class LineIn(BaseModel):
     location: str = ""
     model_id: uuid.UUID
@@ -39,6 +46,7 @@ class LineIn(BaseModel):
     params: dict = {}
     color_code: str | None = None
     glass_material_code: str | None = None
+    glass_text: str | None = Field(None, max_length=120)
     qty: int = Field(1, ge=1)
     manual_unit_price: Decimal | None = Field(None, ge=0)
     price_per_m2: Decimal | None = Field(None, ge=0, max_digits=14, decimal_places=2)
@@ -54,6 +62,7 @@ class LineUpdate(VersionedUpdate):
     params: dict | None = None
     color_code: str | None = None
     glass_material_code: str | None = None
+    glass_text: str | None = Field(None, max_length=120)
     qty: int | None = Field(None, ge=1)
     manual_unit_price: Decimal | None = Field(None, ge=0)
     price_per_m2: Decimal | None = Field(None, ge=0, max_digits=14, decimal_places=2)
@@ -73,6 +82,7 @@ class LineOut(Record):
     params: dict
     color_code: str | None
     glass_material_code: str | None
+    glass_text: str | None = None
     qty: int
     area_m2: Decimal
     unit_cost: Decimal
@@ -296,6 +306,7 @@ def _sync_arch_line(db, q: Quotation, line: QuotationLine, arch: dict | None) ->
     child.opening_width_mm = line.opening_width_mm
     child.opening_height_mm = arch["height_mm"]
     child.params, child.color_code, child.glass_material_code = {}, line.color_code, line.glass_material_code
+    child.glass_text = line.glass_text
     child.qty = line.qty
     child.area_m2 = (line.opening_width_mm * arch["height_mm"] / Decimal(1_000_000)).quantize(Decimal("0.0001"))
     child.billed_area_m2 = Decimal(0)
@@ -361,7 +372,8 @@ def create_quotation(body: QuotationIn, dc=Depends(require("quotes.create"))):
                     lines.append(LineIn(location=o.location, model_id=o.model_id, opening_width_mm=o.opening_width_mm,
                                         total_height_mm=o.total_height_mm, top_model_id=o.top_model_id,
                                         opening_height_mm=o.opening_height_mm, params=o.params, color_code=o.color_code,
-                                        glass_material_code=o.glass_material_code, qty=1, notes=o.notes))
+                                        glass_material_code=o.glass_material_code, glass_text=survey_glass(o),
+                                        qty=1, notes=o.notes))
     q = Quotation(number=next_number(db, "quote", "QT", branch.code), customer_id=customer.id, branch_id=branch.id,
                   survey_id=body.survey_id, issue_date=date.today(),
                   valid_until=body.valid_until or date.today() + timedelta(days=settings.quote_validity_days),

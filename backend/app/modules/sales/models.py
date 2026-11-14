@@ -103,6 +103,7 @@ class QuotationLine(Base, Entity):
     params: Mapped[dict] = mapped_column(JSONB, default=dict)
     color_code: Mapped[str | None] = mapped_column(String(20), nullable=True)
     glass_material_code: Mapped[str | None] = mapped_column(String(60), nullable=True)
+    glass_text: Mapped[str | None] = mapped_column(String(120), nullable=True)   # as written (e.g. «عاكس بني - سنجل»)
     qty: Mapped[int] = mapped_column(Integer, default=1)
     area_m2: Mapped[Decimal] = mapped_column(Numeric(12, 4), default=Decimal(0))
     unit_cost: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal(0))

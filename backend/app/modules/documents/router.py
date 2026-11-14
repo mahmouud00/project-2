@@ -222,8 +222,9 @@ def print_glass_order(wo_id: uuid.UUID, dc=Depends(require("workorders.read"))):
     types: dict = {}
     for g in rows:
         code = g.get("material_code") or ""
-        t = types.setdefault(code, {"code": code, "name": names.get(code, ""), "rows": [], "qty": 0,
-                                    "area": Decimal(0)})
+        text = "" if code else (g.get("glass_text") or "").strip()     # no glass type chosen: as written
+        t = types.setdefault((code, text), {"code": code, "name": names.get(code, "") or text or "زجاج مش متحدد نوعه",
+                                            "rows": [], "qty": 0, "area": Decimal(0)})
         t["rows"].append({**g, "windows": windows.get(g.get("item"), "")})
         t["qty"] += int(g.get("qty") or 0)
         t["area"] += Decimal(str(g.get("area_m2") or 0))

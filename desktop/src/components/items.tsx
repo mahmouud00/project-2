@@ -112,7 +112,7 @@ export function ElementPieces({ pieces }: { pieces?: Piece[] }) {
 export type ItemDraft = {
   model_id?: string | null; location?: string; opening_width_mm?: string | null; opening_height_mm?: string | null;
   total_height_mm?: string | null; top_model_id?: string | null;
-  params?: Record<string, any>; color_code?: string | null; glass_material_code?: string | null; qty?: number | string;
+  params?: Record<string, any>; color_code?: string | null; glass_material_code?: string | null; glass_text?: string | null; qty?: number | string;
   manual_unit_price?: string | null; price_per_m2?: string | null; notes?: string;
 };
 
@@ -197,6 +197,8 @@ export function ItemForm({ title, initial, onClose, onSave, withPrice, requireMo
           <ParamFields params={params} values={d.params ?? {}} onChange={(p) => setD((x) => ({ ...x, params: p }))} unit={model?.system.unit ?? "mm"} />
           <Field label="اللون"><ColorSelect value={d.color_code} onChange={(v) => setD((x) => ({ ...x, color_code: v }))} /></Field>
           <Field label="الزجاج"><GlassSelect value={d.glass_material_code} onChange={(v) => setD((x) => ({ ...x, glass_material_code: v }))} /></Field>
+          {!d.glass_material_code && "glass_text" in d && <Field label="وصف الزجاج" hint="لو مفيش نوع زجاج متسجل: مثلًا عاكس بني - سنجل">
+            <TextIn value={d.glass_text ?? ""} onChange={(v) => setD((x) => ({ ...x, glass_text: v }))} /></Field>}
           <Field label="المكان في الموقع" hint="الدور والمكان، مثلًا: الدور الأول · أوضة النوم. كل شباك ليه سطر لوحده بمكانه"
             error={(d.location ?? "").trim() ? null : "اكتب مكان الشباك"}>
             <TextIn value={d.location} onChange={(v) => setD((x) => ({ ...x, location: v }))} placeholder="الدور الأول · الصالة" /></Field>

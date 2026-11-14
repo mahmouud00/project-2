@@ -167,7 +167,7 @@ def generate_outputs(db: Session, wo: WorkOrder, offcuts: dict[str, list[dict]] 
             code = gl.get("material_code") or item.glass_material_code
             qty = int(gl["qty"]) * item.qty
             glass.append({"item": item.position, "location": item.location, "label": gl.get("label"),
-                          "material_code": code, "width_mm": gl["width_mm"], "height_mm": gl["height_mm"],
+                          "material_code": code, "glass_text": None if gl.get("material_code") else item.glass_text, "width_mm": gl["width_mm"], "height_mm": gl["height_mm"],
                           "qty": qty, "area_m2": str(Decimal(gl["width_mm"]) * Decimal(gl["height_mm"]) * qty
                                                      / Decimal(1_000_000))})
         for a in calc.get("accessories", []):

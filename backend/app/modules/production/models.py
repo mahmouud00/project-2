@@ -58,6 +58,7 @@ class WorkOrderItem(Base, Entity):
     params: Mapped[dict] = mapped_column(JSONB, default=dict)
     color_code: Mapped[str | None] = mapped_column(String(20), nullable=True)
     glass_material_code: Mapped[str | None] = mapped_column(String(60), nullable=True)
+    glass_text: Mapped[str | None] = mapped_column(String(120), nullable=True)
     qty: Mapped[int] = mapped_column(Integer, default=1)
     unit_price: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal(0))
     calc: Mapped[dict] = mapped_column(JSONB, default=dict)

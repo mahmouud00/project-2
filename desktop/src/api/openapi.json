@@ -8508,6 +8508,55 @@
     }
    }
   },
+  "/api/v1/work-orders/{wo_id}/print/glass": {
+   "get": {
+    "tags": [
+     "documents"
+    ],
+    "summary": "Print Glass Order",
+    "description": "طلبية الزجاج: the glass of the order only, grouped by glass type, with the total m² of each type.",
+    "operationId": "print_glass_order_api_v1_work_orders__wo_id__print_glass_get",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "wo_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Wo Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "text/html": {
+        "schema": {
+         "type": "string"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/v1/work-orders/{wo_id}/print/installation": {
    "get": {
     "tags": [
@@ -17894,6 +17943,17 @@
       ],
       "title": "Glass Material Code"
      },
+     "glass_text": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Glass Text"
+     },
      "qty": {
       "type": "integer",
       "title": "Qty"
@@ -27153,6 +27213,18 @@
       ],
       "title": "Glass Material Code"
      },
+     "glass_text": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 120
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Glass Text"
+     },
      "qty": {
       "type": "integer",
       "minimum": 1.0,
@@ -27325,6 +27397,17 @@
        }
       ],
       "title": "Glass Material Code"
+     },
+     "glass_text": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Glass Text"
      },
      "qty": {
       "type": "integer",
@@ -27600,6 +27683,18 @@
        }
       ],
       "title": "Glass Material Code"
+     },
+     "glass_text": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 120
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Glass Text"
      },
      "qty": {
       "anyOf": [

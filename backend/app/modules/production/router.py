@@ -63,6 +63,7 @@ class ItemOut(ORMModel):
     params: dict
     color_code: str | None
     glass_material_code: str | None
+    glass_text: str | None = None
     qty: int
     unit_price: Decimal
 
@@ -218,7 +219,7 @@ def from_quotation(body: FromQuotationIn, dc=Depends(require("workorders.create"
                              model_id=line.model_id, formula_set_version_id=line.formula_set_version_id,
                              opening_width_mm=line.opening_width_mm, opening_height_mm=line.opening_height_mm,
                              params=line.params, color_code=line.color_code,
-                             glass_material_code=line.glass_material_code, qty=line.qty,
+                             glass_material_code=line.glass_material_code, glass_text=line.glass_text, qty=line.qty,
                              unit_price=line.unit_price, calc=line.calc))
     wo.stage = "quotation"
     _log_stage(db, ctx, wo, before_stage, "quotation", f"quotation {q.number}")

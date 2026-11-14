@@ -89,6 +89,8 @@ export function GlassSelect({ value, onChange }: { value: string | null | undefi
     <select className="input" value={value ?? ""} onChange={(e) => onChange(e.target.value || null)}>
       <option value="">— الزجاج (الافتراضي) —</option>
       {(glass.data ?? []).filter((g) => g.is_active).map((g) => <option key={g.code} value={g.code}>{g.name}</option>)}
+      {glass.data && !glass.data.some((g) => g.is_active) &&
+        <option value="" disabled>مفيش أنواع زجاج: ضيفها من المكتبة ← الخامات (النوع: زجاج)</option>}
     </select>
   );
 }

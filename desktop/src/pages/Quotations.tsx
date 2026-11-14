@@ -123,6 +123,7 @@ function QuotationDetail({ id }: { id: string }) {
     const body = { location: d.location ?? "", model_id: d.model_id, opening_width_mm: d.opening_width_mm, opening_height_mm: d.opening_height_mm,
       total_height_mm: d.total_height_mm || null, top_model_id: d.top_model_id || null,
       params: d.params ?? {}, color_code: d.color_code || null, glass_material_code: d.glass_material_code || null,
+      glass_text: d.glass_material_code ? null : (d.glass_text || "").trim() || null,
       qty: Number(d.qty), manual_unit_price: d.manual_unit_price || null, price_per_m2: d.price_per_m2 || null, notes: d.notes ?? "" };
     const out = line
       ? await api.patch<Quote>(`/quotation-lines/${line.id}`, { ...body, version: line.version })
@@ -192,7 +193,7 @@ function QuotationDetail({ id }: { id: string }) {
               <MediaImg id={l.model_image_id} />
               <Drawing elements={(l.calc as any)?.drawing} w={(l.calc as any)?.inputs?.width_mm} h={(l.calc as any)?.inputs?.height_mm} maxW={70} maxH={52} />
               <div><b>{l.model_name}</b>{l.location && <span className="muted"> · {l.location}</span>}
-                <div className="small"><ColorName code={l.color_code} /> {l.glass_material_code && <span className="muted">· {l.glass_material_code}</span>}</div>
+                <div className="small"><ColorName code={l.color_code} /> {(l.glass_material_code || l.glass_text) && <span className="muted">· {l.glass_material_code || l.glass_text}</span>}</div>
                 <ParamLabels modelId={l.model_id} values={l.params} />
                 {archOf(l) && <ArchNote arch={archOf(l)!} />}
                 {(l.model_deleted || archOf(l)?.model_deleted) && editable && <div className="small"><Chip color="red">النموذج اتحذف من المكتبة: غيّره</Chip></div>}</div>
@@ -229,7 +230,7 @@ function QuotationDetail({ id }: { id: string }) {
       </div>
 
       {lineEdit && <ItemForm title={lineEdit === "new" ? "بند جديد" : "تعديل البند"} withPrice onClose={() => setLineEdit(null)}
-        initial={lineEdit === "new" ? undefined : { ...lineEdit, manual_unit_price: lineEdit.manual_unit_price, price_per_m2: lineEdit.price_per_m2,
+        initial={lineEdit === "new" ? { glass_text: "" } : { ...lineEdit, glass_text: lineEdit.glass_text ?? "", manual_unit_price: lineEdit.manual_unit_price, price_per_m2: lineEdit.price_per_m2,
           total_height_mm: lineEdit.total_height_mm, top_model_id: lineEdit.top_model_id }}
         onSave={saveLine(lineEdit === "new" ? null : lineEdit)}
         draftKey={`quote-line:${id}:${lineEdit === "new" ? "new" : lineEdit.id}`} draftBase={lineEdit === "new" ? "new" : lineEdit.version} />}

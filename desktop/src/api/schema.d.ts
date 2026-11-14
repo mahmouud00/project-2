@@ -2296,6 +2296,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/work-orders/{wo_id}/print/glass": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Print Glass Order
+         * @description طلبية الزجاج: the glass of the order only, grouped by glass type, with the total m² of each type.
+         */
+        get: operations["print_glass_order_api_v1_work_orders__wo_id__print_glass_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/work-orders/{wo_id}/print/installation": {
         parameters: {
             query?: never;
@@ -5274,6 +5294,8 @@ export interface components {
             color_code: string | null;
             /** Glass Material Code */
             glass_material_code: string | null;
+            /** Glass Text */
+            glass_text?: string | null;
             /** Qty */
             qty: number;
             /** Unit Price */
@@ -8455,6 +8477,8 @@ export interface components {
             color_code?: string | null;
             /** Glass Material Code */
             glass_material_code?: string | null;
+            /** Glass Text */
+            glass_text?: string | null;
             /**
              * Qty
              * @default 1
@@ -8515,6 +8539,8 @@ export interface components {
             color_code: string | null;
             /** Glass Material Code */
             glass_material_code: string | null;
+            /** Glass Text */
+            glass_text?: string | null;
             /** Qty */
             qty: number;
             /** Area M2 */
@@ -8594,6 +8620,8 @@ export interface components {
             color_code?: string | null;
             /** Glass Material Code */
             glass_material_code?: string | null;
+            /** Glass Text */
+            glass_text?: string | null;
             /** Qty */
             qty?: number | null;
             /** Manual Unit Price */
@@ -13881,6 +13909,37 @@ export interface operations {
         };
     };
     print_cut_list_api_v1_work_orders__wo_id__print_cut_list_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                wo_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/html": string;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    print_glass_order_api_v1_work_orders__wo_id__print_glass_get: {
         parameters: {
             query?: never;
             header?: never;
