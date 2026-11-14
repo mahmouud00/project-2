@@ -32,15 +32,26 @@ def test_system_values_change_the_bar_plan(platform, tenant_a, client):
     assert after["bars_count"] > before["bars_count"]
     lengths = {D(p["length_mm"]) for b in after["bars"] for p in b["pieces"]}
     assert lengths == {D(p["length_mm"]) for b in before["bars"] for p in b["pieces"]}   # the cut lengths stay
+    assert all(p["extra_mm"] == "900" or D(p["extra_mm"]) == 900 for b in after["bars"] for p in b["pieces"])
+    assert all(p["miter_ends"] == 2 for b in after["bars"] for p in b["pieces"])
+    # the waste is only what is left at the end of each bar; the cuts (saw, 45°, the bar's start) are apart
+    for b in after["bars"]:
+        left = D(b["offcut_mm"])
+        assert D(b["waste_mm"]) == (0 if b["offcut_reusable"] else left)
+        pieces = sum(D(p["length_mm"]) for p in b["pieces"])
+        assert D(b["cuts_mm"]) == D(b["length_mm"]) - pieces - left
 
 
 def test_role_from_the_name_when_none_was_saved():
     from app.modules.production.manufacturing import miter_extra
     cut = {"miter_frame_mm": D(40), "miter_sash_mm": D(30), "miter_bead_mm": D(20)}
-    assert miter_extra({"label": "حلق عرض", "angle_left": "45", "angle_right": "45"}, cut) == 40
+    # a frame takes it before and after the piece (any system: sliding or hinged); a sash / bead once
+    assert miter_extra({"label": "حلق عرض", "angle_left": "45", "angle_right": "45"}, cut) == 80
+    assert miter_extra({"label": "حلق جرار", "angle_left": "45", "angle_right": "45"}, cut) == 80
+    assert miter_extra({"label": "فريم", "angle_left": "45", "angle_right": "45"}, cut) == 80
     assert miter_extra({"element": "ضلفة", "angle_left": "90", "angle_right": "45"}, cut) == 30
     assert miter_extra({"label": "باكتة", "angle_left": "45", "angle_right": "45", "role": None}, cut) == 20
     assert miter_extra({"label": "حلق", "angle_left": "90", "angle_right": "90"}, cut) == 0
     assert miter_extra({"label": "قاطوع", "angle_left": "45", "angle_right": "45"}, cut) == 0
-    assert miter_extra({"element": "الحلق", "angle_left": "45", "angle_right": "45"}, cut) == 40
-    assert miter_extra({"label": "عرض", "material_name": "حلق مفصلي بار 5 سم", "angle_left": "45", "angle_right": "45"}, cut) == 40
+    assert miter_extra({"element": "الحلق", "angle_left": "45", "angle_right": "45"}, cut) == 80
+    assert miter_extra({"label": "عرض", "material_name": "حلق مفصلي بار 5 سم", "angle_left": "45", "angle_right": "45"}, cut) == 80

@@ -254,9 +254,9 @@ type CutPiece = { length_mm: string; angle_left?: string; angle_right?: string; 
   side?: "width" | "height" | null; qty: number; refs?: string[]; windows?: string };
 type Outputs = {
   cut_list: { sku: string; material_code: string; material_name: string; pieces: CutPiece[]; total_pieces: number; total_length_mm: string }[];
-  optimisation: { sku: string; bar_length_mm: string; bars_count: number; bars: { bar_no: number; pieces: { length_mm: string; label?: string; side?: string | null; unit?: number; location?: string; extra_mm?: string }[];
+  optimisation: { sku: string; bar_length_mm: string; bars_count: number; bars: { bar_no: number; pieces: { length_mm: string; label?: string; side?: string | null; unit?: number; location?: string; extra_mm?: string; miter_ends?: number }[];
     start_mm?: string; used_mm: string;
-    offcut_mm: string; offcut_reusable: boolean; waste_mm: string; length_mm?: string; from_offcut?: string | null }[]; waste_pct: string;
+    offcut_mm: string; offcut_reusable: boolean; waste_mm: string; length_mm?: string; from_offcut?: string | null }[]; waste_pct: string; cuts_mm?: string;
     reusable_offcuts_mm: (string | number)[]; offcuts_used?: { id: string; length_mm: string }[];
     too_long?: unknown[] }[];
   waste_pct?: string;
@@ -363,7 +363,8 @@ function BarPlans({ o }: { o: Outputs }) {
           <div key={m.sku} className="card">
             <div className="card-h"><h3>{names[m.sku] ?? m.sku}</h3><span className="code">{m.sku}</span>
               <span className="end muted small">العود <Len mm={m.bar_length_mm} /> {s.unit === "cm" ? "سم" : "مم"} · <b className="num">{m.bars_count}</b> عود جديد
-                {!!m.offcuts_used?.length && <> + <b className="num">{m.offcuts_used.length}</b> فضلة من المخزون</>} · الهالك <b className="num">{Number(m.waste_pct)}%</b></span></div>
+                {!!m.offcuts_used?.length && <> + <b className="num">{m.offcuts_used.length}</b> فضلة من المخزون</>} · الهالك (الباقي من الأعواد) <b className="num">{Number(m.waste_pct)}%</b>
+                {Number(m.cuts_mm) > 0 && <> · القطع والشطف وبداية العود <b className="num"><Len mm={m.cuts_mm} /></b></>}</span></div>
             <div className="card-b col" style={{ gap: 6 }}>
               {m.bars.map((b) => (
                 <div key={b.bar_no} className="row">
@@ -371,12 +372,15 @@ function BarPlans({ o }: { o: Outputs }) {
                   <div className="bar-plan" style={{ width: `${(Number(b.length_mm ?? bar) / bar) * 100}%` }}>
                     {Number(b.start_mm) > 0 && <span className="bar-start" style={{ width: `${(Number(b.start_mm) / Number(b.length_mm ?? bar)) * 100}%` }}
                       title={`هالك بداية العود ${s.len(b.start_mm)}`}>{s.len(b.start_mm)}</span>}
-                    {b.pieces.map((p, i) => <Fragment key={i}>
+                    {b.pieces.map((p, i) => { const ends = Number(p.miter_ends) === 2 ? 2 : 1; const one = Number(p.extra_mm) / ends;
+                      const miter = (k: string) => one > 0 && <span key={k} className="bar-miter" style={{ width: `${(one / Number(b.length_mm ?? bar)) * 100}%` }}
+                        title={`شطف زاوية 45: ${s.len(one)}`}>{s.len(one)}</span>;
+                      return <Fragment key={i}>
+                      {ends === 2 && miter("b")}
                       <span style={{ width: `${(Number(p.length_mm) / Number(b.length_mm ?? bar)) * 100}%` }}
                         title={`${p.label ?? ""} ${s.len(p.length_mm)}${p.unit ? ` · ${pieceMark(p)}` : ""}`}>{s.len(p.length_mm)}{p.unit ? <b className="bar-mark" dir="rtl">{pieceMark(p)}</b> : null}</span>
-                      {Number(p.extra_mm) > 0 && <span className="bar-miter" style={{ width: `${(Number(p.extra_mm) / Number(b.length_mm ?? bar)) * 100}%` }}
-                        title={`شطف زاوية 45: ${s.len(p.extra_mm)}`}>{s.len(p.extra_mm)}</span>}
-                    </Fragment>)}
+                      {miter("a")}
+                    </Fragment>; })}
                     {Number(b.offcut_mm) > 0 && <span className={b.offcut_reusable ? "off" : "waste"} style={{ width: `${(Number(b.offcut_mm) / Number(b.length_mm ?? bar)) * 100}%` }}
                       title={(b.offcut_reusable ? "فضلة تتشال " : "هالك ") + s.len(b.offcut_mm)}>{s.len(b.offcut_mm)}</span>}
                   </div>

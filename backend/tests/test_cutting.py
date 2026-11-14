@@ -52,3 +52,17 @@ def test_no_stock_same_plan_as_before():
     a = optimise(pieces, bar_length_mm=D(6000), kerf_mm=D(3), min_offcut_mm=D(400))
     b = optimise(pieces, bar_length_mm=D(6000), kerf_mm=D(3), min_offcut_mm=D(400), stock=[])
     assert a == b and a["offcuts_used"] == [] and a["total_length_mm"] == a["new_bars_length_mm"]
+
+
+def test_waste_is_only_the_leftover():
+    from decimal import Decimal as D
+    from app.engine.cutting import optimise
+    r = optimise([{"length_mm": D(1000), "qty": 2, "extra_mm": D(90)}], bar_length_mm=D(6000), kerf_mm=D(5),
+                 start_mm=D(20))
+    bar = r["bars"][0]
+    # 2 × 1000 cut, 2 × 90 for the 45° ends, one saw cut between them, 20 at the start: 3795 left
+    assert bar["offcut_mm"] == D(3795) and bar["cuts_mm"] == D(205) and r["cuts_mm"] == D(205)
+    assert bar["waste_mm"] == D(3795) and r["waste_pct"] == D("63.25")
+    kept = optimise([{"length_mm": D(1000), "qty": 2, "extra_mm": D(90)}], bar_length_mm=D(6000), kerf_mm=D(5),
+                    start_mm=D(20), min_offcut_mm=D(400))
+    assert kept["bars"][0]["waste_mm"] == 0 and kept["waste_pct"] == 0      # kept as an offcut: not waste

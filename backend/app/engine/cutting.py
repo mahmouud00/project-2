@@ -75,16 +75,20 @@ def optimise(pieces: list[dict], *, bar_length_mm: Decimal, kerf_mm: Decimal = D
     bars = [b for b in bars if b.pieces]                    # offcuts nothing went into stay in stock
     bars.sort(key=lambda b: b.offcut_id is None)            # offcuts first, then new bars
 
-    out_bars, total_waste, offcuts = [], Decimal(0), []
+    out_bars, total_waste, total_cuts, offcuts = [], Decimal(0), Decimal(0), []
     for i, bar in enumerate(bars, 1):
         leftover = bar.remaining()
         reusable = leftover >= min_offcut_mm and min_offcut_mm > 0
         if reusable:
             offcuts.append(leftover)
-        waste = bar.length - (sum((p["length_mm"] for p in bar.pieces), Decimal(0))) - (leftover if reusable else 0)
+        # the waste is only what is left at the end of the bar (and not kept as an offcut); what the cuts take
+        # (saw, 45° allowances, the bar's start) is reported on its own
+        waste = Decimal(0) if reusable else leftover
+        cuts = bar.length - sum((p["length_mm"] for p in bar.pieces), Decimal(0)) - leftover
         total_waste += waste
+        total_cuts += cuts
         out_bars.append({"bar_no": i, "pieces": bar.pieces, "used_mm": bar.used, "offcut_mm": leftover,
-                         "offcut_reusable": reusable, "waste_mm": waste, "length_mm": bar.length,
+                         "offcut_reusable": reusable, "waste_mm": waste, "cuts_mm": cuts, "length_mm": bar.length,
                          "from_offcut": bar.offcut_id, "kerf_mm": kerf_mm,
                          "start_mm": Decimal(0) if bar.offcut_id else bar.length - bar.usable})
     new_bars = [b for b in bars if b.offcut_id is None]
@@ -95,7 +99,7 @@ def optimise(pieces: list[dict], *, bar_length_mm: Decimal, kerf_mm: Decimal = D
         "bar_length_mm": bar_length_mm, "bars_count": len(new_bars), "bars": out_bars, "offcuts_used": used_stock,
         "new_bars_length_mm": bar_length_mm * len(new_bars),
         "pieces_count": len(singles), "pieces_length_mm": pieces_length, "total_length_mm": total_length,
-        "waste_mm": total_waste, "reusable_offcuts_mm": offcuts,
+        "waste_mm": total_waste, "cuts_mm": total_cuts, "reusable_offcuts_mm": offcuts,
         "waste_pct": (total_waste / total_length * 100).quantize(Decimal("0.01")) if total_length else Decimal(0),
         "too_long": too_long,
     }

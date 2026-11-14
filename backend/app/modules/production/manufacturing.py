@@ -41,7 +41,8 @@ def system_cutting(db: Session, model_id, cache: dict) -> dict:
     return cache[model_id]
 
 
-_ROLE_WORDS = (("حلق", "frame"), ("ضلف", "sash"), ("باكت", "bead"), ("frame", "frame"), ("sash", "sash"), ("bead", "bead"))
+_ROLE_WORDS = (("حلق", "frame"), ("فريم", "frame"), ("ضلف", "sash"), ("باكت", "bead"), ("frame", "frame"),
+               ("sash", "sash"), ("bead", "bead"))
 
 
 def _role_from_name(piece: dict) -> str | None:
@@ -56,15 +57,25 @@ def _role_from_name(piece: dict) -> str | None:
     return None
 
 
-def miter_extra(piece: dict, cut: dict) -> Decimal:
-    """A frame / sash / bead piece cut at 45° (at either end) takes its role's allowance once more from the bar."""
-    field = MITER_ROLE.get(piece.get("role") or "") or MITER_ROLE.get(_role_from_name(piece) or "")
-    if not field:
-        return Decimal(0)
+def miter_ends(piece: dict) -> int:
+    """How many times a 45° piece takes its role's allowance from the bar: a frame (حلق) before and after the
+    piece, in any system (sliding or hinged); a sash or a bead once. 0: not a 45° frame / sash / bead piece."""
+    role = piece.get("role") if piece.get("role") in MITER_ROLE else _role_from_name(piece)
+    if role not in MITER_ROLE:
+        return 0
     angles = (piece.get("angle_left"), piece.get("angle_right"))
-    if any(a is not None and abs(Decimal(str(a)) - 45) < Decimal("0.5") for a in angles):
-        return cut[field]
-    return Decimal(0)
+    if not any(a is not None and abs(Decimal(str(a)) - 45) < Decimal("0.5") for a in angles):
+        return 0
+    return 2 if role == "frame" else 1
+
+
+def miter_extra(piece: dict, cut: dict) -> Decimal:
+    """What a frame / sash / bead piece cut at 45° takes from the bar beyond its length."""
+    ends = miter_ends(piece)
+    if not ends:
+        return Decimal(0)
+    role = piece.get("role") if piece.get("role") in MITER_ROLE else _role_from_name(piece)
+    return cut[MITER_ROLE[role]] * ends
 
 
 def unit_ranges(units) -> str:
@@ -132,7 +143,7 @@ def generate_outputs(db: Session, wo: WorkOrder, offcuts: dict[str, list[dict]] 
                 "color": item.color_code, "pieces": defaultdict(lambda: {"qty": 0, "refs": []})})
             g.setdefault("cut", cut)
             key = (p["length_mm"], p["angle_left"], p["angle_right"], p.get("label", p["key"]),
-                   p.get("element"), p.get("side"), miter_extra(p, cut))
+                   p.get("element"), p.get("side"), miter_extra(p, cut), miter_ends(p))
             entry = g["pieces"][key]
             entry["qty"] += int(p["qty"]) * item.qty
             entry["refs"].append(ref)
@@ -183,7 +194,8 @@ def generate_outputs(db: Session, wo: WorkOrder, offcuts: dict[str, list[dict]] 
     for sku, g in sorted(cut_groups.items()):
         # (group key is the SKU, so all its pieces share one colour)
         pieces = [{"length_mm": Decimal(k[0]), "angle_left": k[1], "angle_right": k[2], "label": k[3],
-                   "element": k[4], "side": k[5], "extra_mm": k[6], "qty": v["qty"], "refs": v["refs"],
+                   "element": k[4], "side": k[5], "extra_mm": k[6], "miter_ends": k[7] if k[6] else 0,
+                   "qty": v["qty"], "refs": v["refs"],
                    "units": sorted(v.get("units", [])), "windows": unit_ranges(v.get("units", []))}
                   for k, v in g["pieces"].items()]
         pieces.sort(key=lambda p: p["length_mm"], reverse=True)
@@ -196,6 +208,7 @@ def generate_outputs(db: Session, wo: WorkOrder, offcuts: dict[str, list[dict]] 
             cut = g.get("cut") or NO_CUT
             plan = optimise([{"length_mm": p["length_mm"], "qty": p["qty"], "label": p["label"], "side": p["side"],
                               "element": p["element"], "units": p["units"], "extra_mm": p["extra_mm"],
+                              "miter_ends": p["miter_ends"],
                               "angle_left": p["angle_left"], "angle_right": p["angle_right"]} for p in pieces],
                             bar_length_mm=Decimal(g["bar_length_mm"]), kerf_mm=cut["saw_kerf_mm"],
                             start_mm=cut["bar_start_waste_mm"], min_offcut_mm=settings.min_reusable_offcut_mm,
