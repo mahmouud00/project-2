@@ -84,6 +84,7 @@ function WorkOrderDetail({ id, tab }: { id: string; tab: string }) {
   const wo = useLoad(() => api.get<WO>(`/work-orders/${id}`), [id]);
   useTitle(wo.data ? `أمر تصنيع ${wo.data.number}` : "…", <Crumbs items={[{ label: "أوامر التصنيع", to: "work-orders" }]} />, [wo.data?.number]);
   const [printing, setPrinting] = useState(false);
+  const [glassOrder, setGlassOrder] = useState(false);
   const [recalc, setRecalc] = useState(false);
   const [saleDecision, setSaleDecision] = useState<boolean | null>(null);
   const [paying, setPaying] = useState(false);
@@ -133,6 +134,7 @@ function WorkOrderDetail({ id, tab }: { id: string; tab: string }) {
             <Progress pct={w.progress_pct} late={w.late} /></div>
           <div className="end row wrap">
             <Btn icon="print" onClick={() => setPrinting(true)}>كشف التقطيع</Btn>
+            <Btn icon="print" onClick={() => setGlassOrder(true)}>طلبية الزجاج</Btn>
             {s.can("purchasing.create", w.branch_id) && w.stage !== "cancelled" && <Btn icon="cart" onClick={() => setOrdering(true)}>طلبية بضاعة</Btn>}
             {s.can("field.manage", w.branch_id) && w.stage === "installation" &&
               <Btn kind="primary" icon="truck" onClick={() => setAssign(true)}>إسناد التركيب لفني</Btn>}
@@ -212,6 +214,7 @@ function WorkOrderDetail({ id, tab }: { id: string; tab: string }) {
       {recalc && <Confirm title="تحديث بآخر معادلات منشورة" yes="تحديث" busy={busy} onClose={() => setRecalc(false)}
         text="كل الشبابيك في الأمر هتتحسب تاني بآخر نسخة منشورة من قطاعها (القطع والخامات وطلبية الشراء)، وورقة التقطيع هتتعمل من جديد. الأسعار مش هتتغير. التعديل في النموذج لازم يكون اتنشر الأول من المكتبة («النشر والنسخ»)، وده مش متاح بعد ما التصنيع يبدأ."
         onYes={() => run(async () => { await api.post(`/work-orders/${id}/recalculate`); setRecalc(false); wo.reload(); outputs.reload(); toast.ok("اتحسب الأمر بآخر معادلات منشورة."); })} />}
+      {glassOrder && <PrintPreview path={`/work-orders/${id}/print/glass`} title={`طلبية زجاج ${w.number}`} onClose={() => setGlassOrder(false)} />}
       {printing && <PrintPreview path={`/work-orders/${id}/print/cut-list`} title={`كشف تقطيع ${w.number}`} onClose={() => setPrinting(false)} />}
       {saleDecision !== null && <SaleDecisionForm wo={w} approve={saleDecision} onClose={() => setSaleDecision(null)} onSaved={(x) => wo.set(x)} />}
       {paying && <PaymentForm onClose={() => setPaying(false)} onSaved={() => wo.reload()}

@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block docmeta %}
+  <div>أمر: <b class="num">{{ wo.number }}</b></div>
+  <div>العميل: {{ customer.name }}</div>
+  {% if wo.due_date %}<div>التسليم: <span class="num">{{ wo.due_date }}</span></div>{% endif %}
+{% endblock %}
+{% block content %}
+{% if not groups %}<p>مفيش زجاج في الأمر ده.</p>{% endif %}
+{% for t in groups %}
+<h3 style="margin:14px 0 6px">{{ t.name or "زجاج" }} {% if t.code %}<span class="num" style="font-weight:normal;font-size:12px">({{ t.code }})</span>{% endif %}</h3>
+<table>
+  <tr><th>الشباك</th><th>المكان</th><th>القطعة</th><th>المقاس سم (عرض × ارتفاع)</th><th>العدد</th><th>م²</th></tr>
+  {% for g in t.rows %}<tr><td class="num">{{ g.windows or g.item }}</td><td>{{ g.location or "" }}</td><td>{{ g.label or "" }}</td>
+    <td>{{ size(g.width_mm, g.height_mm) }}</td><td class="num">{{ g.qty }}</td><td class="num">{{ "%.2f"|format(g.area_m2|float) }}</td></tr>{% endfor %}
+  <tr style="font-weight:bold;background:#F1F5F9"><td colspan="4">إجمالي {{ t.name or t.code }}</td><td class="num">{{ t.qty }}</td><td class="num">{{ t.area }}</td></tr>
+</table>
+{% endfor %}
+{% if groups %}
+<h3 style="margin:18px 0 6px">إجمالي الأمتار لكل نوع زجاج</h3>
+<table>
+  <tr><th>نوع الزجاج</th><th>الكود</th><th>عدد القطع</th><th>إجمالي م²</th></tr>
+  {% for t in groups %}<tr><td>{{ t.name or "—" }}</td><td class="num">{{ t.code }}</td><td class="num">{{ t.qty }}</td><td class="num"><b>{{ t.area }}</b></td></tr>{% endfor %}
+  <tr style="font-weight:bold;background:#F1F5F9"><td colspan="2">الإجمالي</td><td class="num">{{ total_qty }}</td><td class="num">{{ total_area }}</td></tr>
+</table>
+{% endif %}
+{% endblock %}

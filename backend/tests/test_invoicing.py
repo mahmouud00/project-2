@@ -106,6 +106,9 @@ def test_branding_logo_and_documents(platform, tenant_a, client):
     assert "مصنع النور للألوميتال" in qh and "data:image/png;base64" in qh and "123-456-789" in qh and q["number"] in qh
     ch = client.get(f"/api/v1/work-orders/{wo['id']}/print/cut-list", headers=h).text
     assert "كشف تقطيع" in ch and wo["number"] in ch and "<svg" in ch
+    gh = client.get(f"/api/v1/work-orders/{wo['id']}/print/glass", headers=h)
+    assert gh.status_code == 200 and "طلبية زجاج" in gh.text and "إجمالي الأمتار لكل نوع زجاج" in gh.text
+    assert "كشف تقطيع" not in gh.text and "خطة الأعواد" not in gh.text
 
 
 def test_print_shows_width_before_height(platform, tenant_a, client):

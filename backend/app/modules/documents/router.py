@@ -197,6 +197,46 @@ def print_cut_list(wo_id: uuid.UUID, dc=Depends(require("workorders.read"))):
                  customer=db.get(Customer, wo.customer_id))
 
 
+@router.get("/work-orders/{wo_id}/print/glass", response_class=HTMLResponse)
+def print_glass_order(wo_id: uuid.UUID, dc=Depends(require("workorders.read"))):
+    """طلبية الزجاج: the glass of the order only, grouped by glass type, with the total m² of each type."""
+    from decimal import Decimal
+
+    from sqlalchemy import select
+
+    from app.modules.library.models import Material
+    from app.modules.production.manufacturing import generate_outputs, unit_ranges
+    from app.modules.production.models import WorkOrder
+
+    db, ctx = dc
+    wo = get_or_404(db, WorkOrder, wo_id)
+    ctx.require("workorders.read", wo.branch_id)
+    outputs = wo.outputs or generate_outputs(db, wo)
+    rows = outputs.get("glass") or []
+    codes = {g.get("material_code") for g in rows if g.get("material_code")}
+    names = {}
+    for m in db.scalars(select(Material).where(Material.code.in_(codes), Material.deleted_at.is_(None))):
+        if m.company_id == ctx.company_id or m.code not in names:     # the company's own name first
+            names[m.code] = m.name
+    windows = {d.get("item"): unit_ranges(d.get("units") or []) for d in outputs.get("drawings") or []}
+    types: dict = {}
+    for g in rows:
+        code = g.get("material_code") or ""
+        t = types.setdefault(code, {"code": code, "name": names.get(code, ""), "rows": [], "qty": 0,
+                                    "area": Decimal(0)})
+        t["rows"].append({**g, "windows": windows.get(g.get("item"), "")})
+        t["qty"] += int(g.get("qty") or 0)
+        t["area"] += Decimal(str(g.get("area_m2") or 0))
+    groups = sorted(types.values(), key=lambda t: (t["name"] or t["code"]))
+    for t in groups:
+        t["area"] = t["area"].quantize(Decimal("0.01"))
+    total = sum((t["area"] for t in groups), Decimal(0))
+    log_pii(db, ctx, "customer", [wo.customer_id], "export", ["name"])
+    db.commit()
+    return _page("glass.html", db, ctx, title="طلبية زجاج", wo=wo, groups=groups, total_area=total,
+                 total_qty=sum(t["qty"] for t in groups), customer=db.get(Customer, wo.customer_id))
+
+
 def _installation(db, ctx, wo, job=None) -> HTMLResponse:
     """أمر التركيب: every window on its own row (two of the same size are two rows), numbered as on the cut sheet,
     with where it goes, its model, sizes and specifications; a box to tick and the customer's signature."""

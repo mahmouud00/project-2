@@ -3,6 +3,8 @@
 All notable changes are listed here. Versions follow Semantic Versioning (MAJOR.MINOR.PATCH).
 
 ## [Unreleased]
+### Added
+- «طلبية الزجاج» on the work order: the order's glass only, grouped by glass type (window numbers, where each goes, sizes, count, m²), with the total m² of each type and of the whole order.
 ### Changed
 - A frame (حلق) piece cut at 45° takes the system's frame allowance before and after it (twice), in every system, sliding or hinged («فريم» is read as a frame too); a sash or bead piece still once. The bar plan and the printed cut sheet show both. The waste % is now only what is left at the end of the bars (not kept as an offcut); the saw cuts, 45° allowances and bar-start waste are shown apart.
 ### Added
