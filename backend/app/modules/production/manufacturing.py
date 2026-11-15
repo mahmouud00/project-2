@@ -148,7 +148,10 @@ def generate_outputs(db: Session, wo: WorkOrder, offcuts: dict[str, list[dict]] 
             entry["qty"] += int(p["qty"]) * item.qty
             entry["refs"].append(ref)
             entry.setdefault("units", []).extend(u for u in units for _ in range(int(p["qty"])))
-        rows = calc.get("purchase") or []
+        # a profile that is cut is bought by its cutting plan (it holds the saw, the 45° allowances and the bar's
+        # start); the model's purchase rows count only for what has no cut pieces (e.g. reinforcement)
+        cut_codes = {p["material_code"] for p in calc.get("pieces", [])}
+        rows = [r for r in (calc.get("purchase") or []) if r["material_code"] not in cut_codes]
         bought = {r["material_code"] for r in rows}
         # a material the model has purchase rows for is bought by them; any other one by its pieces
         for p, from_rows in [(r, True) for r in rows] + [(p, False) for p in calc.get("pieces", [])

@@ -3,6 +3,8 @@
 All notable changes are listed here. Versions follow Semantic Versioning (MAJOR.MINOR.PATCH).
 
 ## [Unreleased]
+### Changed
+- A profile that is cut is always bought by its cutting plan (the goods order shows the same number of bars as «خطة الأعواد»); the model's purchase rows now count only for materials with no cut pieces (e.g. reinforcement).
 ### Added
 - The glass as written (e.g. «عاكس بني - سنجل») goes from the survey sheet to the quotation line and the work order (migration 0024), can be typed on a quotation line when no glass type is chosen, and the glass order groups by it; the glass list says where to add glass types when there are none.
 - «طلبية الزجاج» on the work order: the order's glass only, grouped by glass type (window numbers, where each goes, sizes, count, m²), with the total m² of each type and of the whole order.

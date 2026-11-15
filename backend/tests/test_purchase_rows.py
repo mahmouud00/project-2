@@ -11,7 +11,7 @@ def _needs(client, h, wo):
     return {n["sku"]: n for n in r.json()}
 
 
-def test_purchase_rows_decide_the_bars(platform, tenant_a, client):
+def test_a_cut_profile_is_bought_by_its_cutting_plan(platform, tenant_a, client):
     code = "PURROW"
     lib, branch, _, customer = _setup(client, platform, tenant_a, code)
     h, ph = tenant_a.h, platform.h
@@ -21,7 +21,7 @@ def test_purchase_rows_decide_the_bars(platform, tenant_a, client):
 
     model = client.get(f"/api/v1/library/models/{lib['model']['id']}", headers=ph).json()
     d = model["definition"]
-    # each frame piece takes 155 cm of bar when buying: only 3 fit in a 6 m bar, so 8 pieces need 3 bars
+    # purchase rows for the frame (155 cm each): the frame is cut, so its cutting plan decides what is bought
     d["purchase"] = [{"key": "frame_buy", "label": "حلق للشراء", "material_code": f"{code}-FRAME",
                       "length_expr": "frame_w - frame_w + 155", "qty_expr": "4"}]
     r = client.patch(f"/api/v1/library/models/{model['id']}", headers=ph, json={"version": model["version"], "definition": d})
@@ -32,8 +32,11 @@ def test_purchase_rows_decide_the_bars(platform, tenant_a, client):
     wo = _accepted_order(client, h, lib, branch, customer, code)
     by = _needs(client, h, wo)
     frame = by[f"{code}-FRAME-W"]
-    assert frame["bars"] == 3
-    assert D(frame["qty"]) == D(frame["bar_length_mm"]) * 3 / 1000
+    assert frame["bars"] == before[f"{code}-FRAME-W"]["bars"] == 2
+    assert D(frame["qty"]) == D(frame["bar_length_mm"]) * 2 / 1000
+    plan = next(p for p in client.post(f"/api/v1/work-orders/{wo['id']}/manufacturing/generate", headers=h)
+                .json()["optimisation"] if p["sku"] == f"{code}-FRAME-W")
+    assert plan["bars_count"] == frame["bars"]                                # the same number everywhere
     assert by[f"{code}-SASH-W"]["bars"] == before[f"{code}-SASH-W"]["bars"]   # no rows for the sash: the cut plan
     # the cut list still has the real pieces
     cut = client.get(f"/api/v1/work-orders/{wo['id']}", headers=h).json()
