@@ -1655,6 +1655,27 @@ export interface paths {
         patch: operations["update_work_order_api_v1_work_orders__wo_id__patch"];
         trace?: never;
     };
+    "/api/v1/work-orders/{wo_id}/glass": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set Glass
+         * @description نوع الزجاج كما هو مكتوب (e.g. «عاكس بني - سنجل») for the order's windows, at any stage: it changes no size
+         *     and no cost, only what the glass order groups by.
+         */
+        put: operations["set_glass_api_v1_work_orders__wo_id__glass_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/work-orders/{wo_id}/stage": {
         parameters: {
             query?: never;
@@ -5016,6 +5037,13 @@ export interface components {
             qty_expr: string;
             /** Condition */
             condition?: string | null;
+        };
+        /** GlassIn */
+        GlassIn: {
+            /** Glass Text */
+            glass_text?: string | null;
+            /** Item Ids */
+            item_ids?: string[] | null;
         };
         /** Group */
         Group: {
@@ -12443,6 +12471,41 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["WorkOrderUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkOrderOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_glass_api_v1_work_orders__wo_id__glass_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                wo_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GlassIn"];
             };
         };
         responses: {

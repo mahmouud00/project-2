@@ -5939,6 +5939,65 @@
     }
    }
   },
+  "/api/v1/work-orders/{wo_id}/glass": {
+   "put": {
+    "tags": [
+     "production"
+    ],
+    "summary": "Set Glass",
+    "description": "نوع الزجاج كما هو مكتوب (e.g. «عاكس بني - سنجل») for the order's windows, at any stage: it changes no size\nand no cost, only what the glass order groups by.",
+    "operationId": "set_glass_api_v1_work_orders__wo_id__glass_put",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "wo_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Wo Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/GlassIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/WorkOrderOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/v1/work-orders/{wo_id}/stage": {
    "post": {
     "tags": [
@@ -17184,6 +17243,39 @@
      "height_expr"
     ],
     "title": "Glass"
+   },
+   "GlassIn": {
+    "properties": {
+     "glass_text": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 120
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Glass Text"
+     },
+     "item_ids": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "string",
+         "format": "uuid"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Item Ids"
+     }
+    },
+    "type": "object",
+    "title": "GlassIn"
    },
    "Group": {
     "properties": {

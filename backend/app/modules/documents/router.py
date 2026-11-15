@@ -219,10 +219,12 @@ def print_glass_order(wo_id: uuid.UUID, dc=Depends(require("workorders.read"))):
         if m.company_id == ctx.company_id or m.code not in names:     # the company's own name first
             names[m.code] = m.name
     windows = {d.get("item"): unit_ranges(d.get("units") or []) for d in outputs.get("drawings") or []}
+    from app.modules.production.router import item_glass
+    written = item_glass(db, wo)                  # as it is now (set on the order, or from the quotation / survey)
     types: dict = {}
     for g in rows:
         code = g.get("material_code") or ""
-        text = "" if code else (g.get("glass_text") or "").strip()     # no glass type chosen: as written
+        text = "" if code else (written.get(g.get("item")) or g.get("glass_text") or "").strip()   # as written
         t = types.setdefault((code, text), {"code": code, "name": names.get(code, "") or text or "زجاج مش متحدد نوعه",
                                             "rows": [], "qty": 0, "area": Decimal(0)})
         t["rows"].append({**g, "windows": windows.get(g.get("item"), "")})

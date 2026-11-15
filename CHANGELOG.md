@@ -3,6 +3,8 @@
 All notable changes are listed here. Versions follow Semantic Versioning (MAJOR.MINOR.PATCH).
 
 ## [Unreleased]
+### Added
+- «نوع الزجاج» on the work order: the glass as written for all or some of its windows, at any stage; and orders made before the glass was kept take it from their quotation line or survey, so the glass order groups their m² by it.
 ### Changed
 - A profile that is cut is always bought by its cutting plan (the goods order shows the same number of bars as «خطة الأعواد»); the model's purchase rows now count only for materials with no cut pieces (e.g. reinforcement).
 ### Added

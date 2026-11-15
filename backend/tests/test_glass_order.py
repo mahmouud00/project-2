@@ -27,3 +27,16 @@ def test_glass_as_written_on_the_survey(platform, tenant_a, client):
     assert sorted(i["glass_text"] or "" for i in wo["items"]) == ["", "عاكس بني - سنجل"]
     html = client.get(f"/api/v1/work-orders/{wo['id']}/print/glass", headers=h).text
     assert "عاكس بني - سنجل" in html and "إجمالي الأمتار لكل نوع زجاج" in html
+    # an order made before the glass was kept: taken from the survey; and set on the order by hand
+    from app.db.session import tenant_session
+    from app.modules.production.models import WorkOrderItem
+    from sqlalchemy import update
+    db = tenant_session(tenant_a.id)
+    db.execute(update(WorkOrderItem).where(WorkOrderItem.work_order_id == wo["id"]).values(glass_text=None))
+    db.commit()
+    db.close()
+    assert "عاكس بني - سنجل" in client.get(f"/api/v1/work-orders/{wo['id']}/print/glass", headers=h).text
+    r = client.put(f"/api/v1/work-orders/{wo['id']}/glass", headers=h, json={"glass_text": "شفاف - دبل"})
+    assert r.status_code == 200, r.text
+    html = client.get(f"/api/v1/work-orders/{wo['id']}/print/glass", headers=h).text
+    assert "شفاف - دبل" in html and "عاكس بني" not in html

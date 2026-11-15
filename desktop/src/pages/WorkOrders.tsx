@@ -4,7 +4,7 @@ import { type PageProps, useRecordHistory, useTitle } from "../lib/title";
 import { useAction, useLoad, when } from "../lib/hooks";
 import { useSession } from "../state/session";
 import { useToast } from "../state/toast";
-import { Btn, Card, Chip, Confirm, Crumbs, Dim, ErrorBox, Field, Len, Loading, Modal, Money, NumIn, PageHead, Pager, Qty, Select, Table, Tabs, TextIn } from "../components/ui";
+import { Btn, Card, Check, Chip, Confirm, Crumbs, Dim, ErrorBox, Field, Len, Loading, Modal, Money, NumIn, PageHead, Pager, Qty, Select, Table, Tabs, TextIn } from "../components/ui";
 import { DeleteBtn } from "../components/actions";
 import { AssignJob, Progress } from "../components/field";
 import { BranchName, ColorName, CustomerName, ModelThumb, SalespersonName, SalespersonSelect } from "../components/pickers";
@@ -85,6 +85,7 @@ function WorkOrderDetail({ id, tab }: { id: string; tab: string }) {
   useTitle(wo.data ? `أمر تصنيع ${wo.data.number}` : "…", <Crumbs items={[{ label: "أوامر التصنيع", to: "work-orders" }]} />, [wo.data?.number]);
   const [printing, setPrinting] = useState(false);
   const [glassOrder, setGlassOrder] = useState(false);
+  const [glassEdit, setGlassEdit] = useState(false);
   const [recalc, setRecalc] = useState(false);
   const [saleDecision, setSaleDecision] = useState<boolean | null>(null);
   const [paying, setPaying] = useState(false);
@@ -135,6 +136,7 @@ function WorkOrderDetail({ id, tab }: { id: string; tab: string }) {
           <div className="end row wrap">
             <Btn icon="print" onClick={() => setPrinting(true)}>كشف التقطيع</Btn>
             <Btn icon="print" onClick={() => setGlassOrder(true)}>طلبية الزجاج</Btn>
+            {s.can("workorders.write", w.branch_id) && <Btn onClick={() => setGlassEdit(true)}>نوع الزجاج</Btn>}
             {s.can("purchasing.create", w.branch_id) && w.stage !== "cancelled" && <Btn icon="cart" onClick={() => setOrdering(true)}>طلبية بضاعة</Btn>}
             {s.can("field.manage", w.branch_id) && w.stage === "installation" &&
               <Btn kind="primary" icon="truck" onClick={() => setAssign(true)}>إسناد التركيب لفني</Btn>}
@@ -214,6 +216,7 @@ function WorkOrderDetail({ id, tab }: { id: string; tab: string }) {
       {recalc && <Confirm title="تحديث بآخر معادلات منشورة" yes="تحديث" busy={busy} onClose={() => setRecalc(false)}
         text="كل الشبابيك في الأمر هتتحسب تاني بآخر نسخة منشورة من قطاعها (القطع والخامات وطلبية الشراء)، وورقة التقطيع هتتعمل من جديد. الأسعار مش هتتغير. التعديل في النموذج لازم يكون اتنشر الأول من المكتبة («النشر والنسخ»)، وده مش متاح بعد ما التصنيع يبدأ."
         onYes={() => run(async () => { await api.post(`/work-orders/${id}/recalculate`); setRecalc(false); wo.reload(); outputs.reload(); toast.ok("اتحسب الأمر بآخر معادلات منشورة."); })} />}
+      {glassEdit && <GlassText wo={w} onClose={() => setGlassEdit(false)} onSaved={(x) => wo.set(x)} />}
       {glassOrder && <PrintPreview path={`/work-orders/${id}/print/glass`} title={`طلبية زجاج ${w.number}`} onClose={() => setGlassOrder(false)} />}
       {printing && <PrintPreview path={`/work-orders/${id}/print/cut-list`} title={`كشف تقطيع ${w.number}`} onClose={() => setPrinting(false)} />}
       {saleDecision !== null && <SaleDecisionForm wo={w} approve={saleDecision} onClose={() => setSaleDecision(null)} onSaved={(x) => wo.set(x)} />}
@@ -476,6 +479,36 @@ export function SaleDecisionForm({ wo, approve, onClose, onSaved }: { wo: WO; ap
           <span>الإجمالي: <b><Money v={wo.total} cur /></b></span><span>العربون المطلوب: <Money v={wo.deposit_required} /></span>
           <span>المدفوع: <Money v={wo.paid_amount} /></span></div>
         <Field label={approve ? "ملاحظة (اختياري)" : "سبب الرفض"}><TextIn value={note} onChange={setNote} /></Field>
+      </div>
+    </Modal>
+  );
+}
+
+
+/** نوع الزجاج كما هو مكتوب لشبابيك الأمر (كلها أو اللي تختارها): بيظهر في طلبية الزجاج ومابيغيرش مقاس ولا تكلفة. */
+function GlassText({ wo, onClose, onSaved }: { wo: WO; onClose: () => void; onSaved: (w: WO) => void }) {
+  const toast = useToast();
+  const { busy, run } = useAction(toast.err);
+  const items = (wo.items ?? []) as { id: string; position: number; location: string; glass_text?: string | null; glass_material_code?: string | null }[];
+  const [text, setText] = useState(items.find((i) => i.glass_text)?.glass_text ?? "");
+  const [picked, setPicked] = useState<Set<string>>(new Set(items.map((i) => i.id)));
+  const toggle = (id: string) => setPicked((x) => { const y = new Set(x); y.has(id) ? y.delete(id) : y.add(id); return y; });
+  return (
+    <Modal title="نوع الزجاج" onClose={onClose} footer={<><Btn kind="primary" busy={busy} disabled={!picked.size} onClick={() => run(async () => {
+      onSaved(await api.put<WO>(`/work-orders/${wo.id}/glass`, { glass_text: text.trim() || null,
+        item_ids: picked.size === items.length ? null : [...picked] }));
+      toast.ok("اتحفظ نوع الزجاج. طلبية الزجاج هتجمّع الأمتار بيه."); onClose();
+    })}>حفظ</Btn><Btn onClick={onClose}>رجوع</Btn></>}>
+      <div className="col">
+        <Field label="نوع الزجاج" hint="مثلًا: عاكس بني - سنجل"><TextIn value={text} onChange={setText} autoFocus /></Field>
+        <div className="row" style={{ gap: 8 }}><span className="muted small">للشبابيك:</span>
+          <Btn small onClick={() => setPicked(new Set(items.map((i) => i.id)))}>الكل</Btn>
+          <Btn small onClick={() => setPicked(new Set())}>ولا واحد</Btn></div>
+        <div className="col" style={{ maxHeight: 280, overflow: "auto", gap: 2 }}>
+          {items.map((i) => <Check key={i.id} checked={picked.has(i.id)} onChange={() => toggle(i.id)}
+            label={<>{i.position}. {i.location || "—"} {i.glass_text && <span className="muted small">({i.glass_text})</span>}</>} />)}
+        </div>
+        <div className="muted small">الشبابيك اللي ليها نوع زجاج من المكتبة بتتجمع باسمه هو.</div>
       </div>
     </Modal>
   );

@@ -253,6 +253,58 @@ def update_work_order(wo_id: uuid.UUID, body: WorkOrderUpdate, dc=Depends(requir
     return _wo_out(db, wo, ctx=ctx)
 
 
+class GlassIn(BaseModel):
+    glass_text: str | None = Field(None, max_length=120)
+    item_ids: list[uuid.UUID] | None = None         # none: every window of the order
+
+
+@router.put("/work-orders/{wo_id}/glass", response_model=WorkOrderOut)
+def set_glass(wo_id: uuid.UUID, body: GlassIn, dc=Depends(require("workorders.write"))):
+    """نوع الزجاج كما هو مكتوب (e.g. «عاكس بني - سنجل») for the order's windows, at any stage: it changes no size
+    and no cost, only what the glass order groups by."""
+    db, ctx = dc
+    wo = _get_wo(db, ctx, wo_id, "workorders.write")
+    text = (body.glass_text or "").strip()[:120] or None
+    stmt = select(WorkOrderItem).where(WorkOrderItem.work_order_id == wo.id)
+    if body.item_ids:
+        stmt = stmt.where(WorkOrderItem.id.in_(body.item_ids))
+    for item in db.scalars(stmt):
+        before = snapshot(item)
+        item.glass_text = text
+        audit(db, item, "update", before, note="نوع الزجاج")
+    db.commit()
+    return _wo_out(db, wo, ctx=ctx)
+
+
+def item_glass(db, wo: WorkOrder) -> dict[int, str]:
+    """{item position: the glass as written}: the item's own, or (orders made before it was kept) the quotation
+    line at the same position, or the survey opening of the same place."""
+    from app.modules.crm.models import SurveyOpening
+    from app.modules.sales.models import Quotation, QuotationLine
+    from app.modules.sales.router import survey_glass
+
+    items = db.scalars(select(WorkOrderItem).where(WorkOrderItem.work_order_id == wo.id)).all()
+    out = {i.position: i.glass_text for i in items if i.glass_text}
+    if len(out) == len(items) or wo.quotation_id is None:
+        return out
+    lines = {l.position: l for l in db.scalars(select(QuotationLine).where(
+        QuotationLine.quotation_id == wo.quotation_id, QuotationLine.parent_line_id.is_(None)))}
+    q = db.get(Quotation, wo.quotation_id)
+    places = {}
+    if q is not None and q.survey_id:
+        for o in db.scalars(select(SurveyOpening).where(SurveyOpening.survey_id == q.survey_id)):
+            if (t := survey_glass(o)) and (o.location or "").strip() not in places:
+                places[(o.location or "").strip()] = t
+    for i in items:
+        if i.position in out:
+            continue
+        line = lines.get(i.position)
+        t = (line.glass_text if line is not None else None) or places.get((i.location or "").strip())
+        if t:
+            out[i.position] = t
+    return out
+
+
 def _take_offcuts(db, wo: WorkOrder) -> None:
     """Offcuts the cut plan uses become "used" by this order; every reusable leftover becomes a new offcut."""
     from app.modules.production.models import Offcut
