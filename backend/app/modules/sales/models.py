@@ -48,9 +48,26 @@ class PriceListItem(Base, Entity):
     price_per_m2: Mapped[Decimal | None] = mapped_column(Numeric(14, 2), nullable=True)
 
 
+class Project(Base, Entity, SoftDeleteMixin):
+    """مشروع: one customer's job in phases. Each phase is a quotation of its own (its sizes, its work order, its
+    goods orders); the project adds them up."""
+    __tablename__ = "projects"
+    __table_args__ = (UniqueConstraint("company_id", "number"),)
+
+    number: Mapped[str] = mapped_column(String(40))
+    name: Mapped[str] = mapped_column(String(200))
+    customer_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("customers.id"), index=True)
+    branch_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("branches.id"), index=True)
+    notes: Mapped[str] = mapped_column(Text, default="")
+
+
 class Quotation(Base, Entity, SoftDeleteMixin):
     __tablename__ = "quotations"
     __table_args__ = (UniqueConstraint("company_id", "number"),)
+
+    project_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("projects.id"),
+                                                         nullable=True, index=True)
+    phase_name: Mapped[str | None] = mapped_column(String(120), nullable=True)     # «المرحلة 2»
 
     number: Mapped[str] = mapped_column(String(40))
     customer_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("customers.id"), index=True)

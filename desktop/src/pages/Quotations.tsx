@@ -5,6 +5,7 @@ import { type PageProps, useRecordHistory, useTitle } from "../lib/title";
 import { useAction, useLoad } from "../lib/hooks";
 import { useDefaultBranch, useSession } from "../state/session";
 import { useToast } from "../state/toast";
+import { NewPhase, ProjectView } from "../components/project";
 import { Btn, Card, Chip, Confirm, Crumbs, Dim, ErrorBox, Field, Len, Loading, Modal, Money, NumIn, PageHead, Pager, Select, Table, TextArea, TextIn } from "../components/ui";
 import { BranchName, BranchSelect, ColorName, CustomerName, CustomerPicker, SalespersonName, SalespersonSelect } from "../components/pickers";
 import { ItemForm, ParamLabels, type ItemDraft } from "../components/items";
@@ -109,6 +110,8 @@ function QuotationDetail({ id }: { id: string }) {
   const [del, setDel] = useState<Line | null>(null);
   const [printing, setPrinting] = useState(false);
   const [toWo, setToWo] = useState(false);
+  const [phase, setPhase] = useState(false);
+  const [project, setProject] = useState(false);
   const [header, setHeader] = useState(false);
   if (q.error) return <ErrorBox text={q.error} onRetry={q.reload} />;
   if (!q.data) return <Loading />;
@@ -156,6 +159,8 @@ function QuotationDetail({ id }: { id: string }) {
             <div className="muted small">العميل</div>
             <a style={{ cursor: "pointer", fontWeight: 700 }} onClick={() => go(`customers/${quote.customer_id}`)}><CustomerName id={quote.customer_id} /></a>
           </div>
+          {quote.project_id && <div><div className="muted small">المشروع</div>
+            <a style={{ cursor: "pointer", fontWeight: 700 }} onClick={() => setProject(true)}>{quote.phase_name ?? "مرحلة"} · عرض المشروع</a></div>}
           <div><div className="muted small">الحالة</div><Chip color={QUOTE_STATUS[quote.status]?.[1]}>{QUOTE_STATUS[quote.status]?.[0] ?? quote.status}</Chip></div>
           <div><div className="muted small">الفرع</div><BranchName id={quote.branch_id} /></div>
           <div><div className="muted small">البائع</div><SalespersonName id={quote.salesperson_id} /></div>
@@ -171,6 +176,7 @@ function QuotationDetail({ id }: { id: string }) {
             ))}
             {quote.status === "accepted" && s.can("workorders.create", quote.branch_id) && <Btn kind="primary" icon="factory" onClick={() => setToWo(true)}>أمر تصنيع</Btn>}
             {quote.status === "accepted" && s.can("invoices.create", quote.branch_id) && <Btn icon="invoice" busy={busy} onClick={makeInvoice}>فاتورة</Btn>}
+            {s.can("quotes.create", quote.branch_id) && <Btn icon="plus" onClick={() => setPhase(true)}>مرحلة جديدة</Btn>}
             {s.can("quotes.delete", quote.branch_id) && quote.status !== "ordered" &&
               <DeleteBtn small={false} path={`/quotations/${id}`} what={`عرض السعر ${quote.number}`} onDone={() => go("quotations")} />}
           </div>
@@ -243,6 +249,8 @@ function QuotationDetail({ id }: { id: string }) {
       {printing && <PrintPreview path={`/quotations/${id}/print`} title={`عرض سعر ${quote.number}`} onClose={() => setPrinting(false)} />}
       {allPpm && <AllPricePerM2 quote={quote} onClose={() => setAllPpm(false)} onSaved={(x) => q.set(x)} />}
       {toWo && <ToWorkOrder quote={quote} onClose={() => setToWo(false)} />}
+      {phase && <NewPhase quote={quote} onClose={() => setPhase(false)} />}
+      {project && quote.project_id && <ProjectView id={quote.project_id} onClose={() => setProject(false)} />}
       {header && <QuoteHeader quote={quote} onClose={() => setHeader(false)} onSaved={(x) => q.set(x)} />}
     </div>
   );

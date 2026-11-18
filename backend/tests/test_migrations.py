@@ -208,6 +208,9 @@ def test_upgrade_from_old_revision_keeps_data():
     # 0016: nothing is hidden by the upgrade; the administrator may erase at once
     assert all(r["deleted_at"] is None for t in ("profile_systems", "materials") for r in after[t].values())
     assert "delete.permanent" in set(after["roles"][str(p["admin_role"])]["permissions"])
+    # 0025: no project is made by the upgrade; every quotation stays on its own
+    assert not after.get("projects")
+    assert all(x.get("project_id") is None for x in after.get("quotations", {}).values())
     # 0024: old quotation lines have no glass text
     assert all(x.get("glass_text") is None for x in after.get("quotation_lines", {}).values())
     # 0023: nobody gets a pay policy by the upgrade (paid as before); old payslips keep their numbers

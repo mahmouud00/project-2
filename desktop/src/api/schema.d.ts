@@ -1591,6 +1591,82 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/projects": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Projects */
+        get: operations["list_projects_api_v1_projects_get"];
+        put?: never;
+        /** Create Project */
+        post: operations["create_project_api_v1_projects_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Project */
+        get: operations["get_project_api_v1_projects__project_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Project */
+        patch: operations["update_project_api_v1_projects__project_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/quotations/{quote_id}/phase": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * New Phase
+         * @description مرحلة جديدة: a new empty quotation for the same customer, in the same project, with its own sizes.
+         */
+        post: operations["new_phase_api_v1_quotations__quote_id__phase_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quotations/{quote_id}/project": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Attach Quote
+         * @description Put an existing quotation (and its work order) in a project of the same customer, or take it out.
+         */
+        put: operations["attach_quote_api_v1_quotations__quote_id__project_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/work-orders": {
         parameters: {
             query?: never;
@@ -3713,6 +3789,13 @@ export interface components {
             role_id: string;
             /** Branch Id */
             branch_id: string | null;
+        };
+        /** AttachIn */
+        AttachIn: {
+            /** Project Id */
+            project_id?: string | null;
+            /** Phase Name */
+            phase_name?: string | null;
         };
         /** AuditOut */
         AuditOut: {
@@ -6801,6 +6884,43 @@ export interface components {
              */
             review_days: number;
         };
+        /** PhaseIn */
+        PhaseIn: {
+            /** Phase Name */
+            phase_name?: string | null;
+            /** Project Name */
+            project_name?: string | null;
+        };
+        /** PhaseOut */
+        PhaseOut: {
+            /**
+             * Quotation Id
+             * Format: uuid
+             */
+            quotation_id: string;
+            /** Quotation Number */
+            quotation_number: string;
+            /** Phase Name */
+            phase_name: string | null;
+            /** Status */
+            status: string;
+            /** Issue Date */
+            issue_date: string | null;
+            /** Total */
+            total: string;
+            /** Lines */
+            lines: number;
+            /** Work Order Id */
+            work_order_id?: string | null;
+            /** Work Order Number */
+            work_order_number?: string | null;
+            /** Stage */
+            stage?: string | null;
+            /** Wo Total */
+            wo_total?: string | null;
+            /** Paid */
+            paid?: string | null;
+        };
         /**
          * Piece
          * @description One cut piece: which material, its length (deduction formula), count and angles.
@@ -6930,6 +7050,95 @@ export interface components {
             /** Price Per M2 */
             price_per_m2?: number | string | null;
         };
+        /** ProjectIn */
+        ProjectIn: {
+            /**
+             * Customer Id
+             * Format: uuid
+             */
+            customer_id: string;
+            /**
+             * Branch Id
+             * Format: uuid
+             */
+            branch_id: string;
+            /** Name */
+            name: string;
+            /**
+             * Notes
+             * @default
+             */
+            notes: string;
+        };
+        /** ProjectOut */
+        ProjectOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Version */
+            version: number;
+            /** Created At */
+            created_at?: string | null;
+            /** Updated At */
+            updated_at?: string | null;
+            /** Number */
+            number: string;
+            /** Name */
+            name: string;
+            /**
+             * Customer Id
+             * Format: uuid
+             */
+            customer_id: string;
+            /**
+             * Branch Id
+             * Format: uuid
+             */
+            branch_id: string;
+            /** Notes */
+            notes: string;
+            /**
+             * Customer Name
+             * @default
+             */
+            customer_name: string;
+            /**
+             * Phases
+             * @default []
+             */
+            phases: components["schemas"]["PhaseOut"][];
+            /**
+             * Quoted Total
+             * @default 0
+             */
+            quoted_total: string;
+            /**
+             * Ordered Total
+             * @default 0
+             */
+            ordered_total: string;
+            /**
+             * Paid
+             * @default 0
+             */
+            paid: string;
+            /**
+             * Remaining
+             * @default 0
+             */
+            remaining: string;
+        };
+        /** ProjectUpdate */
+        ProjectUpdate: {
+            /** Version */
+            version: number;
+            /** Name */
+            name?: string | null;
+            /** Notes */
+            notes?: string | null;
+        };
         /** PublishIn */
         PublishIn: {
             /**
@@ -7041,6 +7250,10 @@ export interface components {
             updated_at?: string | null;
             /** Number */
             number: string;
+            /** Project Id */
+            project_id?: string | null;
+            /** Phase Name */
+            phase_name?: string | null;
             /**
              * Customer Id
              * Format: uuid
@@ -8231,6 +8444,8 @@ export interface components {
             branch_id: string;
             /** Quotation Id */
             quotation_id: string | null;
+            /** Project Id */
+            project_id?: string | null;
             /** Salesperson Id */
             salesperson_id?: string | null;
             /**
@@ -12283,6 +12498,206 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SurveyPricing"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_projects_api_v1_projects_get: {
+        parameters: {
+            query?: {
+                customer_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_project_api_v1_projects_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProjectIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_project_api_v1_projects__project_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_project_api_v1_projects__project_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProjectUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    new_phase_api_v1_quotations__quote_id__phase_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                quote_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PhaseIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    attach_quote_api_v1_quotations__quote_id__project_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                quote_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AttachIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */

@@ -130,6 +130,8 @@ class QuotationUpdate(VersionedUpdate):
 
 class QuotationOut(Record):
     number: str
+    project_id: uuid.UUID | None = None
+    phase_name: str | None = None
     customer_id: uuid.UUID
     branch_id: uuid.UUID
     survey_id: uuid.UUID | None

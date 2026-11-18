@@ -81,6 +81,7 @@ class WorkOrderOut(Record):
     customer_id: uuid.UUID
     branch_id: uuid.UUID
     quotation_id: uuid.UUID | None
+    project_id: uuid.UUID | None = None
     salesperson_id: uuid.UUID | None = None
     sale_status: str = "pending"
     sale_approved_at: datetime | None = None
@@ -207,6 +208,7 @@ def from_quotation(body: FromQuotationIn, dc=Depends(require("workorders.create"
         db.flush()
         before_stage = None
     wo.quotation_id = q.id
+    wo.project_id = q.project_id
     wo.salesperson_id = q.salesperson_id or wo.salesperson_id
     wo.total = q.total
     wo.due_date = body.due_date or wo.due_date

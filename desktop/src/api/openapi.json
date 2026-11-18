@@ -5586,6 +5586,327 @@
     }
    }
   },
+  "/api/v1/projects": {
+   "get": {
+    "tags": [
+     "projects"
+    ],
+    "summary": "List Projects",
+    "operationId": "list_projects_api_v1_projects_get",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "customer_id",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string",
+         "format": "uuid"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Customer Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/ProjectOut"
+         },
+         "title": "Response List Projects Api V1 Projects Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "post": {
+    "tags": [
+     "projects"
+    ],
+    "summary": "Create Project",
+    "operationId": "create_project_api_v1_projects_post",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ProjectIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ProjectOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/projects/{project_id}": {
+   "get": {
+    "tags": [
+     "projects"
+    ],
+    "summary": "Get Project",
+    "operationId": "get_project_api_v1_projects__project_id__get",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ProjectOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "patch": {
+    "tags": [
+     "projects"
+    ],
+    "summary": "Update Project",
+    "operationId": "update_project_api_v1_projects__project_id__patch",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ProjectUpdate"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ProjectOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/quotations/{quote_id}/phase": {
+   "post": {
+    "tags": [
+     "projects"
+    ],
+    "summary": "New Phase",
+    "description": "مرحلة جديدة: a new empty quotation for the same customer, in the same project, with its own sizes.",
+    "operationId": "new_phase_api_v1_quotations__quote_id__phase_post",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "quote_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Quote Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/PhaseIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/quotations/{quote_id}/project": {
+   "put": {
+    "tags": [
+     "projects"
+    ],
+    "summary": "Attach Quote",
+    "description": "Put an existing quotation (and its work order) in a project of the same customer, or take it out.",
+    "operationId": "attach_quote_api_v1_quotations__quote_id__project_put",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "quote_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Quote Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/AttachIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/v1/work-orders": {
    "get": {
     "tags": [
@@ -13481,6 +13802,36 @@
      "branch_id"
     ],
     "title": "AssignmentOut"
+   },
+   "AttachIn": {
+    "properties": {
+     "project_id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "uuid"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Project Id"
+     },
+     "phase_name": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 120
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Phase Name"
+     }
+    },
+    "type": "object",
+    "title": "AttachIn"
    },
    "AuditOut": {
     "properties": {
@@ -22290,6 +22641,151 @@
     ],
     "title": "PayslipOut"
    },
+   "PhaseIn": {
+    "properties": {
+     "phase_name": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 120
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Phase Name"
+     },
+     "project_name": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 200
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Project Name"
+     }
+    },
+    "type": "object",
+    "title": "PhaseIn"
+   },
+   "PhaseOut": {
+    "properties": {
+     "quotation_id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Quotation Id"
+     },
+     "quotation_number": {
+      "type": "string",
+      "title": "Quotation Number"
+     },
+     "phase_name": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Phase Name"
+     },
+     "status": {
+      "type": "string",
+      "title": "Status"
+     },
+     "issue_date": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Issue Date"
+     },
+     "total": {
+      "type": "string",
+      "title": "Total"
+     },
+     "lines": {
+      "type": "integer",
+      "title": "Lines"
+     },
+     "work_order_id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "uuid"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Work Order Id"
+     },
+     "work_order_number": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Work Order Number"
+     },
+     "stage": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Stage"
+     },
+     "wo_total": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Wo Total"
+     },
+     "paid": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Paid"
+     }
+    },
+    "type": "object",
+    "required": [
+     "quotation_id",
+     "quotation_number",
+     "phase_name",
+     "status",
+     "issue_date",
+     "total",
+     "lines"
+    ],
+    "title": "PhaseOut"
+   },
    "Piece": {
     "properties": {
      "key": {
@@ -22613,6 +23109,178 @@
     ],
     "title": "PricePerM2In"
    },
+   "ProjectIn": {
+    "properties": {
+     "customer_id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Customer Id"
+     },
+     "branch_id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Branch Id"
+     },
+     "name": {
+      "type": "string",
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Name"
+     },
+     "notes": {
+      "type": "string",
+      "title": "Notes",
+      "default": ""
+     }
+    },
+    "type": "object",
+    "required": [
+     "customer_id",
+     "branch_id",
+     "name"
+    ],
+    "title": "ProjectIn"
+   },
+   "ProjectOut": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Id"
+     },
+     "version": {
+      "type": "integer",
+      "title": "Version"
+     },
+     "created_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Created At"
+     },
+     "updated_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Updated At"
+     },
+     "number": {
+      "type": "string",
+      "title": "Number"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "customer_id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Customer Id"
+     },
+     "branch_id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Branch Id"
+     },
+     "notes": {
+      "type": "string",
+      "title": "Notes"
+     },
+     "customer_name": {
+      "type": "string",
+      "title": "Customer Name",
+      "default": ""
+     },
+     "phases": {
+      "items": {
+       "$ref": "#/components/schemas/PhaseOut"
+      },
+      "type": "array",
+      "title": "Phases",
+      "default": []
+     },
+     "quoted_total": {
+      "type": "string",
+      "title": "Quoted Total",
+      "default": "0"
+     },
+     "ordered_total": {
+      "type": "string",
+      "title": "Ordered Total",
+      "default": "0"
+     },
+     "paid": {
+      "type": "string",
+      "title": "Paid",
+      "default": "0"
+     },
+     "remaining": {
+      "type": "string",
+      "title": "Remaining",
+      "default": "0"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "version",
+     "number",
+     "name",
+     "customer_id",
+     "branch_id",
+     "notes"
+    ],
+    "title": "ProjectOut"
+   },
+   "ProjectUpdate": {
+    "properties": {
+     "version": {
+      "type": "integer",
+      "title": "Version"
+     },
+     "name": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 200,
+        "minLength": 1
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Name"
+     },
+     "notes": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Notes"
+     }
+    },
+    "type": "object",
+    "required": [
+     "version"
+    ],
+    "title": "ProjectUpdate"
+   },
    "PublishIn": {
     "properties": {
      "notes": {
@@ -22880,6 +23548,29 @@
      "number": {
       "type": "string",
       "title": "Number"
+     },
+     "project_id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "uuid"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Project Id"
+     },
+     "phase_name": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Phase Name"
      },
      "customer_id": {
       "type": "string",
@@ -26335,6 +27026,18 @@
        }
       ],
       "title": "Quotation Id"
+     },
+     "project_id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "uuid"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Project Id"
      },
      "salesperson_id": {
       "anyOf": [

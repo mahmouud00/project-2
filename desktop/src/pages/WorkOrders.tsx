@@ -6,6 +6,7 @@ import { useSession } from "../state/session";
 import { useToast } from "../state/toast";
 import { Btn, Card, Check, Chip, Confirm, Crumbs, Dim, ErrorBox, Field, Len, Loading, Modal, Money, NumIn, PageHead, Pager, Qty, Select, Table, Tabs, TextIn } from "../components/ui";
 import { DeleteBtn } from "../components/actions";
+import { ProjectView } from "../components/project";
 import { AssignJob, Progress } from "../components/field";
 import { BranchName, ColorName, CustomerName, ModelThumb, SalespersonName, SalespersonSelect } from "../components/pickers";
 import { Issues, ParamLabels, type Issue } from "../components/items";
@@ -86,6 +87,7 @@ function WorkOrderDetail({ id, tab }: { id: string; tab: string }) {
   const [printing, setPrinting] = useState(false);
   const [glassOrder, setGlassOrder] = useState(false);
   const [glassEdit, setGlassEdit] = useState(false);
+  const [project, setProject] = useState(false);
   const [recalc, setRecalc] = useState(false);
   const [saleDecision, setSaleDecision] = useState<boolean | null>(null);
   const [paying, setPaying] = useState(false);
@@ -129,6 +131,7 @@ function WorkOrderDetail({ id, tab }: { id: string; tab: string }) {
           <div><div className="muted small">العربون المطلوب</div><Money v={w.deposit_required} /></div>
           <div><div className="muted small">المدفوع</div><span className={Number(w.paid_amount) >= Number(w.deposit_required) ? "success-text bold" : "bold"}><Money v={w.paid_amount} /></span></div>
           <div><div className="muted small">البائع</div><SalespersonName id={w.salesperson_id} /></div>
+          {w.project_id && <div><div className="muted small">المشروع</div><a style={{ cursor: "pointer", fontWeight: 700 }} onClick={() => setProject(true)}>عرض المشروع</a></div>}
           {w.quotation_id && <div><div className="muted small">تأكيد الحسابات</div><Chip color={SALE_STATUS[w.sale_status ?? "pending"][1]}
             >{SALE_STATUS[w.sale_status ?? "pending"][0]}</Chip>{w.sale_approval_note && <div className="small muted">{w.sale_approval_note}</div>}</div>}
           <div style={{ minWidth: 170 }}><div className="muted small">الإنجاز{w.expected_delivery ? ` · متوقع ${date(w.expected_delivery)}` : ""}</div>
@@ -216,6 +219,7 @@ function WorkOrderDetail({ id, tab }: { id: string; tab: string }) {
       {recalc && <Confirm title="تحديث بآخر معادلات منشورة" yes="تحديث" busy={busy} onClose={() => setRecalc(false)}
         text="كل الشبابيك في الأمر هتتحسب تاني بآخر نسخة منشورة من قطاعها (القطع والخامات وطلبية الشراء)، وورقة التقطيع هتتعمل من جديد. الأسعار مش هتتغير. التعديل في النموذج لازم يكون اتنشر الأول من المكتبة («النشر والنسخ»)، وده مش متاح بعد ما التصنيع يبدأ."
         onYes={() => run(async () => { await api.post(`/work-orders/${id}/recalculate`); setRecalc(false); wo.reload(); outputs.reload(); toast.ok("اتحسب الأمر بآخر معادلات منشورة."); })} />}
+      {project && w.project_id && <ProjectView id={w.project_id} onClose={() => setProject(false)} />}
       {glassEdit && <GlassText wo={w} onClose={() => setGlassEdit(false)} onSaved={(x) => wo.set(x)} />}
       {glassOrder && <PrintPreview path={`/work-orders/${id}/print/glass`} title={`طلبية زجاج ${w.number}`} onClose={() => setGlassOrder(false)} />}
       {printing && <PrintPreview path={`/work-orders/${id}/print/cut-list`} title={`كشف تقطيع ${w.number}`} onClose={() => setPrinting(false)} />}

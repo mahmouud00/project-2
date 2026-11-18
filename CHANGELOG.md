@@ -4,6 +4,8 @@ All notable changes are listed here. Versions follow Semantic Versioning (MAJOR.
 
 ## [Unreleased]
 ### Added
+- Projects in phases (migration 0025): «مرحلة جديدة» on any quotation starts the next phase of the same customer's project — a new quotation with its own sizes, then its own work order and goods orders. The project (opened from the quotation, the work order, or the customer's «المشاريع» tab) lists the phases with their quotations, work orders, stages and payments, and adds up the quoted, ordered, paid and remaining totals. The project can be renamed.
+### Added
 - «نوع الزجاج» on the work order: the glass as written for all or some of its windows, at any stage; and orders made before the glass was kept take it from their quotation line or survey, so the glass order groups their m² by it.
 ### Changed
 - A profile that is cut is always bought by its cutting plan (the goods order shows the same number of bars as «خطة الأعواد»); the model's purchase rows now count only for materials with no cut pieces (e.g. reinforcement).

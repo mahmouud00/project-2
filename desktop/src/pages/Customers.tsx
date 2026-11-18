@@ -1,3 +1,4 @@
+import { CustomerProjects } from "../components/project";
 import { useState } from "react";
 import { saveFile } from "../lib/save";
 import { api, type S } from "../api/client";
@@ -165,6 +166,7 @@ function CustomerDetail({ id, tab: tabQuery }: { id: string; tab?: string }) {
         <Tabs value={tab} onChange={(t) => setQuery({ tab: t })} tabs={[
           { id: "surveys", label: "المعاينات", count: surveys.data?.total, hidden: !s.can("surveys.read") },
           { id: "quotes", label: "عروض الأسعار", count: quotes.data?.total, hidden: !s.can("quotes.read") },
+          { id: "projects", label: "المشاريع", hidden: !s.can("quotes.read") },
           { id: "orders", label: "أوامر التصنيع", count: wos.data?.total, hidden: !s.can("workorders.read") },
           { id: "invoices", label: "الفواتير", count: invoices.data?.total, hidden: !s.can("treasury.read") },
           { id: "maintenance", label: "الصيانة", hidden: !s.can("maintenance.read") },
@@ -194,6 +196,7 @@ function CustomerDetail({ id, tab: tabQuery }: { id: string; tab?: string }) {
           { key: "pr", label: "نسبة الإنجاز", width: 220, render: (w) => <Progress pct={w.progress_pct} late={w.late} expected={w.expected_delivery} /> },
           { key: "ex", label: "التسليم المتوقع", render: (w) => <span className="num">{date(w.expected_delivery)}</span> },
         ]} />}
+        {tab === "projects" && <div className="card-b"><CustomerProjects customerId={cu.id} /></div>}
         {tab === "maintenance" && <Maintenance customer={cu} />}
         {tab === "visits" && <Visits customerId={cu.id} />}
         {tab === "invoices" && <Table rows={invoices.data?.items} loading={invoices.loading} onRow={(i) => go(`invoices/${i.id}`)} columns={[

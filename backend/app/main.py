@@ -101,6 +101,7 @@ MODULE_ROUTERS: list[str] = [
     "app.modules.library.router",
     "app.modules.crm.router",
     "app.modules.sales.router",
+    "app.modules.sales.projects",
     "app.modules.production.router",
     "app.modules.purchasing.router",
     "app.modules.treasury.router",
