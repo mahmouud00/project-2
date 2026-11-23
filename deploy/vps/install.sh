@@ -15,9 +15,14 @@ HERE="$DIR/deploy/vps"
 
 echo "== 1) Docker"
 if ! command -v docker >/dev/null 2>&1; then
-  apt-get update -y && apt-get install -y curl git ca-certificates
-  curl -fsSL https://get.docker.com | sh
+  apt-get update -y && apt-get install -y curl git ca-certificates openssl
+  # Docker's own script; on an Ubuntu too new for it, Ubuntu's own packages
+  curl -fsSL https://get.docker.com | sh || apt-get install -y docker.io docker-compose-v2
 fi
+if ! docker compose version >/dev/null 2>&1; then
+  apt-get install -y docker-compose-v2 || apt-get install -y docker-compose-plugin
+fi
+systemctl enable --now docker >/dev/null 2>&1 || true
 command -v git >/dev/null 2>&1 || apt-get install -y git
 
 echo "== 2) الكود في $DIR"
