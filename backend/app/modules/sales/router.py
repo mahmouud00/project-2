@@ -130,6 +130,8 @@ class QuotationUpdate(VersionedUpdate):
 
 class QuotationOut(Record):
     number: str
+    work_order_id: uuid.UUID | None = None       # its work order, while it is not delivered (a change goes on to it)
+    work_order_stage: str | None = None
     project_id: uuid.UUID | None = None
     phase_name: str | None = None
     customer_id: uuid.UUID
@@ -168,6 +170,10 @@ TRANSITIONS = {"draft": {"sent", "accepted", "rejected"}, "sent": {"accepted", "
 
 def _quote_out(db, q: Quotation, with_calc: bool = True) -> QuotationOut:
     out = QuotationOut.model_validate(q)
+    if q.status == "accepted":
+        from app.modules.production.router import live_order
+        if (wo := live_order(db, q.id)) is not None:
+            out.work_order_id, out.work_order_stage = wo.id, wo.stage
     lines = []
     for line in db.scalars(select(QuotationLine).where(QuotationLine.quotation_id == q.id).order_by(*LINE_ORDER)):
         lo = LineOut.model_validate(line)
@@ -319,6 +325,17 @@ def _sync_arch_line(db, q: Quotation, line: QuotationLine, arch: dict | None) ->
     db.flush()
 
 
+def _check_editable(db, q: Quotation) -> None:
+    """A draft / sent quotation, or an accepted one whose work order is not delivered yet (the change goes on to the
+    order: its windows, cut sheet, bar plan, glass and goods)."""
+    if q.status in EDITABLE:
+        return
+    from app.modules.production.router import live_order
+    if q.status == "accepted" and live_order(db, q.id) is not None:
+        return
+    raise Conflict("Quotation is locked", code="QUOTE_LOCKED")
+
+
 def _totals(db, q: Quotation) -> None:
     lines = list(db.scalars(select(QuotationLine).where(QuotationLine.quotation_id == q.id)))
     q.subtotal = money(sum((l.line_total for l in lines), Decimal(0)))
@@ -331,6 +348,10 @@ def _totals(db, q: Quotation) -> None:
     q.tax_amount = money(taxable * q.tax_pct / 100)
     q.total = money(taxable + q.tax_amount)
     q.updated_at = utcnow()
+    if q.status == "accepted":                 # its work order follows
+        from app.modules.production.router import sync_from_quotation
+        db.flush()
+        sync_from_quotation(db, q)
 
 
 def _get_quote(db, ctx, quote_id, permission="quotes.read") -> Quotation:
@@ -406,8 +427,7 @@ def update_quotation(quote_id: uuid.UUID, body: QuotationUpdate, dc=Depends(requ
     db, ctx = dc
     q = _get_quote(db, ctx, quote_id, "quotes.write")
     check_version(q, body.version)
-    if q.status not in EDITABLE:
-        raise Conflict("Quotation is locked", code="QUOTE_LOCKED")
+    _check_editable(db, q)
     before = snapshot(q)
     data = body.model_dump(exclude_unset=True, exclude={"version"})
     if data.get("salesperson_id"):
@@ -423,8 +443,7 @@ def update_quotation(quote_id: uuid.UUID, body: QuotationUpdate, dc=Depends(requ
 def add_line(quote_id: uuid.UUID, body: LineIn, dc=Depends(require("quotes.write"))):
     db, ctx = dc
     q = _get_quote(db, ctx, quote_id, "quotes.write")
-    if q.status not in EDITABLE:
-        raise Conflict("Quotation is locked", code="QUOTE_LOCKED")
+    _check_editable(db, q)
     last = db.scalar(select(func.max(QuotationLine.position)).where(QuotationLine.quotation_id == q.id)) or 0
     line = QuotationLine(quotation_id=q.id, position=last + 1, **body.model_dump())
     _price_line(db, ctx, q, line, Pricer(db, ctx))
@@ -438,8 +457,7 @@ def update_line(line_id: uuid.UUID, body: LineUpdate, dc=Depends(require("quotes
     db, ctx = dc
     line = get_or_404(db, QuotationLine, line_id)
     q = _get_quote(db, ctx, line.quotation_id, "quotes.write")
-    if q.status not in EDITABLE:
-        raise Conflict("Quotation is locked", code="QUOTE_LOCKED")
+    _check_editable(db, q)
     check_version(line, body.version)
     before = snapshot(line)
     apply_changes(line, body.model_dump(exclude_unset=True, exclude={"version"}))
@@ -455,8 +473,7 @@ def delete_line(line_id: uuid.UUID, dc=Depends(require("quotes.write"))):
     db, ctx = dc
     line = get_or_404(db, QuotationLine, line_id)
     q = _get_quote(db, ctx, line.quotation_id, "quotes.write")
-    if q.status not in EDITABLE:
-        raise Conflict("Quotation is locked", code="QUOTE_LOCKED")
+    _check_editable(db, q)
     if line.parent_line_id is not None:
         raise Conflict("The arch line follows its unit", code="ARCH_LINE_MANAGED")
     before = snapshot(line)
@@ -551,8 +568,7 @@ def recalculate(quote_id: uuid.UUID, dc=Depends(require("quotes.write"))):
     """Re-run every line with the CURRENT published formulas and prices (explicit action)."""
     db, ctx = dc
     q = _get_quote(db, ctx, quote_id, "quotes.write")
-    if q.status not in EDITABLE:
-        raise Conflict("Quotation is locked", code="QUOTE_LOCKED")
+    _check_editable(db, q)
     pricer = Pricer(db, ctx)
     for line in db.scalars(select(QuotationLine).where(QuotationLine.quotation_id == q.id, UNITS)):
         _price_line(db, ctx, q, line, pricer)
@@ -572,8 +588,7 @@ def set_price_per_m2(quote_id: uuid.UUID, body: PricePerM2In, dc=Depends(require
     db, ctx = dc
     q = _get_quote(db, ctx, quote_id, "quotes.write")
     check_version(q, body.version)
-    if q.status not in EDITABLE:
-        raise Conflict("Quotation is locked", code="QUOTE_LOCKED")
+    _check_editable(db, q)
     before = snapshot(q)
     pricer = Pricer(db, ctx)
     for line in db.scalars(select(QuotationLine).where(QuotationLine.quotation_id == q.id, UNITS)):

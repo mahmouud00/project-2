@@ -43,6 +43,8 @@ class WorkOrder(Base, Entity, SoftDeleteMixin):
     notes: Mapped[str] = mapped_column(Text, default="")
     outputs: Mapped[dict] = mapped_column(JSONB, default=dict)   # manufacturing outputs (frozen at production start)
     outputs_generated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # cut sheets replaced after manufacturing started (the quotation was changed): newest first, kept for the record
+    outputs_history: Mapped[list | None] = mapped_column(JSONB, nullable=True)
 
 
 class WorkOrderItem(Base, Entity):

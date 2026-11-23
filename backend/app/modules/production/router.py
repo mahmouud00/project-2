@@ -307,6 +307,78 @@ def item_glass(db, wo: WorkOrder) -> dict[int, str]:
     return out
 
 
+def live_order(db, quotation_id) -> WorkOrder | None:
+    """The work order made from this quotation, while it can still change (not delivered or cancelled)."""
+    return db.scalar(select(WorkOrder).where(WorkOrder.quotation_id == quotation_id, WorkOrder.deleted_at.is_(None),
+                                             WorkOrder.stage.not_in(("delivered", "cancelled"))))
+
+
+def _release_offcuts(db, wo: WorkOrder) -> None:
+    """Before cutting again: the offcuts this order took go back to stock, the ones it left (still unused) go."""
+    from app.modules.production.models import Offcut
+
+    for o in db.scalars(select(Offcut).where(Offcut.used_work_order_id == wo.id)):
+        o.status, o.used_work_order_id = "available", None
+    for o in db.scalars(select(Offcut).where(Offcut.source_work_order_id == wo.id, Offcut.status == "available")):
+        db.delete(o)
+    db.flush()
+
+
+def sync_from_quotation(db, q: Quotation) -> WorkOrder | None:
+    """The quotation changed after its work order was made: the order's windows, total, cut sheet, bar plan,
+    glass and goods needs follow it, at any stage before delivery. Once manufacturing started the old cut sheet is
+    kept in the order's history and production is told. A changed total sends the sale back to the accounts."""
+    from types import SimpleNamespace
+
+    from app.modules.notifications.router import alert, customer_name
+    from app.modules.production.manufacturing import available_offcuts
+
+    wo = live_order(db, q.id)
+    if wo is None:
+        return None
+    ctx = SimpleNamespace(user_id=None)
+    before = snapshot(wo)
+    items = list(db.scalars(select(WorkOrderItem).where(WorkOrderItem.work_order_id == wo.id)))
+    glass = {i.position: i.glass_text for i in items if i.glass_text}
+    for i in items:
+        db.delete(i)
+    db.flush()
+    for line in db.scalars(select(QuotationLine).where(QuotationLine.quotation_id == q.id)
+                           .order_by(QuotationLine.position, QuotationLine.parent_line_id.is_not(None))):
+        db.add(WorkOrderItem(work_order_id=wo.id, position=line.position, location=line.location,
+                             model_id=line.model_id, formula_set_version_id=line.formula_set_version_id,
+                             opening_width_mm=line.opening_width_mm, opening_height_mm=line.opening_height_mm,
+                             params=line.params, color_code=line.color_code,
+                             glass_material_code=line.glass_material_code,
+                             glass_text=line.glass_text or glass.get(line.position), qty=line.qty,
+                             unit_price=line.unit_price, calc=line.calc))
+    db.flush()
+    who = customer_name(db, wo.customer_id)
+    if wo.total != q.total:
+        if wo.total:
+            wo.deposit_required = money(wo.deposit_required * q.total / wo.total)
+        wo.total = q.total
+        if wo.sale_status == "approved":
+            wo.sale_status, wo.sale_approval_note = "pending", f"عرض السعر {q.number} اتعدل: الإجمالي الجديد {q.total}"
+        alert(db, ctx, "accounts", wo.branch_id, f"أمر {wo.number} اتعدل: الإجمالي بقى {q.total}", who,
+              "treasury?tab=sales")
+    if wo.stage in FROZEN_STAGES:
+        history = [{"at": utcnow().isoformat(), "quotation": q.number, "outputs": wo.outputs}] + list(wo.outputs_history or [])
+        wo.outputs_history = history[:3]
+        _release_offcuts(db, wo)
+        wo.outputs = generate_outputs(db, wo, available_offcuts(db, wo.branch_id, lock=True))
+        wo.outputs_generated_at = utcnow()
+        _take_offcuts(db, wo)
+        alert(db, ctx, "production", wo.branch_id, f"أمر {wo.number} اتعدل وهو في «{STAGE_NAMES.get(wo.stage, wo.stage)}»",
+              "عرض السعر اتعدل: راجع كشف التقطيع الجديد (القديم محفوظ في الأمر).", f"work-orders/{wo.id}")
+    elif wo.outputs:
+        wo.outputs = generate_outputs(db, wo)
+        wo.outputs_generated_at = utcnow()
+    wo.version += 1
+    audit(db, wo, "update", before, note=f"اتعدل من عرض السعر {q.number}")
+    return wo
+
+
 def _take_offcuts(db, wo: WorkOrder) -> None:
     """Offcuts the cut plan uses become "used" by this order; every reusable leftover becomes a new offcut."""
     from app.modules.production.models import Offcut
@@ -391,7 +463,8 @@ def approve_sale(wo_id: uuid.UUID, body: SaleApproveIn, dc=Depends(require("sale
     check_version(wo, body.version)
     if wo.quotation_id is None:
         raise Conflict("No accepted quotation", code="NO_QUOTATION")
-    if wo.stage not in ("survey", "quotation") or wo.sale_status == "approved":
+    # before production, or again after the quotation was changed later (at any stage before delivery)
+    if wo.stage in ("delivered", "cancelled") or wo.sale_status == "approved":
         raise Conflict("This sale is already confirmed", code="INVALID_TRANSITION")
     before = snapshot(wo)
     wo.sale_status = "approved" if body.approve else "rejected"

@@ -143,7 +143,7 @@ function WorkOrderDetail({ id, tab }: { id: string; tab: string }) {
             {s.can("purchasing.create", w.branch_id) && w.stage !== "cancelled" && <Btn icon="cart" onClick={() => setOrdering(true)}>طلبية بضاعة</Btn>}
             {s.can("field.manage", w.branch_id) && w.stage === "installation" &&
               <Btn kind="primary" icon="truck" onClick={() => setAssign(true)}>إسناد التركيب لفني</Btn>}
-            {w.quotation_id && w.sale_status !== "approved" && ["survey", "quotation"].includes(w.stage) && s.can("sales.approve", w.branch_id) && <>
+            {w.quotation_id && w.sale_status !== "approved" && !["delivered", "cancelled"].includes(w.stage) && s.can("sales.approve", w.branch_id) && <>
               <Btn kind="success" icon="check" onClick={() => setSaleDecision(true)}>تأكيد البيعة</Btn>
               {w.sale_status !== "rejected" && <Btn kind="danger" onClick={() => setSaleDecision(false)}>رفض البيعة</Btn>}</>}
             {s.can("workorders.write", w.branch_id) && !frozen && <Btn icon="edit" onClick={() => setEdit(true)}>تعديل</Btn>}

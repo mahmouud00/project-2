@@ -6,6 +6,7 @@ import { useAction, useLoad } from "../lib/hooks";
 import { useDefaultBranch, useSession } from "../state/session";
 import { useToast } from "../state/toast";
 import { NewPhase, ProjectView } from "../components/project";
+import { STAGE_NAMES } from "../lib/lookups";
 import { Btn, Card, Chip, Confirm, Crumbs, Dim, ErrorBox, Field, Len, Loading, Modal, Money, NumIn, PageHead, Pager, Select, Table, TextArea, TextIn } from "../components/ui";
 import { BranchName, BranchSelect, ColorName, CustomerName, CustomerPicker, SalespersonName, SalespersonSelect } from "../components/pickers";
 import { ItemForm, ParamLabels, type ItemDraft } from "../components/items";
@@ -116,7 +117,9 @@ function QuotationDetail({ id }: { id: string }) {
   if (q.error) return <ErrorBox text={q.error} onRetry={q.reload} />;
   if (!q.data) return <Loading />;
   const quote = q.data;
-  const editable = ["draft", "sent"].includes(quote.status) && s.can("quotes.write", quote.branch_id);
+  // an accepted quotation stays editable while its work order is not delivered: the change goes on to the order
+  const editable = (["draft", "sent"].includes(quote.status) || (quote.status === "accepted" && !!quote.work_order_id))
+    && s.can("quotes.write", quote.branch_id);
   const allLines = quote.lines ?? [];
   // an arch (أرج) line is a unit of its own for manufacturing, shown and priced inside its unit
   const lines = allLines.filter((l) => !l.parent_line_id);
@@ -183,6 +186,10 @@ function QuotationDetail({ id }: { id: string }) {
         </div>
       </Card>
 
+      {editable && quote.status === "accepted" && quote.work_order_id && <div className="notice warn">
+        العرض ده ليه أمر تصنيع{quote.work_order_stage ? ` (${STAGE_NAMES[quote.work_order_stage] ?? quote.work_order_stage})` : ""}:
+        أي تعديل هنا بيتنقل للأمر على طول — الأصناف، كشف التقطيع، خطة الأعواد، الزجاج، والطلبيات. لو الإجمالي اتغيّر، الحسابات بتأكد البيعة تاني،
+        ولو الأمر في التصنيع، قسم الإنتاج بيوصله إشعار والكشف القديم بيتحفظ.</div>}
       <Card title={`البنود (${lines.length})`} flush actions={editable && <>
         {lines.length > 0 && <Btn small icon="calc" onClick={() => setAllPpm(true)}>سعر متر لكل البنود</Btn>}
         <Btn kind="primary" small icon="plus" onClick={() => setLineEdit("new")}>إضافة بند</Btn></>}>

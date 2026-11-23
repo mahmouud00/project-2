@@ -7250,6 +7250,10 @@ export interface components {
             updated_at?: string | null;
             /** Number */
             number: string;
+            /** Work Order Id */
+            work_order_id?: string | null;
+            /** Work Order Stage */
+            work_order_stage?: string | null;
             /** Project Id */
             project_id?: string | null;
             /** Phase Name */

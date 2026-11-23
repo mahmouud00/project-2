@@ -3,6 +3,8 @@
 All notable changes are listed here. Versions follow Semantic Versioning (MAJOR.MINOR.PATCH).
 
 ## [Unreleased]
+### Changed
+- An accepted quotation can be changed while its work order is not delivered, and the order follows at once: its windows, total and deposit, cut sheet, bar plan, glass and goods needs (migration 0026). During manufacturing the old cut sheet is kept in the order, the offcuts are taken again, and production is told; a changed total sends the sale back to the accounts, who can confirm it again at any stage.
 ### Added
 - Projects in phases (migration 0025): «مرحلة جديدة» on any quotation starts the next phase of the same customer's project — a new quotation with its own sizes, then its own work order and goods orders. The project (opened from the quotation, the work order, or the customer's «المشاريع» tab) lists the phases with their quotations, work orders, stages and payments, and adds up the quoted, ordered, paid and remaining totals. The project can be renamed.
 ### Added

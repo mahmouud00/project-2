@@ -23549,6 +23549,29 @@
       "type": "string",
       "title": "Number"
      },
+     "work_order_id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "uuid"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Work Order Id"
+     },
+     "work_order_stage": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Work Order Stage"
+     },
      "project_id": {
       "anyOf": [
        {
