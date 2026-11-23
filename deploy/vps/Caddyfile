@@ -19,3 +19,12 @@ http://{$DOMAIN} {
 	}
 	reverse_proxy api:8000
 }
+
+# Programs older than 0.1.95 add «:8000» to any address: the same server, with HTTPS, on port 8000 too
+{$DOMAIN}:8000 {
+	encode gzip
+	request_body {
+		max_size 500MB
+	}
+	reverse_proxy api:8000
+}

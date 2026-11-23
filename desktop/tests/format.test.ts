@@ -13,4 +13,12 @@ for (const [a, b, r] of [["60", "120", "7200.00"], ["2.5", "0.333", "0.83"], ["3
 for (const [a, b, r] of [["1800.00", "1200.00", "600"], ["1800", "1795.5", "4.5"], ["0.3", "0.1", "0.2"], ["100", "250", "-150"]]) {
   if (subDec(a, b) !== r) throw new Error(`sub ${a}-${b} -> ${subDec(a, b)} != ${r}`);
 }
+import { normalizeServer } from "../src/lib/serverurl.ts";
+for (const [typed, url] of [["192.168.1.10", "http://192.168.1.10:8000"], ["192.168.1.10:9000", "http://192.168.1.10:9000"],
+  ["http://192.168.1.10/", "http://192.168.1.10:8000"], ["localhost", "http://localhost:8000"], ["SERVER-PC", "http://SERVER-PC:8000"],
+  ["app.wintag.tech", "https://app.wintag.tech"], ["https://app.wintag.tech/", "https://app.wintag.tech"],
+  [" https://app.wintag.tech ", "https://app.wintag.tech"], ["http://app.wintag.tech", "http://app.wintag.tech"],
+  ["https://cloud.example.com:8443", "https://cloud.example.com:8443"]]) {
+  if (normalizeServer(typed) !== url) throw new Error(`server ${typed} -> ${normalizeServer(typed)} != ${url}`);
+}
 console.log("format ok");

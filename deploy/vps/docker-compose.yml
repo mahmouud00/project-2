@@ -36,6 +36,7 @@ services:
     ports:
       - "80:80"
       - "443:443"
+      - "8000:8000"                     # older programs add :8000 to the address (HTTPS here too)
     environment:
       DOMAIN: ${DOMAIN}
       ACME_EMAIL: ${ACME_EMAIL}

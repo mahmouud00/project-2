@@ -58,7 +58,7 @@ DOMAIN=$(grep '^DOMAIN=' .env | cut -d= -f2)
 
 echo "== 4) الجدار الناري"
 if command -v ufw >/dev/null 2>&1 && ufw status | grep -q active; then
-  ufw allow 22/tcp && ufw allow 80/tcp && ufw allow 443/tcp
+  ufw allow 22/tcp && ufw allow 80/tcp && ufw allow 443/tcp && ufw allow 8000/tcp
 fi
 
 echo "== 5) التشغيل (أول مرة بتاخد كام دقيقة)"

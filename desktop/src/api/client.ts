@@ -45,12 +45,7 @@ const emit: Listener = (e, d) => listeners.forEach((l) => l(e, d));
 let access: string | null = null;
 let refreshing: Promise<boolean> | null = null;
 
-export function normalizeServer(input: string): string {
-  let s = input.trim().replace(/\/+$/, "");
-  if (!/^https?:\/\//i.test(s)) s = "http://" + s;
-  if (!/:\d+$/.test(s.replace(/^https?:\/\//i, "").split("/")[0])) s += ":8000";
-  return s;
-}
+export { normalizeServer } from "../lib/serverurl";
 
 function base(): string {
   if (!store.server) throw new ApiError(0, "NO_SERVER", "لم يتم اختيار السيرفر");

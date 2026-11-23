@@ -3,6 +3,8 @@
 All notable changes are listed here. Versions follow Semantic Versioning (MAJOR.MINOR.PATCH).
 
 ## [Unreleased]
+### Fixed
+- Connecting to a cloud server: a domain (app.wintag.tech) is https on its normal port; only a factory server on the network (an IP, a PC name) gets http and port 8000. The VPS also answers on port 8000 (HTTPS) for programs older than this.
 ### Added
 - VPS kit (`deploy/vps`, docs/VPS.md): one script installs Docker, the code, the secrets, PostgreSQL, the server and Caddy with HTTPS on the company's domain (fingerprint devices may use plain HTTP for /iclock); `manage.sh` for companies and subscriptions, `update.sh` with a backup first. `FORWARDED_ALLOW_IPS` setting for the proxy.
 ### Fixed
