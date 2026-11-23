@@ -10,7 +10,7 @@ import { Btn, Card, Chip, Confirm, Crumbs, Dim, DraftNotice, ErrorBox, Field, Fi
 import { useSession } from "../state/session";
 import { RowsEditor } from "../components/rows";
 import { Drawing, MediaImg } from "../components/media";
-import { ElementPieces, Issues, ParamFields, cleanParams, type Calc } from "../components/items";
+import { ElementPieces, Issues, ParamFields, cleanParams, paramsWithKind, type Calc } from "../components/items";
 import { useAuthor } from "./Library";
 import { setQuery } from "../lib/router";
 import { useDraft } from "../lib/draft";
@@ -188,12 +188,15 @@ export default function ModelEditor({ systemId, modelId, tab }: { systemId: stri
               ]} />
           </>}
           {tab === "glass" && <>
-            <Help>مقاس كل لوح زجاج: معادلة العرض ومعادلة الارتفاع والعدد. لو اللوح مش مستطيل (زي زجاج الأرج نص الدايرة) اكتب معادلة مساحته، مثلًا <code>segment_area(width, height)</code>.</Help>
+            <Help>مقاس كل لوح زجاج: معادلة العرض ومعادلة الارتفاع والعدد. لو تخصيم الدبل غير السنجل اعمل لوحين واختار لكل واحد «للزجاج: سنجل بس» أو «دبل بس»
+              (البياع بيختار نوع الزجاج على الشباك، ولونه من «القطاعات التكميلية»). ومقاس أي لوح بيتكتب في المعادلات <code>اسمه_عرض</code> و<code>اسمه_ارتفاع</code>. لو اللوح مش مستطيل (زي زجاج الأرج نص الدايرة) اكتب معادلة مساحته، مثلًا <code>segment_area(width, height)</code>.</Help>
             <RowsEditor rows={def.glass} onChange={set("glass")} readOnly={!editable} addLabel="زجاج"
               extraActions={<CopyRows systemId={systemId} modelId={modelId} section="glass" keyField="key" rows={def.glass} onChange={set("glass")} />}
-              blank={() => ({ key: "", label: "", material_code: null, width_expr: "", height_expr: "", area_expr: null, qty_expr: "1", condition: null })} columns={[
+              blank={() => ({ key: "", label: "", material_code: null, width_expr: "", height_expr: "", area_expr: null, qty_expr: "1", condition: null, for_kind: null })} columns={[
                 { key: "key", label: "الاسم", kind: "code", width: 110 },
                 { key: "label", label: "الوصف", width: 140 },
+                { key: "for_kind", label: "للزجاج", kind: "select", placeholder: "السنجل والدبل", width: 120,
+                  options: [{ value: "single", label: "سنجل بس" }, { value: "double", label: "دبل بس" }] },
                 { key: "material_code", label: "الخامة (فاضي = اختيار البياع)", kind: "search", placeholder: "اختيار البياع", options: matOptions, width: 200 },
                 { key: "width_expr", label: <span className="side-w">معادلة العرض</span>, kind: "expr" },
                 { key: "height_expr", label: <span className="side-h">معادلة الارتفاع</span>, kind: "expr" },
@@ -241,8 +244,13 @@ export default function ModelEditor({ systemId, modelId, tab }: { systemId: stri
             {def.formulas.map((f) => <span key={f.key} className="code" style={{ color: "var(--success)" }} title={f.label}>{f.key}</span>)}
             {def.pieces.filter((p) => p.key).map((p) => <span key={"p-" + p.key} className="code" style={{ color: "var(--warning)" }}
               title="طول القطعة دي (زي ما تكون كاتب معادلتها)">{p.key}</span>)}
+            {def.glass.filter((g) => g.key).flatMap((g) => [g.key + "_عرض", g.key + "_ارتفاع"]).map((n) => <span key={"g-" + n} className="code"
+              style={{ color: "var(--primary)" }} title="مقاس لوح الزجاج ده">{n}</span>)}
+            {["نوع_الزجاج", "سنجل", "دبل"].map((n) => <span key={n} className="code" style={{ color: "var(--violet)" }}
+              title="نوع الزجاج اللي البياع اختاره: نوع_الزجاج == دبل">{n}</span>)}
           </div>
-          <div className="muted small mt">اسم القطعة في معادلة قطعة تانية (أو زجاج، إكسسوار، تحقق، رسمة) = طول القطعة دي.</div>
+          <div className="muted small mt">اسم القطعة في معادلة قطعة تانية (أو زجاج، إكسسوار، تحقق، رسمة) = طول القطعة دي. ومقاس لوح الزجاج: <code>اسمه_عرض</code> و<code>اسمه_ارتفاع</code>.
+            ولو التخصيم بيختلف للدبل: <code>لو(نوع_الزجاج == دبل، …، …)</code>، أو اختار في تاب الزجاج اللوح «للزجاج: سنجل بس / دبل بس».</div>
         </Card>
       )}
     </div>
@@ -544,14 +552,14 @@ function TryTab({ modelId, def, dirty }: { modelId: string; def: Def; unitCode: 
   const go_ = async () => {
     if (!w || !h) return;
     setBusy(true); setErr(null);
-    try { setRes(await calc(w, h, cleanParams(def.params, params))); } catch (e) { setErr(errorText(e)); setRes(null); } finally { setBusy(false); }
+    try { setRes(await calc(w, h, cleanParams(paramsWithKind(def), params))); } catch (e) { setErr(errorText(e)); setRes(null); } finally { setBusy(false); }
   };
   return (
     <div className="col">
       {dirty && <div className="notice warn">التجربة بتستخدم آخر نسخة محفوظة من النموذج. احفظ الأول عشان تجرب تعديلاتك.</div>}
       <div className="grid g4" style={{ alignItems: "end" }}>
         <Field label="مقاس الفتحة (العرض × الارتفاع)" className="span2"><SizeIn w={w} h={h} onChange={(a, b) => { setW(a); setH(b); }} /></Field>
-        <ParamFields params={def.params} values={params} onChange={setParams} unit="" />
+        <ParamFields params={paramsWithKind(def)} values={params} onChange={setParams} unit="" />
         <div><Btn kind="primary" icon="calc" busy={busy} onClick={go_}>احسب</Btn></div>
       </div>
       {err && <div className="notice err">{err}</div>}
@@ -643,7 +651,7 @@ function NewTest({ modelId, def, onClose, onSaved }: { modelId: string; def: Def
   const draft = useDraftCalc(modelId);
   const fillFromEngine = () => run(async () => {
     if (!w || !h) return;
-    const r = await draft(w, h, cleanParams(def.params, params));
+    const r = await draft(w, h, cleanParams(paramsWithKind(def), params));
     setCalc(r);
   });
   const save = () => run(async () => {
@@ -653,7 +661,7 @@ function NewTest({ modelId, def, onClose, onSaved }: { modelId: string; def: Def
       glass: Object.fromEntries(Object.entries(glass).filter(([, v]) => v[0] !== "" && v[1] !== "")),
     };
     if (!expectedCount(expected)) throw new Error("اكتب قيمة مرجعية واحدة على الأقل.");
-    await api.post(`/library/models/${modelId}/tests`, { name, opening_width_mm: w, opening_height_mm: h, params: cleanParams(def.params, params), expected });
+    await api.post(`/library/models/${modelId}/tests`, { name, opening_width_mm: w, opening_height_mm: h, params: cleanParams(paramsWithKind(def), params), expected });
     toast.ok("اتضاف الاختبار.");
     onSaved();
     onClose();
@@ -664,7 +672,7 @@ function NewTest({ modelId, def, onClose, onSaved }: { modelId: string; def: Def
       <div className="grid g4 mb" style={{ alignItems: "end" }}>
         <Field label="الاسم"><TextIn value={name} onChange={setName} placeholder="شباك 180×140 من المصنع" autoFocus /></Field>
         <Field label="مقاس الفتحة (العرض × الارتفاع)" className="span2"><SizeIn w={w} h={h} onChange={(a, b) => { setW(a); setH(b); }} /></Field>
-        <ParamFields params={def.params} values={params} onChange={setParams} unit="" />
+        <ParamFields params={paramsWithKind(def)} values={params} onChange={setParams} unit="" />
       </div>
       <div className="notice warn mb">اكتب الأطوال الصح المتأكد منها <b>بالـ{uL}</b>. زرار "اعرض حساب البرنامج" بيوريك رقم البرنامج جنب كل خانة للمقارنة بس، ومش بيملأ الخانات: القيمة المرجعية لازم تيجي من الواقع.</div>
       <div className="row mb"><Btn icon="calc" busy={busy} disabled={!w || !h} onClick={fillFromEngine}>اعرض حساب البرنامج للمقارنة</Btn></div>

@@ -394,8 +394,10 @@ def create_quotation(body: QuotationIn, dc=Depends(require("quotes.create"))):
                 for _ in range(max(int(o.qty or 1), 1)):
                     lines.append(LineIn(location=o.location, model_id=o.model_id, opening_width_mm=o.opening_width_mm,
                                         total_height_mm=o.total_height_mm, top_model_id=o.top_model_id,
-                                        opening_height_mm=o.opening_height_mm, params=o.params, color_code=o.color_code,
+                                        opening_height_mm=o.opening_height_mm, color_code=o.color_code,
                                         glass_material_code=o.glass_material_code, glass_text=survey_glass(o),
+                                        params={**(o.params or {}),
+                                                **({"نوع_الزجاج": 2} if o.glass_layers == "double" else {})},
                                         qty=1, notes=o.notes))
     q = Quotation(number=next_number(db, "quote", "QT", branch.code), customer_id=customer.id, branch_id=branch.id,
                   survey_id=body.survey_id, issue_date=date.today(),
@@ -651,7 +653,8 @@ def survey_pricing(survey_id: uuid.UUID, dc=Depends(require("quotes.read"))):
             row.error = "OPENING_WITHOUT_MODEL"
         else:
             try:
-                r = pricer.price(o.model_id, o.opening_width_mm, o.opening_height_mm, o.params, o.color_code,
+                r = pricer.price(o.model_id, o.opening_width_mm, o.opening_height_mm,
+                                 {**(o.params or {}), **({"نوع_الزجاج": 2} if o.glass_layers == "double" else {})}, o.color_code,
                                  o.glass_material_code, o.location, o.total_height_mm, o.top_model_id)
             except AppError as e:
                 row.error = e.code

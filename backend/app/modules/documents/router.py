@@ -225,7 +225,11 @@ def print_glass_order(wo_id: uuid.UUID, dc=Depends(require("workorders.read"))):
     for g in rows:
         code = g.get("material_code") or ""
         text = "" if code else (written.get(g.get("item")) or g.get("glass_text") or "").strip()   # as written
-        t = types.setdefault((code, text), {"code": code, "name": names.get(code, "") or text or "زجاج مش متحدد نوعه",
+        kind = g.get("kind") or ""                                     # سنجل / دبل
+        label = names.get(code, "") or text or "زجاج مش متحدد لونه"
+        if kind and kind not in label:
+            label = f"{label} - {kind}"
+        t = types.setdefault((code, text, kind), {"code": code, "name": label,
                                             "rows": [], "qty": 0, "area": Decimal(0)})
         t["rows"].append({**g, "windows": windows.get(g.get("item"), "")})
         t["qty"] += int(g.get("qty") or 0)

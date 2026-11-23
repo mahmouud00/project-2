@@ -130,7 +130,7 @@ export function ItemForm({ title, initial, onClose, onSave, withPrice, requireMo
   const models = useLoad(() => lookups.allModels(), []);
   const model = models.data?.find((m) => m.id === d.model_id);
   const def = (model?.definition ?? {}) as S<"Definition">;
-  const params = def.params ?? [];
+  const params = paramsWithKind(def);
 
   // drop parameters that do not belong to the newly chosen model
   useEffect(() => {
@@ -196,7 +196,7 @@ export function ItemForm({ title, initial, onClose, onSave, withPrice, requireMo
           )}
           <ParamFields params={params} values={d.params ?? {}} onChange={(p) => setD((x) => ({ ...x, params: p }))} unit={model?.system.unit ?? "mm"} />
           <Field label="اللون"><ColorSelect value={d.color_code} onChange={(v) => setD((x) => ({ ...x, color_code: v }))} /></Field>
-          <Field label="الزجاج"><GlassSelect systemId={(model?.system as { id?: string } | undefined)?.id} value={d.glass_material_code} onChange={(v) => setD((x) => ({ ...x, glass_material_code: v }))} /></Field>
+          <Field label="لون الزجاج"><GlassSelect systemId={(model?.system as { id?: string } | undefined)?.id} value={d.glass_material_code} onChange={(v) => setD((x) => ({ ...x, glass_material_code: v }))} /></Field>
           {!d.glass_material_code && "glass_text" in d && <Field label="وصف الزجاج" hint="لو مفيش نوع زجاج متسجل: مثلًا عاكس بني - سنجل">
             <TextIn value={d.glass_text ?? ""} onChange={(v) => setD((x) => ({ ...x, glass_text: v }))} /></Field>}
           <Field label="المكان في الموقع" hint="الدور والمكان، مثلًا: الدور الأول · أوضة النوم. كل شباك ليه سطر لوحده بمكانه"
@@ -248,6 +248,16 @@ export function ItemForm({ title, initial, onClose, onSave, withPrice, requireMo
 }
 
 /** Send only parameters of the model, as plain values (numbers stay strings for exact decimals). */
+export const GLASS_KIND = "نوع_الزجاج";
+
+/** The model's variables and «نوع الزجاج» (سنجل / دبل): every model has it (its glass deductions differ). */
+export function paramsWithKind(def: S<"Definition">): Param[] {
+  const params = (def.params ?? []) as Param[];
+  if (params.some((p) => p.name === GLASS_KIND)) return params;
+  return [...params, { name: GLASS_KIND, label: "نوع الزجاج", type: "choice", default: 1 as any, min: null, max: null,
+    choices: [{ value: 1 as any, label: "زجاج سنجل" }, { value: 2 as any, label: "زجاج دبل" }] } as Param];
+}
+
 export function cleanParams(params: Param[], values: Record<string, any>): Record<string, any> {
   const out: Record<string, any> = {};
   for (const p of params) {
@@ -260,7 +270,7 @@ export function cleanParams(params: Param[], values: Record<string, any>): Recor
 
 export function ParamLabels({ modelId, values }: { modelId: string | null | undefined; values: Record<string, any> | undefined }) {
   const m = useLoad(() => modelId ? lookups.model(modelId) : Promise.resolve(undefined), [modelId]);
-  const params = ((m.data?.definition ?? {}) as S<"Definition">).params ?? [];
+  const params = paramsWithKind((m.data?.definition ?? {}) as S<"Definition">);
   const parts: string[] = [];
   for (const p of params) {
     if (!values || !(p.name in values)) continue;

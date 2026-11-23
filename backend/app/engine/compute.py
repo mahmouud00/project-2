@@ -161,7 +161,7 @@ def check_definition(snapshot: dict) -> list[str]:
             errors.append(f"اسم القطعة {key} هو نفس اسم ثابت أو متغير أو قيمة مساعدة")
     if len(set(piece_keys)) != len(piece_keys):
         errors.append("في قطعتين ليهم نفس الاسم: " + "، ".join(sorted({k for k in piece_keys if piece_keys.count(k) > 1})))
-    glass_names = set(glass_dims(model.get("glass", [])))
+    glass_names = set(glass_dims(model.get("glass", []))) | set(glass_kind_names(known_formulas | set(piece_keys)))
     for name in sorted(glass_names & (known_formulas | set(piece_keys))):
         errors.append(f"اسم مقاس الزجاج {name} هو نفس اسم تاني")
     known = known_formulas | set(piece_keys) | glass_names
@@ -214,6 +214,15 @@ def check_definition(snapshot: dict) -> list[str]:
 
 
 GLASS_W, GLASS_H = "_عرض", "_ارتفاع"
+# نوع الزجاج on every window: سنجل or دبل. In formulas: «نوع_الزجاج == دبل»; a glass row can be for one of them only.
+GLASS_KIND = "نوع_الزجاج"
+GLASS_KINDS = {"سنجل": Decimal(1), "دبل": Decimal(2)}
+KIND_OF_ROW = {"single": Decimal(1), "double": Decimal(2)}
+
+
+def glass_kind_names(taken: set) -> dict:
+    """The names a model can use for the glass kind (one it defines itself keeps its own meaning)."""
+    return {k: v for k, v in {GLASS_KIND: Decimal(1), **GLASS_KINDS}.items() if k not in taken}
 
 
 def glass_dims(glass: list[dict]) -> dict[str, tuple[dict, str]]:
@@ -354,7 +363,8 @@ def calculate(snapshot: dict, *, opening_width_mm, opening_height_mm, params: di
     issues: list[Issue] = []
     params = params or {}
 
-    unknown_params = set(params) - {p["name"] for p in model.get("params", [])}
+    own = {p["name"] for p in model.get("params", [])}
+    unknown_params = set(params) - own - ({GLASS_KIND} if GLASS_KIND not in own else set())
     if unknown_params:
         raise CalcError(f"متغيرات مش موجودة في النموذج: {'، '.join(sorted(unknown_params))}", code="PARAM_UNKNOWN")
 
@@ -379,6 +389,15 @@ def calculate(snapshot: dict, *, opening_width_mm, opening_height_mm, params: di
     for p in model.get("params", []):
         env[p["name"]] = _param_value(p, params.get(p["name"]), issues)
         inputs[p["name"]] = env[p["name"]]
+    for name, value in glass_kind_names(set(env) | {f["key"] for f in model.get("formulas", [])}).items():
+        env[name] = value
+    if GLASS_KIND not in own:
+        kind = to_decimal(params.get(GLASS_KIND, 1))
+        if kind not in GLASS_KINDS.values():
+            raise CalcError("نوع الزجاج لازم يبقى سنجل (1) أو دبل (2)", code="PARAM_INVALID", where=GLASS_KIND)
+        env[GLASS_KIND] = kind
+        inputs[GLASS_KIND] = kind
+        inputs["glass_kind"] = "دبل" if kind == 2 else "سنجل"
 
     values: dict = {}
     for f, expr in _formula_order(model.get("formulas", [])):
@@ -388,6 +407,9 @@ def calculate(snapshot: dict, *, opening_width_mm, opening_height_mm, params: di
         values[f["key"]] = val * factor if unit in LENGTH_UNITS and not isinstance(val, bool) else val
 
     def cond(item, where) -> bool:
+        for_kind = KIND_OF_ROW.get(item.get("for_kind") or "")           # a glass row for سنجل or دبل only
+        if for_kind is not None and env.get(GLASS_KIND, Decimal(1)) != for_kind:
+            return False
         c = item.get("condition")
         if c in (None, ""):
             return True

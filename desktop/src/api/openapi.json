@@ -17570,6 +17570,21 @@
       ],
       "title": "Area Expr"
      },
+     "for_kind": {
+      "anyOf": [
+       {
+        "type": "string",
+        "enum": [
+         "single",
+         "double"
+        ]
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "For Kind"
+     },
      "qty_expr": {
       "type": "string",
       "title": "Qty Expr",

@@ -163,3 +163,22 @@ def test_glass_sizes_are_names_in_other_formulas():
     # a pane worked out from a piece that is worked out from the pane: refused
     m["glass"][0]["width_expr"] = "bead - 4"
     assert any("دايرة" in e for e in check_definition(s))
+
+
+def test_single_or_double_glass():
+    s = snap()
+    m = s["model"]
+    # a pane for single glass and a narrower one for double; a bead whose length depends on the kind
+    m["glass"] = [{"key": "g", "for_kind": "single", "width_expr": "width - 110", "height_expr": "height - 110", "qty_expr": "1"},
+                  {"key": "gd", "for_kind": "double", "width_expr": "width - 130", "height_expr": "height - 130", "qty_expr": "1"}]
+    m["pieces"].append({"key": "bead", "label": "باكتة", "material_code": "FR", "qty_expr": "2",
+                        "length_expr": "if(نوع_الزجاج == دبل, gd_عرض, g_عرض)"})
+    assert check_definition(s) == []
+    single = calculate(s, opening_width_mm=1000, opening_height_mm=1200)                     # سنجل by default
+    assert [g["key"] for g in single.glass] == ["g"] and single.inputs["glass_kind"] == "سنجل"
+    assert next(p for p in single.pieces if p["key"] == "bead")["length_mm"] == D(880)
+    double = calculate(s, opening_width_mm=1000, opening_height_mm=1200, params={"نوع_الزجاج": 2})
+    assert [g["key"] for g in double.glass] == ["gd"] and double.glass[0]["width_mm"] == D(860)
+    assert next(p for p in double.pieces if p["key"] == "bead")["length_mm"] == D(860)
+    with pytest.raises(CalcError):
+        calculate(s, opening_width_mm=1000, opening_height_mm=1200, params={"نوع_الزجاج": 3})

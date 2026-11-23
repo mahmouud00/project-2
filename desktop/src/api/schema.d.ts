@@ -5113,6 +5113,8 @@ export interface components {
             height_expr: string;
             /** Area Expr */
             area_expr?: string | null;
+            /** For Kind */
+            for_kind?: ("single" | "double") | null;
             /**
              * Qty Expr
              * @default 1

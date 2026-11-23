@@ -3,6 +3,8 @@
 All notable changes are listed here. Versions follow Semantic Versioning (MAJOR.MINOR.PATCH).
 
 ## [Unreleased]
+### Added
+- «نوع الزجاج» on every window: زجاج سنجل or زجاج دبل (next to «لون الزجاج», chosen from the system's قطاعات تكميلية). In formulas `نوع_الزجاج` with `سنجل` / `دبل`; a glass row can be for single or double only («للزجاج»), so each model holds its own deductions for both. A survey marked دبل makes double-glass lines; the glass order groups by colour and kind. The available names list the glass sizes and these names.
 ### Changed
 - Glass: a pane's width and height in the model's glass tab are names in any formula (`زجاج_الضلفة_عرض`, `زجاج_الضلفة_ارتفاع`), worked out in order with the pieces (a circle is refused). The glass types (عاكس بني، عاكس أخضر…) are «قطاعات تكميلية»: their own table under the profiles in each system, chosen on the window (the model's system's own first); their m² price is in the quote's cost, and the glass is ordered from «طلبية الزجاج», no longer on the goods order. The per-model glass types of the previous build are taken out.
 ### Changed

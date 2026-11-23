@@ -265,6 +265,7 @@ class Glass(BaseModel):
     width_expr: str
     height_expr: str
     area_expr: str | None = None     # shaped pane (e.g. a half-circle arch): area of one pane, system unit²
+    for_kind: Literal["single", "double"] | None = None   # this pane only on سنجل / دبل glass (none: both)
     qty_expr: str = "1"
     condition: str | None = None
     _n = field_validator("key")(_ident)
