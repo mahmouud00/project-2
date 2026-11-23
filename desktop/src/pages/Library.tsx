@@ -236,11 +236,16 @@ function Materials({ system, editable }: { system: System; editable: boolean }) 
   const list = useLoad(() => api.get<S<"Page_MaterialOut_">>("/library/materials", { system_id: system.id, limit: 500 }).then((p) => p.items), [system.id]);
   const [edit, setEdit] = useState<Partial<Material> | null>(null);
   const [setting, setSetting] = useState<Material | null>(null);
+  // قطاعات تكميلية (أنواع الزجاج: عاكس بني، عاكس أخضر…): بتتختار على الشباك، تكلفتها في عرض السعر، ومابتتطلبش في طلبية البضاعة
+  const main = (list.data ?? []).filter((m) => m.kind !== "glass");
+  const extra = (list.data ?? []).filter((m) => m.kind === "glass");
+  const open = (m: Material) => editable ? setEdit(m) : !s.isPlatform && setSetting(m);
   return (
     <div className="col">
-      <Help>كل خامة ليها كود بيتكتب في القطع والزجاج والإكسسوار، وألوانها (كل لون ليه SKU في المخزن). الأطوال بوحدة البرنامج (سم).</Help>
+      <Help>كل خامة ليها كود بيتكتب في القطع والإكسسوار، وألوانها (كل لون ليه SKU في المخزن). الأطوال بوحدة البرنامج (سم).
+        أنواع الزجاج في جدول «القطاعات التكميلية» تحت.</Help>
       {editable && <PageHead><Btn kind="primary" small icon="plus" onClick={() => setEdit({ kind: "profile", unit: "m", status: "trial", variants: [] })}>خامة جديدة</Btn></PageHead>}
-      <Table rows={list.data} loading={list.loading} onRow={(m) => editable ? setEdit(m) : !s.isPlatform && setSetting(m)} columns={[
+      <Table rows={list.loading ? undefined : main} loading={list.loading} onRow={open} columns={[
         { key: "img", label: "", width: 70, render: (m) => <MediaImg id={m.image_id} /> },
         { key: "code", label: "الكود", render: (m) => <span className="code">{m.code}</span> },
         { key: "name", label: "الاسم", render: (m) => <b>{m.name}</b> },
@@ -254,6 +259,23 @@ function Materials({ system, editable }: { system: System; editable: boolean }) 
           <DeleteBtn path={`/library/materials/${m.id}`} what={`الخامة ${m.code}`} onDone={() => { invalidate("glass"); list.reload(); }}
             note="النماذج اللي مستخدمة الخامة دي هيوصل لأصحابها إشعار يغيّروها. أوامر الشراء القديمة بتفضل زي ما هي." /> }] : []),
       ]} empty="مفيش خامات" />
+      <div className="row" style={{ marginTop: 14 }}>
+        <h3 style={{ margin: 0 }}>قطاعات تكميلية (أنواع الزجاج)</h3>
+        {editable && <Btn className="end" kind="primary" small icon="plus"
+          onClick={() => setEdit({ kind: "glass", unit: "m2", status: "approved", variants: [], bar_length_mm: null })}>قطاع تكميلي جديد</Btn>}
+      </div>
+      <div className="muted small">نوع الزجاج (عاكس بني، عاكس أخضر، شفاف…) اللي بيتختار على الشباك في المعاينة وعرض السعر. سعر المتر بيدخل في تكلفة العرض،
+        وطلبيته من «طلبية الزجاج» في أمر التصنيع، ومابيدخلش في طلبية البضاعة. ومقاسات الزجاج نفسها في تاب «الزجاج» في كل نموذج.</div>
+      <Table rows={list.loading ? undefined : extra} loading={list.loading} onRow={open} columns={[
+        { key: "img", label: "", width: 70, render: (m) => <MediaImg id={m.image_id} /> },
+        { key: "code", label: "الكود", render: (m) => <span className="code">{m.code}</span> },
+        { key: "name", label: "النوع", render: (m) => <b>{m.name}</b> },
+        { key: "c", label: "سعر المتر (تكلفة)", num: true, render: (m) => <Money v={m.reference_cost} /> },
+        ...(!s.isPlatform ? [{ key: "cp", label: "سعر شركتك", num: true, render: (m: Material) => <PriceRange m={m} /> }] : []),
+        { key: "st", label: "الحالة", render: (m) => <>{m.status === "trial" && <Chip color="amber">تجربة</Chip>}{!m.is_active && <Chip color="red">متوقف</Chip>}</> },
+        ...(editable && deleter ? [{ key: "del", label: "", width: 80, render: (m: Material) => m.is_active &&
+          <DeleteBtn path={`/library/materials/${m.id}`} what={`النوع ${m.name}`} onDone={() => { invalidate("glass"); list.reload(); }} /> }] : []),
+      ]} empty="مفيش أنواع زجاج: دوس «قطاع تكميلي جديد» (مثلًا عاكس بني 6 مم)" />
       {!editable && !s.isPlatform && <div className="muted small">اضغط على خامة عشان تحط سعرها عند شركتك أو كودك الداخلي.</div>}
       {edit && <MaterialForm system={system} material={edit} onClose={() => setEdit(null)} onSaved={() => { invalidate("glass"); list.reload(); }} />}
       {setting && <MaterialSetting material={setting} onClose={() => setSetting(null)} onSaved={list.reload} />}
@@ -284,7 +306,8 @@ function MaterialForm({ system, material, onClose, onSaved }: { system: System; 
   });
   const upload = (f: File) => run(async () => { const m = await api.upload<S<"MediaOut">>("/library/media", f); setD((x) => ({ ...x, image_id: m.id })); });
   return (
-    <Modal title={material.id ? `خامة ${material.code}` : "خامة جديدة"} size="xwide" onClose={onClose}
+    <Modal title={material.kind === "glass" ? (material.id ? `قطاع تكميلي ${material.code}` : "قطاع تكميلي جديد (نوع زجاج)")
+      : material.id ? `خامة ${material.code}` : "خامة جديدة"} size="xwide" onClose={onClose}
       footer={<><Btn kind="primary" busy={busy} disabled={!d.code || !d.name} onClick={save}>حفظ</Btn><Btn onClick={onClose}>رجوع</Btn></>}>
       <div className="row top" style={{ gap: 18 }}>
         <div className="col" style={{ width: 150 }}>

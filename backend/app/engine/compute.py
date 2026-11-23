@@ -43,22 +43,6 @@ def _ar(name: str) -> str:
 
 RESERVED = {"opening_width", "opening_height", "width", "height"} | set(NAME_ALIASES)
 REQUIRED_CONSTANTS = ("install_clearance_width", "install_clearance_height")
-# أنواع الزجاج of a model (its glass tab): the one chosen on a window is this variable (1, 2, 3 … in the list's order)
-# and every type's own name is its number, so a formula can say «لو(نوع_الزجاج == عاكس_بني، 24، 18)»
-GLASS_PARAM = "نوع_الزجاج"
-
-
-def glass_param(model: dict) -> dict | None:
-    types = model.get("glass_types") or []
-    if not types:
-        return None
-    return {"name": GLASS_PARAM, "type": "choice", "default": 1,
-            "choices": [{"value": i, "label": t.get("name") or t["key"]} for i, t in enumerate(types, 1)]}
-
-
-def glass_names(model: dict) -> dict:
-    """{type name in formulas: its number}"""
-    return {t["key"]: Decimal(i) for i, t in enumerate(model.get("glass_types") or [], 1)}
 ROUNDING = {"half_up": ROUND_HALF_UP, "up": ROUND_CEILING, "down": ROUND_FLOOR}
 LENGTH_UNITS = {"length"}
 
@@ -162,8 +146,6 @@ def check_definition(snapshot: dict) -> list[str]:
         if name not in constants:
             errors.append(f"ثابت السيستم {_ar(name)} لازم يكون موجود")
     params = [p["name"] for p in model.get("params", [])]
-    if glass_param(model):
-        params += [GLASS_PARAM, *glass_names(model)]
     formula_keys = [f["key"] for f in model.get("formulas", [])]
     seen: set[str] = set()
     for name in list(constants) + params + formula_keys:
@@ -179,7 +161,10 @@ def check_definition(snapshot: dict) -> list[str]:
             errors.append(f"اسم القطعة {key} هو نفس اسم ثابت أو متغير أو قيمة مساعدة")
     if len(set(piece_keys)) != len(piece_keys):
         errors.append("في قطعتين ليهم نفس الاسم: " + "، ".join(sorted({k for k in piece_keys if piece_keys.count(k) > 1})))
-    known = known_formulas | set(piece_keys)
+    glass_names = set(glass_dims(model.get("glass", [])))
+    for name in sorted(glass_names & (known_formulas | set(piece_keys))):
+        errors.append(f"اسم مقاس الزجاج {name} هو نفس اسم تاني")
+    known = known_formulas | set(piece_keys) | glass_names
     materials = snapshot.get("materials", {})
 
     def chk(source, where, required=True, names=None):
@@ -200,7 +185,7 @@ def check_definition(snapshot: dict) -> list[str]:
         _formula_order(model.get("formulas", []))
     except CalcError as e:
         errors.append(str(e))
-    cycle = _piece_cycle(model.get("pieces", []))
+    cycle = _piece_cycle(model.get("pieces", []), model.get("glass", []))
     if cycle:
         errors.append(cycle)
     for section, exprs in (("pieces", ("length_expr", "qty_expr", "angle_left", "angle_right")),
@@ -228,22 +213,42 @@ def check_definition(snapshot: dict) -> list[str]:
     return errors
 
 
-def _piece_cycle(pieces: list[dict]) -> str | None:
+GLASS_W, GLASS_H = "_عرض", "_ارتفاع"
+
+
+def glass_dims(glass: list[dict]) -> dict[str, tuple[dict, str]]:
+    """{«زجاج_الضلفة_عرض»: (the glass row, "width_expr"), «زجاج_الضلفة_ارتفاع»: (…, "height_expr")}: a pane's width
+    and height are names other expressions can use, like a piece's key is its length."""
+    out = {}
+    for g in glass:
+        if g.get("key"):
+            out[g["key"] + GLASS_W] = (g, "width_expr")
+            out[g["key"] + GLASS_H] = (g, "height_expr")
+    return out
+
+
+def _piece_cycle(pieces: list[dict], glass: list[dict] | None = None) -> str | None:
     try:
-        _piece_order(pieces)
+        _piece_order(pieces, glass)
     except CalcError as e:
         return str(e)
     return None
 
 
-def _piece_order(pieces: list[dict]) -> list[str]:
-    """Piece keys in the order their lengths can be worked out (a piece after the pieces it uses).
-    A piece whose formula does not compile is left out (its own error is reported where it is evaluated)."""
+def _piece_order(pieces: list[dict], glass: list[dict] | None = None) -> list[str]:
+    """Piece keys (and glass widths / heights) in the order they can be worked out: each after the ones it uses.
+    One whose formula does not compile is left out (its own error is reported where it is evaluated)."""
     exprs = {}
     for p in pieces:
         if p.get("key") and p.get("length_expr"):
             try:
                 exprs[p["key"]] = compile_expr(p["length_expr"])
+            except ExprError:
+                pass
+    for name, (g, field) in glass_dims(glass or []).items():
+        if g.get(field):
+            try:
+                exprs[name] = compile_expr(g[field])
             except ExprError:
                 pass
     order: list[str] = []
@@ -253,7 +258,7 @@ def _piece_order(pieces: list[dict]) -> list[str]:
         if state.get(key) == 2:
             return
         if state.get(key) == 1:
-            raise CalcError("قطع بتعتمد على بعض في دايرة: " + " ← ".join(stack + [key]), code="PIECE_CYCLE")
+            raise CalcError("قطع (أو زجاج) بتعتمد على بعض في دايرة: " + " ← ".join(stack + [key]), code="PIECE_CYCLE")
         state[key] = 1
         for dep in sorted(exprs[key].names):
             if dep in exprs:
@@ -349,8 +354,7 @@ def calculate(snapshot: dict, *, opening_width_mm, opening_height_mm, params: di
     issues: list[Issue] = []
     params = params or {}
 
-    gparam = glass_param(model)
-    unknown_params = set(params) - {p["name"] for p in model.get("params", [])} - ({GLASS_PARAM} if gparam else set())
+    unknown_params = set(params) - {p["name"] for p in model.get("params", [])}
     if unknown_params:
         raise CalcError(f"متغيرات مش موجودة في النموذج: {'، '.join(sorted(unknown_params))}", code="PARAM_UNKNOWN")
 
@@ -375,12 +379,6 @@ def calculate(snapshot: dict, *, opening_width_mm, opening_height_mm, params: di
     for p in model.get("params", []):
         env[p["name"]] = _param_value(p, params.get(p["name"]), issues)
         inputs[p["name"]] = env[p["name"]]
-    if gparam:
-        chosen = _param_value(gparam, params.get(GLASS_PARAM), issues)
-        env[GLASS_PARAM] = chosen
-        env.update(glass_names(model))
-        inputs[GLASS_PARAM] = chosen
-        inputs["glass_type"] = gparam["choices"][int(chosen) - 1]["label"]      # its name, for the glass order
 
     values: dict = {}
     for f, expr in _formula_order(model.get("formulas", [])):
@@ -401,7 +399,8 @@ def calculate(snapshot: dict, *, opening_width_mm, opening_height_mm, params: di
     # each piece's length (system unit, exact) under its key, so other expressions can use it: worked out for the
     # pieces that are made and for any piece another expression names (even if it is not made itself)
     pieces = {p["key"]: p for p in model.get("pieces", [])}
-    clash = set(pieces) & (set(env) | set(values))
+    dims = glass_dims(model.get("glass", []))           # each pane's width / height, also usable by name
+    clash = (set(pieces) | set(dims)) & (set(env) | set(values))
     if clash:
         raise CalcError(f"اسم القطعة هو نفس اسم ثابت أو متغير أو قيمة مساعدة: {'، '.join(sorted(clash))}",
                         code="NAME_CLASH")
@@ -412,14 +411,20 @@ def calculate(snapshot: dict, *, opening_width_mm, opening_height_mm, params: di
                       "area_expr", "expr", "x", "y", "w", "h"):
                 if item.get(k) not in (None, ""):
                     try:
-                        used |= compile_expr(item[k]).names & set(pieces)
+                        used |= compile_expr(item[k]).names & (set(pieces) | set(dims))
                     except ExprError:
                         pass
     try:
-        order = _piece_order(model.get("pieces", []))
+        order = _piece_order(model.get("pieces", []), model.get("glass", []))
     except CalcError as e:
         raise CalcError(str(e), code=e.code)
     for key in order:
+        if key in dims:
+            g, field = dims[key]
+            where = f"الزجاج {g['key']}"
+            if key in used or cond(g, where + "، الشرط"):
+                env[key] = to_decimal(_eval(_compile(g[field], where), env, where))
+            continue
         item = pieces[key]
         where = f"القطعة {key}"
         if key in used or cond(item, where + "، الشرط"):
@@ -459,8 +464,13 @@ def calculate(snapshot: dict, *, opening_width_mm, opening_height_mm, params: di
         where = f"الزجاج {item['key']}"
         if not cond(item, where + "، الشرط"):
             continue
-        w = _round_mm(to_decimal(_eval(_compile(item["width_expr"], where), env, where)) * factor, step, mode)
-        h = _round_mm(to_decimal(_eval(_compile(item["height_expr"], where), env, where)) * factor, step, mode)
+        wk, hk = item["key"] + GLASS_W, item["key"] + GLASS_H
+        if wk not in env:
+            env[wk] = to_decimal(_eval(_compile(item["width_expr"], where), env, where))
+        if hk not in env:
+            env[hk] = to_decimal(_eval(_compile(item["height_expr"], where), env, where))
+        w = _round_mm(to_decimal(env[wk]) * factor, step, mode)
+        h = _round_mm(to_decimal(env[hk]) * factor, step, mode)
         qty = _int_qty(_eval(_compile(item["qty_expr"], where), env, where), where, issues)
         if qty == 0:
             continue

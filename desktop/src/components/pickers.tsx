@@ -83,14 +83,17 @@ export function ColorSelect({ value, onChange, allowEmpty = true }:
   );
 }
 
-export function GlassSelect({ value, onChange }: { value: string | null | undefined; onChange: (code: string | null) => void }) {
-  const glass = useLoad(() => lookups.glass(), []);
+export function GlassSelect({ value, onChange, systemId }: { value: string | null | undefined; onChange: (code: string | null) => void;
+  systemId?: string | null }) {
+  // the model's system's own types first (قطاعات تكميلية); any other glass type stays available
+  const glass = useLoad(() => lookups.glass().then((gs) => systemId && gs.some((g) => g.system_id === systemId)
+    ? gs.filter((g) => g.system_id === systemId || !g.system_id) : gs), [systemId]);
   return (
     <select className="input" value={value ?? ""} onChange={(e) => onChange(e.target.value || null)}>
       <option value="">— الزجاج (الافتراضي) —</option>
       {(glass.data ?? []).filter((g) => g.is_active).map((g) => <option key={g.code} value={g.code}>{g.name}</option>)}
       {glass.data && !glass.data.some((g) => g.is_active) &&
-        <option value="" disabled>مفيش أنواع زجاج: ضيفها من المكتبة ← الخامات (النوع: زجاج)</option>}
+        <option value="" disabled>مفيش أنواع زجاج: ضيفها من المكتبة ← السيستم ← الخامات ← «قطاعات تكميلية»</option>}
     </select>
   );
 }

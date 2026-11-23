@@ -69,7 +69,7 @@ def test_goods_order_from_work_order(platform, tenant_a, client):
     frame = by[f"{code}-FRAME-W"]
     assert frame["kind"] == "profile" and frame["bars"] >= 1
     assert D(frame["qty"]) == D(frame["bar_length_mm"]) * frame["bars"] / 1000          # whole bars, in metres
-    assert by[f"{code}-GLASS6"]["kind"] == "glass" and by[f"{code}-GLASS6"]["pieces"] == 4
+    assert f"{code}-GLASS6" not in by and not any(n["kind"] == "glass" for n in by.values())   # glass: its own order
     assert D(by[f"{code}-HANDLE-W"]["qty"]) == 4 and D(by[f"{code}-WHEEL-W"]["qty"]) == 8   # accessories per model x qty
     sup = client.post("/api/v1/suppliers", headers=h, json={"name": "مورد قطاعات"}).json()
     po = client.post("/api/v1/purchase-orders", headers=h, json={

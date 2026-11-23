@@ -286,8 +286,7 @@ def item_glass(db, wo: WorkOrder) -> dict[int, str]:
     from app.modules.sales.router import survey_glass
 
     items = db.scalars(select(WorkOrderItem).where(WorkOrderItem.work_order_id == wo.id)).all()
-    out = {i.position: i.glass_text or ((i.calc or {}).get("inputs") or {}).get("glass_type") for i in items}
-    out = {k: v for k, v in out.items() if v}
+    out = {i.position: i.glass_text for i in items if i.glass_text}
     if len(out) == len(items) or wo.quotation_id is None:
         return out
     lines = {l.position: l for l in db.scalars(select(QuotationLine).where(
@@ -593,15 +592,7 @@ def material_needs(wo_id: uuid.UUID, dc=Depends(require("workorders.read"))):
             needs.append(NeedOut(kind="profile", sku=g["sku"], material_code=g["material_code"],
                                  name=g.get("material_name") or g["material_code"], unit="m",
                                  qty=Decimal(str(g["total_length_mm"])) / 1000))
-    panes: dict[str, int] = {}
-    for gl in out.get("glass", []):
-        panes[gl["material_code"] or "-"] = panes.get(gl["material_code"] or "-", 0) + int(gl["qty"])
-    for code, area in out.get("glass_area_by_type", {}).items():
-        if code == "-":
-            continue
-        m = find_material(db, code)
-        needs.append(NeedOut(kind="glass", sku=code, material_code=code, name=m.name if m else code, unit="m2",
-                             qty=Decimal(str(area)), pieces=panes.get(code)))
+    # the glass (قطاعات تكميلية) is not on the goods order: it is ordered from «طلبية الزجاج», its cost is in the quote
     for a in out.get("accessories", []):
         needs.append(NeedOut(kind="accessory", sku=a["sku"], material_code=a["material_code"],
                              name=a.get("material_name") or a["material_code"], unit=a.get("unit") or "pcs",

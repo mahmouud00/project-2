@@ -4535,11 +4535,6 @@ export interface components {
              */
             glass: components["schemas"]["Glass"][];
             /**
-             * Glass Types
-             * @default []
-             */
-            glass_types: components["schemas"]["GlassType"][];
-            /**
              * Accessories
              * @default []
              */
@@ -5132,19 +5127,6 @@ export interface components {
             glass_text?: string | null;
             /** Item Ids */
             item_ids?: string[] | null;
-        };
-        /**
-         * GlassType
-         * @description نوع زجاج يتختار على الشباك (مش خامة): اسمه في المعادلات واسمه زي ما بيظهر.
-         */
-        GlassType: {
-            /** Key */
-            key: string;
-            /**
-             * Name
-             * @default
-             */
-            name: string;
         };
         /** Group */
         Group: {
@@ -6040,7 +6022,6 @@ export interface components {
              *       "formulas": [],
              *       "pieces": [],
              *       "glass": [],
-             *       "glass_types": [],
              *       "accessories": [],
              *       "validations": [],
              *       "drawing": [],

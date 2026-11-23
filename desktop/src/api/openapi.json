@@ -15860,14 +15860,6 @@
       "title": "Glass",
       "default": []
      },
-     "glass_types": {
-      "items": {
-       "$ref": "#/components/schemas/GlassType"
-      },
-      "type": "array",
-      "title": "Glass Types",
-      "default": []
-     },
      "accessories": {
       "items": {
        "$ref": "#/components/schemas/Accessory"
@@ -17635,25 +17627,6 @@
     },
     "type": "object",
     "title": "GlassIn"
-   },
-   "GlassType": {
-    "properties": {
-     "key": {
-      "type": "string",
-      "title": "Key"
-     },
-     "name": {
-      "type": "string",
-      "title": "Name",
-      "default": ""
-     }
-    },
-    "type": "object",
-    "required": [
-     "key"
-    ],
-    "title": "GlassType",
-    "description": "نوع زجاج يتختار على الشباك (مش خامة): اسمه في المعادلات واسمه زي ما بيظهر."
    },
    "Group": {
     "properties": {
@@ -20348,7 +20321,6 @@
        "formulas": [],
        "pieces": [],
        "glass": [],
-       "glass_types": [],
        "accessories": [],
        "validations": [],
        "drawing": [],

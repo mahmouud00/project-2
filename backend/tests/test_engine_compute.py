@@ -146,19 +146,20 @@ def test_pieces_using_each_other_in_a_circle_are_refused():
         assert e.code == "PIECE_CYCLE"
 
 
-def test_glass_types_chosen_on_the_window_and_used_in_formulas():
+def test_glass_sizes_are_names_in_other_formulas():
     s = snap()
     m = s["model"]
-    m["glass_types"] = [{"key": "شفاف", "name": "شفاف 6 مم"}, {"key": "عاكس_بني", "name": "عاكس بني سنجل"}]
-    # the glass of a reflective type is 10 mm narrower (any formula can test the chosen type by its name)
-    m["glass"][0]["width_expr"] = "width - 2 * glass_clearance - 100 - if(نوع_الزجاج == عاكس_بني, 10, 0)"
+    # a bead cut from the pane's width, a gasket counted from its size: the pane's width / height by name
+    m["pieces"].append({"key": "bead", "label": "باكتة", "role": "bead", "material_code": "FR",
+                        "length_expr": "g_عرض + 4", "qty_expr": "2", "angle_left": "45", "angle_right": "45"})
+    m["accessories"].append({"key": "gasket", "material_code": "HND", "qty_expr": "if(g_ارتفاع > 1000, 2, 1)"})
     assert check_definition(s) == []
-    r = calculate(s, opening_width_mm=1000, opening_height_mm=1200)                       # the first type
-    assert r.glass[0]["width_mm"] == D(880) and r.inputs["glass_type"] == "شفاف 6 مم"
-    r = calculate(s, opening_width_mm=1000, opening_height_mm=1200, params={"نوع_الزجاج": 2})
-    assert r.glass[0]["width_mm"] == D(870) and r.inputs["glass_type"] == "عاكس بني سنجل"
-    with pytest.raises(CalcError):
-        calculate(s, opening_width_mm=1000, opening_height_mm=1200, params={"نوع_الزجاج": 3})
-    # a model without glass types does not take the variable
-    with pytest.raises(CalcError):
-        calculate(snap(), opening_width_mm=1000, opening_height_mm=1200, params={"نوع_الزجاج": 1})
+    r = calculate(s, opening_width_mm=1000, opening_height_mm=1200)
+    assert r.glass[0]["width_mm"] == D(880)
+    bead = next(p for p in r.pieces if p["key"] == "bead")
+    assert bead["length_mm"] == D(884)
+    gasket = next(a for a in r.accessories if a["key"] == "gasket")
+    assert gasket["qty"] == D(2)                                          # the pane is 1080 high
+    # a pane worked out from a piece that is worked out from the pane: refused
+    m["glass"][0]["width_expr"] = "bead - 4"
+    assert any("دايرة" in e for e in check_definition(s))

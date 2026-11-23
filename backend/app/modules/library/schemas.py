@@ -270,13 +270,6 @@ class Glass(BaseModel):
     _n = field_validator("key")(_ident)
 
 
-class GlassType(BaseModel):
-    """نوع زجاج يتختار على الشباك (مش خامة): اسمه في المعادلات واسمه زي ما بيظهر."""
-    key: str
-    name: str = ""
-    _n = field_validator("key")(_ident)
-
-
 class Accessory(BaseModel):
     key: str
     label: str = ""
@@ -320,7 +313,6 @@ class Definition(BaseModel):
     formulas: list[Formula] = []
     pieces: list[Piece] = []
     glass: list[Glass] = []
-    glass_types: list[GlassType] = []
     accessories: list[Accessory] = []
     validations: list[Rule] = []
     drawing: list[DrawingElement] = []
