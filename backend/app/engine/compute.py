@@ -519,7 +519,11 @@ def calculate(snapshot: dict, *, opening_width_mm, opening_height_mm, params: di
         qty = to_decimal(_eval(_compile(item["qty_expr"], where), env, where))
         unit = materials.get(item["material_code"], {}).get("unit", "pcs")
         if unit in ("pcs", "set") and qty != qty.to_integral_value():
-            issues.append(Issue("error", "QTY_NOT_INTEGER", f"العدد {qty} لازم يكون رقم صحيح", where))
+            name = materials.get(item["material_code"], {}).get("name") or item["material_code"]
+            issues.append(Issue("error", "QTY_NOT_INTEGER",
+                                f"الإكسسوار «{item.get('label') or name}» ({item['material_code']}): العدد طالع {qty} ووحدته "
+                                f"{'قطعة' if unit == 'pcs' else 'طقم'} فلازم رقم صحيح. لو بيتحسب بالطول خلّي وحدة الخامة «متر»، "
+                                f"أو قرّب العدد: تقريب_لأعلى(…)", where))
         if qty < 0:
             issues.append(Issue("error", "QTY_NEGATIVE", f"العدد {qty} بالسالب", where))
         if qty == 0:

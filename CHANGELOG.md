@@ -3,6 +3,8 @@
 All notable changes are listed here. Versions follow Semantic Versioning (MAJOR.MINOR.PATCH).
 
 ## [Unreleased]
+### Fixed
+- «العدد لازم يكون رقم صحيح» now names the accessory, its code and unit, and says what to do (unit «متر» or round the count up).
 ### Added
 - «نوع الزجاج» on every window: زجاج سنجل or زجاج دبل (next to «لون الزجاج», chosen from the system's قطاعات تكميلية). In formulas `نوع_الزجاج` with `سنجل` / `دبل`; a glass row can be for single or double only («للزجاج»), so each model holds its own deductions for both. A survey marked دبل makes double-glass lines; the glass order groups by colour and kind. The available names list the glass sizes and these names.
 ### Changed
