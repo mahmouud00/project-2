@@ -22,6 +22,8 @@ COPY backend/app ./backend/app
 RUN pip install --no-cache-dir ./backend
 COPY backend/migrations ./backend/migrations
 COPY backend/alembic.ini ./backend/alembic.ini
+COPY tools/__init__.py ./tools/__init__.py
+COPY tools/vendor_admin ./tools/vendor_admin
 COPY docker/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 

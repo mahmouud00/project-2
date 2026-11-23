@@ -1,0 +1,51 @@
+# MYTech Solutions online (VPS): PostgreSQL + the API + Caddy (HTTPS by itself with Let's Encrypt).
+# Made by deploy/vps/install.sh, which also writes .env next to this file (secrets: never in git).
+services:
+  db:
+    image: postgres:16-trixie
+    restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      retries: 30
+
+  api:
+    build: ../..
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      APP_MODE: online
+      DISCOVERY_ENABLED: "false"
+      FORWARDED_ALLOW_IPS: "*"          # only Caddy reaches the API (no port is published)
+      PUBLIC_URL: https://${DOMAIN}
+      CORS_ORIGINS: '["https://${DOMAIN}","http://tauri.localhost","https://tauri.localhost","tauri://localhost"]'
+    volumes:
+      - appdata:/data
+
+  caddy:
+    image: caddy:2.8
+    restart: unless-stopped
+    depends_on: [api]
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddydata:/data
+      - caddyconfig:/config
+
+volumes:
+  pgdata:
+  appdata:
+  caddydata:
+  caddyconfig:

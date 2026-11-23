@@ -11,7 +11,7 @@ def serve() -> None:
     kwargs = {}
     if s.ssl_certfile and s.ssl_keyfile:
         kwargs.update(ssl_certfile=s.ssl_certfile, ssl_keyfile=s.ssl_keyfile)
-    uvicorn.run("app.main:app", host="0.0.0.0", port=s.http_port, proxy_headers=True, forwarded_allow_ips="127.0.0.1",
+    uvicorn.run("app.main:app", host="0.0.0.0", port=s.http_port, proxy_headers=True, forwarded_allow_ips=s.forwarded_allow_ips,
                 log_config=None, **kwargs)
 
 

@@ -1,0 +1,21 @@
+{
+	email {$ACME_EMAIL}
+}
+
+# Fingerprint devices (ZKTeco ADMS) that cannot speak HTTPS: /iclock only, on plain HTTP
+http://{$DOMAIN} {
+	handle /iclock/* {
+		reverse_proxy api:8000
+	}
+	handle {
+		redir https://{host}{uri} permanent
+	}
+}
+
+{$DOMAIN} {
+	encode gzip
+	request_body {
+		max_size 500MB
+	}
+	reverse_proxy api:8000
+}

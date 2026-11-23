@@ -3,6 +3,8 @@
 All notable changes are listed here. Versions follow Semantic Versioning (MAJOR.MINOR.PATCH).
 
 ## [Unreleased]
+### Added
+- VPS kit (`deploy/vps`, docs/VPS.md): one script installs Docker, the code, the secrets, PostgreSQL, the server and Caddy with HTTPS on the company's domain (fingerprint devices may use plain HTTP for /iclock); `manage.sh` for companies and subscriptions, `update.sh` with a backup first. `FORWARDED_ALLOW_IPS` setting for the proxy.
 ### Fixed
 - «العدد لازم يكون رقم صحيح» now names the accessory, its code and unit, and says what to do (unit «متر» or round the count up).
 ### Added

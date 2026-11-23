@@ -70,6 +70,8 @@ class Settings(BaseSettings):
     db_pool_size: int = 20
     db_max_overflow: int = 20
     request_threads: int = 80
+    # behind a reverse proxy (the VPS: Caddy in front): the proxies trusted for the client's address
+    forwarded_allow_ips: str = "127.0.0.1"
 
     # Technician locations are personal data: kept this many days, then erased
     location_retention_days: int = 30
