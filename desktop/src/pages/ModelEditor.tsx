@@ -10,7 +10,7 @@ import { Btn, Card, Chip, Confirm, Crumbs, Dim, DraftNotice, ErrorBox, Field, Fi
 import { useSession } from "../state/session";
 import { RowsEditor } from "../components/rows";
 import { Drawing, MediaImg } from "../components/media";
-import { ElementPieces, Issues, ParamFields, cleanParams, type Calc } from "../components/items";
+import { ElementPieces, Issues, ParamFields, cleanParams, paramsWithGlass, type Calc } from "../components/items";
 import { useAuthor } from "./Library";
 import { setQuery } from "../lib/router";
 import { useDraft } from "../lib/draft";
@@ -32,7 +32,8 @@ function roleOf(element: string | null | undefined): string | undefined {
   return ROLES.find(([re]) => re.test(e))?.[1];
 }
 type Def = Required<S<"Definition">>;
-const EMPTY: Def = { params: [], formulas: [], pieces: [], glass: [], accessories: [], validations: [], drawing: [], purchase: [] };
+const EMPTY: Def = { params: [], formulas: [], pieces: [], glass: [], glass_types: [], accessories: [], validations: [], drawing: [], purchase: [] };
+const GLASS_PARAM = "نوع_الزجاج";
 
 function normalize(d: any): Def {
   return { ...EMPTY, ...(d ?? {}) };
@@ -72,7 +73,8 @@ export default function ModelEditor({ systemId, modelId, tab }: { systemId: stri
   // طلبية الشراء is for profiles (and their reinforcement) only: accessories are bought from the accessories tab
   const barOptions = matList.filter((x) => x.kind === "profile" || x.kind === "reinforcement")
     .map((x) => ({ value: x.code, label: `${x.code} · ${x.name}` }));
-  const names = [...(constants.data ?? []).map((c) => c.name), ...def.params.map((p) => p.name), ...def.formulas.map((f) => f.key)];
+  const names = [...(constants.data ?? []).map((c) => c.name), ...def.params.map((p) => p.name), ...def.formulas.map((f) => f.key),
+    ...(def.glass_types.length ? [GLASS_PARAM, ...def.glass_types.map((g) => g.key)] : [])];
 
   const save = () => run(async () => {
     const out = await api.patch<Model>(`/library/models/${modelId}`, { version: m.version, code: (info.code ?? "").trim() || m.code, name: info.name, category: info.category,
@@ -188,6 +190,17 @@ export default function ModelEditor({ systemId, modelId, tab }: { systemId: stri
               ]} />
           </>}
           {tab === "glass" && <>
+            <h4 style={{ margin: "0 0 6px" }}>أنواع الزجاج اللي تتختار على الشباك</h4>
+            <Help>الأنواع اللي البيّاع يختار منها في المعاينة وعرض السعر (مش خامات: مابتتشريش ولا بتتخزن). الاسم بيستخدم في المعادلات،
+              والوصف هو اللي بيظهر في الاختيار وفي طلبية الزجاج. النوع اللي اتختار في المعادلات اسمه <code>{GLASS_PARAM}</code>، مثلًا
+              <code>لو({GLASS_PARAM} == عاكس_بني، 24، 18)</code>. أول نوع هو الافتراضي.</Help>
+            <RowsEditor rows={def.glass_types} onChange={set("glass_types")} readOnly={!editable} addLabel="نوع زجاج"
+              extraActions={<CopyRows systemId={systemId} modelId={modelId} section="glass_types" keyField="key" rows={def.glass_types} onChange={set("glass_types")} />}
+              blank={() => ({ key: "", name: "" })} columns={[
+                { key: "key", label: "الاسم في المعادلات", kind: "code", width: 180 },
+                { key: "name", label: "الوصف (بيظهر للبياع وفي الطلبية)" },
+              ]} />
+            <h4 style={{ margin: "14px 0 6px" }}>ألواح الزجاج ومقاساتها</h4>
             <Help>مقاس كل لوح زجاج: معادلة العرض ومعادلة الارتفاع والعدد. لو اللوح مش مستطيل (زي زجاج الأرج نص الدايرة) اكتب معادلة مساحته، مثلًا <code>segment_area(width, height)</code>.</Help>
             <RowsEditor rows={def.glass} onChange={set("glass")} readOnly={!editable} addLabel="زجاج"
               extraActions={<CopyRows systemId={systemId} modelId={modelId} section="glass" keyField="key" rows={def.glass} onChange={set("glass")} />}
@@ -239,10 +252,14 @@ export default function ModelEditor({ systemId, modelId, tab }: { systemId: stri
             {(constants.data ?? []).map((c) => <span key={c.name} className="code" title={`${c.label} = ${clean(c.value)}`}>{BUILTIN_AR[c.name] ?? c.name}</span>)}
             {def.params.map((p) => <span key={p.name} className="code" style={{ color: "var(--violet)" }} title={p.label}>{p.name}</span>)}
             {def.formulas.map((f) => <span key={f.key} className="code" style={{ color: "var(--success)" }} title={f.label}>{f.key}</span>)}
+            {def.glass_types.length > 0 && <span className="code" style={{ color: "var(--primary)" }} title="نوع الزجاج اللي اتختار على الشباك (رقمه في القايمة)">{GLASS_PARAM}</span>}
+            {def.glass_types.map((g, i) => <span key={"g-" + g.key} className="code" style={{ color: "var(--primary)" }}
+              title={`${g.name || g.key} = ${i + 1}`}>{g.key}</span>)}
             {def.pieces.filter((p) => p.key).map((p) => <span key={"p-" + p.key} className="code" style={{ color: "var(--warning)" }}
               title="طول القطعة دي (زي ما تكون كاتب معادلتها)">{p.key}</span>)}
           </div>
-          <div className="muted small mt">اسم القطعة في معادلة قطعة تانية (أو زجاج، إكسسوار، تحقق، رسمة) = طول القطعة دي.</div>
+          <div className="muted small mt">اسم القطعة في معادلة قطعة تانية (أو زجاج، إكسسوار، تحقق، رسمة) = طول القطعة دي.
+            {def.glass_types.length > 0 && <> <code>{GLASS_PARAM}</code> = نوع الزجاج اللي اتختار، مثلًا <code>لو({GLASS_PARAM} == {def.glass_types[0].key}، 24، 18)</code>.</>}</div>
         </Card>
       )}
     </div>
@@ -299,8 +316,8 @@ function CopyDeductions({ systemId, modelId, def, onCopy }: { systemId: string; 
   );
 }
 
-type Section = "params" | "glass" | "accessories" | "validations" | "purchase";
-const SECTION_NAME: Record<Section, string> = { params: "المتغيرات", glass: "الزجاج", accessories: "الإكسسوار", validations: "قواعد التحقق",
+type Section = "params" | "glass" | "glass_types" | "accessories" | "validations" | "purchase";
+const SECTION_NAME: Record<Section, string> = { params: "المتغيرات", glass: "الزجاج", glass_types: "أنواع الزجاج", accessories: "الإكسسوار", validations: "قواعد التحقق",
   purchase: "سطور طلبية الشراء" };
 
 /** نسخ من نموذج تاني: pick a model (any system), tick its rows, and they are added here; a row with the same name
@@ -329,6 +346,7 @@ function CopyRows({ systemId, modelId, section, keyField, rows, onChange }:
   };
   const show = (r: any) => section === "params" ? `${r.name}${r.label ? " · " + r.label : ""}`
     : section === "validations" ? `${r.expr}${r.message ? " · " + r.message : ""}`
+    : section === "glass_types" ? `${r.key}${r.name ? " · " + r.name : ""}`
     : `${r.key}${r.label ? " · " + r.label : ""}${r.material_code ? " · " + r.material_code : ""}`;
   return (
     <>
@@ -544,14 +562,14 @@ function TryTab({ modelId, def, dirty }: { modelId: string; def: Def; unitCode: 
   const go_ = async () => {
     if (!w || !h) return;
     setBusy(true); setErr(null);
-    try { setRes(await calc(w, h, cleanParams(def.params, params))); } catch (e) { setErr(errorText(e)); setRes(null); } finally { setBusy(false); }
+    try { setRes(await calc(w, h, cleanParams(paramsWithGlass(def), params))); } catch (e) { setErr(errorText(e)); setRes(null); } finally { setBusy(false); }
   };
   return (
     <div className="col">
       {dirty && <div className="notice warn">التجربة بتستخدم آخر نسخة محفوظة من النموذج. احفظ الأول عشان تجرب تعديلاتك.</div>}
       <div className="grid g4" style={{ alignItems: "end" }}>
         <Field label="مقاس الفتحة (العرض × الارتفاع)" className="span2"><SizeIn w={w} h={h} onChange={(a, b) => { setW(a); setH(b); }} /></Field>
-        <ParamFields params={def.params} values={params} onChange={setParams} unit="" />
+        <ParamFields params={paramsWithGlass(def)} values={params} onChange={setParams} unit="" />
         <div><Btn kind="primary" icon="calc" busy={busy} onClick={go_}>احسب</Btn></div>
       </div>
       {err && <div className="notice err">{err}</div>}
@@ -643,7 +661,7 @@ function NewTest({ modelId, def, onClose, onSaved }: { modelId: string; def: Def
   const draft = useDraftCalc(modelId);
   const fillFromEngine = () => run(async () => {
     if (!w || !h) return;
-    const r = await draft(w, h, cleanParams(def.params, params));
+    const r = await draft(w, h, cleanParams(paramsWithGlass(def), params));
     setCalc(r);
   });
   const save = () => run(async () => {
@@ -653,7 +671,7 @@ function NewTest({ modelId, def, onClose, onSaved }: { modelId: string; def: Def
       glass: Object.fromEntries(Object.entries(glass).filter(([, v]) => v[0] !== "" && v[1] !== "")),
     };
     if (!expectedCount(expected)) throw new Error("اكتب قيمة مرجعية واحدة على الأقل.");
-    await api.post(`/library/models/${modelId}/tests`, { name, opening_width_mm: w, opening_height_mm: h, params: cleanParams(def.params, params), expected });
+    await api.post(`/library/models/${modelId}/tests`, { name, opening_width_mm: w, opening_height_mm: h, params: cleanParams(paramsWithGlass(def), params), expected });
     toast.ok("اتضاف الاختبار.");
     onSaved();
     onClose();
@@ -664,7 +682,7 @@ function NewTest({ modelId, def, onClose, onSaved }: { modelId: string; def: Def
       <div className="grid g4 mb" style={{ alignItems: "end" }}>
         <Field label="الاسم"><TextIn value={name} onChange={setName} placeholder="شباك 180×140 من المصنع" autoFocus /></Field>
         <Field label="مقاس الفتحة (العرض × الارتفاع)" className="span2"><SizeIn w={w} h={h} onChange={(a, b) => { setW(a); setH(b); }} /></Field>
-        <ParamFields params={def.params} values={params} onChange={setParams} unit="" />
+        <ParamFields params={paramsWithGlass(def)} values={params} onChange={setParams} unit="" />
       </div>
       <div className="notice warn mb">اكتب الأطوال الصح المتأكد منها <b>بالـ{uL}</b>. زرار "اعرض حساب البرنامج" بيوريك رقم البرنامج جنب كل خانة للمقارنة بس، ومش بيملأ الخانات: القيمة المرجعية لازم تيجي من الواقع.</div>
       <div className="row mb"><Btn icon="calc" busy={busy} disabled={!w || !h} onClick={fillFromEngine}>اعرض حساب البرنامج للمقارنة</Btn></div>

@@ -3,6 +3,8 @@
 All notable changes are listed here. Versions follow Semantic Versioning (MAJOR.MINOR.PATCH).
 
 ## [Unreleased]
+### Added
+- Glass types in each model's glass tab (not materials: nothing bought or stocked): a name for formulas and a description. On the survey / quotation line they are one more choice, «نوع الزجاج»; the chosen type is the variable `نوع_الزجاج` (its number) and every type's name is usable in formulas (e.g. `لو(نوع_الزجاج == عاكس_بني، 24، 18)`), listed with the available names. They copy from another model like the other tabs, and the glass order groups by the chosen type.
 ### Changed
 - An accepted quotation can be changed while its work order is not delivered, and the order follows at once: its windows, total and deposit, cut sheet, bar plan, glass and goods needs (migration 0026). During manufacturing the old cut sheet is kept in the order, the offcuts are taken again, and production is told; a changed total sends the sale back to the accounts, who can confirm it again at any stage.
 ### Added

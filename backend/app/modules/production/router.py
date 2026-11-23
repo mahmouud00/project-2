@@ -286,7 +286,8 @@ def item_glass(db, wo: WorkOrder) -> dict[int, str]:
     from app.modules.sales.router import survey_glass
 
     items = db.scalars(select(WorkOrderItem).where(WorkOrderItem.work_order_id == wo.id)).all()
-    out = {i.position: i.glass_text for i in items if i.glass_text}
+    out = {i.position: i.glass_text or ((i.calc or {}).get("inputs") or {}).get("glass_type") for i in items}
+    out = {k: v for k, v in out.items() if v}
     if len(out) == len(items) or wo.quotation_id is None:
         return out
     lines = {l.position: l for l in db.scalars(select(QuotationLine).where(

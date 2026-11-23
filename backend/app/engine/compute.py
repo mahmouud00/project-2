@@ -43,6 +43,22 @@ def _ar(name: str) -> str:
 
 RESERVED = {"opening_width", "opening_height", "width", "height"} | set(NAME_ALIASES)
 REQUIRED_CONSTANTS = ("install_clearance_width", "install_clearance_height")
+# أنواع الزجاج of a model (its glass tab): the one chosen on a window is this variable (1, 2, 3 … in the list's order)
+# and every type's own name is its number, so a formula can say «لو(نوع_الزجاج == عاكس_بني، 24، 18)»
+GLASS_PARAM = "نوع_الزجاج"
+
+
+def glass_param(model: dict) -> dict | None:
+    types = model.get("glass_types") or []
+    if not types:
+        return None
+    return {"name": GLASS_PARAM, "type": "choice", "default": 1,
+            "choices": [{"value": i, "label": t.get("name") or t["key"]} for i, t in enumerate(types, 1)]}
+
+
+def glass_names(model: dict) -> dict:
+    """{type name in formulas: its number}"""
+    return {t["key"]: Decimal(i) for i, t in enumerate(model.get("glass_types") or [], 1)}
 ROUNDING = {"half_up": ROUND_HALF_UP, "up": ROUND_CEILING, "down": ROUND_FLOOR}
 LENGTH_UNITS = {"length"}
 
@@ -146,6 +162,8 @@ def check_definition(snapshot: dict) -> list[str]:
         if name not in constants:
             errors.append(f"ثابت السيستم {_ar(name)} لازم يكون موجود")
     params = [p["name"] for p in model.get("params", [])]
+    if glass_param(model):
+        params += [GLASS_PARAM, *glass_names(model)]
     formula_keys = [f["key"] for f in model.get("formulas", [])]
     seen: set[str] = set()
     for name in list(constants) + params + formula_keys:
@@ -331,7 +349,8 @@ def calculate(snapshot: dict, *, opening_width_mm, opening_height_mm, params: di
     issues: list[Issue] = []
     params = params or {}
 
-    unknown_params = set(params) - {p["name"] for p in model.get("params", [])}
+    gparam = glass_param(model)
+    unknown_params = set(params) - {p["name"] for p in model.get("params", [])} - ({GLASS_PARAM} if gparam else set())
     if unknown_params:
         raise CalcError(f"متغيرات مش موجودة في النموذج: {'، '.join(sorted(unknown_params))}", code="PARAM_UNKNOWN")
 
@@ -356,6 +375,12 @@ def calculate(snapshot: dict, *, opening_width_mm, opening_height_mm, params: di
     for p in model.get("params", []):
         env[p["name"]] = _param_value(p, params.get(p["name"]), issues)
         inputs[p["name"]] = env[p["name"]]
+    if gparam:
+        chosen = _param_value(gparam, params.get(GLASS_PARAM), issues)
+        env[GLASS_PARAM] = chosen
+        env.update(glass_names(model))
+        inputs[GLASS_PARAM] = chosen
+        inputs["glass_type"] = gparam["choices"][int(chosen) - 1]["label"]      # its name, for the glass order
 
     values: dict = {}
     for f, expr in _formula_order(model.get("formulas", [])):

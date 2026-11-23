@@ -23,7 +23,8 @@ from app.core.audit import audit, snapshot
 from app.core.errors import ValidationFailed
 from app.modules.library.models import ModelTestCase, ProductModel, ProfileSystem, SystemConstant
 
-SECTIONS = {"params": "name", "formulas": "key", "pieces": "key", "glass": "key", "accessories": "key"}
+SECTIONS = {"params": "name", "formulas": "key", "pieces": "key", "glass": "key", "glass_types": "key",
+            "accessories": "key"}
 _LETTERS = str.maketrans({"أ": "ا", "إ": "ا", "آ": "ا", "ٱ": "ا", "ة": "ه", "ى": "ي", "ـ": None})
 
 
