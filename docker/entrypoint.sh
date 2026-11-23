@@ -5,6 +5,10 @@ echo "waiting for database..."
 until python -c "import sqlalchemy as s; s.create_engine('$DATABASE_ADMIN_URL').connect().close()" 2>/dev/null; do
   sleep 2
 done
+# a command (e.g. «python -m app.cli import /move.zip»): run it instead of the server
+if [ "$#" -gt 0 ]; then
+  exec "$@"
+fi
 python -m app.cli init-db --admin-url "$DATABASE_ADMIN_URL"
 python -m app.cli migrate
 if [ "$DEMO" = "1" ]; then

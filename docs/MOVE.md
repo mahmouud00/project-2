@@ -13,8 +13,9 @@
 ## ١. على سيرفر المصنع (آخر يوم شغل على السيرفر القديم)
 PowerShell كمسؤول. `$root` هو فولدر التسطيب (الافتراضي `C:\MYTech`، ولو سطّبته على D يبقى `D:\MYTech`):
 ```powershell
-$root = "D:\MYTech"                # غيّره لفولدر التسطيب عندك
+$root = (Split-Path (Split-Path (Get-CimInstance Win32_Service -Filter "Name='MYTechServer'").PathName.Trim('"')))
 Stop-Service MYTechServer          # محدش يسجل حاجة جديدة أثناء النقل
+Start-Service MYTechPostgreSQL     # الداتابيز لازم تكون شغالة
 cd "$root\config"
 $v = (Get-Content "$root\current.json" | ConvertFrom-Json).path
 & "$root\$v\mytech-server.exe" export --out "$root\mytech-move.zip"
@@ -24,7 +25,8 @@ $v = (Get-Content "$root\current.json" | ConvertFrom-Json).path
 ## ٢. على السيرفر الجديد (بعد ما يتسطّب بالخطوات اللي MYTech بتبعتها)
 ```bash
 sudo docker compose stop api
-sudo docker compose run --rm -v /root/mytech-move.zip:/move.zip api python -m app.cli import /move.zip
+cd /opt/mytech/deploy/vps
+sudo docker compose run --rm --entrypoint python -v /root/mytech-move.zip:/move.zip api -m app.cli import /move.zip
 sudo docker compose start api
 ```
 الأمر بيرجّع الداتا والصور، وبيعمل نسخة احتياطية من أي داتا كانت على السيرفر الجديد قبلها.
