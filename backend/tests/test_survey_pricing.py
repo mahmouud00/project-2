@@ -119,6 +119,8 @@ def test_quotation_print_columns(platform, tenant_a, client):
                  lib["model"]["code"], "1,100.00", "3,300.00", ">3.00<"):
         assert text in html, text
     assert "المساحة الكلية" not in html and "الفعلية" not in html     # one window per line: the billed area only
+    # nothing of the program on what the customer gets; the browser prints no header / footer of its own
+    assert "MYTech" not in html and "margin: 0;" in html
 
 
 def test_survey_list_carries_openings(platform, tenant_a, client):

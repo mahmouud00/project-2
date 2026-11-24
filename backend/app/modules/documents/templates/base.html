@@ -2,7 +2,8 @@
 <html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>{{ title }}</title>
 <style>
 {{ fonts_css }}
-@page { size: A4{% if landscape %} landscape{% endif %}; margin: 12mm 12mm 14mm; }
+/* margin 0: the browser prints no header / footer of its own (title, address, date); the page keeps its margins */
+@page { size: A4{% if landscape %} landscape{% endif %}; margin: 0; }
 * { box-sizing: border-box; }
 body { font-family: "Cairo", "Segoe UI", Tahoma, sans-serif; color: #1B2533; font-size: 11.5px; margin: 0; direction: rtl; }
 .dim, .num, .ltr { unicode-bidi: isolate; font-variant-numeric: tabular-nums; }
@@ -35,7 +36,7 @@ footer { margin-top: 18px; padding-top: 8px; border-top: 1px solid #E2E7EE; font
 .stamp div { width: 40%; border-top: 1px dashed #94A3B8; padding-top: 4px; text-align: center; color: #586476; }
 .cancelled { color: #C62828; border: 2px solid #C62828; display: inline-block; padding: 2px 10px; border-radius: 4px; font-weight: 800; }
 @media screen { body { background: #E5E9EF; } .page { background: #fff; width: {{ "297mm" if landscape else "210mm" }}; min-height: {{ "210mm" if landscape else "297mm" }}; margin: 12px auto; padding: 12mm; box-shadow: 0 2px 10px rgba(0,0,0,.12); } }
-@media print { .page { padding: 0; } }
+@media print { .page { padding: 12mm 12mm 14mm; -webkit-box-decoration-break: clone; box-decoration-break: clone; } }
 </style></head>
 <body><div class="page">
 <header>
@@ -48,5 +49,5 @@ footer { margin-top: 18px; padding-top: 8px; border-top: 1px solid #E2E7EE; font
   <div class="doc"><h2>{{ title }}</h2>{% block docmeta %}{% endblock %}</div>
 </header>
 {% block content %}{% endblock %}
-<footer><span>{{ company.invoice_footer }}</span><span>طُبع بواسطة MYTech Solutions · {{ printed_at }}</span></footer>
+{% if company.invoice_footer %}<footer><span>{{ company.invoice_footer }}</span></footer>{% endif %}
 </div></body></html>
