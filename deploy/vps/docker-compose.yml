@@ -24,10 +24,12 @@ services:
       APP_MODE: online
       DISCOVERY_ENABLED: "false"
       FORWARDED_ALLOW_IPS: "*"          # only Caddy reaches the API (no port is published)
+      CLIENTS_DIR: /srv/clients         # the newest desktop / phone programs, offered to every PC and phone
       PUBLIC_URL: https://${DOMAIN}
       CORS_ORIGINS: '["https://${DOMAIN}","http://tauri.localhost","https://tauri.localhost","tauri://localhost"]'
     volumes:
       - appdata:/data
+      - ./clients:/srv/clients:ro
 
   caddy:
     image: caddy:2.8

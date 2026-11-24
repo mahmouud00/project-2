@@ -3,6 +3,8 @@
 All notable changes are listed here. Versions follow Semantic Versioning (MAJOR.MINOR.PATCH).
 
 ## [Unreleased]
+### Added
+- The VPS holds the newest desktop installer and phone app (`deploy/vps/fetch-clients.sh`, run by install and update): every PC and phone is offered «فيه نسخة جديدة» from the server itself, no links to send. Optional nightly automatic update (docs/VPS.md).
 ### Fixed
 - Connecting to a cloud server: a domain (app.wintag.tech) is https on its normal port; only a factory server on the network (an IP, a PC name) gets http and port 8000. The VPS also answers on port 8000 (HTTPS) for programs older than this.
 ### Added

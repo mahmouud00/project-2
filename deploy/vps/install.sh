@@ -62,6 +62,7 @@ if command -v ufw >/dev/null 2>&1 && ufw status | grep -q active; then
 fi
 
 echo "== 5) التشغيل (أول مرة بتاخد كام دقيقة)"
+bash fetch-clients.sh || true
 docker compose up -d --build
 
 echo "== 6) مستني السيرفر يشتغل"

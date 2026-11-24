@@ -30,4 +30,11 @@ bash manage.sh set-subscription --company WINTAG --modules core,manufacturing,mf
 نقل داتا المصنع لشركة على السيرفر ده: شوف `docs/MOVE.md`.
 
 ## ٥. التحديث
-`bash /opt/mytech/deploy/vps/update.sh` (بياخد نسخة احتياطية الأول).
+`bash /opt/mytech/deploy/vps/update.sh`: بياخد نسخة احتياطية الأول، بيحدّث السيرفر، وبينزّل آخر برنامج ديسكتوب وتطبيق
+موبايل من الـReleases (`fetch-clients.sh`). كل كمبيوتر وموبايل بيظهرله «فيه نسخة جديدة» أول ما يفتح، وبيتحدث من السيرفر نفسه:
+محدش محتاج لينكات.
+
+تحديث أوتوماتيك كل يوم الساعة 3 الفجر بتوقيت مصر (اختياري):
+```bash
+(crontab -l 2>/dev/null; echo "CRON_TZ=Africa/Cairo"; echo "0 3 * * * bash /opt/mytech/deploy/vps/update.sh >> /var/log/mytech-update.log 2>&1") | crontab -
+```

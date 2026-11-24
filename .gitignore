@@ -28,3 +28,4 @@ logs/
 # runtime data
 media/
 license/
+deploy/vps/clients/
