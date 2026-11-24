@@ -24,8 +24,9 @@ def test_automatic_price_discount_request_and_the_sales_manager(platform, tenant
     company = client.get("/api/v1/company", headers=h).json()
     assert client.patch("/api/v1/company", headers=h, json={"version": company["version"], "settings": {
         **company["settings"], "labor_cost_per_m2": "100", "fair_margin_pct": "25"}}).status_code == 200
-    _make_user(tenant_a, client, "seller_auto", "sales", branch["id"])
+    su = _make_user(tenant_a, client, "seller_auto", "sales", branch["id"])
     _make_user(tenant_a, client, "manager_auto", "sales_manager", branch["id"])
+    client.post(f"/api/v1/customers/{customer['id']}/transfer", headers=h, json={"to_user_id": su["id"]})   # his customer
     seller = tenant_a.headers("seller_auto", "user-pass-123")
     manager = tenant_a.headers("manager_auto", "user-pass-123")
     window = {"model_id": lib["model"]["id"], "color_code": "W", "glass_material_code": "AUTO-GLASS6"}
@@ -97,10 +98,11 @@ def test_automatic_price_discount_request_and_the_sales_manager(platform, tenant
     assert D(q["price_per_m2"]) == D(q["auto_price_per_m2"]) and len(q["lines"]) == 3
 
     # accepted only with the customer's national ID
-    plain = client.post("/api/v1/customers", headers=h, json=new_customer("عميل من غير رقم قومي")).json()
+    plain = client.post("/api/v1/customers", headers=seller, json=new_customer("عميل من غير رقم قومي")).json()
     q2 = client.post("/api/v1/quotations", headers=seller, json={"customer_id": plain["id"], "branch_id": branch["id"],
                                                                "lines": [{**window, "opening_width_mm": 1000,
                                                                           "opening_height_mm": 1000}]}).json()
+    q2 = client.post(f"/api/v1/quotations/{q2['id']}/approve", headers=manager).json()   # the manager confirmed it
     r = _status(client, seller, q2, "accepted")
     assert r.status_code == 409 and r.json()["error"]["code"] == "NATIONAL_ID_REQUIRED"
     client.patch(f"/api/v1/customers/{plain['id']}", headers=h,

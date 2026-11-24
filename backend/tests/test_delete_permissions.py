@@ -9,7 +9,7 @@ from tests.customers import cust as new_customer
 
 def test_add_and_delete_need_their_own_permission(tenant_a, client):
     r = client.post("/api/v1/roles", headers=tenant_a.h, json={"code": "editor", "name": "تعديل بس",
-                                                               "permissions": ["customers.read", "customers.write"]})
+                                                               "permissions": ["customers.read", "customers.write", "sales.all"]})
     assert r.status_code == 201, r.text
     _make_user(tenant_a, client, "editor1", "editor")
     h = tenant_a.headers("editor1", "user-pass-123")

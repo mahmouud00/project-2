@@ -11,6 +11,7 @@ import { Btn, Card, Chip, Confirm, Crumbs, Dim, ErrorBox, Field, Len, Loading, M
 import { BranchName, BranchSelect, ColorName, CustomerName, CustomerPicker, SalespersonName, SalespersonSelect } from "../components/pickers";
 import { ItemForm, ParamLabels, type ItemDraft } from "../components/items";
 import { Drawing, PrintPreview } from "../components/media";
+import { ApprovalBar } from "../components/approval";
 import { DeleteBtn } from "../components/actions";
 import { QUOTE_STATUS } from "../lib/lookups";
 import { go } from "../lib/router";
@@ -175,6 +176,7 @@ function QuotationDetail({ id }: { id: string }) {
             {(quote.status === "draft" || quote.status === "sent") && s.can("quotes.write", quote.branch_id) &&
               <ShareActions kind="quotations" id={id} number={quote.number} total={quote.total} customerId={quote.customer_id} onChanged={() => q.reload()} />}
             {editable && <Btn icon="refresh" busy={busy} onClick={recalc}>إعادة حساب</Btn>}
+            {["draft", "sent"].includes(quote.status) && <ApprovalBar kind="quotations" rec={quote} onSaved={(x) => q.set(x)} />}
             {s.can("quotes.write", quote.branch_id) && (NEXT[quote.status] ?? []).map((n) => (
               <Btn key={n.to} kind={n.kind} busy={busy} onClick={() => setStatus(n.to)}>{n.label}</Btn>
             ))}

@@ -225,8 +225,9 @@ def list_tx(cashbox_id: uuid.UUID | None = None, party_id: uuid.UUID | None = No
 
 @router.get("/customers/{customer_id}/statement")
 def customer_statement(customer_id: uuid.UUID, dc=Depends(require("treasury.read"))):
-    db, _ = dc
-    get_or_404(db, Customer, customer_id)
+    db, ctx = dc
+    from app.modules.sales import ownership
+    ownership.check(ctx, get_or_404(db, Customer, customer_id))
     orders = db.scalars(select(WorkOrder).where(WorkOrder.customer_id == customer_id, WorkOrder.deleted_at.is_(None),
                                                 WorkOrder.stage != "cancelled")).all()
     signed = case((CashTransaction.direction == "in", CashTransaction.amount), else_=-CashTransaction.amount)

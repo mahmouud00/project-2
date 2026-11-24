@@ -98,8 +98,9 @@ def test_deleted_model_open_work_is_told_closed_work_keeps_it(platform, tenant_a
     h = tenant_a.h
     line = {"location": "صالة", "model_id": lib["model"]["id"], "opening_width_mm": 1000, "opening_height_mm": 1000,
             "color_code": "W", "glass_material_code": "DLM-GLASS6"}
-    _make_user(tenant_a, client, "seller_dlm", "sales")
+    su = _make_user(tenant_a, client, "seller_dlm", "sales")
     hs = tenant_a.headers("seller_dlm", "user-pass-123")
+    client.post(f"/api/v1/customers/{customer['id']}/transfer", headers=h, json={"to_user_id": su["id"]})
     open_q = client.post("/api/v1/quotations", headers=hs, json={"customer_id": customer["id"],
                                                                "branch_id": branch["id"], "lines": [line]}).json()
     closed = client.post("/api/v1/quotations", headers=h, json={"customer_id": customer["id"],

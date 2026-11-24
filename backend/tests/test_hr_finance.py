@@ -95,6 +95,7 @@ def test_salesperson_follows_the_sale(platform, tenant_a, client):
     assert any(x["id"] == e["id"] for x in client.get("/api/v1/employees/brief?department=sales", headers=h).json())
     # a user linked to an employee is the salesperson of what they sell
     u = _make_user(tenant_a, client, "seller", "sales")
+    client.post(f"/api/v1/customers/{customer['id']}/transfer", headers=h, json={"to_user_id": u["id"]})
     e2 = _employee(client, h, branch, full_name="بائع", user_id=u["id"])
     hs = tenant_a.headers("seller", "user-pass-123")
     q2 = client.post("/api/v1/quotations", headers=hs, json={"customer_id": customer["id"], "branch_id": branch["id"],

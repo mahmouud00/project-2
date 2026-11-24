@@ -14,6 +14,7 @@ from sqlalchemy import String, cast, or_, select
 from app.core.pii import log_pii
 from app.modules.crm.router import branch_scope
 from app.tenancy.context import get_db_and_ctx
+from app.modules.sales import ownership
 
 router = APIRouter(tags=["search"])
 
@@ -70,7 +71,8 @@ def search(q: str = Query(min_length=1, max_length=100), limit: int = Query(6, g
     if ctx.can("customers.read"):
         stmt = select(Customer).where(Customer.deleted_at.is_(None), or_(
             Customer.name.ilike(like), Customer.code.ilike(like), Customer.phone.ilike(like))).order_by(Customer.name)
-        rows = db.scalars(branch_scope(stmt, ctx, "customers.read", Customer.branch_id).limit(limit)).all()
+        rows = db.scalars(ownership.scope(branch_scope(stmt, ctx, "customers.read", Customer.branch_id), ctx,
+                                          Customer.owner_id).limit(limit)).all()
         seen_customers |= {c.id for c in rows}
         add("customers", "العملاء", [Hit(id=str(c.id), title=c.name, subtitle=" · ".join(x for x in (c.code, c.phone) if x),
                                         path=f"customers/{c.id}") for c in rows])
@@ -81,6 +83,8 @@ def search(q: str = Query(min_length=1, max_length=100), limit: int = Query(6, g
         stmt = (select(model, Customer.name).join(Customer, Customer.id == model.customer_id)
                 .where(model.deleted_at.is_(None), or_(cast(model.number, String).ilike(like), Customer.name.ilike(like)))
                 .order_by(model.created_at.desc()))
+        if hasattr(model, "owner_id"):          # a salesperson finds his own work only
+            stmt = ownership.scope(stmt, ctx, model.owner_id)
         rows = db.execute(branch_scope(stmt, ctx, perm, model.branch_id).limit(limit)).all()
         items = []
         for doc, customer in rows:

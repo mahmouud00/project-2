@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import uuid
 from decimal import Decimal
-from datetime import date
+from datetime import date, datetime
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
@@ -20,6 +20,7 @@ from app.modules.crm import rules
 from app.modules.crm.models import Customer, SiteSurvey, SurveyOpening
 from app.modules.org.models import Branch
 from app.tenancy.context import require
+from app.modules.sales import ownership
 
 router = APIRouter(tags=["crm"])
 
@@ -104,6 +105,7 @@ class CustomerOut(Record):
     contact_method: str | None = None
     first_contact: str | None = None
     customer_questions: str | None = None
+    owner_id: uuid.UUID | None = None
     anonymized: bool
 
 
@@ -113,6 +115,7 @@ def list_customers(q: str | None = None, customer_type: str | None = None, param
     db, ctx = dc
     stmt = select(Customer).where(Customer.deleted_at.is_(None)).order_by(Customer.name)
     stmt = branch_scope(stmt, ctx, "customers.read", Customer.branch_id)
+    stmt = ownership.scope(stmt, ctx, Customer.owner_id)
     if q:
         like = f"%{q}%"
         stmt = stmt.where(or_(Customer.name.ilike(like), Customer.code.ilike(like), Customer.phone.ilike(like)))
@@ -134,7 +137,7 @@ def create_customer(body: CustomerIn, dc=Depends(require("customers.create"))):
     data["code"] = data["code"] or next_number(db, "customer", "CU")
     if db.scalar(select(Customer).where(Customer.code == data["code"])):
         raise Conflict("Customer code exists", code="DUPLICATE_CODE")
-    customer = Customer(**data)
+    customer = Customer(**data, owner_id=ctx.user_id)
     db.add(customer)
     db.flush()
     audit(db, customer, "create")
@@ -147,6 +150,7 @@ def create_customer(body: CustomerIn, dc=Depends(require("customers.create"))):
 
 def _visible_customer(db, ctx, customer_id, permission="customers.read") -> Customer:
     customer = get_or_404(db, Customer, customer_id)
+    ownership.check(ctx, customer)
     if customer.branch_id is not None:
         ctx.require(permission, customer.branch_id)
     return customer
@@ -276,6 +280,10 @@ class SurveyOut(Record):
     location_url: str | None = None
     latitude: Decimal | None = None
     longitude: Decimal | None = None
+    approval_status: str = "approved"
+    approval_requested_at: datetime | None = None
+    approved_at: datetime | None = None
+    owner_id: uuid.UUID | None = None
     openings: list[OpeningOut] = []
 
 
@@ -309,6 +317,7 @@ def list_surveys(customer_id: uuid.UUID | None = None, status: str | None = None
     db, ctx = dc
     stmt = select(SiteSurvey).where(SiteSurvey.deleted_at.is_(None)).order_by(SiteSurvey.created_at.desc())
     stmt = branch_scope(stmt, ctx, "surveys.read", SiteSurvey.branch_id)
+    stmt = ownership.scope(stmt, ctx, SiteSurvey.owner_id)
     if customer_id:
         stmt = stmt.where(SiteSurvey.customer_id == customer_id)
     if status:
@@ -331,7 +340,7 @@ def create_survey(body: SurveyIn, dc=Depends(require("surveys.create"))):
     ctx.require("surveys.create", body.branch_id)
     branch = get_or_404(db, Branch, body.branch_id)
     _visible_customer(db, ctx, body.customer_id)
-    survey = SiteSurvey(number=next_number(db, "survey", "SV", branch.code),
+    survey = SiteSurvey(number=next_number(db, "survey", "SV", branch.code), owner_id=ownership.owner_for(db, ctx, body.customer_id),
                         **fill_location(body.model_dump(exclude={"openings"})))
     db.add(survey)
     db.flush()
@@ -348,6 +357,7 @@ def create_survey(body: SurveyIn, dc=Depends(require("surveys.create"))):
 def get_survey(survey_id: uuid.UUID, dc=Depends(require("surveys.read"))):
     db, ctx = dc
     survey = get_or_404(db, SiteSurvey, survey_id)
+    ownership.check(ctx, survey)
     ctx.require("surveys.read", survey.branch_id)
     if survey.address:
         log_pii(db, ctx, "customer", [survey.customer_id], "view", ["address"])
@@ -359,6 +369,7 @@ def get_survey(survey_id: uuid.UUID, dc=Depends(require("surveys.read"))):
 def update_survey(survey_id: uuid.UUID, body: SurveyUpdate, dc=Depends(require("surveys.write"))):
     db, ctx = dc
     survey = get_or_404(db, SiteSurvey, survey_id)
+    ownership.check(ctx, survey)
     ctx.require("surveys.write", survey.branch_id)
     check_version(survey, body.version)
     before = snapshot(survey)
@@ -370,7 +381,35 @@ def update_survey(survey_id: uuid.UUID, body: SurveyUpdate, dc=Depends(require("
         _set_openings(db, survey, body.openings)
         survey.updated_at = utcnow()  # bump version when only the openings change
         db.flush()
+    from app.modules.sales import approvals
+    approvals.changed(survey)                  # changed after the confirmation: confirm again
     audit(db, survey, "update", before)
+    db.commit()
+    return _survey_out(db, survey)
+
+
+@router.post("/surveys/{survey_id}/request-approval", response_model=SurveyOut)
+def request_survey_approval(survey_id: uuid.UUID, dc=Depends(require("surveys.write"))):
+    """The survey is done: the sales manager is asked to confirm it (a quotation is made from it after that)."""
+    from app.modules.sales import approvals
+
+    db, ctx = dc
+    survey = get_or_404(db, SiteSurvey, survey_id)
+    ownership.check(ctx, survey)
+    ctx.require("surveys.write", survey.branch_id)
+    approvals.request(db, ctx, survey)
+    db.commit()
+    return _survey_out(db, survey)
+
+
+@router.post("/surveys/{survey_id}/approve", response_model=SurveyOut)
+def approve_survey(survey_id: uuid.UUID, dc=Depends(require("surveys.approve"))):
+    from app.modules.sales import approvals
+
+    db, ctx = dc
+    survey = get_or_404(db, SiteSurvey, survey_id)
+    ownership.check(ctx, survey)
+    approvals.approve(db, ctx, survey)
     db.commit()
     return _survey_out(db, survey)
 
@@ -392,6 +431,7 @@ def delete_customer(customer_id: uuid.UUID, dc=Depends(require("customers.delete
 def delete_survey(survey_id: uuid.UUID, dc=Depends(require("surveys.delete"))):
     db, ctx = dc
     survey = get_or_404(db, SiteSurvey, survey_id)
+    ownership.check(ctx, survey)
     ctx.require("surveys.delete", survey.branch_id)
     before = snapshot(survey)
     survey.deleted_at = utcnow()

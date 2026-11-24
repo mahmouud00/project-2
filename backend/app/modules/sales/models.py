@@ -105,6 +105,12 @@ class Quotation(Base, Entity, SoftDeleteMixin):
     discount_pct: Mapped[Decimal | None] = mapped_column(Numeric(6, 3), nullable=True)
     discount_requested_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     discount_request_note: Mapped[str] = mapped_column(Text, default="", server_default="")
+    owner_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True, index=True)   # موظف المبيعات
+    # تأكيد مدير المبيعات: none → pending (sent to him) → approved. Older records count as approved.
+    approval_status: Mapped[str] = mapped_column(String(12), default="none", server_default="approved")
+    approval_requested_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    approved_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
 
 
 class QuotationLine(Base, Entity):

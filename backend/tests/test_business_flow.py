@@ -204,8 +204,9 @@ def test_branch_scoped_user_sees_only_branch(platform, tenant_a, client):
     h = tenant_a.h
     b2 = client.post("/api/v1/branches", headers=h, json={"code": "B2X", "name": "فرع 2"}).json()
     roles = {r["code"]: r for r in client.get("/api/v1/roles", headers=h).json()}
-    client.post("/api/v1/users", headers=h, json={"username": "sales_b2", "password": "user-pass-123", "full_name": "s",
-                                                  "assignments": [{"role_id": roles["sales"]["id"], "branch_id": b2["id"]}]})
+    u = client.post("/api/v1/users", headers=h, json={"username": "sales_b2", "password": "user-pass-123", "full_name": "s",
+                                                      "assignments": [{"role_id": roles["sales"]["id"], "branch_id": b2["id"]}]}).json()
+    client.post(f"/api/v1/customers/{customer['id']}/transfer", headers=h, json={"to_user_id": u["id"]})
     hs = tenant_a.headers("sales_b2", "user-pass-123")
     r = client.post("/api/v1/surveys", headers=hs, json={"customer_id": customer["id"], "branch_id": branch["id"]})
     assert r.status_code == 403

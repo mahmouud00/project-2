@@ -211,6 +211,13 @@ def test_upgrade_from_old_revision_keeps_data():
     # 0028: old customers keep their data; the new fields are empty until the customer is next edited
     assert after["customers"] and all(c["name"] and c.get("governorate") is None and c.get("customer_questions") is None
                                       for c in after["customers"].values())
+    # 0029: every role keeps seeing everyone's work except the built-in salesperson; records belong to their maker
+    assert "sales.all" in set(after["roles"][str(p["sales_role"])]["permissions"])          # a custom role keeps it
+    assert "sales.transfer" in set(after["roles"][str(p["admin_role"])]["permissions"])
+    assert all(c.get("owner_id") == c.get("created_by") for c in after["customers"].values())
+    # 0029: nothing waits for the sales manager after the upgrade; whoever sets prices may confirm
+    assert all(x["approval_status"] == "approved" for x in after["quotations"].values())
+    assert {"quotes.approve", "surveys.approve"} <= set(after["roles"][str(p["admin_role"])]["permissions"])
     # 0028: every existing quotation keeps its prices (manual pricing)
     assert all(x["pricing_mode"] == "manual" and x.get("manager_price_per_m2") is None
                for x in after["quotations"].values())

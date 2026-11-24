@@ -20,6 +20,7 @@ from app.modules.documents.render import company_context, data_uri, render
 from app.modules.library.models import Color, ProductModel
 from app.modules.library.service import find_material
 from app.tenancy.context import get_db_and_ctx, require
+from app.modules.sales import ownership
 
 router = APIRouter(tags=["documents"])
 _FONTS = Path(__file__).with_name("fonts")
@@ -171,6 +172,7 @@ def print_survey(survey_id: uuid.UUID, dc=Depends(require("surveys.read"))):
 
     db, ctx = dc
     survey = get_or_404(db, SiteSurvey, survey_id)
+    ownership.check(ctx, survey)
     ctx.require("surveys.read", survey.branch_id)
     look = _Lookups(db)
     rows = []

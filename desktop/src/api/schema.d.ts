@@ -1419,6 +1419,43 @@ export interface paths {
         patch: operations["update_survey_api_v1_surveys__survey_id__patch"];
         trace?: never;
     };
+    "/api/v1/surveys/{survey_id}/request-approval": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Request Survey Approval
+         * @description The survey is done: the sales manager is asked to confirm it (a quotation is made from it after that).
+         */
+        post: operations["request_survey_approval_api_v1_surveys__survey_id__request_approval_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/surveys/{survey_id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve Survey */
+        post: operations["approve_survey_api_v1_surveys__survey_id__approve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/quotations": {
         parameters: {
             query?: never;
@@ -1586,6 +1623,43 @@ export interface paths {
          * @description (Manual pricing) one price per m² for every line (empty = back to each line's own price).
          */
         post: operations["set_price_per_m2_api_v1_quotations__quote_id__price_per_m2_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quotations/{quote_id}/request-approval": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Request Quote Approval
+         * @description The quotation is ready: the sales manager is asked to confirm it before it goes to the customer.
+         */
+        post: operations["request_quote_approval_api_v1_quotations__quote_id__request_approval_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quotations/{quote_id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve Quote */
+        post: operations["approve_quote_api_v1_quotations__quote_id__approve_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3904,6 +3978,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/sales/people": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Sales People
+         * @description Whoever can make quotations: the salespeople (to move work to, or to open their dashboard).
+         */
+        get: operations["sales_people_api_v1_sales_people_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/customers/{customer_id}/transfer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Transfer Customer
+         * @description The customer and all his surveys, quotations and invoices go to another salesperson.
+         */
+        post: operations["transfer_customer_api_v1_customers__customer_id__transfer_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sales/transfer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Transfer All
+         * @description All of one salesperson's work goes to another (he left, or changed job).
+         */
+        post: operations["transfer_all_api_v1_sales_transfer_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -4491,13 +4625,13 @@ export interface components {
             labor_cost_per_m2: number | string;
             /**
              * Fair Margin Pct
-             * @description هامش السعر العادل %
+             * @description هامش ربح الشركة % (التسعير الأوتوماتيك)
              * @default 20
              */
             fair_margin_pct: number | string;
             /**
              * Top Margin Pct
-             * @description أعلى هامش مقترح %
+             * @description (قديم: مابقاش مستخدم)
              * @default 30
              */
             top_margin_pct: number | string;
@@ -4754,6 +4888,8 @@ export interface components {
             first_contact?: string | null;
             /** Customer Questions */
             customer_questions?: string | null;
+            /** Owner Id */
+            owner_id?: string | null;
             /** Anonymized */
             anonymized: boolean;
         };
@@ -5732,6 +5868,8 @@ export interface components {
             work_order_id: string | null;
             /** Quotation Id */
             quotation_id: string | null;
+            /** Owner Id */
+            owner_id?: string | null;
             /** Salesperson Id */
             salesperson_id?: string | null;
             /** Status */
@@ -7359,6 +7497,16 @@ export interface components {
              */
             review_days: number;
         };
+        /** Person */
+        Person: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+        };
         /** PersonOut */
         PersonOut: {
             /**
@@ -7840,6 +7988,17 @@ export interface components {
              * @default []
              */
             missing_costs: string[];
+            /**
+             * Approval Status
+             * @default approved
+             */
+            approval_status: string;
+            /** Approval Requested At */
+            approval_requested_at?: string | null;
+            /** Approved At */
+            approved_at?: string | null;
+            /** Owner Id */
+            owner_id?: string | null;
             /**
              * Lines
              * @default []
@@ -8324,6 +8483,17 @@ export interface components {
             /** Longitude */
             longitude?: string | null;
             /**
+             * Approval Status
+             * @default approved
+             */
+            approval_status: string;
+            /** Approval Requested At */
+            approval_requested_at?: string | null;
+            /** Approved At */
+            approved_at?: string | null;
+            /** Owner Id */
+            owner_id?: string | null;
+            /**
              * Openings
              * @default []
              */
@@ -8675,6 +8845,27 @@ export interface components {
             expected: {
                 [key: string]: unknown;
             };
+        };
+        /** TransferAllIn */
+        TransferAllIn: {
+            /**
+             * To User Id
+             * Format: uuid
+             */
+            to_user_id: string;
+            /**
+             * From User Id
+             * Format: uuid
+             */
+            from_user_id: string;
+        };
+        /** TransferIn */
+        TransferIn: {
+            /**
+             * To User Id
+             * Format: uuid
+             */
+            to_user_id: string;
         };
         /** TxIn */
         TxIn: {
@@ -12594,6 +12785,68 @@ export interface operations {
             };
         };
     };
+    request_survey_approval_api_v1_surveys__survey_id__request_approval_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                survey_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SurveyOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    approve_survey_api_v1_surveys__survey_id__approve_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                survey_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SurveyOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_quotations_api_v1_quotations_get: {
         parameters: {
             query?: {
@@ -13007,6 +13260,68 @@ export interface operations {
                 "application/json": components["schemas"]["PricePerM2In"];
             };
         };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuotationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    request_quote_approval_api_v1_quotations__quote_id__request_approval_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                quote_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuotationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    approve_quote_api_v1_quotations__quote_id__approve_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                quote_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {
@@ -18006,6 +18321,94 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DelegationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sales_people_api_v1_sales_people_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Person"][];
+                };
+            };
+        };
+    };
+    transfer_customer_api_v1_customers__customer_id__transfer_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                customer_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransferIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    transfer_all_api_v1_sales_transfer_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransferAllIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */

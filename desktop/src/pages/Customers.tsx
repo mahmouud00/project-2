@@ -133,6 +133,7 @@ function CustomerDetail({ id, tab: tabQuery }: { id: string; tab?: string }) {
   const c = useLoad(() => api.get<S<"CustomerOut">>(`/customers/${id}`), [id]);
   useTitle(c.data?.name ?? "…", <Crumbs items={[{ label: "العملاء", to: "customers" }]} />, [c.data?.name]);
   const [edit, setEdit] = useState(false);
+  const [move, setMove] = useState(false);
   const [erase, setErase] = useState(false);
   const [reason, setReason] = useState("");
   const { busy, run } = useAction(toast.err);
@@ -160,6 +161,7 @@ function CustomerDetail({ id, tab: tabQuery }: { id: string; tab?: string }) {
           {s.can("quotes.create") && <Btn small kind="primary" icon="plus" onClick={() => go("quotations/new", { customer: id })}>عرض سعر</Btn>}
           {s.can("surveys.create") && <Btn small icon="ruler" onClick={() => go("surveys/new", { customer: id })}>معاينة</Btn>}
           {s.can("maintenance.create") && <Btn small icon="wrench" onClick={() => setQuery({ tab: "maintenance", new: "1" })}>طلب صيانة</Btn>}
+          {s.can("sales.transfer") && <Btn small icon="users" onClick={() => setMove(true)}>نقل لموظف تاني</Btn>}
           {s.can("customers.delete") && <DeleteBtn path={`/customers/${id}`} what={`العميل ${cu.name}`} onDone={() => go("customers")} />}
         </>}>
           {cu.anonymized && <div className="notice warn mb">البيانات الشخصية للعميل ده اتمسحت بناءً على طلبه. السجلات المالية فاضلة.</div>}
@@ -246,6 +248,7 @@ function CustomerDetail({ id, tab: tabQuery }: { id: string; tab?: string }) {
         )}
       </Card>
       {edit && <CustomerForm customer={cu} onClose={() => setEdit(false)} onSaved={(x) => c.set(x)} />}
+      {move && <MoveCustomer customer={cu} onClose={() => setMove(false)} onDone={() => c.reload()} />}
       {erase && (
         <Confirm title="مسح البيانات الشخصية" danger yes="مسح نهائي" busy={busy} onClose={() => setErase(false)}
           onYes={() => run(async () => {
@@ -260,5 +263,30 @@ function CustomerDetail({ id, tab: tabQuery }: { id: string; tab?: string }) {
         </Confirm>
       )}
     </div>
+  );
+}
+
+
+/** The sales manager gives the customer (with his surveys, quotations and invoices) to another salesperson. */
+function MoveCustomer({ customer, onClose, onDone }: { customer: S<"CustomerOut">; onClose: () => void; onDone: () => void }) {
+  const toast = useToast();
+  const { busy, run } = useAction(toast.err);
+  const people = useLoad(() => api.get<{ id: string; name: string }[]>("/sales/people"), []);
+  const [to, setTo] = useState("");
+  const save = () => run(async () => {
+    const r = await api.post<{ moved: Record<string, number> }>(`/customers/${customer.id}/transfer`, { to_user_id: to });
+    toast.ok(`اتنقل العميل ومعاه ${r.moved.site_surveys ?? 0} معاينة و${r.moved.quotations ?? 0} عرض سعر و${r.moved.invoices ?? 0} فاتورة.`);
+    onDone();
+    onClose();
+  });
+  return (
+    <Modal title={`نقل ${customer.name} لموظف مبيعات تاني`} onClose={onClose}
+      footer={<><Btn kind="primary" busy={busy} disabled={!to} onClick={save}>نقل</Btn><Btn onClick={onClose}>رجوع</Btn></>}>
+      <div className="col">
+        <Field label="الموظف الجديد"><Select value={to} onChange={setTo} placeholder="اختار"
+          options={(people.data ?? []).filter((p) => p.id !== customer.owner_id).map((p) => ({ value: p.id, label: p.name }))} /></Field>
+        <div className="notice info small">العميل وكل معايناته وعروض أسعاره وفواتيره هتختفي من عند الموظف الحالي وتظهر عند الموظف الجديد.</div>
+      </div>
+    </Modal>
   );
 }

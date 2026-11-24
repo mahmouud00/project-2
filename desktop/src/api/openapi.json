@@ -4895,6 +4895,103 @@
     }
    }
   },
+  "/api/v1/surveys/{survey_id}/request-approval": {
+   "post": {
+    "tags": [
+     "crm"
+    ],
+    "summary": "Request Survey Approval",
+    "description": "The survey is done: the sales manager is asked to confirm it (a quotation is made from it after that).",
+    "operationId": "request_survey_approval_api_v1_surveys__survey_id__request_approval_post",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "survey_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Survey Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/SurveyOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/surveys/{survey_id}/approve": {
+   "post": {
+    "tags": [
+     "crm"
+    ],
+    "summary": "Approve Survey",
+    "operationId": "approve_survey_api_v1_surveys__survey_id__approve_post",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "survey_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Survey Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/SurveyOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/v1/quotations": {
    "get": {
     "tags": [
@@ -5606,6 +5703,103 @@
       }
      }
     },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/QuotationOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/quotations/{quote_id}/request-approval": {
+   "post": {
+    "tags": [
+     "sales"
+    ],
+    "summary": "Request Quote Approval",
+    "description": "The quotation is ready: the sales manager is asked to confirm it before it goes to the customer.",
+    "operationId": "request_quote_approval_api_v1_quotations__quote_id__request_approval_post",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "quote_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Quote Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/QuotationOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/quotations/{quote_id}/approve": {
+   "post": {
+    "tags": [
+     "sales"
+    ],
+    "summary": "Approve Quote",
+    "operationId": "approve_quote_api_v1_quotations__quote_id__approve_post",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "quote_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Quote Id"
+      }
+     }
+    ],
     "responses": {
      "200": {
       "description": "Successful Response",
@@ -14097,6 +14291,139 @@
      }
     }
    }
+  },
+  "/api/v1/sales/people": {
+   "get": {
+    "tags": [
+     "sales-team"
+    ],
+    "summary": "Sales People",
+    "description": "Whoever can make quotations: the salespeople (to move work to, or to open their dashboard).",
+    "operationId": "sales_people_api_v1_sales_people_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "items": {
+          "$ref": "#/components/schemas/Person"
+         },
+         "type": "array",
+         "title": "Response Sales People Api V1 Sales People Get"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ]
+   }
+  },
+  "/api/v1/customers/{customer_id}/transfer": {
+   "post": {
+    "tags": [
+     "sales-team"
+    ],
+    "summary": "Transfer Customer",
+    "description": "The customer and all his surveys, quotations and invoices go to another salesperson.",
+    "operationId": "transfer_customer_api_v1_customers__customer_id__transfer_post",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "customer_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Customer Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/TransferIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/sales/transfer": {
+   "post": {
+    "tags": [
+     "sales-team"
+    ],
+    "summary": "Transfer All",
+    "description": "All of one salesperson's work goes to another (he left, or changed job).",
+    "operationId": "transfer_all_api_v1_sales_transfer_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/TransferAllIn"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ]
+   }
   }
  },
  "components": {
@@ -15720,7 +16047,7 @@
        }
       ],
       "title": "Fair Margin Pct",
-      "description": "هامش السعر العادل %",
+      "description": "هامش ربح الشركة % (التسعير الأوتوماتيك)",
       "default": "20"
      },
      "top_margin_pct": {
@@ -15735,7 +16062,7 @@
        }
       ],
       "title": "Top Margin Pct",
-      "description": "أعلى هامش مقترح %",
+      "description": "(قديم: مابقاش مستخدم)",
       "default": "30"
      },
      "deposit_pct": {
@@ -16552,6 +16879,18 @@
        }
       ],
       "title": "Customer Questions"
+     },
+     "owner_id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "uuid"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Owner Id"
      },
      "anonymized": {
       "type": "boolean",
@@ -19348,6 +19687,18 @@
        }
       ],
       "title": "Quotation Id"
+     },
+     "owner_id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "uuid"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Owner Id"
      },
      "salesperson_id": {
       "anyOf": [
@@ -24041,6 +24392,25 @@
     ],
     "title": "PayslipOut"
    },
+   "Person": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Id"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "name"
+    ],
+    "title": "Person"
+   },
    "PersonOut": {
     "properties": {
      "id": {
@@ -25274,6 +25644,47 @@
       "type": "array",
       "title": "Missing Costs",
       "default": []
+     },
+     "approval_status": {
+      "type": "string",
+      "title": "Approval Status",
+      "default": "approved"
+     },
+     "approval_requested_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Approval Requested At"
+     },
+     "approved_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Approved At"
+     },
+     "owner_id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "uuid"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Owner Id"
      },
      "lines": {
       "items": {
@@ -26752,6 +27163,47 @@
       ],
       "title": "Longitude"
      },
+     "approval_status": {
+      "type": "string",
+      "title": "Approval Status",
+      "default": "approved"
+     },
+     "approval_requested_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Approval Requested At"
+     },
+     "approved_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Approved At"
+     },
+     "owner_id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "uuid"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Owner Id"
+     },
      "openings": {
       "items": {
        "$ref": "#/components/schemas/OpeningOut"
@@ -27824,6 +28276,40 @@
      "expected"
     ],
     "title": "TestCaseOut"
+   },
+   "TransferAllIn": {
+    "properties": {
+     "to_user_id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "To User Id"
+     },
+     "from_user_id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "From User Id"
+     }
+    },
+    "type": "object",
+    "required": [
+     "to_user_id",
+     "from_user_id"
+    ],
+    "title": "TransferAllIn"
+   },
+   "TransferIn": {
+    "properties": {
+     "to_user_id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "To User Id"
+     }
+    },
+    "type": "object",
+    "required": [
+     "to_user_id"
+    ],
+    "title": "TransferIn"
    },
    "TxIn": {
     "properties": {

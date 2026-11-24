@@ -27,6 +27,7 @@ from app.modules.sales.models import Quotation, QuotationLine
 from app.modules.sales.pricing import money
 from app.modules.treasury.models import CashTransaction
 from app.tenancy.context import require
+from app.modules.sales import ownership
 
 router = APIRouter(tags=["invoicing"])
 EDIT_PERM, READ_PERM = "treasury.write", "treasury.read"
@@ -106,6 +107,7 @@ class InvoiceOut(Record):
     branch_id: uuid.UUID
     work_order_id: uuid.UUID | None
     quotation_id: uuid.UUID | None
+    owner_id: uuid.UUID | None = None
     salesperson_id: uuid.UUID | None = None
     status: str
     issue_date: date | None
@@ -182,6 +184,7 @@ def _line_from_calc(position, *, location, model_id, opening_w, opening_h, color
 def _get(db, ctx, inv_id, perm=READ_PERM) -> Invoice:
     inv = get_or_404(db, Invoice, inv_id)
     ctx.require(perm, inv.branch_id)
+    ownership.check(ctx, inv)
     return inv
 
 
@@ -196,6 +199,7 @@ def list_invoices(customer_id: uuid.UUID | None = None, status: str | None = Non
     db, ctx = dc
     stmt = select(Invoice).where(Invoice.deleted_at.is_(None)).order_by(Invoice.created_at.desc())
     stmt = branch_scope(stmt, ctx, READ_PERM, Invoice.branch_id)
+    stmt = ownership.scope(stmt, ctx, Invoice.owner_id)
     if customer_id:
         stmt = stmt.where(Invoice.customer_id == customer_id)
     if status:
@@ -251,14 +255,15 @@ def create_invoice(body: InvoiceIn, dc=Depends(require("invoices.create"))):
     if customer_id is None or branch_id is None:
         raise ValidationFailed("customer_id and branch_id required", code="CUSTOMER_REQUIRED")
     ctx.require("invoices.create", branch_id)
-    get_or_404(db, Customer, customer_id)
+    ownership.check(ctx, get_or_404(db, Customer, customer_id))
     get_or_404(db, Branch, branch_id)
     inv = Invoice(customer_id=customer_id, branch_id=branch_id, work_order_id=body.work_order_id,
                   quotation_id=quotation_id, discount_amount=discount,
                   tax_pct=tax if tax is not None else settings.default_tax_pct,
                   due_date=date.today() + timedelta(days=body.due_days) if body.due_days else None,
                   notes=body.notes, terms=body.terms if body.terms is not None else settings.quote_terms,
-                  salesperson_id=salesperson_for(db, ctx, salesperson_id))
+                  salesperson_id=salesperson_for(db, ctx, salesperson_id),
+                  owner_id=ownership.owner_for(db, ctx, customer_id))
     db.add(inv)
     db.flush()
     for i, l in enumerate(new_lines, 1):

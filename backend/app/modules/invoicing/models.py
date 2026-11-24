@@ -38,6 +38,7 @@ class Invoice(Base, Entity, SoftDeleteMixin):
     terms: Mapped[str] = mapped_column(Text, default="")
     cancelled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     cancel_reason: Mapped[str] = mapped_column(Text, default="")
+    owner_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True, index=True)   # موظف المبيعات
 
 
 class InvoiceLine(Base, Entity):

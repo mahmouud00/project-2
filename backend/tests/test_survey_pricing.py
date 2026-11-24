@@ -49,7 +49,7 @@ def test_survey_sheet_and_price_per_m2(platform, tenant_a, client):
     ppm = (cost * D("1.2") / D("6.4") / 10).to_integral_value(rounding="ROUND_CEILING") * 10
     assert D(p["price_per_m2"]) == ppm and D(p["price_total"]) == ppm * D("6.4")
     # a salesperson sees the price, not the cost or the margin
-    _make_user(tenant_a, client, "seller_sqm", "sales", branch["id"])
+    _make_user(tenant_a, client, "seller_sqm", "sales_manager", branch["id"])      # prices, not costs
     seller = tenant_a.headers("seller_sqm", "user-pass-123")
     ps = client.get(f"/api/v1/surveys/{sv['id']}/pricing", headers=seller).json()
     assert ps["cost_total"] is None and ps["fair_margin_pct"] is None and ps["openings"][0]["unit_cost"] is None

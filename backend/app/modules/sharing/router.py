@@ -101,6 +101,8 @@ def share_quotation(quote_id: uuid.UUID, body: ShareIn, request: Request, dc=Dep
     if q.status not in ("draft", "sent"):
         raise Conflict("Only a draft or sent quotation can be shared", code="QUOTE_NOT_SHAREABLE", details={"status": q.status})
     if q.status == "draft":                     # sharing is sending: the same checks
+        from app.modules.sales import approvals
+        approvals.ensure(db, ctx, q)
         if any(not _is_priced(l) for l in db.scalars(select(QuotationLine).where(QuotationLine.quotation_id == q.id, UNITS))):
             raise Conflict("Some lines have no price yet", code="QUOTE_UNPRICED")
         if _needs_price_approval(q):

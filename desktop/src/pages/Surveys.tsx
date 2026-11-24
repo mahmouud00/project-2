@@ -9,6 +9,7 @@ import { Btn, Card, Chip, Crumbs, DraftNotice, ErrorBox, Field, Loading, Modal, 
 import { BranchName, BranchSelect, CustomerName, CustomerPicker } from "../components/pickers";
 import { ItemForm } from "../components/items";
 import { PrintPreview } from "../components/media";
+import { ApprovalBar } from "../components/approval";
 import { DeleteBtn } from "../components/actions";
 import { AssignJob, LocationField, MapBtn } from "../components/field";
 import { SuggestedPrice, SurveySheet, blankRow, isEmptyRow, rowFromApi, rowMissingSize, rowToApi, type SheetRow, type SurveyKind } from "../components/surveysheet";
@@ -166,11 +167,12 @@ function SurveyDetail({ id }: { id: string }) {
               <Btn icon="print" onClick={() => setPrinting(true)}>طباعة</Btn>
               {s.can("surveys.write", survey.branch_id) && <Btn icon="edit" onClick={() => setHeader(true)}>البيانات</Btn>}
               {editable && <Btn kind="success" busy={busy} onClick={() => setStatus("done")}>المعاينة خلصت</Btn>}
+              <ApprovalBar kind="surveys" rec={survey} onSaved={(x) => sv.set(x)} />
               {s.can("field.manage", survey.branch_id) && survey.status === "open" &&
                 <Btn icon="truck" onClick={() => setAssign(true)}>إسناد لفني</Btn>}
               {s.can("surveys.delete", survey.branch_id) &&
                 <DeleteBtn small={false} path={`/surveys/${id}`} what={`المعاينة ${survey.number}`} onDone={() => go("surveys")} />}
-              {s.can("quotes.create", survey.branch_id) && openings.some((o) => o.model_id) &&
+              {s.can("quotes.create", survey.branch_id) && openings.some((o) => o.model_id) && survey.approval_status === "approved" &&
                 <Btn kind="primary" icon="quote" onClick={() => go("quotations/new", { customer: survey.customer_id, survey: survey.id })}>عرض سعر</Btn>}
             </div>
           </div>

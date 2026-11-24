@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import uuid
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 
-from sqlalchemy import Date, ForeignKey, Integer, Numeric, String, Text, UniqueConstraint
+from sqlalchemy import Date, DateTime, ForeignKey, Integer, Numeric, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -38,6 +38,7 @@ class Customer(Base, Entity, SoftDeleteMixin):
                                                             nullable=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     anonymized: Mapped[bool] = mapped_column(default=False)
+    owner_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True, index=True)   # موظف المبيعات
 
 
 class SiteSurvey(Base, Entity, SoftDeleteMixin):
@@ -60,6 +61,12 @@ class SiteSurvey(Base, Entity, SoftDeleteMixin):
     location_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     latitude: Mapped[Decimal | None] = mapped_column(Numeric(9, 6), nullable=True)
     longitude: Mapped[Decimal | None] = mapped_column(Numeric(9, 6), nullable=True)
+    owner_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True, index=True)   # موظف المبيعات
+    # تأكيد مدير المبيعات: none → pending (sent to him) → approved. Older records count as approved.
+    approval_status: Mapped[str] = mapped_column(String(12), default="none", server_default="approved")
+    approval_requested_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    approved_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
 
 
 class SurveyOpening(Base, Entity):

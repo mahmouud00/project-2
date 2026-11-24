@@ -24,6 +24,7 @@ from app.modules.org.settings import get_company_settings
 from app.modules.sales.models import Quotation, QuotationLine
 from app.modules.sales.pricing import CostResolver, cost_of_calc, guide_prices, money
 from app.tenancy.context import require
+from app.modules.sales import ownership
 
 router = APIRouter(tags=["sales"])
 
@@ -166,6 +167,10 @@ class QuotationOut(Record):
     discount_requested_at: datetime | None = None
     discount_request_note: str = ""
     missing_costs: list[str] = []                     # materials without a price: the automatic price is short of them
+    approval_status: str = "approved"
+    approval_requested_at: datetime | None = None
+    approved_at: datetime | None = None
+    owner_id: uuid.UUID | None = None
     lines: list[LineOut] = []
 
 
@@ -397,8 +402,11 @@ def _auto_prices(db, q: Quotation, lines: list[QuotationLine]) -> None:
 
 
 def openings_changed(q: Quotation) -> None:
-    """The openings changed: the price goes back to automatic (the sales manager approved what he saw only).
-    An old draft priced by hand becomes automatic too."""
+    """The openings changed: the price goes back to automatic (the sales manager approved what he saw only), and
+    a quotation not accepted yet needs his confirmation again. An old draft priced by hand becomes automatic too."""
+    if q.status in EDITABLE:
+        from app.modules.sales import approvals
+        approvals.changed(q)
     if q.pricing_mode == "manual" and q.status == "draft":
         q.pricing_mode = "auto"
         q.discount_amount = Decimal(0)
@@ -438,6 +446,7 @@ def _totals(db, q: Quotation) -> None:
 def _get_quote(db, ctx, quote_id, permission="quotes.read") -> Quotation:
     q = get_or_404(db, Quotation, quote_id)
     ctx.require(permission, q.branch_id)
+    ownership.check(ctx, q)
     return q
 
 
@@ -447,6 +456,7 @@ def list_quotations(customer_id: uuid.UUID | None = None, status: str | None = N
     db, ctx = dc
     stmt = select(Quotation).where(Quotation.deleted_at.is_(None)).order_by(Quotation.created_at.desc())
     stmt = branch_scope(stmt, ctx, "quotes.read", Quotation.branch_id)
+    stmt = ownership.scope(stmt, ctx, Quotation.owner_id)
     if customer_id:
         stmt = stmt.where(Quotation.customer_id == customer_id)
     if status:
@@ -464,12 +474,16 @@ def create_quotation(body: QuotationIn, dc=Depends(require("quotes.create"))):
     ctx.require("quotes.create", body.branch_id)
     branch = get_or_404(db, Branch, body.branch_id)
     customer = get_or_404(db, Customer, body.customer_id)
+    ownership.check(ctx, customer)
     settings = get_company_settings(db, ctx.company_id)
     lines = list(body.lines)
     if body.survey_id:
         survey = get_or_404(db, SiteSurvey, body.survey_id)
+        ownership.check(ctx, survey)
         if survey.customer_id != customer.id:
             raise ValidationFailed("Survey belongs to another customer", code="SURVEY_CUSTOMER")
+        from app.modules.sales import approvals
+        approvals.ensure(db, ctx, survey)      # the sales manager confirmed the survey
         if not lines:
             for o in db.scalars(select(SurveyOpening).where(SurveyOpening.survey_id == survey.id)
                                 .order_by(SurveyOpening.position)):
@@ -490,7 +504,8 @@ def create_quotation(body: QuotationIn, dc=Depends(require("quotes.create"))):
                   tax_pct=body.tax_pct if body.tax_pct is not None else settings.default_tax_pct,
                   discount_amount=body.discount_amount, notes=body.notes,
                   terms=body.terms if body.terms is not None else settings.quote_terms,
-                  salesperson_id=salesperson_for(db, ctx, body.salesperson_id), pricing_mode="auto")
+                  salesperson_id=salesperson_for(db, ctx, body.salesperson_id), pricing_mode="auto",
+                  owner_id=ownership.owner_for(db, ctx, customer.id))
     if body.discount_amount and not ctx.can("quotes.approve_price", branch.id):
         raise Conflict("Only the sales manager gives a discount", code="PRICE_BY_MANAGER")
     db.add(q)
@@ -611,6 +626,9 @@ def set_status(quote_id: uuid.UUID, body: StatusIn, dc=Depends(require("quotes.w
             raise Conflict("The price is under the fair price: the sales manager must approve it",
                            code="PRICE_APPROVAL_REQUIRED",
                            details={"net_total": str(_net(q)), "fair_total": str(q.fair_total)})
+    if body.status in ("sent", "accepted"):
+        from app.modules.sales import approvals
+        approvals.ensure(db, ctx, q)           # the sales manager confirmed it before the customer sees it
     if body.status == "accepted":
         require_national_id(db, q.customer_id)
     before = snapshot(q)
@@ -720,6 +738,30 @@ def _manager_closed(ctx, q: Quotation, note: str) -> None:
     q.discount_requested_at, q.discount_request_note = None, ""
 
 
+@router.post("/quotations/{quote_id}/request-approval", response_model=QuotationOut)
+def request_quote_approval(quote_id: uuid.UUID, dc=Depends(require("quotes.write"))):
+    """The quotation is ready: the sales manager is asked to confirm it before it goes to the customer."""
+    from app.modules.sales import approvals
+
+    db, ctx = dc
+    q = _get_quote(db, ctx, quote_id, "quotes.write")
+    _check_editable(db, q)
+    approvals.request(db, ctx, q)
+    db.commit()
+    return _quote_out(db, ctx, q, with_calc=False)
+
+
+@router.post("/quotations/{quote_id}/approve", response_model=QuotationOut)
+def approve_quote(quote_id: uuid.UUID, dc=Depends(require("quotes.approve"))):
+    from app.modules.sales import approvals
+
+    db, ctx = dc
+    q = _get_quote(db, ctx, quote_id, "quotes.approve")
+    approvals.approve(db, ctx, q)
+    db.commit()
+    return _quote_out(db, ctx, q, with_calc=False)
+
+
 class DiscountRequestIn(BaseModel):
     note: str = Field("", max_length=1000)
 
@@ -824,6 +866,7 @@ def survey_pricing(survey_id: uuid.UUID, dc=Depends(require("quotes.read"))):
 
     db, ctx = dc
     survey = get_or_404(db, SiteSurvey, survey_id)
+    ownership.check(ctx, survey)
     ctx.require("surveys.read", survey.branch_id)
     pricer = Pricer(db, ctx)
     rows, missing = [], set()
