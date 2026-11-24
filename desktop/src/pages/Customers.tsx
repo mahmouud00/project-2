@@ -1,7 +1,7 @@
 import { CustomerProjects } from "../components/project";
 import { useState } from "react";
 import { saveFile } from "../lib/save";
-import { api, type S } from "../api/client";
+import { api, ApiError, type S } from "../api/client";
 import { type PageProps, useRecordHistory, useTitle } from "../lib/title";
 import { useAction, useDebounced, useLoad, when } from "../lib/hooks";
 import { useSession } from "../state/session";
@@ -61,43 +61,61 @@ function CustomerList() {
 }
 
 type CustomerDraft = Partial<S<"CustomerOut">>;
+type Choices = { governorates: string[]; contact_methods: string[]; min_questions: number };
 
 export function CustomerForm({ customer, onClose, onSaved }:
   { customer?: S<"CustomerOut">; onClose: () => void; onSaved: (c: S<"CustomerOut">) => void }) {
   const s = useSession();
   const toast = useToast();
   const { busy, run } = useAction(toast.err);
+  const choices = useLoad(() => api.get<Choices>("/customers/choices"), []);
   const [d, setD] = useState<CustomerDraft>(customer ?? { customer_type: "end", branch_id: s.branchId ?? s.branches[0]?.id });
-  const set = (k: keyof CustomerDraft) => (v: string) => setD((x) => ({ ...x, [k]: v }));
+  const [errs, setErrs] = useState<Record<string, string>>({});
+  const set = (k: keyof CustomerDraft) => (v: string) => { setD((x) => ({ ...x, [k]: v })); setErrs((e) => ({ ...e, [k]: "" })); };
   const save = () => run(async () => {
     const body = { name: d.name, customer_type: d.customer_type, phone: d.phone || null, phone2: d.phone2 || null, whatsapp: d.whatsapp || null,
       email: d.email || null, address: d.address || null, national_id: d.national_id || null, tax_number: d.tax_number || null,
-      branch_id: d.branch_id || null, notes: d.notes || null };
-    const c = customer
-      ? await api.patch<S<"CustomerOut">>(`/customers/${customer.id}`, { ...body, version: customer.version })
-      : await api.post<S<"CustomerOut">>("/customers", { ...body, code: d.code || null });
-    invalidate("customer:" + c.id);
-    toast.ok(customer ? "اتحفظت بيانات العميل." : "اتضاف العميل.");
-    onSaved(c);
-    onClose();
+      branch_id: d.branch_id || null, notes: d.notes || null, governorate: d.governorate || null, contact_method: d.contact_method || null,
+      first_contact: d.first_contact || null, customer_questions: d.customer_questions || null };
+    try {
+      const c = customer
+        ? await api.patch<S<"CustomerOut">>(`/customers/${customer.id}`, { ...body, version: customer.version })
+        : await api.post<S<"CustomerOut">>("/customers", { ...body, code: d.code || null });
+      invalidate("customer:" + c.id);
+      toast.ok(customer ? "اتحفظت بيانات العميل." : "اتضاف العميل.");
+      onSaved(c);
+      onClose();
+    } catch (e) {
+      // every missing / wrong field is shown under it
+      if (e instanceof ApiError && e.code === "CUSTOMER_INCOMPLETE" && e.details && typeof e.details === "object") setErrs(e.details as Record<string, string>);
+      throw e;
+    }
   });
+  const opt = (xs?: string[]) => [{ value: "", label: "— اختار —" }, ...(xs ?? []).map((x) => ({ value: x, label: x }))];
+  const min = choices.data?.min_questions ?? 2;
   return (
     <Modal title={customer ? "تعديل بيانات العميل" : "عميل جديد"} size="wide" onClose={onClose}
       footer={<><Btn kind="primary" busy={busy} disabled={!d.name?.trim()} onClick={save}>حفظ</Btn><Btn onClick={onClose}>رجوع</Btn></>}>
       <div className="grid g3">
-        <Field label="الاسم" className="span2"><TextIn value={d.name} onChange={set("name")} autoFocus /></Field>
+        <Field label="الاسم الثلاثي *" className="span2" error={errs.name}><TextIn value={d.name} onChange={set("name")} autoFocus /></Field>
         <Field label="الكود" hint={customer ? undefined : "سيبه فاضي ويتعمل أوتوماتيك"}>
           <TextIn value={d.code} onChange={set("code")} code disabled={!!customer} /></Field>
         <Field label="النوع"><Select value={d.customer_type} onChange={set("customer_type")}
           options={Object.entries(CUSTOMER_TYPES).map(([value, label]) => ({ value, label }))} /></Field>
-        <Field label="التليفون"><TextIn value={d.phone} onChange={set("phone")} code /></Field>
+        <Field label="رقم الموبايل *" error={errs.phone} hint="11 رقم: 010 / 011 / 012 / 015"><TextIn value={d.phone} onChange={set("phone")} code /></Field>
+        <Field label="رقم الواتساب *" error={errs.whatsapp} hint="زرار واتساب بيفتح الشات على الرقم ده"><TextIn value={d.whatsapp} onChange={set("whatsapp")} code /></Field>
+        <Field label="المحافظة *" error={errs.governorate}><Select value={d.governorate ?? ""} onChange={set("governorate")} options={opt(choices.data?.governorates)} /></Field>
+        <Field label="العنوان بالتفصيل" className="span2"><TextIn value={d.address} onChange={set("address")} /></Field>
         <Field label="تليفون تاني"><TextIn value={d.phone2} onChange={set("phone2")} code /></Field>
-        <Field label="رقم الواتساب" hint="لو غير الموبايل. زرار واتساب بيفتح الشات على الرقم ده"><TextIn value={d.whatsapp} onChange={set("whatsapp")} code /></Field>
-        <Field label="العنوان" className="span2"><TextIn value={d.address} onChange={set("address")} /></Field>
+        <Field label="الرقم القومي" error={errs.national_id} hint="إجباري عند التعاقد (قبول عرض السعر)"><TextIn value={d.national_id} onChange={set("national_id")} code /></Field>
         <Field label="الإيميل"><TextIn value={d.email} onChange={set("email")} code /></Field>
-        <Field label="الرقم القومي"><TextIn value={d.national_id} onChange={set("national_id")} code /></Field>
         <Field label="الرقم الضريبي"><TextIn value={d.tax_number} onChange={set("tax_number")} code /></Field>
         <Field label="الفرع"><BranchSelect value={d.branch_id} onChange={set("branch_id")} perm={customer ? "customers.write" : "customers.create"} /></Field>
+        <Field label="طريقة التواصل *" error={errs.contact_method}><Select value={d.contact_method ?? ""} onChange={set("contact_method")} options={opt(choices.data?.contact_methods)} /></Field>
+        <Field label="بداية الكلام *" className="span-all" error={errs.first_contact} hint="العميل عرفنا منين، وأول حاجة طلبها">
+          <TextArea value={d.first_contact} onChange={set("first_contact")} rows={2} /></Field>
+        <Field label={`أسئلة العميل في المكالمة * (${min} على الأقل، كل سؤال في سطر)`} className="span-all" error={errs.customer_questions}>
+          <TextArea value={d.customer_questions} onChange={set("customer_questions")} rows={3} /></Field>
         <Field label="ملاحظات" className="span-all"><TextArea value={d.notes} onChange={set("notes")} rows={2} /></Field>
       </div>
     </Modal>
@@ -149,9 +167,18 @@ function CustomerDetail({ id, tab: tabQuery }: { id: string; tab?: string }) {
             <KV items={[["الكود", <span className="code">{cu.code}</span>], ["النوع", CUSTOMER_TYPES[cu.customer_type] ?? cu.customer_type],
               ["التليفون", <span className="num">{cu.phone ?? "—"}</span>], ["تليفون تاني", <span className="num">{cu.phone2 ?? "—"}</span>],
               ["واتساب", <span className="num">{cu.whatsapp ?? cu.phone ?? "—"}</span>]]} />
-            <KV items={[["العنوان", cu.address ?? "—"], ["الإيميل", <span className="num">{cu.email ?? "—"}</span>],
+            <KV items={[["المحافظة", cu.governorate ?? "—"], ["العنوان", cu.address ?? "—"], ["الإيميل", <span className="num">{cu.email ?? "—"}</span>],
+              ["الرقم القومي", <span className="num">{cu.national_id ?? "—"}</span>],
               ["الرقم الضريبي", <span className="num">{cu.tax_number ?? "—"}</span>], ["ملاحظات", cu.notes ?? "—"]]} />
           </div>
+          {(cu.contact_method || cu.first_contact || cu.customer_questions) && (
+            <div className="mt">
+              <KV items={[["طريقة التواصل", cu.contact_method ?? "—"], ["بداية الكلام", cu.first_contact ?? "—"]]} />
+              {cu.customer_questions && <div className="mt small"><b>أسئلة العميل</b>
+                <ul style={{ margin: "4px 0 0", paddingInlineStart: 18 }}>{cu.customer_questions.split("\n").map((x, i) => <li key={i}>{x}</li>)}</ul></div>}
+            </div>)}
+          {!cu.anonymized && (!cu.governorate || !cu.whatsapp || !cu.contact_method) &&
+            <div className="notice warn small mt">بيانات العميل ناقصة (المحافظة / الواتساب / طريقة التواصل). كمّلها من «تعديل».</div>}
         </Card>
         {st.data && (
           <Card title="الحساب">

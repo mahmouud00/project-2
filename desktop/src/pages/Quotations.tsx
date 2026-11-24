@@ -10,7 +10,7 @@ import { STAGE_NAMES } from "../lib/lookups";
 import { Btn, Card, Chip, Confirm, Crumbs, Dim, ErrorBox, Field, Len, Loading, Modal, Money, NumIn, PageHead, Pager, Select, Table, TextArea, TextIn } from "../components/ui";
 import { BranchName, BranchSelect, ColorName, CustomerName, CustomerPicker, SalespersonName, SalespersonSelect } from "../components/pickers";
 import { ItemForm, ParamLabels, type ItemDraft } from "../components/items";
-import { Drawing, MediaImg, PrintPreview } from "../components/media";
+import { Drawing, PrintPreview } from "../components/media";
 import { DeleteBtn } from "../components/actions";
 import { QUOTE_STATUS } from "../lib/lookups";
 import { go } from "../lib/router";
@@ -123,6 +123,7 @@ function QuotationDetail({ id }: { id: string }) {
   const allLines = quote.lines ?? [];
   // an arch (أرج) line is a unit of its own for manufacturing, shown and priced inside its unit
   const lines = allLines.filter((l) => !l.parent_line_id);
+  const auto = quote.pricing_mode === "auto";        // priced by itself; only the sales manager changes the price
   const archOf = (l: Line) => allLines.find((x) => x.parent_line_id === l.id);
 
   const saveLine = (line: Line | null) => async (d: ItemDraft) => {
@@ -191,7 +192,7 @@ function QuotationDetail({ id }: { id: string }) {
         أي تعديل هنا بيتنقل للأمر على طول — الأصناف، كشف التقطيع، خطة الأعواد، الزجاج، والطلبيات. لو الإجمالي اتغيّر، الحسابات بتأكد البيعة تاني،
         ولو الأمر في التصنيع، قسم الإنتاج بيوصله إشعار والكشف القديم بيتحفظ.</div>}
       <Card title={`البنود (${lines.length})`} flush actions={editable && <>
-        {lines.length > 0 && <Btn small icon="calc" onClick={() => setAllPpm(true)}>سعر متر لكل البنود</Btn>}
+        {!auto && lines.length > 0 && <Btn small icon="calc" onClick={() => setAllPpm(true)}>سعر متر لكل البنود</Btn>}
         <Btn kind="primary" small icon="plus" onClick={() => setLineEdit("new")}>إضافة بند</Btn></>}>
         <Table rows={lines} empty="مفيش بنود. ضيف شباك أو باب." columns={[
           { key: "c", label: "رقم النموذج", render: (l) => <span className="code bold">{l.model_code}</span> },
@@ -203,7 +204,6 @@ function QuotationDetail({ id }: { id: string }) {
           { key: "a", label: "مساحة الفتحة", num: true, render: (l) => <span className="num">{mulMoney(l.billed_area_m2, l.qty)}</span> },
           { key: "m", label: "نوع وشكل النموذج", render: (l) => (
             <div className="row" style={{ gap: 8 }}>
-              <MediaImg id={l.model_image_id} />
               <Drawing elements={(l.calc as any)?.drawing} w={(l.calc as any)?.inputs?.width_mm} h={(l.calc as any)?.inputs?.height_mm} maxW={70} maxH={52} />
               <div><b>{l.model_name}</b>{l.location && <span className="muted"> · {l.location}</span>}
                 <div className="small"><ColorName code={l.color_code} /> {(l.glass_material_code || l.glass_text) && <span className="muted">· {l.glass_material_code || l.glass_text}</span>}</div>
@@ -212,8 +212,8 @@ function QuotationDetail({ id }: { id: string }) {
                 {(l.model_deleted || archOf(l)?.model_deleted) && editable && <div className="small"><Chip color="red">النموذج اتحذف من المكتبة: غيّره</Chip></div>}</div>
             </div>) },
           { key: "p", label: "سعر المتر", width: 150, render: (l) => (
-            <PpmCell line={l} editable={editable} busy={busy} onSave={(v) => setPpm(l, v)} />) },
-          { key: "t", label: "التكلفة", num: true, render: (l) => <b><Money v={l.line_total} /></b> },
+            auto ? <Money v={l.price_per_m2} /> : <PpmCell line={l} editable={editable} busy={busy} onSave={(v) => setPpm(l, v)} />) },
+          { key: "t", label: "الإجمالي", num: true, render: (l) => <b><Money v={l.line_total} /></b> },
           ...(editable ? [{ key: "x", label: "", width: 120, render: (l: Line) => (
             <div className="row" style={{ gap: 4 }}>
               <Btn small icon="edit" onClick={() => setLineEdit(l)} />
@@ -233,21 +233,21 @@ function QuotationDetail({ id }: { id: string }) {
             <div className="r"><span>إجمالي المساحة</span><span className="num">{totalArea} م²</span></div>
             <div className="r"><span>المجموع</span><Money v={sumMoney(lines.map((l) => l.line_total))} /></div>
             <div className="r"><span>الخصم</span><Money v={quote.discount_amount} /></div>
-            <div className="r"><span>قبل الضريبة</span><Money v={quote.subtotal} /></div>
+            <div className="r"><span>قبل الضريبة</span><Money v={quote.net_total} /></div>
             <div className="r"><span>الضريبة <span className="num">{Number(quote.tax_pct)}%</span></span><Money v={quote.tax_amount} /></div>
             <div className="r big"><span>الإجمالي</span><Money v={quote.total} cur /></div>
             {s.can("finance.read") && <div className="r small muted"><span>التكلفة التقديرية</span><Money v={quote.total_cost} /></div>}
           </div>
-          <PriceGuide quote={quote} onSaved={(x) => q.set(x)} />
+          {auto ? <AutoPrice quote={quote} editable={editable} onSaved={(x) => q.set(x)} /> : <PriceGuide quote={quote} onSaved={(x) => q.set(x)} />}
         </Card>
       </div>
 
-      {lineEdit && <ItemForm title={lineEdit === "new" ? "بند جديد" : "تعديل البند"} withPrice onClose={() => setLineEdit(null)}
+      {lineEdit && <ItemForm title={lineEdit === "new" ? "بند جديد" : "تعديل البند"} withPrice={!auto} onClose={() => setLineEdit(null)}
         initial={lineEdit === "new" ? { glass_text: "" } : { ...lineEdit, glass_text: lineEdit.glass_text ?? "", manual_unit_price: lineEdit.manual_unit_price, price_per_m2: lineEdit.price_per_m2,
           total_height_mm: lineEdit.total_height_mm, top_model_id: lineEdit.top_model_id }}
         onSave={saveLine(lineEdit === "new" ? null : lineEdit)}
         draftKey={`quote-line:${id}:${lineEdit === "new" ? "new" : lineEdit.id}`} draftBase={lineEdit === "new" ? "new" : lineEdit.version} />}
-      {dupe && <ItemForm title="شباك زيه في مكان تاني" withPrice onClose={() => setDupe(null)}
+      {dupe && <ItemForm title="شباك زيه في مكان تاني" withPrice={!auto} onClose={() => setDupe(null)}
         initial={{ ...dupe, qty: 1, location: "", manual_unit_price: dupe.manual_unit_price, price_per_m2: dupe.price_per_m2,
           total_height_mm: dupe.total_height_mm, top_model_id: dupe.top_model_id }}
         onSave={saveLine(null)} draftKey={`quote-line:${id}:dupe`} draftBase="new" />}
@@ -263,7 +263,81 @@ function QuotationDetail({ id }: { id: string }) {
   );
 }
 
-/** دليل المبيعات: the fair price (lowest without the sales manager) and the top price, and the approval. */
+/** التسعير الأوتوماتيك: the price per m² on every window (cost + the company's margin), the discount request and the
+ * sales manager's decision (his own price per m², a discount amount or a percentage). */
+function AutoPrice({ quote, editable, onSaved }: { quote: Quote; editable: boolean; onSaved: (q: Quote) => void }) {
+  const s = useSession();
+  const toast = useToast();
+  const { busy, run } = useAction(toast.err);
+  const [asking, setAsking] = useState(false);
+  const [deciding, setDeciding] = useState(false);
+  const [note, setNote] = useState("");
+  const manager = s.can("quotes.approve_price", quote.branch_id);
+  const ask = () => run(async () => {
+    onSaved(await api.post<Quote>(`/quotations/${quote.id}/request-discount`, { note }));
+    setAsking(false); setNote("");
+    toast.ok("اتبعت طلب الخصم لمدير المبيعات.");
+  });
+  return (
+    <div className="col mt" style={{ gap: 8 }}>
+      <div className="totals" style={{ width: "100%" }}>
+        <div className="r"><span>سعر المتر {quote.manager_price_per_m2 ? <Chip color="violet">مدير المبيعات</Chip> : <Chip>أوتوماتيك</Chip>}</span>
+          <Money v={quote.price_per_m2} /></div>
+        {quote.discount_pct && <div className="r small"><span>الخصم</span><span className="num">{Number(quote.discount_pct)}%</span></div>}
+      </div>
+      {quote.missing_costs.length > 0 && <div className="notice warn small">خامات من غير سعر في الحسابات، فالسعر ناقص: {quote.missing_costs.join("، ")}. بلّغ الحسابات.</div>}
+      {quote.discount_requested_at && <div className="notice warn small">فيه طلب خصم مستني مدير المبيعات{quote.discount_request_note && <> · {quote.discount_request_note}</>}</div>}
+      {quote.price_approved_at && <div className="notice info small">مدير المبيعات حدد السعر{quote.price_approval_note && <> · {quote.price_approval_note}</>}</div>}
+      {editable && <div className="row wrap" style={{ gap: 6 }}>
+        {!manager && <Btn small icon="send" onClick={() => setAsking(true)}>طلب خصم</Btn>}
+        {manager && <Btn small kind="primary" icon="edit" onClick={() => setDeciding(true)}>السعر والخصم</Btn>}
+      </div>}
+      {asking && <Modal title="طلب خصم" onClose={() => setAsking(false)}
+        footer={<><Btn kind="primary" busy={busy} onClick={ask}>ابعت لمدير المبيعات</Btn><Btn onClick={() => setAsking(false)}>رجوع</Btn></>}>
+        <Field label="السبب أو الخصم المطلوب" hint="مدير المبيعات هيوصله إشعار، والسعر الجديد هيظهرلك أول ما يحدده">
+          <TextArea value={note} onChange={setNote} rows={3} /></Field>
+      </Modal>}
+      {deciding && <ManagerPrice quote={quote} onClose={() => setDeciding(false)} onSaved={onSaved} />}
+    </div>
+  );
+}
+
+function ManagerPrice({ quote, onClose, onSaved }: { quote: Quote; onClose: () => void; onSaved: (q: Quote) => void }) {
+  const toast = useToast();
+  const { busy, run } = useAction(toast.err);
+  const [ppm, setPpm] = useState(quote.manager_price_per_m2 ?? "");
+  const [kind, setKind] = useState(quote.discount_pct ? "pct" : Number(quote.discount_amount) > 0 ? "amount" : "none");
+  const [value, setValue] = useState(quote.discount_pct ?? (Number(quote.discount_amount) > 0 ? quote.discount_amount : ""));
+  const [note, setNote] = useState(quote.price_approval_note ?? "");
+  const save = (reset = false) => run(async () => {
+    const body = reset ? { version: quote.version } : { version: quote.version, note, price_per_m2: ppm.trim() || null,
+      discount_pct: kind === "pct" && value ? value : null, discount_amount: kind === "amount" && value ? value : null };
+    onSaved(await api.post<Quote>(`/quotations/${quote.id}/manager-price`, body));
+    toast.ok(reset ? "رجع السعر الأوتوماتيك." : "اتحفظ السعر، وموظف المبيعات هيشوفه.");
+    onClose();
+  });
+  return (
+    <Modal title="السعر والخصم (مدير المبيعات)" onClose={onClose} footer={<>
+      <Btn kind="primary" busy={busy} onClick={() => save()}>حفظ وقفل</Btn>
+      <Btn busy={busy} onClick={() => save(true)}>رجوع للأوتوماتيك</Btn>
+      <Btn onClick={onClose}>رجوع</Btn></>}>
+      <div className="col">
+        {quote.discount_requested_at && <div className="notice warn small">طلب خصم{quote.discount_request_note && <>: {quote.discount_request_note}</>}</div>}
+        <Field label="سعر المتر" hint={<>الأوتوماتيك <b><Money v={quote.auto_price_per_m2} /></b>. سيبه فاضي عشان يفضل أوتوماتيك.</>}>
+          <NumIn value={ppm} onChange={setPpm} placeholder={quote.auto_price_per_m2 ?? ""} autoFocus /></Field>
+        <div className="grid g2">
+          <Field label="الخصم"><Select value={kind} onChange={(v) => { setKind(v); setValue(""); }} options={[
+            { value: "none", label: "من غير خصم" }, { value: "amount", label: "مبلغ" }, { value: "pct", label: "نسبة %" }]} /></Field>
+          {kind !== "none" && <Field label={kind === "pct" ? "النسبة %" : "المبلغ"}><NumIn value={value} onChange={setValue} /></Field>}
+        </div>
+        <Field label="ملاحظة"><TextIn value={note} onChange={setNote} /></Field>
+        <div className="notice info small">أي تعديل في الفتحات بعد كده بيرجّع السعر أوتوماتيك ويلغي الخصم.</div>
+      </div>
+    </Modal>
+  );
+}
+
+/** (Manual pricing, older quotations) دليل المبيعات: the fair price and the top price, and the approval. */
 function PriceGuide({ quote, onSaved }: { quote: Quote; onSaved: (q: Quote) => void }) {
   const s = useSession();
   const toast = useToast();
@@ -384,15 +458,16 @@ function QuoteHeader({ quote, onClose, onSaved }: { quote: Quote; onClose: () =>
   const [d, setD] = useState({ discount_amount: quote.discount_amount, tax_pct: quote.tax_pct, valid_until: quote.valid_until ?? "",
     notes: quote.notes, terms: quote.terms, salesperson_id: quote.salesperson_id ?? null });
   const save = () => run(async () => {
-    const { salesperson_id, ...rest } = d;
+    const { salesperson_id, discount_amount, ...rest } = d;
     onSaved(await api.patch<Quote>(`/quotations/${quote.id}`, { version: quote.version, ...rest, valid_until: d.valid_until || null,
+      ...(quote.pricing_mode === "auto" ? {} : { discount_amount }),
       ...(salesperson_id ? { salesperson_id } : {}) }));
     onClose();
   });
   return (
     <Modal title="بيانات العرض" size="wide" onClose={onClose} footer={<><Btn kind="primary" busy={busy} onClick={save}>حفظ</Btn><Btn onClick={onClose}>رجوع</Btn></>}>
       <div className="grid g2">
-        <Field label="الخصم (مبلغ)"><NumIn value={d.discount_amount} onChange={(v) => setD((x) => ({ ...x, discount_amount: v }))} /></Field>
+        {quote.pricing_mode !== "auto" && <Field label="الخصم (مبلغ)"><NumIn value={d.discount_amount} onChange={(v) => setD((x) => ({ ...x, discount_amount: v }))} /></Field>}
         <Field label="الضريبة %"><NumIn value={d.tax_pct} onChange={(v) => setD((x) => ({ ...x, tax_pct: v }))} /></Field>
         <Field label="صالح لحد"><input type="date" className="input" value={d.valid_until} onChange={(e) => setD((x) => ({ ...x, valid_until: e.target.value }))} /></Field>
         <Field label="البائع (السيلز)"><SalespersonSelect value={d.salesperson_id} onChange={(v) => setD((x) => ({ ...x, salesperson_id: v }))} /></Field>

@@ -4293,6 +4293,31 @@
     ]
    }
   },
+  "/api/v1/customers/choices": {
+   "get": {
+    "tags": [
+     "crm"
+    ],
+    "summary": "Customer Choices",
+    "description": "The lists the customer form chooses from.",
+    "operationId": "customer_choices_api_v1_customers_choices_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ]
+   }
+  },
   "/api/v1/customers": {
    "get": {
     "tags": [
@@ -5552,7 +5577,7 @@
      "sales"
     ],
     "summary": "Set Price Per M2",
-    "description": "One price per m² for every line (empty = back to each line's own price).",
+    "description": "(Manual pricing) one price per m² for every line (empty = back to each line's own price).",
     "operationId": "set_price_per_m2_api_v1_quotations__quote_id__price_per_m2_post",
     "security": [
      {
@@ -5577,6 +5602,124 @@
       "application/json": {
        "schema": {
         "$ref": "#/components/schemas/PricePerM2In"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/QuotationOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/quotations/{quote_id}/request-discount": {
+   "post": {
+    "tags": [
+     "sales"
+    ],
+    "summary": "Request Discount",
+    "description": "The customer or the salesperson wants a discount: the sales manager is told, and he decides.",
+    "operationId": "request_discount_api_v1_quotations__quote_id__request_discount_post",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "quote_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Quote Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/DiscountRequestIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/QuotationOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/quotations/{quote_id}/manager-price": {
+   "post": {
+    "tags": [
+     "sales"
+    ],
+    "summary": "Manager Price",
+    "description": "The sales manager sets the price: his own price per m² and / or a discount (an amount or a percentage), and\ncloses it; the salesperson sees it at once. Nothing set = back to the automatic price.",
+    "operationId": "manager_price_api_v1_quotations__quote_id__manager_price_post",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "quote_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Quote Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ManagerPriceIn"
        }
       }
      }
@@ -16167,6 +16310,50 @@
        }
       ],
       "title": "Notes"
+     },
+     "governorate": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Governorate"
+     },
+     "contact_method": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Contact Method"
+     },
+     "first_contact": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "First Contact"
+     },
+     "customer_questions": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Customer Questions"
      }
     },
     "type": "object",
@@ -16322,6 +16509,50 @@
       ],
       "title": "Notes"
      },
+     "governorate": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Governorate"
+     },
+     "contact_method": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Contact Method"
+     },
+     "first_contact": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "First Contact"
+     },
+     "customer_questions": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Customer Questions"
+     },
      "anonymized": {
       "type": "boolean",
       "title": "Anonymized"
@@ -16474,6 +16705,50 @@
        }
       ],
       "title": "Notes"
+     },
+     "governorate": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Governorate"
+     },
+     "contact_method": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Contact Method"
+     },
+     "first_contact": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "First Contact"
+     },
+     "customer_questions": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Customer Questions"
      }
     },
     "type": "object",
@@ -17028,6 +17303,18 @@
      "code"
     ],
     "title": "DisableIn"
+   },
+   "DiscountRequestIn": {
+    "properties": {
+     "note": {
+      "type": "string",
+      "maxLength": 1000,
+      "title": "Note",
+      "default": ""
+     }
+    },
+    "type": "object",
+    "title": "DiscountRequestIn"
    },
    "DrawingElement": {
     "properties": {
@@ -20556,6 +20843,71 @@
      "version"
     ],
     "title": "MaintenanceUpdate"
+   },
+   "ManagerPriceIn": {
+    "properties": {
+     "version": {
+      "type": "integer",
+      "title": "Version"
+     },
+     "price_per_m2": {
+      "anyOf": [
+       {
+        "type": "number",
+        "exclusiveMinimum": 0.0
+       },
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Price Per M2"
+     },
+     "discount_pct": {
+      "anyOf": [
+       {
+        "type": "number",
+        "maximum": 100.0,
+        "minimum": 0.0
+       },
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Discount Pct"
+     },
+     "discount_amount": {
+      "anyOf": [
+       {
+        "type": "number",
+        "minimum": 0.0
+       },
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Discount Amount"
+     },
+     "note": {
+      "type": "string",
+      "maxLength": 1000,
+      "title": "Note",
+      "default": ""
+     }
+    },
+    "type": "object",
+    "required": [
+     "version"
+    ],
+    "title": "ManagerPriceIn"
    },
    "MaterialIn": {
     "properties": {
@@ -24768,7 +25120,14 @@
       "title": "Total"
      },
      "total_cost": {
-      "type": "string",
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
       "title": "Total Cost"
      },
      "notes": {
@@ -24841,6 +25200,80 @@
       "type": "integer",
       "title": "Unpriced Lines",
       "default": 0
+     },
+     "pricing_mode": {
+      "type": "string",
+      "title": "Pricing Mode",
+      "default": "manual"
+     },
+     "auto_price_per_m2": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Auto Price Per M2"
+     },
+     "manager_price_per_m2": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Manager Price Per M2"
+     },
+     "price_per_m2": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Price Per M2"
+     },
+     "discount_pct": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Discount Pct"
+     },
+     "discount_requested_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Discount Requested At"
+     },
+     "discount_request_note": {
+      "type": "string",
+      "title": "Discount Request Note",
+      "default": ""
+     },
+     "missing_costs": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Missing Costs",
+      "default": []
      },
      "lines": {
       "items": {
@@ -26354,15 +26787,36 @@
       "title": "Survey Id"
      },
      "fair_margin_pct": {
-      "type": "string",
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
       "title": "Fair Margin Pct"
      },
      "top_margin_pct": {
-      "type": "string",
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
       "title": "Top Margin Pct"
      },
      "cost_total": {
-      "type": "string",
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
       "title": "Cost Total"
      },
      "fair_total": {
@@ -26418,6 +26872,28 @@
       "type": "array",
       "title": "Missing Costs",
       "default": []
+     },
+     "price_per_m2": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Price Per M2"
+     },
+     "price_total": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Price Total"
      },
      "openings": {
       "items": {
@@ -29326,7 +29802,14 @@
       "title": "Area M2"
      },
      "unit_cost": {
-      "type": "string",
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
       "title": "Unit Cost"
      },
      "unit_price": {

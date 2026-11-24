@@ -16,6 +16,7 @@ from app.core.errors import Conflict, NotFound
 from app.core.numbering import next_number
 from app.core.pii import log_pii
 from app.db.base import utcnow
+from app.modules.crm import rules
 from app.modules.crm.models import Customer, SiteSurvey, SurveyOpening
 from app.modules.org.models import Branch
 from app.tenancy.context import require
@@ -42,6 +43,13 @@ def get_or_404(db, model, obj_id):
 
 
 # ---------------------------------------------------------------- customers
+@router.get("/customers/choices")
+def customer_choices(dc=Depends(require("customers.read"))):
+    """The lists the customer form chooses from."""
+    return {"governorates": list(rules.GOVERNORATES), "contact_methods": list(rules.CONTACT_METHODS),
+            "min_questions": rules.MIN_QUESTIONS}
+
+
 class CustomerIn(BaseModel):
     code: str | None = Field(None, max_length=40)
     name: str = Field(min_length=1, max_length=200)
@@ -55,6 +63,10 @@ class CustomerIn(BaseModel):
     tax_number: str | None = None
     branch_id: uuid.UUID | None = None
     notes: str | None = None
+    governorate: str | None = None
+    contact_method: str | None = None
+    first_contact: str | None = None
+    customer_questions: str | None = None
 
 
 class CustomerUpdate(VersionedUpdate):
@@ -69,6 +81,10 @@ class CustomerUpdate(VersionedUpdate):
     tax_number: str | None = None
     branch_id: uuid.UUID | None = None
     notes: str | None = None
+    governorate: str | None = None
+    contact_method: str | None = None
+    first_contact: str | None = None
+    customer_questions: str | None = None
 
 
 class CustomerOut(Record):
@@ -84,6 +100,10 @@ class CustomerOut(Record):
     tax_number: str | None
     branch_id: uuid.UUID | None
     notes: str | None
+    governorate: str | None = None
+    contact_method: str | None = None
+    first_contact: str | None = None
+    customer_questions: str | None = None
     anonymized: bool
 
 
@@ -110,7 +130,7 @@ def create_customer(body: CustomerIn, dc=Depends(require("customers.create"))):
     if body.branch_id:
         ctx.require("customers.create", body.branch_id)
         get_or_404(db, Branch, body.branch_id)
-    data = body.model_dump()
+    data = rules.check(body.model_dump(), new=True)
     data["code"] = data["code"] or next_number(db, "customer", "CU")
     if db.scalar(select(Customer).where(Customer.code == data["code"])):
         raise Conflict("Customer code exists", code="DUPLICATE_CODE")
@@ -147,7 +167,7 @@ def update_customer(customer_id: uuid.UUID, body: CustomerUpdate, dc=Depends(req
     customer = _visible_customer(db, ctx, customer_id, "customers.write")
     check_version(customer, body.version)
     before = snapshot(customer)
-    data = body.model_dump(exclude_unset=True, exclude={"version"})
+    data = rules.check(body.model_dump(exclude_unset=True, exclude={"version"}), new=False)
     apply_changes(customer, data)
     audit(db, customer, "update", before)
     log_pii(db, ctx, "customer", [customer.id], "update", [k for k in data if k in CUSTOMER_PII])

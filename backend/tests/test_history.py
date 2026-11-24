@@ -1,5 +1,5 @@
 """سجل التغييرات لكل سجل: who changed what on a record, for whoever may read it."""
-from tests.test_business_flow import _setup, price_at_top
+from tests.test_business_flow import _setup
 from tests.test_org_permissions_locking import _make_user
 
 
@@ -10,13 +10,15 @@ def test_quotation_history_includes_its_lines_and_who(platform, tenant_a, tenant
             "glass_material_code": "HIST-GLASS6"}
     q = client.post("/api/v1/quotations", headers=h, json={"customer_id": customer["id"], "branch_id": branch["id"],
                                                          "lines": [line]}).json()
-    q = price_at_top(client, h, q)                     # the salesperson types the price on the line
+    ln = q["lines"][0]
+    q = client.patch(f"/api/v1/quotation-lines/{ln['id']}", headers=h,      # the salesperson edits the line
+                     json={"version": ln["version"], "location": "صالة"}).json()
     r = client.get(f"/api/v1/history/quotations/{q['id']}", headers=h)
     assert r.status_code == 200, r.text
     entries = r.json()
     assert any(e["entity"] == "quotations" and e["action"] == "create" for e in entries)
-    priced = [e for e in entries if e["entity"] == "quotation_lines" and "manual_unit_price" in e["changes"]]
-    assert priced and priced[0]["changes"]["manual_unit_price"]["new"] is not None
+    edited = [e for e in entries if e["entity"] == "quotation_lines" and "location" in e["changes"]]
+    assert edited and edited[0]["changes"]["location"]["new"] == "صالة"
     assert all(e["user_name"] for e in entries)                     # who did it
     assert entries == sorted(entries, key=lambda e: e["at"], reverse=True)
 

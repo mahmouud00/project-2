@@ -192,7 +192,7 @@ def test_sale_needs_accounts_and_notifications_reach_each_section(platform, tena
     ha, hs, hp, hf = (tenant_a.headers(u, "user-pass-123") for u in ("acc2", "smgr", "pmgr", "fmgr"))
     inbox = lambda hh: client.get("/api/v1/notifications", headers=hh).json()
     # a customer change reaches the sales manager only
-    client.patch(f"/api/v1/customers/{customer['id']}", headers=h, json={"version": customer["version"], "phone": "0123"})
+    client.patch(f"/api/v1/customers/{customer['id']}", headers=h, json={"version": customer["version"], "phone": "01234567890"})
     assert any(customer["name"] in n["title"] for n in inbox(hs)["items"])
     assert inbox(hp)["unread"] == 0 and inbox(hf)["unread"] == 0
     # a sale waits for the accounts, who are notified

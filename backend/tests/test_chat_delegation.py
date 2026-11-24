@@ -3,6 +3,7 @@ permissions for a while, the activity log with who did what, and the customer's 
 from datetime import datetime, timedelta, timezone
 
 from tests.test_org_permissions_locking import _make_user
+from tests.customers import cust as new_customer
 
 
 def test_chat_between_users(tenant_a, tenant_b, client):
@@ -73,8 +74,8 @@ def test_delegating_permissions(tenant_a, client):
 def test_activity_log_names_who(tenant_a, client):
     u = _make_user(tenant_a, client, "logger", "sales")
     hl = tenant_a.headers("logger", "user-pass-123")
-    r = client.post("/api/v1/customers", headers=hl, json={"name": "عميل السجل", "phone": "01000000000",
-                                                         "whatsapp": "01111111111", "kind": "final"})
+    r = client.post("/api/v1/customers", headers=hl, json=new_customer("عميل السجل الأول", phone="01000000000",
+                                                         whatsapp="01111111111"))
     assert r.status_code == 201, r.text
     assert r.json()["whatsapp"] == "01111111111"
     log = client.get(f"/api/v1/audit-log?user_id={u['id']}", headers=tenant_a.h).json()["items"]

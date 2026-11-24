@@ -3,6 +3,7 @@ from decimal import Decimal as D
 from app.modules.sales.pricing import money
 
 from tests.library_helpers import build_library
+from tests.customers import cust as new_customer
 
 
 def _setup(client, platform, tenant, code):
@@ -18,8 +19,8 @@ def _setup(client, platform, tenant, code):
     assert r.status_code == 200, r.text
     branch = client.get("/api/v1/branches", headers=h).json()["items"][0]
     pl = None                              # price lists are gone: the salesperson types the price
-    customer = client.post("/api/v1/customers", headers=h, json={"name": "أحمد محمد", "phone": "01012345678",
-                                                                "address": "القاهرة"}).json()
+    customer = client.post("/api/v1/customers", headers=h, json=new_customer(national_id="29001011234567",
+                                                                address="القاهرة")).json()
     return lib, branch, pl, customer
 
 
@@ -56,15 +57,15 @@ def test_full_cycle(platform, tenant_a, tenant_b, client):
     assert len(q["lines"]) == 3 and q["price_list_id"] is None      # the survey's 2 windows in the hall: 2 lines
     line = q["lines"][0]
     assert D(line["unit_cost"]) > 0 and line["cost_breakdown"]["missing_costs"] == []
-    # the guide: fair = cost + 20 %, top = cost + 30 %; no price until the salesperson types one
-    assert D(line["fair_unit_price"]) == money(D(line["unit_cost"]) * D("1.2"))
-    assert D(line["top_unit_price"]) == money(D(line["unit_cost"]) * D("1.3"))
-    assert D(line["unit_price"]) == 0 and not line["priced"] and q["unpriced_lines"] == 3
-    r = client.post(f"/api/v1/quotations/{q['id']}/status", headers=h, json={"version": q["version"], "status": "sent"})
-    assert r.status_code == 409 and r.json()["error"]["code"] == "QUOTE_UNPRICED"
-    q = price_at_top(client, h, q)
-    line = q["lines"][0]
-    assert D(line["unit_price"]) == D(line["top_unit_price"]) and D(q["top_total"]) == D(q["subtotal"])
+    # priced by itself: the whole cost + the company's margin (20 %), over the billed m², rounded up to 10,
+    # the same price per m² on every window
+    units = [l for l in q["lines"] if not l["parent_line_id"]]
+    cost = sum(D(l["unit_cost"]) * l["qty"] for l in units)
+    billed = sum(D(l["billed_area_m2"]) * l["qty"] for l in units)
+    ppm = (cost * D("1.2") / billed / 10).to_integral_value(rounding="ROUND_CEILING") * 10
+    assert q["pricing_mode"] == "auto" and D(q["price_per_m2"]) == ppm == D(q["auto_price_per_m2"])
+    assert all(D(l["price_per_m2"]) == ppm and D(l["unit_price"]) == money(D(l["billed_area_m2"]) * ppm) for l in units)
+    assert q["unpriced_lines"] == 0 and D(q["subtotal"]) == sum(D(l["line_total"]) for l in units)
     assert D(q["tax_pct"]) == 14 and D(q["total"]) == money(D(q["subtotal"]) * D("1.14"))
     assert line["formula_set_version_id"] == lib["version"]["id"]
 
@@ -217,7 +218,7 @@ def test_branch_scoped_user_sees_only_branch(platform, tenant_a, client):
 
 def test_pii_access_is_logged(tenant_a, client):
     h = tenant_a.h
-    c = client.post("/api/v1/customers", headers=h, json={"name": "سارة", "phone": "01099999999"}).json()
+    c = client.post("/api/v1/customers", headers=h, json=new_customer("سارة أحمد علي", phone="01099999999")).json()
     client.get(f"/api/v1/customers/{c['id']}", headers=h)
     from app.db.session import tenant_session
     from app.modules.org.models import PiiAccessLog

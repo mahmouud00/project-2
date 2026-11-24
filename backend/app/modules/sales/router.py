@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import date, datetime, timedelta
-from decimal import Decimal
+from decimal import ROUND_CEILING, Decimal
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
@@ -85,7 +85,7 @@ class LineOut(Record):
     glass_text: str | None = None
     qty: int
     area_m2: Decimal
-    unit_cost: Decimal
+    unit_cost: Decimal | None              # hidden (None) from whoever cannot see the company's costs
     unit_price: Decimal
     manual_unit_price: Decimal | None
     price_per_m2: Decimal | None
@@ -146,7 +146,7 @@ class QuotationOut(Record):
     subtotal: Decimal
     tax_amount: Decimal
     total: Decimal
-    total_cost: Decimal
+    total_cost: Decimal | None             # hidden (None) from whoever cannot see the company's costs
     notes: str
     terms: str
     salesperson_id: uuid.UUID | None = None
@@ -158,6 +158,14 @@ class QuotationOut(Record):
     price_approval_note: str = ""
     needs_price_approval: bool = False               # under the fair price and not approved by the sales manager
     unpriced_lines: int = 0
+    pricing_mode: str = "manual"
+    auto_price_per_m2: Decimal | None = None          # the automatic price per m² (cost + the company's margin)
+    manager_price_per_m2: Decimal | None = None       # the sales manager's own price per m², if he set one
+    price_per_m2: Decimal | None = None               # the one in use on every unit
+    discount_pct: Decimal | None = None
+    discount_requested_at: datetime | None = None
+    discount_request_note: str = ""
+    missing_costs: list[str] = []                     # materials without a price: the automatic price is short of them
     lines: list[LineOut] = []
 
 
@@ -168,8 +176,15 @@ TRANSITIONS = {"draft": {"sent", "accepted", "rejected"}, "sent": {"accepted", "
                "rejected": {"draft"}, "expired": {"draft"}, "accepted": set()}
 
 
-def _quote_out(db, q: Quotation, with_calc: bool = True) -> QuotationOut:
+def sees_costs(ctx) -> bool:
+    """The company's costs (and so its margin) are for the management and the accounts, not the salespeople."""
+    return ctx.can("finance.read")
+
+
+def _quote_out(db, ctx, q: Quotation, with_calc: bool = True) -> QuotationOut:
     out = QuotationOut.model_validate(q)
+    costs = sees_costs(ctx)
+    missing: set[str] = set()
     if q.status == "accepted":
         from app.modules.production.router import live_order
         if (wo := live_order(db, q.id)) is not None:
@@ -188,14 +203,31 @@ def _quote_out(db, q: Quotation, with_calc: bool = True) -> QuotationOut:
                 lo.fair_price_per_m2 = money(lo.fair_unit_price / line.billed_area_m2)
                 lo.top_price_per_m2 = money(lo.top_unit_price / line.billed_area_m2)
         lo.priced = line.parent_line_id is not None or _is_priced(line)
+        missing |= set(guide.get("missing_costs") or [])
         if not with_calc:
             lo.calc = {}
+        if not costs:
+            lo.unit_cost, lo.cost_breakdown = None, {"missing_costs": guide.get("missing_costs") or []}
+            lo.fair_unit_price = lo.top_unit_price = lo.fair_price_per_m2 = lo.top_price_per_m2 = None
         lines.append(lo)
     out.lines = lines
+    out.missing_costs = sorted(missing)
+    if q.pricing_mode == "auto":
+        out.price_per_m2 = q.manager_price_per_m2 if q.manager_price_per_m2 is not None else q.auto_price_per_m2
+    if not costs:
+        out.total_cost = None
     out.net_total = _net(q)
     out.unpriced_lines = sum(1 for l in lines if not l.priced)
     out.needs_price_approval = _needs_price_approval(q)
     return out
+
+
+def require_national_id(db, customer_id) -> None:
+    """A quotation is accepted (a contract) only for a customer with a national ID."""
+    from app.modules.crm.models import Customer
+
+    if not (db.get(Customer, customer_id).national_id or "").strip():
+        raise Conflict("The customer's national ID is needed to accept the quotation", code="NATIONAL_ID_REQUIRED")
 
 
 def _is_priced(line: QuotationLine) -> bool:
@@ -208,7 +240,10 @@ def _net(q: Quotation) -> Decimal:
 
 
 def _needs_price_approval(q: Quotation) -> bool:
-    """The total after the discount is under the fair total and the sales manager has not approved that much."""
+    """(Manual pricing) the total after the discount is under the fair total and the sales manager has not approved
+    that much. An automatic price needs no approval: only the sales manager lowers it."""
+    if q.pricing_mode == "auto":
+        return False
     net = _net(q)
     return net < q.fair_total and (q.price_approved_total is None or net < q.price_approved_total)
 
@@ -258,7 +293,8 @@ class Pricer:
             arch = {"model_id": arch_model, "height_mm": arch_h, "calc": arch_calc, "breakdown": arch_cost}
         area = (width_mm * price_height / Decimal(1_000_000)).quantize(Decimal("0.0001"))
         unit_cost = money(unit_cost + self.settings.labor_cost_per_m2 * area)
-        fair, top = guide_prices(unit_cost, self.settings.fair_margin_pct, self.settings.top_margin_pct)
+        # one margin now (the company's profit margin); the top price is kept for older screens
+        fair, top = guide_prices(unit_cost, self.settings.fair_margin_pct, self.settings.fair_margin_pct)
         return {"calc": calc, "breakdown": breakdown, "arch": arch, "unit_cost": unit_cost, "area": area,
                 "billed_area": self.billed_area(area), "fair": fair, "top": top}
 
@@ -266,6 +302,8 @@ class Pricer:
 def _price_line(db, ctx, q: Quotation, line: QuotationLine, pricer: Pricer) -> None:
     if line.parent_line_id is not None:
         raise Conflict("The arch line follows its unit", code="ARCH_LINE_MANAGED")
+    if q.pricing_mode == "auto":                       # priced with the whole quotation in _totals
+        line.price_per_m2 = line.manual_unit_price = None
     if line.price_per_m2 is None and line.manual_unit_price is None and line.unit_price and \
             "fair_unit_price" not in (line.cost_breakdown or {}):
         line.manual_unit_price = line.unit_price        # a price from an old price list stays the line's price
@@ -336,14 +374,57 @@ def _check_editable(db, q: Quotation) -> None:
     raise Conflict("Quotation is locked", code="QUOTE_LOCKED")
 
 
+def ceil_to(value: Decimal, step: Decimal) -> Decimal:
+    return (value / step).to_integral_value(rounding=ROUND_CEILING) * step
+
+
+PRICE_STEP = Decimal(10)          # the automatic price per m² is rounded up to 10
+
+
+def _auto_prices(db, q: Quotation, lines: list[QuotationLine]) -> None:
+    """One price per m² for every unit: the whole cost (materials with waste, arches, running cost) + the company's
+    margin, over all the billed m², rounded up to 10; or the sales manager's own price per m²."""
+    margin = get_company_settings(db, q.company_id).fair_margin_pct
+    units = [l for l in lines if l.parent_line_id is None]
+    cost = sum((l.unit_cost * l.qty for l in units), Decimal(0))
+    billed = sum((l.billed_area_m2 * l.qty for l in units), Decimal(0))
+    q.auto_price_per_m2 = ceil_to(cost * (1 + margin / 100) / billed, PRICE_STEP) if billed else Decimal(0)
+    ppm = q.manager_price_per_m2 if q.manager_price_per_m2 is not None else q.auto_price_per_m2
+    for l in units:
+        l.manual_unit_price, l.price_per_m2 = None, ppm
+        l.unit_price = money(l.billed_area_m2 * ppm)
+        l.line_total = money(l.unit_price * l.qty)
+
+
+def openings_changed(q: Quotation) -> None:
+    """The openings changed: the price goes back to automatic (the sales manager approved what he saw only).
+    An old draft priced by hand becomes automatic too."""
+    if q.pricing_mode == "manual" and q.status == "draft":
+        q.pricing_mode = "auto"
+        q.discount_amount = Decimal(0)
+    if q.pricing_mode != "auto":
+        return
+    q.manager_price_per_m2 = q.discount_pct = None
+    q.discount_amount = Decimal(0)
+    q.price_approved_total = q.price_approved_at = q.price_approved_by = None
+    q.price_approval_note = ""
+
+
 def _totals(db, q: Quotation) -> None:
     lines = list(db.scalars(select(QuotationLine).where(QuotationLine.quotation_id == q.id)))
+    if q.pricing_mode == "auto":
+        _auto_prices(db, q, lines)
     q.subtotal = money(sum((l.line_total for l in lines), Decimal(0)))
     q.total_cost = money(sum((l.unit_cost * l.qty for l in lines), Decimal(0)))
     guide = [((l.cost_breakdown or {}).get("fair_unit_price"), (l.cost_breakdown or {}).get("top_unit_price"), l.qty)
              for l in lines if l.parent_line_id is None]
     q.fair_total = money(sum((Decimal(f) * n for f, _, n in guide if f is not None), Decimal(0)))
     q.top_total = money(sum((Decimal(t) * n for _, t, n in guide if t is not None), Decimal(0)))
+    if q.pricing_mode == "auto":
+        q.fair_total = q.top_total = money(sum((money(l.billed_area_m2 * (q.auto_price_per_m2 or 0)) * l.qty
+                                                for l in lines if l.parent_line_id is None), Decimal(0)))
+        if q.discount_pct is not None:
+            q.discount_amount = money(q.subtotal * q.discount_pct / 100)
     taxable = max(q.subtotal - q.discount_amount, Decimal(0))
     q.tax_amount = money(taxable * q.tax_pct / 100)
     q.total = money(taxable + q.tax_amount)
@@ -370,7 +451,11 @@ def list_quotations(customer_id: uuid.UUID | None = None, status: str | None = N
         stmt = stmt.where(Quotation.customer_id == customer_id)
     if status:
         stmt = stmt.where(Quotation.status == status)
-    return paginate(db, stmt, params, QuotationOut)
+    page = paginate(db, stmt, params, QuotationOut)
+    if not sees_costs(ctx):
+        for item in page["items"]:
+            item.total_cost = None
+    return page
 
 
 @router.post("/quotations", response_model=QuotationOut, status_code=201)
@@ -405,7 +490,9 @@ def create_quotation(body: QuotationIn, dc=Depends(require("quotes.create"))):
                   tax_pct=body.tax_pct if body.tax_pct is not None else settings.default_tax_pct,
                   discount_amount=body.discount_amount, notes=body.notes,
                   terms=body.terms if body.terms is not None else settings.quote_terms,
-                  salesperson_id=salesperson_for(db, ctx, body.salesperson_id))
+                  salesperson_id=salesperson_for(db, ctx, body.salesperson_id), pricing_mode="auto")
+    if body.discount_amount and not ctx.can("quotes.approve_price", branch.id):
+        raise Conflict("Only the sales manager gives a discount", code="PRICE_BY_MANAGER")
     db.add(q)
     db.flush()
     pricer = Pricer(db, ctx)
@@ -413,15 +500,17 @@ def create_quotation(body: QuotationIn, dc=Depends(require("quotes.create"))):
         line = QuotationLine(quotation_id=q.id, position=i, **l.model_dump())
         _price_line(db, ctx, q, line, pricer)       # adds the line (and its arch line)
     _totals(db, q)
+    if q.discount_amount:
+        _manager_closed(ctx, q, "")
     audit(db, q, "create")
     db.commit()
-    return _quote_out(db, q)
+    return _quote_out(db, ctx, q)
 
 
 @router.get("/quotations/{quote_id}", response_model=QuotationOut)
 def get_quotation(quote_id: uuid.UUID, with_calc: bool = True, dc=Depends(require("quotes.read"))):
     db, ctx = dc
-    return _quote_out(db, _get_quote(db, ctx, quote_id), with_calc)
+    return _quote_out(db, ctx, _get_quote(db, ctx, quote_id), with_calc)
 
 
 @router.patch("/quotations/{quote_id}", response_model=QuotationOut)
@@ -434,11 +523,21 @@ def update_quotation(quote_id: uuid.UUID, body: QuotationUpdate, dc=Depends(requ
     data = body.model_dump(exclude_unset=True, exclude={"version"})
     if data.get("salesperson_id"):
         salesperson_for(db, ctx, data["salesperson_id"])
+    manager_discount = False
+    if q.pricing_mode == "auto" and "discount_amount" in data:
+        if data["discount_amount"] == q.discount_amount:
+            del data["discount_amount"]
+        elif not ctx.can("quotes.approve_price", q.branch_id):
+            raise Conflict("Only the sales manager gives a discount", code="PRICE_BY_MANAGER")
+        else:
+            manager_discount, q.discount_pct = True, None
     apply_changes(q, data)
     _totals(db, q)
+    if manager_discount:
+        _manager_closed(ctx, q, "")
     audit(db, q, "update", before)
     db.commit()
-    return _quote_out(db, q)
+    return _quote_out(db, ctx, q)
 
 
 @router.post("/quotations/{quote_id}/lines", response_model=QuotationOut, status_code=201)
@@ -448,10 +547,11 @@ def add_line(quote_id: uuid.UUID, body: LineIn, dc=Depends(require("quotes.write
     _check_editable(db, q)
     last = db.scalar(select(func.max(QuotationLine.position)).where(QuotationLine.quotation_id == q.id)) or 0
     line = QuotationLine(quotation_id=q.id, position=last + 1, **body.model_dump())
+    openings_changed(q)
     _price_line(db, ctx, q, line, Pricer(db, ctx))
     _totals(db, q)
     db.commit()
-    return _quote_out(db, q)
+    return _quote_out(db, ctx, q)
 
 
 @router.patch("/quotation-lines/{line_id}", response_model=QuotationOut)
@@ -463,11 +563,12 @@ def update_line(line_id: uuid.UUID, body: LineUpdate, dc=Depends(require("quotes
     check_version(line, body.version)
     before = snapshot(line)
     apply_changes(line, body.model_dump(exclude_unset=True, exclude={"version"}))
+    openings_changed(q)
     _price_line(db, ctx, q, line, Pricer(db, ctx))
     _totals(db, q)
     audit(db, line, "update", before)
     db.commit()
-    return _quote_out(db, q)
+    return _quote_out(db, ctx, q)
 
 
 @router.delete("/quotation-lines/{line_id}", response_model=QuotationOut)
@@ -484,9 +585,10 @@ def delete_line(line_id: uuid.UUID, dc=Depends(require("quotes.write"))):
     db.delete(line)
     db.flush()
     audit(db, line, "delete", before)
+    openings_changed(q)
     _totals(db, q)
     db.commit()
-    return _quote_out(db, q)
+    return _quote_out(db, ctx, q)
 
 
 class StatusIn(BaseModel):
@@ -509,6 +611,8 @@ def set_status(quote_id: uuid.UUID, body: StatusIn, dc=Depends(require("quotes.w
             raise Conflict("The price is under the fair price: the sales manager must approve it",
                            code="PRICE_APPROVAL_REQUIRED",
                            details={"net_total": str(_net(q)), "fair_total": str(q.fair_total)})
+    if body.status == "accepted":
+        require_national_id(db, q.customer_id)
     before = snapshot(q)
     q.status = body.status
     audit(db, q, "update", before)
@@ -517,7 +621,7 @@ def set_status(quote_id: uuid.UUID, body: StatusIn, dc=Depends(require("quotes.w
     alert(db, ctx, "sales", q.branch_id, f"عرض السعر {q.number} {word.get(q.status, q.status)}",
           customer_name(db, q.customer_id), f"quotations/{q.id}")
     db.commit()
-    return _quote_out(db, q, with_calc=False)
+    return _quote_out(db, ctx, q, with_calc=False)
 
 
 class PriceApprovalIn(BaseModel):
@@ -538,7 +642,7 @@ def request_price_approval(quote_id: uuid.UUID, dc=Depends(require("quotes.write
           f"{customer_name(db, q.customer_id)} · {_net(q)} والسعر العادل {q.fair_total}", f"quotations/{q.id}",
           users=recipients(db, "quotes.approve_price", q.branch_id))
     db.commit()
-    return _quote_out(db, q, with_calc=False)
+    return _quote_out(db, ctx, q, with_calc=False)
 
 
 @router.post("/quotations/{quote_id}/approve-price", response_model=QuotationOut)
@@ -562,7 +666,7 @@ def approve_price(quote_id: uuid.UUID, body: PriceApprovalIn, dc=Depends(require
     alert(db, ctx, "sales", q.branch_id, f"مدير المبيعات وافق على سعر عرض {q.number}",
           customer_name(db, q.customer_id), f"quotations/{q.id}", users={q.created_by} if q.created_by else set())
     db.commit()
-    return _quote_out(db, q, with_calc=False)
+    return _quote_out(db, ctx, q, with_calc=False)
 
 
 @router.post("/quotations/{quote_id}/recalculate", response_model=QuotationOut)
@@ -571,12 +675,13 @@ def recalculate(quote_id: uuid.UUID, dc=Depends(require("quotes.write"))):
     db, ctx = dc
     q = _get_quote(db, ctx, quote_id, "quotes.write")
     _check_editable(db, q)
+    openings_changed(q)                         # new costs: the manager's price was on the old ones
     pricer = Pricer(db, ctx)
     for line in db.scalars(select(QuotationLine).where(QuotationLine.quotation_id == q.id, UNITS)):
         _price_line(db, ctx, q, line, pricer)
     _totals(db, q)
     db.commit()
-    return _quote_out(db, q)
+    return _quote_out(db, ctx, q)
 
 
 class PricePerM2In(BaseModel):
@@ -586,11 +691,13 @@ class PricePerM2In(BaseModel):
 
 @router.post("/quotations/{quote_id}/price-per-m2", response_model=QuotationOut)
 def set_price_per_m2(quote_id: uuid.UUID, body: PricePerM2In, dc=Depends(require("quotes.write"))):
-    """One price per m² for every line (empty = back to each line's own price)."""
+    """(Manual pricing) one price per m² for every line (empty = back to each line's own price)."""
     db, ctx = dc
     q = _get_quote(db, ctx, quote_id, "quotes.write")
     check_version(q, body.version)
     _check_editable(db, q)
+    if q.pricing_mode == "auto":
+        raise Conflict("The price is automatic: only the sales manager changes it", code="PRICE_BY_MANAGER")
     before = snapshot(q)
     pricer = Pricer(db, ctx)
     for line in db.scalars(select(QuotationLine).where(QuotationLine.quotation_id == q.id, UNITS)):
@@ -599,7 +706,80 @@ def set_price_per_m2(quote_id: uuid.UUID, body: PricePerM2In, dc=Depends(require
     _totals(db, q)
     audit(db, q, "update", before)
     db.commit()
-    return _quote_out(db, q)
+    return _quote_out(db, ctx, q)
+
+
+def _manager_closed(ctx, q: Quotation, note: str) -> None:
+    """The sales manager decided the price: kept as his, and the request (if any) is answered."""
+    if q.discount_amount > q.subtotal:
+        raise ValidationFailed("The discount is more than the total", code="DISCOUNT_TOO_LARGE")
+    changed = q.manager_price_per_m2 is not None or q.discount_amount > 0
+    q.price_approved_total = _net(q) if changed else None
+    q.price_approved_at, q.price_approved_by = (utcnow(), ctx.user_id) if changed else (None, None)
+    q.price_approval_note = (note or "").strip()
+    q.discount_requested_at, q.discount_request_note = None, ""
+
+
+class DiscountRequestIn(BaseModel):
+    note: str = Field("", max_length=1000)
+
+
+@router.post("/quotations/{quote_id}/request-discount", response_model=QuotationOut)
+def request_discount(quote_id: uuid.UUID, body: DiscountRequestIn, dc=Depends(require("quotes.write"))):
+    """The customer or the salesperson wants a discount: the sales manager is told, and he decides."""
+    from app.modules.notifications.router import alert, customer_name, recipients
+
+    db, ctx = dc
+    q = _get_quote(db, ctx, quote_id, "quotes.write")
+    _check_editable(db, q)
+    if q.pricing_mode != "auto":
+        raise Conflict("Manual pricing: ask for a price approval", code="QUOTE_MANUAL_PRICING")
+    before = snapshot(q)
+    q.discount_requested_at, q.discount_request_note = utcnow(), body.note.strip()
+    q.updated_at = utcnow()
+    audit(db, q, "update", before, note="طلب خصم")
+    alert(db, ctx, "sales", q.branch_id, f"طلب خصم على عرض السعر {q.number}",
+          f"{customer_name(db, q.customer_id)} · {q.total}" + (f" · {q.discount_request_note}" if q.discount_request_note else ""),
+          f"quotations/{q.id}", users=recipients(db, "quotes.approve_price", q.branch_id))
+    db.commit()
+    return _quote_out(db, ctx, q, with_calc=False)
+
+
+class ManagerPriceIn(BaseModel):
+    version: int
+    price_per_m2: Decimal | None = Field(None, gt=0, max_digits=14, decimal_places=2)   # None: the automatic one
+    discount_pct: Decimal | None = Field(None, ge=0, le=100)
+    discount_amount: Decimal | None = Field(None, ge=0, max_digits=14, decimal_places=2)
+    note: str = Field("", max_length=1000)
+
+
+@router.post("/quotations/{quote_id}/manager-price", response_model=QuotationOut)
+def manager_price(quote_id: uuid.UUID, body: ManagerPriceIn, dc=Depends(require("quotes.approve_price"))):
+    """The sales manager sets the price: his own price per m² and / or a discount (an amount or a percentage), and
+    closes it; the salesperson sees it at once. Nothing set = back to the automatic price."""
+    from app.modules.notifications.router import alert, customer_name
+
+    db, ctx = dc
+    q = _get_quote(db, ctx, quote_id, "quotes.approve_price")
+    check_version(q, body.version)
+    _check_editable(db, q)
+    if q.pricing_mode != "auto":
+        if q.status != "draft":
+            raise Conflict("Manual pricing", code="QUOTE_MANUAL_PRICING")
+        q.pricing_mode = "auto"
+    if body.discount_pct is not None and body.discount_amount:
+        raise ValidationFailed("A discount is an amount or a percentage", code="DISCOUNT_ONE_KIND")
+    before = snapshot(q)
+    q.manager_price_per_m2 = body.price_per_m2
+    q.discount_pct = body.discount_pct if body.discount_pct else None
+    q.discount_amount = Decimal(0) if q.discount_pct is not None else (body.discount_amount or Decimal(0))
+    _totals(db, q)
+    _manager_closed(ctx, q, body.note)
+    audit(db, q, "update", before, note="سعر مدير المبيعات")
+    alert(db, ctx, "sales", q.branch_id, f"مدير المبيعات حدد سعر عرض {q.number}: {q.total}",
+          customer_name(db, q.customer_id), f"quotations/{q.id}", users={q.created_by} if q.created_by else set())
+    db.commit()
+    return _quote_out(db, ctx, q, with_calc=False)
 
 
 # ---------------------------------------------------------------- guide prices of a survey
@@ -618,9 +798,9 @@ class OpeningPrice(BaseModel):
 
 class SurveyPricing(BaseModel):
     survey_id: uuid.UUID
-    fair_margin_pct: Decimal
-    top_margin_pct: Decimal
-    cost_total: Decimal
+    fair_margin_pct: Decimal | None       # hidden (None) from whoever cannot see the company's costs
+    top_margin_pct: Decimal | None
+    cost_total: Decimal | None
     fair_total: Decimal                   # the lowest without the sales manager
     top_total: Decimal
     fair_price_per_m2: Decimal | None     # total / billed area
@@ -630,6 +810,8 @@ class SurveyPricing(BaseModel):
     priced: int
     unpriced: int
     missing_costs: list[str] = []         # materials without a price: the cost is short of them
+    price_per_m2: Decimal | None = None   # the automatic price per m² of these openings (rounded up to 10)
+    price_total: Decimal | None = None    # billed m² × that price
     openings: list[OpeningPrice]
 
 
@@ -672,12 +854,18 @@ def survey_pricing(survey_id: uuid.UUID, dc=Depends(require("quotes.read"))):
         rows.append(row)
     priced = sum(1 for r in rows if r.error is None)
     st = pricer.settings
-    return SurveyPricing(survey_id=survey.id, fair_margin_pct=st.fair_margin_pct, top_margin_pct=st.top_margin_pct,
+    ppm = ceil_to(cost * (1 + st.fair_margin_pct / 100) / billed_sum, PRICE_STEP) if billed_sum else None
+    out = SurveyPricing(price_per_m2=ppm, price_total=money(ppm * billed_sum) if ppm is not None else None,survey_id=survey.id, fair_margin_pct=st.fair_margin_pct, top_margin_pct=st.top_margin_pct,
                          cost_total=money(cost), fair_total=money(fair), top_total=money(top),
                          fair_price_per_m2=money(fair / billed_sum) if billed_sum else None,
                          top_price_per_m2=money(top / billed_sum) if billed_sum else None,
                          area_m2=area_sum, billed_area_m2=billed_sum, priced=priced, unpriced=len(rows) - priced,
                          missing_costs=sorted(missing), openings=rows)
+    if not sees_costs(ctx):
+        out.cost_total, out.fair_margin_pct, out.top_margin_pct = None, None, None
+        for row in out.openings:
+            row.unit_cost = None
+    return out
 
 
 # ---------------------------------------------------------------- delete

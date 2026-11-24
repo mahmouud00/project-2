@@ -4,6 +4,7 @@ from decimal import Decimal as D
 from tests.delete_helpers import delete_now
 from tests.test_business_flow import _setup, price_at_top
 from tests.test_org_permissions_locking import _make_user
+from tests.customers import cust as new_customer
 
 
 def test_add_and_delete_need_their_own_permission(tenant_a, client):
@@ -12,17 +13,17 @@ def test_add_and_delete_need_their_own_permission(tenant_a, client):
     assert r.status_code == 201, r.text
     _make_user(tenant_a, client, "editor1", "editor")
     h = tenant_a.headers("editor1", "user-pass-123")
-    r = client.post("/api/v1/customers", headers=h, json={"name": "عميل"})
+    r = client.post("/api/v1/customers", headers=h, json=new_customer())
     assert r.status_code == 403 and r.json()["error"]["details"]["permission"] == "customers.create"
-    cust = client.post("/api/v1/customers", headers=tenant_a.h, json={"name": "عميل"}).json()
+    cust = client.post("/api/v1/customers", headers=tenant_a.h, json=new_customer()).json()
     assert client.patch(f"/api/v1/customers/{cust['id']}", headers=h,
-                        json={"version": cust["version"], "phone": "0100"}).status_code == 200
+                        json={"version": cust["version"], "phone": "01000000001"}).status_code == 200
     r = delete_now(client, h, f"/api/v1/customers/{cust['id']}")
     assert r.status_code == 403 and r.json()["error"]["details"]["permission"] == "customers.delete"
     # the built-in sales role can add but not delete
     _make_user(tenant_a, client, "sales9", "sales")
     hs = tenant_a.headers("sales9", "user-pass-123")
-    assert client.post("/api/v1/customers", headers=hs, json={"name": "عميل 2"}).status_code == 201
+    assert client.post("/api/v1/customers", headers=hs, json=new_customer("عميل تاني خالص")).status_code == 201
     assert delete_now(client, hs, f"/api/v1/customers/{cust['id']}").status_code == 403
     # the administrator can delete; the customer disappears from lists
     assert delete_now(client, tenant_a.h, f"/api/v1/customers/{cust['id']}").json() == {"result": "deleted"}

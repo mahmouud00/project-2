@@ -96,6 +96,15 @@ class Quotation(Base, Entity, SoftDeleteMixin):
     price_approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     price_approved_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
     price_approval_note: Mapped[str] = mapped_column(Text, default="", server_default="")
+    # التسعير الأوتوماتيك (auto): one price per m² for every unit = the quotation's whole cost + the company's
+    # margin, over the billed m², rounded up to 10. Only the sales manager changes it (a price per m² of his own and /
+    # or a discount), and any change to the openings takes it back to automatic. Older quotations stay "manual".
+    pricing_mode: Mapped[str] = mapped_column(String(10), default="auto", server_default="manual")
+    auto_price_per_m2: Mapped[Decimal | None] = mapped_column(Numeric(14, 2), nullable=True)
+    manager_price_per_m2: Mapped[Decimal | None] = mapped_column(Numeric(14, 2), nullable=True)
+    discount_pct: Mapped[Decimal | None] = mapped_column(Numeric(6, 3), nullable=True)
+    discount_requested_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    discount_request_note: Mapped[str] = mapped_column(Text, default="", server_default="")
 
 
 class QuotationLine(Base, Entity):

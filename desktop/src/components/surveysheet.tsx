@@ -224,8 +224,8 @@ export function SurveySheet({ kind, rows, onChange, editable, onDetails }:
 
 type Pricing = S<"SurveyPricing">;
 
-/** دليل المبيعات of a whole survey: the fair price (cost + fair margin: the lowest without the sales manager) and the
- * top price (cost + top margin), per m² and in total, from the real cost of each opening at its sizes. */
+/** The automatic price of a whole survey: its whole cost + the company's margin, over the billed m², rounded up to 10
+ * (the same price per m² a quotation made from it gets). */
 export function SuggestedPrice({ surveyId, version, compact }: { surveyId: string; version?: number; compact?: boolean }) {
   const s = useSession();
   const p = useLoad(() => api.get<Pricing>(`/surveys/${surveyId}/pricing`).catch((e) => ({ error: errorText(e) })), [surveyId, version]);
@@ -234,19 +234,18 @@ export function SuggestedPrice({ surveyId, version, compact }: { surveyId: strin
   if (!d) return null;
   if ("error" in d) return compact ? <span className="faint small">—</span> : <div className="notice warn">{d.error}</div>;
   if (compact) {
-    return d.fair_price_per_m2 && d.top_price_per_m2
-      ? <span title={d.unpriced ? `${d.unpriced} فتحة من غير نموذج مش داخلة في الحساب` : undefined}><Money v={d.fair_price_per_m2} /> – <Money v={d.top_price_per_m2} /><span className="muted small"> / م²</span>{d.unpriced ? <span className="faint small"> *</span> : null}</span>
+    return d.price_per_m2
+      ? <span title={d.unpriced ? `${d.unpriced} فتحة من غير نموذج مش داخلة في الحساب` : undefined}><Money v={d.price_per_m2} /><span className="muted small"> / م²</span>{d.unpriced ? <span className="faint small"> *</span> : null}</span>
       : <span className="faint small">محتاج نموذج</span>;
   }
   return (
     <div className="totals" style={{ width: "100%" }}>
       <div className="r"><span>المساحة المحسوبة</span><span className="num">{Number(d.billed_area_m2).toFixed(2)} م²</span></div>
       {s.can("finance.read") && <div className="r"><span>تكلفة العملية على الشركة</span><Money v={d.cost_total} /></div>}
-      <div className="r big"><span>السعر العادل <span className="muted small">(+{Number(d.fair_margin_pct)}%)</span></span>
-        <span><Money v={d.fair_total} cur />{d.fair_price_per_m2 && <span className="muted small"> · <Money v={d.fair_price_per_m2} /> / م²</span>}</span></div>
-      <div className="r big"><span>أعلى سعر <span className="muted small">(+{Number(d.top_margin_pct)}%)</span></span>
-        <span><Money v={d.top_total} cur />{d.top_price_per_m2 && <span className="muted small"> · <Money v={d.top_price_per_m2} /> / م²</span>}</span></div>
-      <div className="r small muted"><span>دليل للمبيعات بس: السعر بيكتبه موظف المبيعات بإيده، وأقل من السعر العادل محتاج موافقة مدير المبيعات. محسوب من تكلفة الخامات بالتخصيمات وتكلفة التشغيل للمتر، وأي فتحة أقل من الحد الأدنى للمساحة بتتحسب بيه.</span></div>
+      {s.can("finance.read") && d.fair_margin_pct != null && <div className="r small muted"><span>هامش الربح</span><span className="num">{Number(d.fair_margin_pct)}%</span></div>}
+      <div className="r big"><span>سعر المتر</span><Money v={d.price_per_m2} cur /></div>
+      <div className="r big"><span>الإجمالي</span><Money v={d.price_total} cur /></div>
+      <div className="r small muted"><span>سعر أوتوماتيك: تكلفة الخامات بالتخصيمات وتكلفة التشغيل + هامش ربح الشركة، على كل الأمتار (أي فتحة أقل من الحد الأدنى للمساحة بتتحسب بيه). الخصم من مدير المبيعات بس.</span></div>
       {d.missing_costs.length > 0 && <div className="notice warn small" style={{ marginTop: 6 }}>خامات من غير سعر (التكلفة ناقصة): {d.missing_costs.join("، ")}</div>}
       {d.unpriced > 0 && <div className="notice warn small" style={{ marginTop: 6 }}>{d.unpriced} فتحة مش داخلة في الحساب (من غير نموذج، أو النموذج مش منشور، أو ليها أرج ومفيش نموذج أرج متحدد).</div>}
     </div>

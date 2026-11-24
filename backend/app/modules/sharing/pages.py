@@ -57,11 +57,12 @@ def _open(token: str):
     return share, db, ctx
 
 
-def _panel(share: DocumentShare, token: str, status: str) -> str:
+def _panel(share: DocumentShare, token: str, status: str, needs_id: bool = False) -> str:
     style = """<style>.share-panel{font-family:Tahoma,Arial,sans-serif;max-width:820px;margin:14px auto;background:#EEF2FF;
 border:1px solid #C7D2FE;border-radius:12px;padding:14px 16px;direction:rtl}.share-panel b{font-size:15px}
 .share-panel form{display:inline-block;margin:8px 0 0 8px}.share-panel button{font:inherit;border:0;border-radius:9px;padding:9px 16px;
 cursor:pointer}.share-panel .ok{background:#16A34A;color:#fff}.share-panel .change{background:#fff;border:1px solid #CBD5E1}
+.share-panel input{border:1px solid #CBD5E1;border-radius:8px;padding:8px;font:inherit;width:220px;direction:ltr}
 .share-panel textarea{width:100%;box-sizing:border-box;margin-top:8px;border:1px solid #CBD5E1;border-radius:8px;padding:8px;font:inherit}
 @media print{.share-panel{display:none}}</style>"""
     if share.response == "accepted":
@@ -74,8 +75,10 @@ cursor:pointer}.share-panel .ok{background:#16A34A;color:#fff}.share-panel .chan
         body = "<b>العرض ده مش مستني رد دلوقتي.</b> لو عندك سؤال كلّم الشركة."
     else:
         t = html.escape(token)
+        id_field = ('<div style="margin-bottom:6px">للتعاقد اكتب رقمك القومي (14 رقم): '
+                    '<input name="national_id" inputmode="numeric" maxlength="20" required></div>') if needs_id else ""
         body = f"""<b>موافق على عرض السعر ده؟</b>
-<form method="post" action="/s/{t}/accept"><button class="ok" type="submit">✓ موافق على العرض</button></form>
+<form method="post" action="/s/{t}/accept">{id_field}<button class="ok" type="submit">✓ موافق على العرض</button></form>
 <form method="post" action="/s/{t}/change" style="display:block"><textarea name="note" rows="2" maxlength="1000"
 placeholder="لو عايز تعديل، اكتبه هنا (المقاسات، العدد، اللون…)" required></textarea>
 <button class="change" type="submit">ابعت طلب التعديل</button></form>"""
@@ -116,7 +119,7 @@ def view(token: str, request: Request):
             if first and share.doc_type == "quotation":
                 _notify(db, ctx, share, "فتح لينك عرض السعر")
         db.commit()
-        panel = _panel(share, token, status)
+        panel = _panel(share, token, status, _needs_id(db, share))
         if "<body" in page:
             at = page.index(">", page.index("<body")) + 1
             page = page[:at] + panel + page[at:]
@@ -125,6 +128,16 @@ def view(token: str, request: Request):
         return HTMLResponse(page.replace("<head>", head, 1))
     finally:
         db.close()
+
+
+def _needs_id(db, share: DocumentShare) -> bool:
+    from app.modules.crm.models import Customer
+    from app.modules.sales.models import Quotation
+
+    if share.doc_type != "quotation":
+        return False
+    q = db.get(Quotation, share.doc_id)
+    return q is not None and not (db.get(Customer, q.customer_id).national_id or "").strip()
 
 
 def _notify(db, ctx, share: DocumentShare, what: str) -> None:
@@ -140,9 +153,12 @@ def _notify(db, ctx, share: DocumentShare, what: str) -> None:
               customer_name(db, q.customer_id), f"quotations/{q.id}", users=users)
 
 
-def _answer(token: str, kind: str, note: str = ""):
+def _answer(token: str, kind: str, note: str = "", national_id: str = ""):
     from app.licensing.service import entitlements
     from app.modules.sales.models import Quotation, QuotationLine
+    from app.core.pii import log_pii
+    from app.modules.crm import rules
+    from app.modules.crm.models import Customer
     from app.modules.sales.router import UNITS, _is_priced, _needs_price_approval
 
     opened = _open(token)
@@ -165,6 +181,15 @@ def _answer(token: str, kind: str, note: str = ""):
                 _notify(db, ctx, share, "حاول يوافق على عرض محتاج مراجعة")
                 db.commit()
                 return _message("العرض محتاج مراجعة", "العرض اتغيّر وبيتراجع من الشركة. هيتواصلوا معاك.")
+            customer = db.get(Customer, q.customer_id)
+            if not (customer.national_id or "").strip():      # a contract needs it: the customer writes it here
+                if (nid := rules.national_id(national_id or "")) is None:
+                    db.rollback()
+                    return _message("الرقم القومي غلط", "ارجع للعرض واكتب رقمك القومي صح (14 رقم).", 422)
+                before_c = snapshot(customer)
+                customer.national_id = nid
+                audit(db, customer, "update", before_c, note="العميل كتبه من لينك عرض السعر")
+                log_pii(db, ctx, "customer", [customer.id], "update", ["national_id"])
             before = snapshot(q)
             q.status = "accepted"
             audit(db, q, "update", before, note="العميل وافق من اللينك")
@@ -183,8 +208,8 @@ def _answer(token: str, kind: str, note: str = ""):
 
 
 @router.post("/s/{token}/accept")
-def accept(token: str):
-    return _answer(token, "accept")
+def accept(token: str, national_id: str = Form("", max_length=20)):
+    return _answer(token, "accept", national_id=national_id)
 
 
 @router.post("/s/{token}/change")

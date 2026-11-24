@@ -537,8 +537,20 @@ def get_outputs(wo_id: uuid.UUID, dc=Depends(require("workorders.read"))):
     if not wo.outputs:
         if wo.stage in FROZEN_STAGES:
             raise Conflict("No outputs", code="NO_OUTPUTS")
-        return generate_outputs(db, wo)
-    return wo.outputs
+        return _cost_view(ctx, generate_outputs(db, wo))
+    return _cost_view(ctx, wo.outputs)
+
+
+def sees_material_costs(ctx) -> bool:
+    """The costs are for the management, the accounts and purchasing, not the salespeople."""
+    return ctx.can("finance.read") or ctx.can("purchasing.read")
+
+
+def _cost_view(ctx, out: dict) -> dict:
+    if sees_material_costs(ctx) or not out:
+        return out
+    costs = [{**c, "unit_cost": None, "amount": None} for c in out.get("costs", [])]
+    return {**out, "costs": costs, "material_cost_total": None}
 
 
 class NeedOut(BaseModel):
@@ -600,7 +612,7 @@ def material_needs(wo_id: uuid.UUID, dc=Depends(require("workorders.read"))):
     for n in needs:
         if n.name == n.material_code and (m := find_material(db, n.material_code)) is not None:
             n.name = m.name                       # orders calculated before names were kept show the name too
-        n.unit_cost = cost.get(n.sku)
+        n.unit_cost = cost.get(n.sku) if sees_material_costs(ctx) else None
         n.qty = n.qty.quantize(Decimal("0.001"))
     return needs
 

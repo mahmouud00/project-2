@@ -65,6 +65,8 @@ python -m pytest                                   # لازم كله يعدّي 
 - `app/engine` لغة المعادلات (`expr.py`) والحساب (`compute.py`) — عام، مفيهوش أي تخصيم
 - `app/modules/library` المكتبة، النشر، الحساب، الحزم · `app/modules/org` · `app/modules/system`
 - `app/modules/{crm,sales,production,purchasing,treasury,invoicing,privacy}` النواة الإدارية (مفيش مخازن: اتشالت في 0011)
+- `app/modules/crm/rules.py` بيانات العميل الإجبارية (الاسم الثلاثي، الموبايل والواتساب، المحافظة، طريقة التواصل وأسئلة العميل)
+- `app/modules/sales/router.py` التسعير الأوتوماتيك (`_auto_prices`، `openings_changed`)، طلب الخصم وسعر مدير المبيعات؛ التكلفة بتظهر بس لـ`finance.read` (`sees_costs`)
 - `app/modules/hr` الموظفين والحوافز والسلف والإجازات وكشوف المرتبات، و`attendance.py` البصمات من جهاز ZKTeco (`/iclock`)، و`policy.py`/`payrules.py` سياسات المرتبات والحضور (شوف `docs/ATTENDANCE.md`) · `app/modules/finance` الأصول والربحية ورأس المال
 - `app/modules/field` الصيانة ومهام الفنيين والتتبع
 - `app/modules/chat` الشات بين المستخدمين (صور وملفات، آخر ظهور)، وتفويض الصلاحيات (بيتضاف للصلاحيات في `tenancy/context.py`)

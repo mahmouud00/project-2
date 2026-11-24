@@ -208,6 +208,12 @@ def test_upgrade_from_old_revision_keeps_data():
     # 0016: nothing is hidden by the upgrade; the administrator may erase at once
     assert all(r["deleted_at"] is None for t in ("profile_systems", "materials") for r in after[t].values())
     assert "delete.permanent" in set(after["roles"][str(p["admin_role"])]["permissions"])
+    # 0028: old customers keep their data; the new fields are empty until the customer is next edited
+    assert after["customers"] and all(c["name"] and c.get("governorate") is None and c.get("customer_questions") is None
+                                      for c in after["customers"].values())
+    # 0028: every existing quotation keeps its prices (manual pricing)
+    assert all(x["pricing_mode"] == "manual" and x.get("manager_price_per_m2") is None
+               for x in after["quotations"].values())
     # 0027: chat, delegations are new; nobody has a last-seen time or a WhatsApp number yet
     assert not after.get("chat_messages") and not after.get("permission_delegations")
     assert all(c.get("whatsapp") is None for c in after.get("customers", {}).values())

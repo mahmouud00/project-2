@@ -1319,6 +1319,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/customers/choices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Customer Choices
+         * @description The lists the customer form chooses from.
+         */
+        get: operations["customer_choices_api_v1_customers_choices_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/customers": {
         parameters: {
             query?: never;
@@ -1563,9 +1583,50 @@ export interface paths {
         put?: never;
         /**
          * Set Price Per M2
-         * @description One price per m² for every line (empty = back to each line's own price).
+         * @description (Manual pricing) one price per m² for every line (empty = back to each line's own price).
          */
         post: operations["set_price_per_m2_api_v1_quotations__quote_id__price_per_m2_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quotations/{quote_id}/request-discount": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Request Discount
+         * @description The customer or the salesperson wants a discount: the sales manager is told, and he decides.
+         */
+        post: operations["request_discount_api_v1_quotations__quote_id__request_discount_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quotations/{quote_id}/manager-price": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Manager Price
+         * @description The sales manager sets the price: his own price per m² and / or a discount (an amount or a percentage), and
+         *     closes it; the salesperson sees it at once. Nothing set = back to the automatic price.
+         */
+        post: operations["manager_price_api_v1_quotations__quote_id__manager_price_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -4639,6 +4700,14 @@ export interface components {
             branch_id?: string | null;
             /** Notes */
             notes?: string | null;
+            /** Governorate */
+            governorate?: string | null;
+            /** Contact Method */
+            contact_method?: string | null;
+            /** First Contact */
+            first_contact?: string | null;
+            /** Customer Questions */
+            customer_questions?: string | null;
         };
         /** CustomerOut */
         CustomerOut: {
@@ -4677,6 +4746,14 @@ export interface components {
             branch_id: string | null;
             /** Notes */
             notes: string | null;
+            /** Governorate */
+            governorate?: string | null;
+            /** Contact Method */
+            contact_method?: string | null;
+            /** First Contact */
+            first_contact?: string | null;
+            /** Customer Questions */
+            customer_questions?: string | null;
             /** Anonymized */
             anonymized: boolean;
         };
@@ -4706,6 +4783,14 @@ export interface components {
             branch_id?: string | null;
             /** Notes */
             notes?: string | null;
+            /** Governorate */
+            governorate?: string | null;
+            /** Contact Method */
+            contact_method?: string | null;
+            /** First Contact */
+            first_contact?: string | null;
+            /** Customer Questions */
+            customer_questions?: string | null;
         };
         /** DayMarkIn */
         DayMarkIn: {
@@ -4981,6 +5066,14 @@ export interface components {
             password: string;
             /** Code */
             code: string;
+        };
+        /** DiscountRequestIn */
+        DiscountRequestIn: {
+            /**
+             * Note
+             * @default
+             */
+            note: string;
         };
         /** DrawingElement */
         DrawingElement: {
@@ -6115,6 +6208,22 @@ export interface components {
             notes?: string | null;
             /** Work Order Id */
             work_order_id?: string | null;
+        };
+        /** ManagerPriceIn */
+        ManagerPriceIn: {
+            /** Version */
+            version: number;
+            /** Price Per M2 */
+            price_per_m2?: number | string | null;
+            /** Discount Pct */
+            discount_pct?: number | string | null;
+            /** Discount Amount */
+            discount_amount?: number | string | null;
+            /**
+             * Note
+             * @default
+             */
+            note: string;
         };
         /** MaterialIn */
         MaterialIn: {
@@ -7671,7 +7780,7 @@ export interface components {
             /** Total */
             total: string;
             /** Total Cost */
-            total_cost: string;
+            total_cost: string | null;
             /** Notes */
             notes: string;
             /** Terms */
@@ -7706,6 +7815,31 @@ export interface components {
              * @default 0
              */
             unpriced_lines: number;
+            /**
+             * Pricing Mode
+             * @default manual
+             */
+            pricing_mode: string;
+            /** Auto Price Per M2 */
+            auto_price_per_m2?: string | null;
+            /** Manager Price Per M2 */
+            manager_price_per_m2?: string | null;
+            /** Price Per M2 */
+            price_per_m2?: string | null;
+            /** Discount Pct */
+            discount_pct?: string | null;
+            /** Discount Requested At */
+            discount_requested_at?: string | null;
+            /**
+             * Discount Request Note
+             * @default
+             */
+            discount_request_note: string;
+            /**
+             * Missing Costs
+             * @default []
+             */
+            missing_costs: string[];
             /**
              * Lines
              * @default []
@@ -8203,11 +8337,11 @@ export interface components {
              */
             survey_id: string;
             /** Fair Margin Pct */
-            fair_margin_pct: string;
+            fair_margin_pct: string | null;
             /** Top Margin Pct */
-            top_margin_pct: string;
+            top_margin_pct: string | null;
             /** Cost Total */
-            cost_total: string;
+            cost_total: string | null;
             /** Fair Total */
             fair_total: string;
             /** Top Total */
@@ -8229,6 +8363,10 @@ export interface components {
              * @default []
              */
             missing_costs: string[];
+            /** Price Per M2 */
+            price_per_m2?: string | null;
+            /** Price Total */
+            price_total?: string | null;
             /** Openings */
             openings: components["schemas"]["OpeningPrice"][];
         };
@@ -9175,7 +9313,7 @@ export interface components {
             /** Area M2 */
             area_m2: string;
             /** Unit Cost */
-            unit_cost: string;
+            unit_cost: string | null;
             /** Unit Price */
             unit_price: string;
             /** Manual Unit Price */
@@ -12108,6 +12246,26 @@ export interface operations {
             };
         };
     };
+    customer_choices_api_v1_customers_choices_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
     list_customers_api_v1_customers_get: {
         parameters: {
             query?: {
@@ -12847,6 +13005,76 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["PricePerM2In"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuotationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    request_discount_api_v1_quotations__quote_id__request_discount_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                quote_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DiscountRequestIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuotationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    manager_price_api_v1_quotations__quote_id__manager_price_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                quote_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ManagerPriceIn"];
             };
         };
         responses: {

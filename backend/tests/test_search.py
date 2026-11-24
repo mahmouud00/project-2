@@ -2,6 +2,7 @@
 and the personal data it shows is logged."""
 from tests.library_helpers import build_library
 from tests.test_org_permissions_locking import _make_user
+from tests.customers import cust as new_customer
 
 
 def _search(client, h, q):
@@ -13,7 +14,7 @@ def _search(client, h, q):
 def test_search_finds_records_by_number_code_and_name(platform, tenant_a, client):
     h = tenant_a.h
     lib = build_library(client, platform, code="SRCH-LIB", prefix="SRL-")
-    cust = client.post("/api/v1/customers", headers=h, json={"name": "عميل بحث نادر", "phone": "01099887766"}).json()
+    cust = client.post("/api/v1/customers", headers=h, json=new_customer("عميل بحث نادر", phone="01099887766")).json()
     branch = client.get("/api/v1/branches", headers=h).json()["items"][0]
     sv = client.post("/api/v1/surveys", headers=h, json={"customer_id": cust["id"], "branch_id": branch["id"]}).json()
     q = client.post("/api/v1/quotations", headers=h, json={"customer_id": cust["id"], "branch_id": branch["id"],
@@ -38,7 +39,7 @@ def test_search_finds_records_by_number_code_and_name(platform, tenant_a, client
 
 
 def test_search_stays_in_the_company_and_the_permissions(tenant_a, tenant_b, client):
-    client.post("/api/v1/customers", headers=tenant_a.h, json={"name": "سري جدا للشركة أ"})
+    client.post("/api/v1/customers", headers=tenant_a.h, json=new_customer("سري جدا للشركة أ"))
     assert _search(client, tenant_b.h, "سري جدا") == {}
     client.post("/api/v1/roles", headers=tenant_a.h, json={"code": "lib_only", "name": "مكتبة بس", "permissions": ["library.read"]})
     _make_user(tenant_a, client, "libonly", "lib_only")
@@ -47,6 +48,6 @@ def test_search_stays_in_the_company_and_the_permissions(tenant_a, tenant_b, cli
 
 def test_search_needs_text(tenant_a, client):
     assert client.get("/api/v1/search", headers=tenant_a.h, params={"q": ""}).status_code == 422
-    client.post("/api/v1/customers", headers=tenant_a.h, json={"name": "عميل عادي"})
+    client.post("/api/v1/customers", headers=tenant_a.h, json=new_customer("عميل عادي جدا"))
     assert "customers" not in _search(client, tenant_a.h, "%")      # % and _ are searched as text, never as patterns
     assert "customers" not in _search(client, tenant_a.h, "_")

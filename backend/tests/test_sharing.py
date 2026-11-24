@@ -1,5 +1,6 @@
 """A quotation shared with the customer by a link (e.g. WhatsApp): they read it, approve it or ask for a change."""
 from tests.test_business_flow import _setup, price_at_top
+from tests.customers import cust as new_customer
 
 UA = {"user-agent": "Mozilla/5.0 (Linux; Android 14) Mobile"}
 
@@ -20,10 +21,6 @@ def _token(url: str) -> str:
 def test_customer_reads_and_answers_a_shared_quotation(platform, tenant_a, tenant_b, client):
     lib, branch, _, customer = _setup(client, platform, tenant_a, "SHR")
     h = tenant_a.h
-    unpriced = _quote(client, h, lib, branch, customer, "SHR", priced=False)
-    r = client.post(f"/api/v1/quotations/{unpriced['id']}/share", headers=h, json={})
-    assert r.status_code == 409 and r.json()["error"]["code"] == "QUOTE_UNPRICED"
-
     q = _quote(client, h, lib, branch, customer, "SHR")
     r = client.post(f"/api/v1/quotations/{q['id']}/share", headers=h, json={"days": 7})
     assert r.status_code == 200, r.text
@@ -69,7 +66,7 @@ def test_customer_reads_and_answers_a_shared_quotation(platform, tenant_a, tenan
 
 def test_invoice_link_needs_an_issued_invoice(tenant_a, client):
     h = tenant_a.h
-    customer = client.post("/api/v1/customers", headers=h, json={"name": "عميل فاتورة"}).json()
+    customer = client.post("/api/v1/customers", headers=h, json=new_customer("عميل فاتورة واحد")).json()
     branch = client.get("/api/v1/branches", headers=h).json()["items"][0]
     inv = client.post("/api/v1/invoices", headers=h, json={"customer_id": customer["id"], "branch_id": branch["id"],
                                                          "lines": [{"kind": "service", "description": "تركيب", "qty": "1", "unit_price": "50"}]}).json()

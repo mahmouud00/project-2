@@ -16,7 +16,8 @@ CUSTOMER_TYPES = ("end", "dealer", "contractor")
 class Customer(Base, Entity, SoftDeleteMixin):
     __tablename__ = "customers"
     __table_args__ = (UniqueConstraint("company_id", "code"),)
-    __pii__ = ("name", "phone", "phone2", "whatsapp", "email", "address", "national_id", "notes")
+    __pii__ = ("name", "phone", "phone2", "whatsapp", "email", "address", "national_id", "notes", "first_contact",
+               "customer_questions")
 
     code: Mapped[str] = mapped_column(String(40))
     name: Mapped[str] = mapped_column(String(200))
@@ -26,6 +27,10 @@ class Customer(Base, Entity, SoftDeleteMixin):
     whatsapp: Mapped[str | None] = mapped_column(String(40), nullable=True)   # رقم الواتساب (لو غير الموبايل)
     email: Mapped[str | None] = mapped_column(String(200), nullable=True)
     address: Mapped[str | None] = mapped_column(Text, nullable=True)
+    governorate: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    contact_method: Mapped[str | None] = mapped_column(String(30), nullable=True)    # مكالمة، واتساب، فيسبوك...
+    first_contact: Mapped[str | None] = mapped_column(Text, nullable=True)           # بداية الكلام مع العميل
+    customer_questions: Mapped[str | None] = mapped_column(Text, nullable=True)      # أسئلة العميل، كل سؤال في سطر
     national_id: Mapped[str | None] = mapped_column(String(20), nullable=True)
     tax_number: Mapped[str | None] = mapped_column(String(40), nullable=True)
     branch_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("branches.id"), nullable=True)

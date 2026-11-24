@@ -223,7 +223,9 @@ def setup_demo() -> bool:
                                                           "branch_id": branch["id"]}))
     _ok(client.post("/api/v1/suppliers", headers=a, json={"name": "مورد قطاعات (مثال)"}))
     customer = _ok(client.post("/api/v1/customers", headers=a, json={
-        "name": "عميل تجريبي", "phone": "01000000000", "address": "عنوان تجريبي"}))
+        "name": "عميل تجريبي للتجربة", "phone": "01000000000", "whatsapp": "01000000000", "governorate": "القاهرة",
+        "address": "عنوان تجريبي", "national_id": "29001010000000", "contact_method": "مكالمة",
+        "first_contact": "سأل عن سعر شبابيك للشقة", "customer_questions": "سعر المتر كام؟\nالتركيب بياخد قد إيه؟"}))
     survey = _ok(client.post("/api/v1/surveys", headers=a, json={
         "customer_id": customer["id"], "branch_id": branch["id"], "address": "عنوان تجريبي", "openings": [
             {"location": "صالة", "opening_width_mm": 1800, "opening_height_mm": 1400, "qty": 2, "model_id": model["id"],

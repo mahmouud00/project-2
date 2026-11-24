@@ -42,8 +42,8 @@ class CompanySettings(BaseModel):
     # دليل المبيعات: the cost of an opening (materials + labour per m²) plus these margins gives two prices:
     # the fair price (the lowest without the sales manager) and the top of the range
     labor_cost_per_m2: Decimal = Field(Decimal(0), ge=0, description="تكلفة التشغيل للمتر المربع")
-    fair_margin_pct: Decimal = Field(Decimal(20), ge=0, le=1000, description="هامش السعر العادل %")
-    top_margin_pct: Decimal = Field(Decimal(30), ge=0, le=1000, description="أعلى هامش مقترح %")
+    fair_margin_pct: Decimal = Field(Decimal(20), ge=0, le=1000, description="هامش ربح الشركة % (التسعير الأوتوماتيك)")
+    top_margin_pct: Decimal = Field(Decimal(30), ge=0, le=1000, description="(قديم: مابقاش مستخدم)")
     deposit_pct: Decimal = Field(Decimal(0), ge=0, le=100)
     default_arch_model_id: str | None = None   # model used for a half-circle arch when a unit has a total height
     min_billed_area_m2: Decimal = Field(Decimal(1), ge=0, description="price per m² bills at least this area per unit")

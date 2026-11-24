@@ -10,7 +10,7 @@ import { ProjectView } from "../components/project";
 import { AssignJob, Progress } from "../components/field";
 import { BranchName, ColorName, CustomerName, ModelThumb, SalespersonName, SalespersonSelect } from "../components/pickers";
 import { Issues, ParamLabels, type Issue } from "../components/items";
-import { DocView, Drawing, MediaImg, PrintPreview } from "../components/media";
+import { DocView, Drawing, PrintPreview } from "../components/media";
 import { STAGES, STAGE_COLOR, STAGE_NAMES, UNITS, lookups } from "../lib/lookups";
 import { go, setQuery } from "../lib/router";
 import { date, dateTime } from "../lib/format";
@@ -289,7 +289,6 @@ function Manufacturing({ o }: { o: Outputs }) {
         {o.drawings.map((d) => (
           <div key={d.item} className="card" style={{ padding: 12 }}>
             <div className="row top">
-              <MediaImg id={d.model_image_id} />
               <div className="grow"><b>{d.model_name}</b>{!!d.units?.length && <Chip color="blue">شباك <span dir="ltr" className="num">{d.units.length > 1 ? `${d.units[0]}–${d.units[d.units.length - 1]}` : d.units[0]}</span></Chip>}
                 <div className="muted small">{d.location} · عدد <span className="num">{d.qty}</span></div>
                 <div className="small">فتحة <Dim w={d.opening_width_mm} h={d.opening_height_mm} /></div>

@@ -3,6 +3,12 @@
 All notable changes are listed here. Versions follow Semantic Versioning (MAJOR.MINOR.PATCH).
 
 ## [Unreleased]
+### Changed
+- Automatic quotation pricing (migration 0028): one price per m² on every window = the quotation's whole cost (materials with waste, arches, running cost per m²) + the company's profit margin («هامش ربح الشركة» in the settings; no more fair / top), over all the billed m², rounded up to 10. The salesperson cannot type a price or a discount: «طلب خصم» notifies the sales manager, who sets his own price per m² and / or a discount (an amount or a percentage) and closes it; the salesperson sees it at once. Any change to the openings takes the price back to automatic. Older sent / accepted quotations keep their prices; an old draft becomes automatic when its openings are next changed.
+- The company's costs (unit cost, quotation cost, the survey's cost and margin, a work order's material costs) are no longer sent to anyone without «عرض ربحية الشركة» (purchasing still sees material prices). The quotation column «التكلفة» (it was the line's total) is now «الإجمالي».
+- Quotations, invoices and work orders show the model's drawing only, without its picture.
+### Added
+- Required customer data on every company: the full (three-part) name, an Egyptian mobile number and a WhatsApp number, the governorate (a list; the address details are optional), how the customer reached us, how the talk started, and at least two questions the customer asked (one per line). The national ID is required when a quotation is accepted (a contract); on the shared link the customer writes it himself. Arabic digits and +20 are tidied; old customers are completed the next time they are edited.
 ### Added
 - Chat between users (migration 0027): direct and group conversations, pictures and files (25 MB, seen only by the members), unread count in the menu, a notification per message; online / last seen for everyone.
 - Delegating permissions: a user gives all their permissions to a colleague from a time to a time (not passed on again); the giver, the receiver or an admin can stop it.

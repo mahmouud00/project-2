@@ -6,6 +6,7 @@ from app.db.base import utcnow
 from tests.delete_helpers import delete_now
 from tests.test_business_flow import _setup, price_at_top
 from tests.test_org_permissions_locking import _make_user
+from tests.customers import cust as new_customer
 
 
 def _inbox(client, h):
@@ -19,7 +20,7 @@ def test_delete_waits_30_days_unless_erased_now(tenant_a, client):
                                                                        "customers.delete"]})
     _make_user(tenant_a, client, "deleter1", "custdel")
     h = tenant_a.headers("deleter1", "user-pass-123")
-    cust = client.post("/api/v1/customers", headers=h, json={"name": "عميل للحذف"}).json()
+    cust = client.post("/api/v1/customers", headers=h, json=new_customer("عميل للحذف فورا")).json()
 
     r = client.delete(f"/api/v1/customers/{cust['id']}", headers=h)
     assert r.status_code == 200 and r.json()["result"] == "scheduled"
@@ -45,7 +46,7 @@ def test_delete_waits_30_days_unless_erased_now(tenant_a, client):
     assert client.get(f"/api/v1/customers/{cust['id']}", headers=h).status_code == 404
 
     # someone else cannot take back another's deletion; after 30 days it goes by itself
-    other = client.post("/api/v1/customers", headers=h, json={"name": "عميل تاني"}).json()
+    other = client.post("/api/v1/customers", headers=h, json=new_customer("عميل تاني خالص")).json()
     rid = client.delete(f"/api/v1/customers/{other['id']}", headers=h).json()["request_id"]
     _make_user(tenant_a, client, "deleter2", "custdel")
     h2 = tenant_a.headers("deleter2", "user-pass-123")

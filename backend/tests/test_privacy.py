@@ -1,11 +1,12 @@
 import logging
+from tests.customers import cust as new_customer
 
 
 def test_export_and_erase_customer(tenant_a, tenant_b, client):
     h = tenant_a.h
     branch = client.get("/api/v1/branches", headers=h).json()["items"][0]
-    c = client.post("/api/v1/customers", headers=h, json={"name": "منى علي", "phone": "01122334455",
-                                                          "national_id": "29001011234567", "address": "الجيزة"}).json()
+    c = client.post("/api/v1/customers", headers=h, json=new_customer("منى علي حسن", phone="01122334455",
+                                                          national_id="29001011234567", address="الجيزة")).json()
     client.post("/api/v1/surveys", headers=h, json={"customer_id": c["id"], "branch_id": branch["id"],
                                                     "address": "الجيزة شارع 1"})
     exp = client.get(f"/api/v1/privacy/subjects/customer/{c['id']}/export", headers=h)

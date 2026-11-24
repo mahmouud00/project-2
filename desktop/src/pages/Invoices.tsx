@@ -7,7 +7,7 @@ import { useDefaultBranch, useSession } from "../state/session";
 import { useToast } from "../state/toast";
 import { Btn, Card, Chip, Confirm, Crumbs, Dim, ErrorBox, Field, Loading, Modal, Money, NumIn, PageHead, Pager, Qty, Select, SizeIn, Table, TextArea, TextIn } from "../components/ui";
 import { BranchName, BranchSelect, ColorName, ColorSelect, CustomerName, CustomerPicker, GlassSelect, ModelSelect, SalespersonName, SalespersonSelect } from "../components/pickers";
-import { Drawing, MediaImg, PrintPreview } from "../components/media";
+import { Drawing, PrintPreview } from "../components/media";
 import { DeleteBtn } from "../components/actions";
 import { INVOICE_STATUS } from "../lib/lookups";
 import { go } from "../lib/router";
@@ -145,7 +145,7 @@ function InvoiceDetail({ id }: { id: string }) {
         <Table rows={lines} empty="مفيش بنود" columns={[
           { key: "p", label: "#", width: 36, render: (l) => <span className="num muted">{l.position}</span> },
           { key: "img", label: "الشكل", width: 160, render: (l) => l.kind === "service" ? <Chip>خدمة</Chip> : (
-            <div className="row" style={{ gap: 6 }}><MediaImg id={l.model_image_id} />
+            <div className="row" style={{ gap: 6 }}>
               <Drawing elements={l.drawing as any[]} w={l.width_mm} h={l.height_mm} maxW={80} maxH={56} /></div>) },
           { key: "m", label: "الصنف", render: (l) => (
             <div><b>{l.model_name || l.description}</b>{l.location && <span className="muted"> · {l.location}</span>}
