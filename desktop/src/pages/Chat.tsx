@@ -172,7 +172,7 @@ function Bubble({ m, who }: { m: Msg; who?: string }) {
     await saveFile(m.file_name ?? "file", await r.blob());
   };
   return (
-    <div style={{ alignSelf: m.mine ? "flex-start" : "flex-end", maxWidth: "75%", background: m.mine ? "var(--primary-soft)" : "var(--card-2, var(--selected))",
+    <div style={{ alignSelf: m.mine ? "flex-end" : "flex-start", maxWidth: "75%", background: m.mine ? "var(--primary-soft)" : "var(--card-2, var(--selected))",
       borderRadius: 12, padding: "8px 12px" }}>
       {who && <div className="small bold" style={{ color: "var(--primary)" }}>{who}</div>}
       {image && src && <img src={src} alt={m.file_name ?? ""} style={{ maxWidth: 280, maxHeight: 280, borderRadius: 8, display: "block", cursor: "pointer" }} onClick={download} />}
