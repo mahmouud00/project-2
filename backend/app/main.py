@@ -118,6 +118,7 @@ MODULE_ROUTERS: list[str] = [
     "app.modules.search.router",
     "app.modules.history.router",
     "app.modules.sharing.router",
+    "app.modules.chat.router",
 ]
 
 app = create_app()

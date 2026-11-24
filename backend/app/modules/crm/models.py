@@ -16,13 +16,14 @@ CUSTOMER_TYPES = ("end", "dealer", "contractor")
 class Customer(Base, Entity, SoftDeleteMixin):
     __tablename__ = "customers"
     __table_args__ = (UniqueConstraint("company_id", "code"),)
-    __pii__ = ("name", "phone", "phone2", "email", "address", "national_id", "notes")
+    __pii__ = ("name", "phone", "phone2", "whatsapp", "email", "address", "national_id", "notes")
 
     code: Mapped[str] = mapped_column(String(40))
     name: Mapped[str] = mapped_column(String(200))
     customer_type: Mapped[str] = mapped_column(String(20), default="end")
     phone: Mapped[str | None] = mapped_column(String(40), nullable=True)
     phone2: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    whatsapp: Mapped[str | None] = mapped_column(String(40), nullable=True)   # رقم الواتساب (لو غير الموبايل)
     email: Mapped[str | None] = mapped_column(String(200), nullable=True)
     address: Mapped[str | None] = mapped_column(Text, nullable=True)
     national_id: Mapped[str | None] = mapped_column(String(20), nullable=True)

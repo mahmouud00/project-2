@@ -48,6 +48,7 @@ class CustomerIn(BaseModel):
     customer_type: str = Field("end", pattern="^(end|dealer|contractor)$")
     phone: str | None = None
     phone2: str | None = None
+    whatsapp: str | None = None
     email: str | None = None
     address: str | None = None
     national_id: str | None = Field(None, max_length=20)
@@ -61,6 +62,7 @@ class CustomerUpdate(VersionedUpdate):
     customer_type: str | None = Field(None, pattern="^(end|dealer|contractor)$")
     phone: str | None = None
     phone2: str | None = None
+    whatsapp: str | None = None
     email: str | None = None
     address: str | None = None
     national_id: str | None = None
@@ -75,6 +77,7 @@ class CustomerOut(Record):
     customer_type: str
     phone: str | None
     phone2: str | None
+    whatsapp: str | None = None
     email: str | None
     address: str | None
     national_id: str | None

@@ -301,6 +301,7 @@ class AuditOut(ORMModel):
     id: uuid.UUID
     at: datetime
     user_id: uuid.UUID | None
+    user_name: str | None = None
     entity: str
     entity_id: str
     action: str
@@ -309,12 +310,27 @@ class AuditOut(ORMModel):
 
 
 @router.get("/audit-log", response_model=Page[AuditOut])
-def list_audit(entity: str | None = None, entity_id: str | None = None, params: PageParams = Depends(),
-               dc=Depends(require("audit.read"))):
+def list_audit(entity: str | None = None, entity_id: str | None = None, user_id: uuid.UUID | None = None,
+               action: str | None = None, date_from: datetime | None = None, date_to: datetime | None = None,
+               params: PageParams = Depends(), dc=Depends(require("audit.read"))):
+    """سجل كل التعديلات والحركات: every change, delete, sign-in and print, with who did it."""
     db, _ = dc
     stmt = select(AuditLog).order_by(AuditLog.at.desc())
     if entity:
         stmt = stmt.where(AuditLog.entity == entity)
     if entity_id:
         stmt = stmt.where(AuditLog.entity_id == entity_id)
-    return paginate(db, stmt, params, AuditOut)
+    if user_id:
+        stmt = stmt.where(AuditLog.user_id == user_id)
+    if action:
+        stmt = stmt.where(AuditLog.action == action)
+    if date_from:
+        stmt = stmt.where(AuditLog.at >= date_from)
+    if date_to:
+        stmt = stmt.where(AuditLog.at < date_to)
+    page = paginate(db, stmt, params, AuditOut)
+    ids = {a.user_id for a in page["items"] if a.user_id}
+    names = {u.id: u.full_name or u.username for u in db.scalars(select(User).where(User.id.in_(ids)))} if ids else {}
+    for a in page["items"]:
+        a.user_name = names.get(a.user_id)
+    return page

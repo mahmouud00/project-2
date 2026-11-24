@@ -67,6 +67,7 @@ python -m pytest                                   # لازم كله يعدّي 
 - `app/modules/{crm,sales,production,purchasing,treasury,invoicing,privacy}` النواة الإدارية (مفيش مخازن: اتشالت في 0011)
 - `app/modules/hr` الموظفين والحوافز والسلف والإجازات وكشوف المرتبات، و`attendance.py` البصمات من جهاز ZKTeco (`/iclock`)، و`policy.py`/`payrules.py` سياسات المرتبات والحضور (شوف `docs/ATTENDANCE.md`) · `app/modules/finance` الأصول والربحية ورأس المال
 - `app/modules/field` الصيانة ومهام الفنيين والتتبع
+- `app/modules/chat` الشات بين المستخدمين (صور وملفات، آخر ظهور)، وتفويض الصلاحيات (بيتضاف للصلاحيات في `tenancy/context.py`)
 - `app/modules/deletions` الحذف بعد ٣٠ يوم (`@deletable` على أي `DELETE` لسجل)، وصلاحية `delete.permanent`، وإشعارات «غيّره» للشغل المفتوح
 - `app/engine/cutting.py` تحسين التقطيع · `app/modules/production/manufacturing.py` مخرجات التصنيع
 - `app/ops` النسخ الاحتياطي، الأحداث اللحظية، الاكتشاف، الجدولة، التحديثات (`updater.py`)

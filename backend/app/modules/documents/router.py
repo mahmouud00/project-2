@@ -81,6 +81,13 @@ class _Lookups:
 
 
 def _page(template: str, db, ctx, **kw) -> HTMLResponse:
+    # every print / PDF is a movement in the activity log (what was printed, by whom)
+    from app.modules.org.models import AuditLog
+    doc = kw.get("doc") or kw.get("wo") or kw.get("inv") or kw.get("q")
+    db.add(AuditLog(company_id=ctx.company_id, user_id=ctx.user_id, device_id=ctx.device_id,
+                    entity=getattr(doc, "__tablename__", "documents"), entity_id=str(getattr(doc, "id", "") or ""),
+                    action="print", changes={}, note=(kw.get("title") or template)[:200]))
+    db.commit()
     html = render(template, company=company_context(db, ctx.company_id), fonts_css=_fonts_css(),
                   printed_at=datetime.now().strftime("%Y-%m-%d %H:%M"), **kw)
     return HTMLResponse(html)

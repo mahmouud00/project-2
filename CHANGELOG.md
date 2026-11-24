@@ -4,6 +4,11 @@ All notable changes are listed here. Versions follow Semantic Versioning (MAJOR.
 
 ## [Unreleased]
 ### Added
+- Chat between users (migration 0027): direct and group conversations, pictures and files (25 MB, seen only by the members), unread count in the menu, a notification per message; online / last seen for everyone.
+- Delegating permissions: a user gives all their permissions to a colleague from a time to a time (not passed on again); the giver, the receiver or an admin can stop it.
+- The activity log names who did each change, and now also records every sign-in and every print / PDF; filters by person, kind, action and dates.
+- The customer's WhatsApp number (when it is not the mobile): the WhatsApp button opens that chat.
+### Added
 - The VPS holds the newest desktop installer and phone app (`deploy/vps/fetch-clients.sh`, run by install and update): every PC and phone is offered «فيه نسخة جديدة» from the server itself, no links to send. Optional nightly automatic update (docs/VPS.md).
 ### Fixed
 - Connecting to a cloud server: a domain (app.wintag.tech) is https on its normal port; only a factory server on the network (an IP, a PC name) gets http and port 8000. The VPS also answers on port 8000 (HTTPS) for programs older than this.

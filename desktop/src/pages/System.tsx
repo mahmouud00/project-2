@@ -138,19 +138,59 @@ function Devices() {
   );
 }
 
+const ENTITY_AR: Record<string, string> = {
+  customers: "عميل", site_surveys: "معاينة", survey_openings: "فتحة معاينة", quotations: "عرض سعر", quotation_lines: "بند عرض سعر",
+  work_orders: "أمر تصنيع", work_order_items: "صنف أمر تصنيع", invoices: "فاتورة", invoice_lines: "بند فاتورة",
+  cash_transactions: "حركة خزينة", cashboxes: "خزينة", purchase_orders: "طلبية شراء", purchase_order_lines: "بند طلبية",
+  suppliers: "مورد", employees: "موظف", employee_entries: "حافز/خصم/سلفة", employee_leaves: "إجازة", payroll_runs: "كشف مرتبات",
+  users: "مستخدم", roles: "دور وصلاحيات", branches: "فرع", companies: "الشركة", product_models: "نموذج", profile_systems: "سيستم",
+  materials: "خامة", system_constants: "ثابت", field_jobs: "مهمة فني", maintenance_requests: "طلب صيانة", projects: "مشروع",
+  permission_delegations: "تفويض صلاحيات", pay_policies: "سياسة مرتبات", attendance_days: "يوم حضور", offcuts: "فضلة",
+  document_shares: "لينك عميل", documents: "مستند",
+};
+const ACTION_AR: Record<string, [string, "green" | "blue" | "red" | "gray" | "violet" | "amber"]> = {
+  create: ["إضافة", "green"], update: ["تعديل", "blue"], delete: ["حذف", "red"], login: ["دخول", "violet"], print: ["طباعة / PDF", "gray"],
+};
+
 function Audit() {
   const [offset, setOffset] = useState(0);
-  const list = useLoad(() => api.get<S<"Page_AuditOut_">>("/audit-log", { limit: 50, offset }), [offset]);
+  const [f, setF] = useState({ user_id: "", entity: "", action: "", from: "", to: "" });
+  const users = useLoad(() => api.get<S<"Page_UserOut_">>("/users", { limit: 500 }).then((p) => p.items).catch(() => []), []);
+  const q = { limit: 50, offset, user_id: f.user_id || undefined, entity: f.entity || undefined, action: f.action || undefined,
+    date_from: f.from ? new Date(f.from).toISOString() : undefined,
+    date_to: f.to ? new Date(new Date(f.to).getTime() + 86400000).toISOString() : undefined };
+  const list = useLoad(() => api.get<S<"Page_AuditOut_">>("/audit-log", q), [JSON.stringify(q)]);
+  const set = (k: keyof typeof f) => (v: string) => { setF((x) => ({ ...x, [k]: v })); setOffset(0); };
+  const changes = (a: S<"AuditOut">) => {
+    const c = a.changes ?? {};
+    if (a.action !== "update") return Object.keys(c).length ? Object.keys(c).slice(0, 6).join("، ") : "";
+    return Object.entries(c).slice(0, 4).map(([k, v]) => {
+      const x = v as { old?: unknown; new?: unknown };
+      const show = (y: unknown) => y === null || y === undefined || y === "" ? "—" : typeof y === "object" ? "…" : String(y).slice(0, 30);
+      return `${k}: ${show(x.old)} ← ${show(x.new)}`;
+    }).join(" · ");
+  };
   return (
     <div className="col">
+      <div className="muted small">كل تعديل وإضافة وحذف، وكل دخول للبرنامج وكل طباعة، بالوقت ومين عمله. البيانات الشخصية بتظهر *** .</div>
+      <div className="row wrap" style={{ gap: 8 }}>
+        <div style={{ width: 200 }}><select className="input" value={f.user_id} onChange={(e) => set("user_id")(e.target.value)}>
+          <option value="">كل المستخدمين</option>{(users.data ?? []).map((u) => <option key={u.id} value={u.id}>{u.full_name || u.username}</option>)}</select></div>
+        <div style={{ width: 170 }}><select className="input" value={f.entity} onChange={(e) => set("entity")(e.target.value)}>
+          <option value="">كل الأنواع</option>{Object.entries(ENTITY_AR).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></div>
+        <div style={{ width: 150 }}><select className="input" value={f.action} onChange={(e) => set("action")(e.target.value)}>
+          <option value="">كل العمليات</option>{Object.entries(ACTION_AR).map(([k, v]) => <option key={k} value={k}>{v[0]}</option>)}</select></div>
+        <input type="date" className="input" style={{ width: 150 }} value={f.from} onChange={(e) => set("from")(e.target.value)} title="من يوم" />
+        <input type="date" className="input" style={{ width: 150 }} value={f.to} onChange={(e) => set("to")(e.target.value)} title="لحد يوم" />
+      </div>
       {list.error && <ErrorBox text={list.error} />}
-      <Table rows={list.data?.items} loading={list.loading} columns={[
+      <Table rows={list.data?.items} loading={list.loading} tools columns={[
         { key: "at", label: "الوقت", render: (a) => <span className="num">{dateTime(a.at)}</span> },
-        { key: "e", label: "البيان", render: (a) => <span className="code">{a.entity}</span> },
-        { key: "a", label: "العملية", render: (a) => <Chip color={a.action === "delete" ? "red" : a.action === "create" ? "green" : "blue"}>{
-          { create: "إضافة", update: "تعديل", delete: "حذف" }[a.action] ?? a.action}</Chip> },
-        { key: "c", label: "التغييرات", render: (a) => <span className="small muted ltr" style={{ display: "block", maxWidth: 520 }}>
-          {Object.keys(a.changes ?? {}).join(", ")}{a.note ? ` · ${a.note}` : ""}</span> },
+        { key: "u", label: "مين", render: (a) => <b>{a.user_name ?? "النظام"}</b> },
+        { key: "a", label: "العملية", render: (a) => <Chip color={ACTION_AR[a.action]?.[1] ?? "gray"}>{ACTION_AR[a.action]?.[0] ?? a.action}</Chip> },
+        { key: "e", label: "على", render: (a) => ENTITY_AR[a.entity] ?? a.entity },
+        { key: "c", label: "التفاصيل", render: (a) => <span className="small muted" style={{ display: "block", maxWidth: 560 }}>
+          {changes(a)}{a.note ? ` · ${a.note}` : ""}</span> },
       ]} />
       {list.data && <Pager total={list.data.total} limit={50} offset={offset} onChange={setOffset} />}
     </div>

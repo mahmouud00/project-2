@@ -58,6 +58,7 @@ class User(Base, Entity, SoftDeleteMixin):
     totp_secret: Mapped[str | None] = mapped_column(Text, nullable=True)
     totp_enabled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     totp_last_step: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    last_seen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)   # آخر ظهور
 
 
 class UserBranchRole(Base, IdMixin, TenantMixin):

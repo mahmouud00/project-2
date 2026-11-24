@@ -70,7 +70,7 @@ export function CustomerForm({ customer, onClose, onSaved }:
   const [d, setD] = useState<CustomerDraft>(customer ?? { customer_type: "end", branch_id: s.branchId ?? s.branches[0]?.id });
   const set = (k: keyof CustomerDraft) => (v: string) => setD((x) => ({ ...x, [k]: v }));
   const save = () => run(async () => {
-    const body = { name: d.name, customer_type: d.customer_type, phone: d.phone || null, phone2: d.phone2 || null,
+    const body = { name: d.name, customer_type: d.customer_type, phone: d.phone || null, phone2: d.phone2 || null, whatsapp: d.whatsapp || null,
       email: d.email || null, address: d.address || null, national_id: d.national_id || null, tax_number: d.tax_number || null,
       branch_id: d.branch_id || null, notes: d.notes || null };
     const c = customer
@@ -92,6 +92,7 @@ export function CustomerForm({ customer, onClose, onSaved }:
           options={Object.entries(CUSTOMER_TYPES).map(([value, label]) => ({ value, label }))} /></Field>
         <Field label="التليفون"><TextIn value={d.phone} onChange={set("phone")} code /></Field>
         <Field label="تليفون تاني"><TextIn value={d.phone2} onChange={set("phone2")} code /></Field>
+        <Field label="رقم الواتساب" hint="لو غير الموبايل. زرار واتساب بيفتح الشات على الرقم ده"><TextIn value={d.whatsapp} onChange={set("whatsapp")} code /></Field>
         <Field label="العنوان" className="span2"><TextIn value={d.address} onChange={set("address")} /></Field>
         <Field label="الإيميل"><TextIn value={d.email} onChange={set("email")} code /></Field>
         <Field label="الرقم القومي"><TextIn value={d.national_id} onChange={set("national_id")} code /></Field>
@@ -146,7 +147,8 @@ function CustomerDetail({ id, tab: tabQuery }: { id: string; tab?: string }) {
           {cu.anonymized && <div className="notice warn mb">البيانات الشخصية للعميل ده اتمسحت بناءً على طلبه. السجلات المالية فاضلة.</div>}
           <div className="grid g2">
             <KV items={[["الكود", <span className="code">{cu.code}</span>], ["النوع", CUSTOMER_TYPES[cu.customer_type] ?? cu.customer_type],
-              ["التليفون", <span className="num">{cu.phone ?? "—"}</span>], ["تليفون تاني", <span className="num">{cu.phone2 ?? "—"}</span>]]} />
+              ["التليفون", <span className="num">{cu.phone ?? "—"}</span>], ["تليفون تاني", <span className="num">{cu.phone2 ?? "—"}</span>],
+              ["واتساب", <span className="num">{cu.whatsapp ?? cu.phone ?? "—"}</span>]]} />
             <KV items={[["العنوان", cu.address ?? "—"], ["الإيميل", <span className="num">{cu.email ?? "—"}</span>],
               ["الرقم الضريبي", <span className="num">{cu.tax_number ?? "—"}</span>], ["ملاحظات", cu.notes ?? "—"]]} />
           </div>

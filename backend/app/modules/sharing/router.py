@@ -85,7 +85,7 @@ def _make(db, ctx, request: Request, doc_type: str, doc_id, days: int) -> tuple[
 def _phone(db, customer_id) -> str | None:
     from app.modules.crm.models import Customer
     c = db.get(Customer, customer_id)
-    return c.phone if c else None
+    return (c.whatsapp or c.phone) if c else None     # the WhatsApp number when the customer has one
 
 
 # ---------------------------------------------------------------- quotations

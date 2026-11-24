@@ -115,6 +115,11 @@ def login(db: Session, *, company_code: str | None, username: str, password: str
     db.execute(update(RefreshToken).where(RefreshToken.user_id == user.id, RefreshToken.device_id == device.id,
                                           RefreshToken.revoked_at.is_(None)).values(revoked_at=_now()))
     tokens = _issue(db, user, device)
+    from app.modules.org.models import AuditLog
+    db.add(AuditLog(company_id=user.company_id, user_id=user.id, device_id=device.id if device else None,
+                    entity="users", entity_id=str(user.id), action="login", changes={},
+                    note=(getattr(device, "name", None) or "")[:200] or None))
+    user.last_seen_at = _now()
     db.commit()
     return tokens
 

@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 from fastapi import Depends, Request
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy import select
+from sqlalchemy import update as sa_update
 
 from app.auth.security import decode_access_token
 from app.core.errors import Forbidden, LicenseError, Unauthorized
@@ -77,6 +78,8 @@ def get_db_and_ctx(request: Request, token: str | None = Depends(oauth2)) -> Ite
         grants: dict[uuid.UUID | None, set[str]] = {}
         for branch_id, perms in rows:
             grants.setdefault(branch_id, set()).update(perms or [])
+        _delegated(db, user_id, grants)
+        _seen(db, user)
         db.info["device_id"] = device_id
         ctx = RequestContext(company_id, user_id, device_id, grants,
                              ip=request.client.host if request.client else None)
@@ -87,6 +90,39 @@ def get_db_and_ctx(request: Request, token: str | None = Depends(oauth2)) -> Ite
         # Endpoints commit explicitly; anything left uncommitted is discarded.
         db.rollback()
         db.close()
+
+
+def _delegated(db, user_id, grants: dict) -> None:
+    """تفويض: what others gave this user for now is added to their own permissions (never passed on again)."""
+    from datetime import datetime, timezone
+
+    from app.modules.chat.models import PermissionDelegation
+    from app.modules.org.models import Role, UserBranchRole
+
+    now = datetime.now(timezone.utc)
+    givers = list(db.scalars(select(PermissionDelegation.from_user_id).where(
+        PermissionDelegation.to_user_id == user_id, PermissionDelegation.revoked_at.is_(None),
+        PermissionDelegation.starts_at <= now, PermissionDelegation.ends_at > now)))
+    if not givers:
+        return
+    for branch_id, perms in db.execute(select(UserBranchRole.branch_id, Role.permissions)
+                                       .join(Role, Role.id == UserBranchRole.role_id)
+                                       .where(UserBranchRole.user_id.in_(givers))):
+        grants.setdefault(branch_id, set()).update(perms or [])
+
+
+def _seen(db, user) -> None:
+    """آخر ظهور: kept at most once a minute, in its own short transaction."""
+    from datetime import datetime, timedelta, timezone
+
+    from app.modules.org.models import User
+
+    now = datetime.now(timezone.utc)
+    if user.last_seen_at is None or now - user.last_seen_at > timedelta(seconds=60):
+        db.execute(sa_update(User).where(User.id == user.id).values(last_seen_at=now)
+                   .execution_options(synchronize_session=False))
+        db.commit()
+        user.last_seen_at = now
 
 
 _LICENSE_EXEMPT = ("/api/v1/system/license", "/api/v1/auth/")

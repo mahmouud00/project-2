@@ -20,7 +20,8 @@ import mytechLogo from "../assets/logo-transparent.png";
 export type NavItem = { id: string; icon: string; label: string; perm?: string | string[]; module?: string; platformOnly?: boolean;
   hideForPlatform?: boolean };
 export const NAV: [string, NavItem[]][] = [
-  ["", [{ id: "dashboard", icon: "home", label: "لوحة التحكم", hideForPlatform: true }]],
+  ["", [{ id: "dashboard", icon: "home", label: "لوحة التحكم", hideForPlatform: true },
+    { id: "chat", icon: "send", label: "الشات والتفويض", hideForPlatform: true }]],
   ["المبيعات", [
     { id: "customers", icon: "users", label: "العملاء", perm: "customers.read", hideForPlatform: true },
     { id: "surveys", icon: "ruler", label: "المعاينات", perm: "surveys.read", hideForPlatform: true },
@@ -99,7 +100,7 @@ export function Shell({ page, title, crumbs, record, children, onLogout }:
                 {group && <div className="nav-group">{group}</div>}
                 {visible.map((i) => (
                   <a key={i.id} className={page === i.id ? "active" : ""} onClick={() => { setDrawer(false); go(i.id); }}>
-                    <Icon name={i.icon} /><span>{i.label}</span>
+                    <Icon name={i.icon} /><span>{i.label}</span>{i.id === "chat" && <ChatBadge />}
                   </a>
                 ))}
               </div>
@@ -227,4 +228,17 @@ export function ChangePassword({ onClose, forced }: { onClose: () => void; force
       </div>
     </Modal>
   );
+}
+
+/** رسايل الشات اللي لسه ماتقرتش (كل 20 ثانية؛ وده كمان بيخلي «آخر ظهور» محدّث) */
+function ChatBadge() {
+  const [n, setN] = useState(0);
+  useEffect(() => {
+    let live = true;
+    const load = () => api.get<{ unread: number }>("/chat/unread").then((r) => live && setN(r.unread)).catch(() => undefined);
+    load();
+    const t = setInterval(load, 20000);
+    return () => { live = false; clearInterval(t); };
+  }, []);
+  return n > 0 ? <span className="chip green" style={{ marginInlineStart: "auto", fontSize: 11 }}>{n}</span> : null;
 }

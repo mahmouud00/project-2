@@ -1060,6 +1060,7 @@
      "org"
     ],
     "summary": "List Audit",
+    "description": "سجل كل التعديلات والحركات: every change, delete, sign-in and print, with who did it.",
     "operationId": "list_audit_api_v1_audit_log_get",
     "security": [
      {
@@ -1097,6 +1098,73 @@
         }
        ],
        "title": "Entity Id"
+      }
+     },
+     {
+      "name": "user_id",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string",
+         "format": "uuid"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "User Id"
+      }
+     },
+     {
+      "name": "action",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Action"
+      }
+     },
+     {
+      "name": "date_from",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string",
+         "format": "date-time"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Date From"
+      }
+     },
+     {
+      "name": "date_to",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string",
+         "format": "date-time"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Date To"
       }
      },
      {
@@ -13271,6 +13339,621 @@
      }
     }
    }
+  },
+  "/api/v1/chat/people": {
+   "get": {
+    "tags": [
+     "chat"
+    ],
+    "summary": "People",
+    "description": "Everyone in the company (active), with online / last seen.",
+    "operationId": "people_api_v1_chat_people_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "items": {
+          "$ref": "#/components/schemas/PersonOut"
+         },
+         "type": "array",
+         "title": "Response People Api V1 Chat People Get"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ]
+   }
+  },
+  "/api/v1/chat/conversations": {
+   "get": {
+    "tags": [
+     "chat"
+    ],
+    "summary": "Conversations",
+    "operationId": "conversations_api_v1_chat_conversations_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "items": {
+          "$ref": "#/components/schemas/ConversationOut"
+         },
+         "type": "array",
+         "title": "Response Conversations Api V1 Chat Conversations Get"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ]
+   }
+  },
+  "/api/v1/chat/unread": {
+   "get": {
+    "tags": [
+     "chat"
+    ],
+    "summary": "Unread",
+    "description": "For the badge: how many unread messages in all my conversations.",
+    "operationId": "unread_api_v1_chat_unread_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ]
+   }
+  },
+  "/api/v1/chat/direct/{user_id}": {
+   "post": {
+    "tags": [
+     "chat"
+    ],
+    "summary": "Direct",
+    "description": "The conversation with this person (made the first time).",
+    "operationId": "direct_api_v1_chat_direct__user_id__post",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "user_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "User Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ConversationOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/chat/groups": {
+   "post": {
+    "tags": [
+     "chat"
+    ],
+    "summary": "Group",
+    "operationId": "group_api_v1_chat_groups_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/GroupIn"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ConversationOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ]
+   }
+  },
+  "/api/v1/chat/conversations/{conversation_id}/messages": {
+   "get": {
+    "tags": [
+     "chat"
+    ],
+    "summary": "Messages",
+    "description": "Newest first page (or the ones after `after`, to poll new ones; `before` for older); oldest first.",
+    "operationId": "messages_api_v1_chat_conversations__conversation_id__messages_get",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "conversation_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Conversation Id"
+      }
+     },
+     {
+      "name": "after",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string",
+         "format": "date-time"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "After"
+      }
+     },
+     {
+      "name": "before",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string",
+         "format": "date-time"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Before"
+      }
+     },
+     {
+      "name": "limit",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "default": 50,
+       "title": "Limit"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/MessageOut"
+         },
+         "title": "Response Messages Api V1 Chat Conversations  Conversation Id  Messages Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "post": {
+    "tags": [
+     "chat"
+    ],
+    "summary": "Send",
+    "operationId": "send_api_v1_chat_conversations__conversation_id__messages_post",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "conversation_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Conversation Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/MessageIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/MessageOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/chat/conversations/{conversation_id}/files": {
+   "post": {
+    "tags": [
+     "chat"
+    ],
+    "summary": "Send File",
+    "description": "A picture or any file (up to 25 MB), with an optional caption.",
+    "operationId": "send_file_api_v1_chat_conversations__conversation_id__files_post",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "conversation_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Conversation Id"
+      }
+     },
+     {
+      "name": "caption",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string",
+       "default": "",
+       "title": "Caption"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "multipart/form-data": {
+       "schema": {
+        "$ref": "#/components/schemas/Body_send_file_api_v1_chat_conversations__conversation_id__files_post"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/MessageOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/chat/files/{message_id}": {
+   "get": {
+    "tags": [
+     "chat"
+    ],
+    "summary": "Chat File",
+    "operationId": "chat_file_api_v1_chat_files__message_id__get",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "message_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Message Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/chat/messages/{message_id}": {
+   "delete": {
+    "tags": [
+     "chat"
+    ],
+    "summary": "Delete Message",
+    "description": "Only the sender takes back their own message.",
+    "operationId": "delete_message_api_v1_chat_messages__message_id__delete",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "message_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Message Id"
+      }
+     }
+    ],
+    "responses": {
+     "204": {
+      "description": "Successful Response"
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/delegations": {
+   "get": {
+    "tags": [
+     "chat"
+    ],
+    "summary": "List Delegations",
+    "description": "Mine (given and received); everyone's for an admin (users.manage).",
+    "operationId": "list_delegations_api_v1_delegations_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "items": {
+          "$ref": "#/components/schemas/DelegationOut"
+         },
+         "type": "array",
+         "title": "Response List Delegations Api V1 Delegations Get"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ]
+   },
+   "post": {
+    "tags": [
+     "chat"
+    ],
+    "summary": "Delegate",
+    "description": "I give all my permissions to a colleague for a while (e.g. my leave).",
+    "operationId": "delegate_api_v1_delegations_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/DelegationIn"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/DelegationOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ]
+   }
+  },
+  "/api/v1/delegations/{delegation_id}/revoke": {
+   "post": {
+    "tags": [
+     "chat"
+    ],
+    "summary": "Revoke",
+    "operationId": "revoke_api_v1_delegations__delegation_id__revoke_post",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "delegation_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Delegation Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/DelegationOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
   }
  },
  "components": {
@@ -13857,6 +14540,17 @@
       ],
       "title": "User Id"
      },
+     "user_name": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "User Name"
+     },
      "entity": {
       "type": "string",
       "title": "Entity"
@@ -13954,6 +14648,20 @@
      "file"
     ],
     "title": "Body_preview_library_package_api_v1_library_packages_preview_post"
+   },
+   "Body_send_file_api_v1_chat_conversations__conversation_id__files_post": {
+    "properties": {
+     "file": {
+      "type": "string",
+      "contentMediaType": "application/octet-stream",
+      "title": "File"
+     }
+    },
+    "type": "object",
+    "required": [
+     "file"
+    ],
+    "title": "Body_send_file_api_v1_chat_conversations__conversation_id__files_post"
    },
    "Body_token_api_v1_auth_token_post": {
     "properties": {
@@ -15250,6 +15958,66 @@
     ],
     "title": "ConstantUpdate"
    },
+   "ConversationOut": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Id"
+     },
+     "kind": {
+      "type": "string",
+      "title": "Kind"
+     },
+     "title": {
+      "type": "string",
+      "title": "Title"
+     },
+     "members": {
+      "items": {
+       "$ref": "#/components/schemas/PersonOut"
+      },
+      "type": "array",
+      "title": "Members"
+     },
+     "last_message": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Last Message"
+     },
+     "last_message_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Last Message At"
+     },
+     "unread": {
+      "type": "integer",
+      "title": "Unread",
+      "default": 0
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "kind",
+     "title",
+     "members"
+    ],
+    "title": "ConversationOut"
+   },
    "CopyIn": {
     "properties": {
      "company_id": {
@@ -15320,6 +16088,17 @@
        }
       ],
       "title": "Phone2"
+     },
+     "whatsapp": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Whatsapp"
      },
      "email": {
       "anyOf": [
@@ -15465,6 +16244,17 @@
       ],
       "title": "Phone2"
      },
+     "whatsapp": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Whatsapp"
+     },
      "email": {
       "anyOf": [
        {
@@ -15606,6 +16396,17 @@
        }
       ],
       "title": "Phone2"
+     },
+     "whatsapp": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Whatsapp"
      },
      "email": {
       "anyOf": [
@@ -15895,6 +16696,115 @@
     },
     "type": "object",
     "title": "Definition"
+   },
+   "DelegationIn": {
+    "properties": {
+     "to_user_id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "To User Id"
+     },
+     "starts_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Starts At"
+     },
+     "ends_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Ends At"
+     },
+     "note": {
+      "type": "string",
+      "maxLength": 500,
+      "title": "Note",
+      "default": ""
+     }
+    },
+    "type": "object",
+    "required": [
+     "to_user_id",
+     "ends_at"
+    ],
+    "title": "DelegationIn"
+   },
+   "DelegationOut": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Id"
+     },
+     "from_user_id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "From User Id"
+     },
+     "from_name": {
+      "type": "string",
+      "title": "From Name",
+      "default": ""
+     },
+     "to_user_id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "To User Id"
+     },
+     "to_name": {
+      "type": "string",
+      "title": "To Name",
+      "default": ""
+     },
+     "starts_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Starts At"
+     },
+     "ends_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Ends At"
+     },
+     "note": {
+      "type": "string",
+      "title": "Note"
+     },
+     "revoked_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Revoked At"
+     },
+     "active": {
+      "type": "boolean",
+      "title": "Active",
+      "default": false
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "from_user_id",
+     "to_user_id",
+     "starts_at",
+     "ends_at",
+     "note",
+     "revoked_at"
+    ],
+    "title": "DelegationOut"
    },
    "DeleteResult": {
     "properties": {
@@ -17668,6 +18578,31 @@
      "items"
     ],
     "title": "Group"
+   },
+   "GroupIn": {
+    "properties": {
+     "title": {
+      "type": "string",
+      "maxLength": 120,
+      "minLength": 1,
+      "title": "Title"
+     },
+     "user_ids": {
+      "items": {
+       "type": "string",
+       "format": "uuid"
+      },
+      "type": "array",
+      "minItems": 1,
+      "title": "User Ids"
+     }
+    },
+    "type": "object",
+    "required": [
+     "title",
+     "user_ids"
+    ],
+    "title": "GroupIn"
    },
    "HTTPValidationError": {
     "properties": {
@@ -20239,6 +21174,104 @@
     ],
     "title": "MediaOut"
    },
+   "MessageIn": {
+    "properties": {
+     "body": {
+      "type": "string",
+      "maxLength": 8000,
+      "minLength": 1,
+      "title": "Body"
+     }
+    },
+    "type": "object",
+    "required": [
+     "body"
+    ],
+    "title": "MessageIn"
+   },
+   "MessageOut": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Id"
+     },
+     "sender_id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Sender Id"
+     },
+     "at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "At"
+     },
+     "body": {
+      "type": "string",
+      "title": "Body"
+     },
+     "file_name": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "File Name"
+     },
+     "file_mime": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "File Mime"
+     },
+     "file_size": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "File Size"
+     },
+     "file_url": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "File Url"
+     },
+     "mine": {
+      "type": "boolean",
+      "title": "Mine",
+      "default": false
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "sender_id",
+     "at",
+     "body",
+     "file_name",
+     "file_mime",
+     "file_size"
+    ],
+    "title": "MessageOut"
+   },
    "ModelCopyIn": {
     "properties": {
      "to_system_id": {
@@ -22655,6 +23688,48 @@
      "cash_transaction_id"
     ],
     "title": "PayslipOut"
+   },
+   "PersonOut": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Id"
+     },
+     "username": {
+      "type": "string",
+      "title": "Username"
+     },
+     "full_name": {
+      "type": "string",
+      "title": "Full Name"
+     },
+     "online": {
+      "type": "boolean",
+      "title": "Online"
+     },
+     "last_seen_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Last Seen At"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "username",
+     "full_name",
+     "online",
+     "last_seen_at"
+    ],
+    "title": "PersonOut"
    },
    "PhaseIn": {
     "properties": {

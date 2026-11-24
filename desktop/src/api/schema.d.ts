@@ -388,7 +388,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List Audit */
+        /**
+         * List Audit
+         * @description سجل كل التعديلات والحركات: every change, delete, sign-in and print, with who did it.
+         */
         get: operations["list_audit_api_v1_audit_log_get"];
         put?: never;
         post?: never;
@@ -3627,6 +3630,219 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/chat/people": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * People
+         * @description Everyone in the company (active), with online / last seen.
+         */
+        get: operations["people_api_v1_chat_people_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/chat/conversations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Conversations */
+        get: operations["conversations_api_v1_chat_conversations_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/chat/unread": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Unread
+         * @description For the badge: how many unread messages in all my conversations.
+         */
+        get: operations["unread_api_v1_chat_unread_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/chat/direct/{user_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Direct
+         * @description The conversation with this person (made the first time).
+         */
+        post: operations["direct_api_v1_chat_direct__user_id__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/chat/groups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Group */
+        post: operations["group_api_v1_chat_groups_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/chat/conversations/{conversation_id}/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Messages
+         * @description Newest first page (or the ones after `after`, to poll new ones; `before` for older); oldest first.
+         */
+        get: operations["messages_api_v1_chat_conversations__conversation_id__messages_get"];
+        put?: never;
+        /** Send */
+        post: operations["send_api_v1_chat_conversations__conversation_id__messages_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/chat/conversations/{conversation_id}/files": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send File
+         * @description A picture or any file (up to 25 MB), with an optional caption.
+         */
+        post: operations["send_file_api_v1_chat_conversations__conversation_id__files_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/chat/files/{message_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Chat File */
+        get: operations["chat_file_api_v1_chat_files__message_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/chat/messages/{message_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete Message
+         * @description Only the sender takes back their own message.
+         */
+        delete: operations["delete_message_api_v1_chat_messages__message_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/delegations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Delegations
+         * @description Mine (given and received); everyone's for an admin (users.manage).
+         */
+        get: operations["list_delegations_api_v1_delegations_get"];
+        put?: never;
+        /**
+         * Delegate
+         * @description I give all my permissions to a colleague for a while (e.g. my leave).
+         */
+        post: operations["delegate_api_v1_delegations_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/delegations/{delegation_id}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Revoke */
+        post: operations["revoke_api_v1_delegations__delegation_id__revoke_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -3811,6 +4027,8 @@ export interface components {
             at: string;
             /** User Id */
             user_id: string | null;
+            /** User Name */
+            user_name?: string | null;
             /** Entity */
             entity: string;
             /** Entity Id */
@@ -3841,6 +4059,11 @@ export interface components {
         };
         /** Body_preview_library_package_api_v1_library_packages_preview_post */
         Body_preview_library_package_api_v1_library_packages_preview_post: {
+            /** File */
+            file: string;
+        };
+        /** Body_send_file_api_v1_chat_conversations__conversation_id__files_post */
+        Body_send_file_api_v1_chat_conversations__conversation_id__files_post: {
             /** File */
             file: string;
         };
@@ -4354,6 +4577,29 @@ export interface components {
             /** Sort */
             sort?: number | null;
         };
+        /** ConversationOut */
+        ConversationOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Kind */
+            kind: string;
+            /** Title */
+            title: string;
+            /** Members */
+            members: components["schemas"]["PersonOut"][];
+            /** Last Message */
+            last_message?: string | null;
+            /** Last Message At */
+            last_message_at?: string | null;
+            /**
+             * Unread
+             * @default 0
+             */
+            unread: number;
+        };
         /** CopyIn */
         CopyIn: {
             /**
@@ -4379,6 +4625,8 @@ export interface components {
             phone?: string | null;
             /** Phone2 */
             phone2?: string | null;
+            /** Whatsapp */
+            whatsapp?: string | null;
             /** Email */
             email?: string | null;
             /** Address */
@@ -4415,6 +4663,8 @@ export interface components {
             phone: string | null;
             /** Phone2 */
             phone2: string | null;
+            /** Whatsapp */
+            whatsapp?: string | null;
             /** Email */
             email: string | null;
             /** Address */
@@ -4442,6 +4692,8 @@ export interface components {
             phone?: string | null;
             /** Phone2 */
             phone2?: string | null;
+            /** Whatsapp */
+            whatsapp?: string | null;
             /** Email */
             email?: string | null;
             /** Address */
@@ -4554,6 +4806,73 @@ export interface components {
              * @default []
              */
             purchase: components["schemas"]["PurchaseRow"][];
+        };
+        /** DelegationIn */
+        DelegationIn: {
+            /**
+             * To User Id
+             * Format: uuid
+             */
+            to_user_id: string;
+            /** Starts At */
+            starts_at?: string | null;
+            /**
+             * Ends At
+             * Format: date-time
+             */
+            ends_at: string;
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+        };
+        /** DelegationOut */
+        DelegationOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * From User Id
+             * Format: uuid
+             */
+            from_user_id: string;
+            /**
+             * From Name
+             * @default
+             */
+            from_name: string;
+            /**
+             * To User Id
+             * Format: uuid
+             */
+            to_user_id: string;
+            /**
+             * To Name
+             * @default
+             */
+            to_name: string;
+            /**
+             * Starts At
+             * Format: date-time
+             */
+            starts_at: string;
+            /**
+             * Ends At
+             * Format: date-time
+             */
+            ends_at: string;
+            /** Note */
+            note: string;
+            /** Revoked At */
+            revoked_at: string | null;
+            /**
+             * Active
+             * @default false
+             */
+            active: boolean;
         };
         /**
          * DeleteResult
@@ -5138,6 +5457,13 @@ export interface components {
             label: string;
             /** Items */
             items: components["schemas"]["Hit"][];
+        };
+        /** GroupIn */
+        GroupIn: {
+            /** Title */
+            title: string;
+            /** User Ids */
+            user_ids: string[];
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -5962,6 +6288,44 @@ export interface components {
              * @default
              */
             url: string;
+        };
+        /** MessageIn */
+        MessageIn: {
+            /** Body */
+            body: string;
+        };
+        /** MessageOut */
+        MessageOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Sender Id
+             * Format: uuid
+             */
+            sender_id: string;
+            /**
+             * At
+             * Format: date-time
+             */
+            at: string;
+            /** Body */
+            body: string;
+            /** File Name */
+            file_name: string | null;
+            /** File Mime */
+            file_mime: string | null;
+            /** File Size */
+            file_size: number | null;
+            /** File Url */
+            file_url?: string | null;
+            /**
+             * Mine
+             * @default false
+             */
+            mine: boolean;
         };
         /** ModelCopyIn */
         ModelCopyIn: {
@@ -6885,6 +7249,22 @@ export interface components {
              * @default 0
              */
             review_days: number;
+        };
+        /** PersonOut */
+        PersonOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Username */
+            username: string;
+            /** Full Name */
+            full_name: string;
+            /** Online */
+            online: boolean;
+            /** Last Seen At */
+            last_seen_at: string | null;
         };
         /** PhaseIn */
         PhaseIn: {
@@ -9631,6 +10011,10 @@ export interface operations {
             query?: {
                 entity?: string | null;
                 entity_id?: string | null;
+                user_id?: string | null;
+                action?: string | null;
+                date_from?: string | null;
+                date_to?: string | null;
                 limit?: number;
                 offset?: number;
             };
@@ -17019,6 +17403,381 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ShareOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    people_api_v1_chat_people_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PersonOut"][];
+                };
+            };
+        };
+    };
+    conversations_api_v1_chat_conversations_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConversationOut"][];
+                };
+            };
+        };
+    };
+    unread_api_v1_chat_unread_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    direct_api_v1_chat_direct__user_id__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConversationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    group_api_v1_chat_groups_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GroupIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConversationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    messages_api_v1_chat_conversations__conversation_id__messages_get: {
+        parameters: {
+            query?: {
+                after?: string | null;
+                before?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                conversation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    send_api_v1_chat_conversations__conversation_id__messages_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                conversation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MessageIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    send_file_api_v1_chat_conversations__conversation_id__files_post: {
+        parameters: {
+            query?: {
+                caption?: string;
+            };
+            header?: never;
+            path: {
+                conversation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_send_file_api_v1_chat_conversations__conversation_id__files_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    chat_file_api_v1_chat_files__message_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                message_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_message_api_v1_chat_messages__message_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                message_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_delegations_api_v1_delegations_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DelegationOut"][];
+                };
+            };
+        };
+    };
+    delegate_api_v1_delegations_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DelegationIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DelegationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    revoke_api_v1_delegations__delegation_id__revoke_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                delegation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DelegationOut"];
                 };
             };
             /** @description Validation Error */

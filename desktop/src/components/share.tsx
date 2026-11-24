@@ -56,7 +56,7 @@ export function ShareActions({ kind, id, number, total, customerId, onChanged }:
       const phone = waNumber(out.customer_phone);
       const text = encodeURIComponent(message(out.url!));
       await openMap(phone ? `https://wa.me/${phone}?text=${text}` : `https://wa.me/?text=${text}`);
-      if (!phone) toast.info("مفيش رقم موبايل صحيح للعميل: اختار المحادثة من واتساب.");
+      if (!phone) toast.info("مفيش رقم واتساب أو موبايل صحيح للعميل: اختار المحادثة من واتساب.");
     } catch (e) {
       toast.err(errorText(e));
     } finally {
