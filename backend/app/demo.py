@@ -242,13 +242,16 @@ def setup_demo() -> bool:
     q2 = _priced(client, a, q2)
     q2 = _ok(client.post(f"/api/v1/quotations/{q2['id']}/status", headers=a,
                          json={"version": q2["version"], "status": "accepted"}))
-    wo = _ok(client.post("/api/v1/work-orders/from-quotation", headers=a, json={"quotation_id": q2["id"]}))
-    box = _ok(client.get("/api/v1/cashboxes", headers=a))[0]
-    _ok(client.post("/api/v1/cash-transactions", headers=a, json={
-        "cashbox_id": box["id"], "direction": "in", "amount": wo["deposit_required"], "party_type": "customer",
-        "party_id": customer["id"], "work_order_id": wo["id"], "note": "عربون"}))
-    inv = _ok(client.post("/api/v1/invoices", headers=a, json={"work_order_id": wo["id"]}))
+    # its invoice (with a service line), the deposit collected on it and confirmed, then the work order
+    inv = _ok(client.post("/api/v1/invoices", headers=a, json={"quotation_id": q2["id"]}))
     inv = _ok(client.post(f"/api/v1/invoices/{inv['id']}/lines", headers=a, json={
         "kind": "service", "description": "تركيب ونقل", "qty": "1", "unit_price": "600"}))
-    _ok(client.post(f"/api/v1/invoices/{inv['id']}/issue", headers=a, json={"version": inv["version"]}))
+    inv = _ok(client.post(f"/api/v1/invoices/{inv['id']}/issue", headers=a, json={"version": inv["version"]}))
+    box = _ok(client.get("/api/v1/cashboxes", headers=a))[0]
+    c = _ok(client.post(f"/api/v1/invoices/{inv['id']}/collections", headers=a, json={
+        "amount": inv["deposit_amount"], "note": "عربون"}))
+    _ok(client.post(f"/api/v1/collections/{c['id']}/confirm", headers=a, json={"version": c["version"],
+                                                                              "cashbox_id": box["id"]}))
+    inv = _ok(client.get(f"/api/v1/invoices/{inv['id']}", headers=a))
+    _ok(client.post(f"/api/v1/invoices/{inv['id']}/work-order", headers=a, json={"version": inv["version"]}))
     return True

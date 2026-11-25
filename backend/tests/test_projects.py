@@ -4,6 +4,7 @@ from decimal import Decimal as D
 
 from tests.test_business_flow import _setup, price_at_top
 from tests.test_field_service import _accepted_order
+from tests.orders import order
 
 
 def test_phases_of_one_project(platform, tenant_a, tenant_b, client):
@@ -28,14 +29,14 @@ def test_phases_of_one_project(platform, tenant_a, tenant_b, client):
     q2 = client.post(f"/api/v1/quotations/{q2['id']}/lines", headers=h, json=line).json()
     q2 = price_at_top(client, h, q2)
     q2 = client.post(f"/api/v1/quotations/{q2['id']}/status", headers=h, json={"version": q2["version"], "status": "accepted"}).json()
-    wo2 = client.post("/api/v1/work-orders/from-quotation", headers=h, json={"quotation_id": q2["id"]}).json()
+    wo2 = order(client, h, q2)
     assert wo2["id"] != wo1["id"] and wo2["project_id"] == phase2["project_id"]
 
     p = client.get(f"/api/v1/projects/{phase2['project_id']}", headers=h).json()
     assert p["name"] == "برج النيل" and p["number"].startswith("PJ")
     assert [x["phase_name"] for x in p["phases"]] == ["المرحلة 1", "المرحلة 2"]
     assert {x["work_order_id"] for x in p["phases"]} == {wo1["id"], wo2["id"]}
-    assert D(p["ordered_total"]) == D(wo1["total"]) + D(wo2["total"]) and D(p["remaining"]) == D(p["ordered_total"])
+    assert D(p["ordered_total"]) == D(wo1["total"]) + D(wo2["total"]) and D(p["remaining"]) == D(p["ordered_total"]) - D(wo1["paid_amount"]) - D(wo2["paid_amount"])
     assert [x["id"] for x in client.get(f"/api/v1/projects?customer_id={customer['id']}", headers=h).json()] == [p["id"]]
     r = client.patch(f"/api/v1/projects/{p['id']}", headers=h, json={"version": p["version"], "name": "برج النيل - أ"})
     assert r.status_code == 200 and r.json()["name"] == "برج النيل - أ"

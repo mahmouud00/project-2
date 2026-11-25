@@ -2,6 +2,7 @@ from decimal import Decimal as D
 
 from tests.library_helpers import PNG
 from tests.test_business_flow import _setup, price_at_top
+from tests.orders import order
 
 
 def _order(client, platform, tenant, code):
@@ -15,14 +16,27 @@ def _order(client, platform, tenant, code):
              "color_code": "W", "glass_material_code": f"{code}-GLASS6"}]}).json()
     q = price_at_top(client, h, q)
     q = client.post(f"/api/v1/quotations/{q['id']}/status", headers=h, json={"version": q["version"], "status": "accepted"}).json()
-    wo = client.post("/api/v1/work-orders/from-quotation", headers=h, json={"quotation_id": q["id"]}).json()
+    wo = order(client, h, q)
     return lib, branch, customer, q, wo
 
 
-def test_invoice_from_work_order_with_discounts_and_payment(platform, tenant_a, client):
-    lib, branch, customer, q, wo = _order(client, platform, tenant_a, "INV1")
+def test_invoice_first_discounts_collections_then_work_order(platform, tenant_a, client):
+    from tests.orders import cashbox, collect
+    from tests.test_org_permissions_locking import _make_user
+
+    lib, branch, pl, customer = _setup(client, platform, tenant_a, "INV1")
     h = tenant_a.h
-    inv = client.post("/api/v1/invoices", headers=h, json={"work_order_id": wo["id"]})
+    q = client.post("/api/v1/quotations", headers=h, json={
+        "customer_id": customer["id"], "branch_id": branch["id"], "discount_amount": "100", "lines": [
+            {"location": "صالة", "model_id": lib["model"]["id"], "opening_width_mm": 1800, "opening_height_mm": 1400,
+             "qty": 2, "color_code": "W", "glass_material_code": "INV1-GLASS6", "params": {"leaf_count": 2}},
+            {"location": "مطبخ", "model_id": lib["model"]["id"], "opening_width_mm": 1200, "opening_height_mm": 1000,
+             "color_code": "W", "glass_material_code": "INV1-GLASS6"}]}).json()
+    q = client.post(f"/api/v1/quotations/{q['id']}/status", headers=h, json={"version": q["version"], "status": "accepted"}).json()
+    # no work order straight from the quotation: through its invoice
+    r = client.post("/api/v1/work-orders/from-quotation", headers=h, json={"quotation_id": q["id"]})
+    assert r.status_code == 409 and r.json()["error"]["code"] == "WO_FROM_INVOICE"
+    inv = client.post("/api/v1/invoices", headers=h, json={"quotation_id": q["id"]})
     assert inv.status_code == 201, inv.text
     inv = inv.json()
     assert inv["status"] == "draft" and inv["number"] is None and len(inv["lines"]) == 2
@@ -38,23 +52,55 @@ def test_invoice_from_work_order_with_discounts_and_payment(platform, tenant_a, 
     assert D(inv["lines"][0]["discount_amount"]) == (gross * D("0.1")).quantize(D("0.01"))
     taxable = D(inv["lines_total"]) - D(inv["discount_amount"])
     assert D(inv["total"]) == (taxable * (1 + D(inv["tax_pct"]) / 100)).quantize(D("0.01"))
-    # a second invoice for the same order is refused
-    assert client.post("/api/v1/invoices", headers=h, json={"work_order_id": wo["id"]}).status_code == 409
-
+    # money only on an issued invoice
+    assert client.post(f"/api/v1/invoices/{inv['id']}/collections", headers=h, json={"amount": "10"}).status_code == 409
     inv = client.post(f"/api/v1/invoices/{inv['id']}/issue", headers=h, json={"version": inv["version"]}).json()
     assert inv["status"] == "issued" and inv["number"].startswith("INV-")
     r = client.post(f"/api/v1/invoices/{inv['id']}/lines", headers=h, json={"description": "x", "unit_price": "1"})
     assert r.status_code == 409 and r.json()["error"]["code"] == "INVOICE_LOCKED"
+    from app.modules.sales.pricing import money
+    assert D(inv["deposit_amount"]) == money(D(inv["total"]) * D("0.3")) and D(inv["collected_pct"]) == 0
 
-    box = client.post("/api/v1/cashboxes", headers=h, json={"code": "IC", "name": "c", "branch_id": branch["id"]}).json()
+    # customer money comes in through the invoice only
+    box = cashbox(client, h, branch["id"])
     r = client.post("/api/v1/cash-transactions", headers=h, json={
         "cashbox_id": box["id"], "direction": "in", "amount": "1000", "party_type": "customer",
         "party_id": customer["id"], "invoice_id": inv["id"]})
-    assert r.status_code == 201 and r.json()["work_order_id"] == wo["id"]
+    assert r.status_code == 409 and r.json()["error"]["code"] == "COLLECT_ON_INVOICE"
+    # the salesperson records it: nothing counts until the accounts confirm
+    seller = _make_user(tenant_a, client, "seller_inv", "sales")
+    client.post(f"/api/v1/customers/{customer['id']}/transfer", headers=h, json={"to_user_id": seller["id"]})
+    hs = tenant_a.headers("seller_inv", "user-pass-123")
+    c = client.post(f"/api/v1/invoices/{inv['id']}/collections", headers=hs, json={"amount": "1000", "method": "transfer",
+                                                                                 "reference": "TRX-1"}).json()
+    assert c["status"] == "pending"
     inv = client.get(f"/api/v1/invoices/{inv['id']}", headers=h).json()
-    assert D(inv["paid_amount"]) == 1000 and D(inv["balance"]) == D(inv["total"]) - 1000
-    assert D(client.get(f"/api/v1/work-orders/{wo['id']}", headers=h).json()["paid_amount"]) == 1000
-    # the customer statement bills the issued invoice (with its service line), not the work order amount
+    assert D(inv["paid_amount"]) == 0 and D(inv["pending_amount"]) == 1000
+    big = client.post(f"/api/v1/invoices/{inv['id']}/collections", headers=hs, json={"amount": inv["total"]})
+    assert big.status_code == 422 and big.json()["error"]["code"] == "COLLECTION_TOO_LARGE"
+    r = client.post(f"/api/v1/invoices/{inv['id']}/work-order", headers=h, json={"version": inv["version"]})
+    assert r.status_code == 409 and r.json()["error"]["code"] == "DEPOSIT_REQUIRED"
+    r = client.post(f"/api/v1/collections/{c['id']}/reject", headers=h, json={"version": c["version"], "reason": "مش واصل"})
+    assert r.json()["status"] == "rejected"
+    collect(client, hs, inv, inv["deposit_amount"], box=box, confirm_h=h)
+    inv = client.get(f"/api/v1/invoices/{inv['id']}", headers=h).json()
+    assert D(inv["paid_amount"]) == D(inv["deposit_amount"]) and D(inv["pending_amount"]) == 0
+    assert D(inv["collected_pct"]) == (D(inv["paid_amount"]) * 100 / D(inv["total"])).quantize(D("0.1"))
+    # the deposit is in: the invoice becomes a work order, the sale confirmed, its money with it
+    wo = client.post(f"/api/v1/invoices/{inv['id']}/work-order", headers=h, json={"version": inv["version"]})
+    assert wo.status_code == 200, wo.text
+    wo = wo.json()
+    assert wo["sale_status"] == "approved" and D(wo["paid_amount"]) == D(inv["paid_amount"]) and wo["quotation_id"] == q["id"]
+    inv = client.get(f"/api/v1/invoices/{inv['id']}", headers=h).json()
+    assert inv["work_order_id"] == wo["id"]
+    # later money: on the invoice still, and on its work order
+    collect(client, hs, inv, "1000", box=box, confirm_h=h)
+    inv = client.get(f"/api/v1/invoices/{inv['id']}", headers=h).json()
+    assert D(inv["paid_amount"]) == D(inv["deposit_amount"]) + 1000
+    assert D(client.get(f"/api/v1/work-orders/{wo['id']}", headers=h).json()["paid_amount"]) == D(inv["paid_amount"])
+    assert [x["status"] for x in client.get(f"/api/v1/invoices/{inv['id']}/collections", headers=hs).json()] == \
+        ["rejected", "confirmed", "confirmed"]
+    # the customer statement bills the issued invoice (with its service line)
     st = client.get(f"/api/v1/customers/{customer['id']}/statement", headers=h).json()
     assert D(st["billed"]) == D(inv["total"]) and D(st["balance"]) == D(inv["balance"])
     assert st["orders"][0]["invoiced"] is True and st["invoices"][0]["number"] == inv["number"]
@@ -64,10 +110,6 @@ def test_invoice_from_work_order_with_discounts_and_payment(platform, tenant_a, 
     body = html.text
     assert inv["number"] in body and "فاتورة" in body and "<svg" in body and "180" in body and "عرض × ارتفاع" in body
     assert "@font-face" in body
-    r = client.post(f"/api/v1/invoices/{inv['id']}/cancel", headers=h, json={"version": inv["version"], "reason": "خطأ في البيانات"})
-    assert r.status_code == 200 and r.json()["status"] == "cancelled"
-    st = client.get(f"/api/v1/customers/{customer['id']}/statement", headers=h).json()
-    assert D(st["billed"]) == D(wo["total"]) and st["invoices"] == []   # cancelled: back to the order amount
 
 
 def test_manual_invoice_and_isolation(platform, tenant_a, tenant_b, client):

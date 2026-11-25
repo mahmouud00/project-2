@@ -45,7 +45,7 @@ def _kinds() -> dict:
         "quotations": (Quotation, "quotes.read", "branch_id", ("quotation_lines", "quotation_id")),
         "work_orders": (WorkOrder, "workorders.read", "branch_id", ("work_order_items", "work_order_id")),
         "site_surveys": (SiteSurvey, "surveys.read", "branch_id", ("survey_openings", "survey_id")),
-        "invoices": (Invoice, "treasury.read", "branch_id", ("invoice_lines", "invoice_id")),
+        "invoices": (Invoice, "invoices.read", "branch_id", ("invoice_lines", "invoice_id")),
         "purchase_orders": (PurchaseOrder, "purchasing.read", "branch_id", ("purchase_order_lines", "purchase_order_id")),
         "customers": (Customer, "customers.read", "branch_id", None),
         "suppliers": (Supplier, "purchasing.read", None, None),

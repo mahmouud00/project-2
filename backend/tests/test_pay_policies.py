@@ -167,11 +167,9 @@ def test_commission_on_collections(platform, tenant_a, client):
     wo = client.patch(f"/api/v1/work-orders/{wo['id']}", headers=h, json={"version": wo["version"], "salesperson_id": sp["id"]})
     assert wo.status_code == 200, wo.text
     wo = wo.json()
-    box = client.post("/api/v1/cashboxes", headers=h, json={"code": "BPAYC", "name": "خزينة", "branch_id": branch["id"]}).json()
-    r = client.post("/api/v1/cash-transactions", headers=h, json={
-        "cashbox_id": box["id"], "direction": "in", "amount": "500", "party_type": "customer",
-        "party_id": customer["id"], "work_order_id": wo["id"]})
-    assert r.status_code == 201, r.text
+    from tests.orders import collect
+    inv = next(i for i in client.get("/api/v1/invoices", headers=h).json()["items"] if i["work_order_id"] == wo["id"])
+    collect(client, h, inv, "500")             # collected on the invoice, confirmed by the accounts
     from app.modules.hr.policy import local_now
     month = local_now().strftime("%Y-%m")
     run = client.post("/api/v1/payroll-runs", headers=h, json={"month": month, "branch_id": branch["id"]}).json()

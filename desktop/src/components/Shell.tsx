@@ -26,7 +26,7 @@ export const NAV: [string, NavItem[]][] = [
     { id: "customers", icon: "users", label: "العملاء", perm: "customers.read", hideForPlatform: true },
     { id: "surveys", icon: "ruler", label: "المعاينات", perm: "surveys.read", hideForPlatform: true },
     { id: "quotations", icon: "quote", label: "عروض الأسعار", perm: "quotes.read", hideForPlatform: true },
-    { id: "invoices", icon: "invoice", label: "الفواتير", perm: "treasury.read", hideForPlatform: true },
+    { id: "invoices", icon: "invoice", label: "الفواتير", perm: "invoices.read", hideForPlatform: true },
   ]],
   ["الإنتاج", [
     { id: "work-orders", icon: "factory", label: "أوامر التصنيع", perm: "workorders.read", hideForPlatform: true },
@@ -35,7 +35,7 @@ export const NAV: [string, NavItem[]][] = [
     { id: "field", icon: "truck", label: "الفنيين", perm: ["field.read", "field.manage", "field.self", "field.install_doc"], hideForPlatform: true },
   ]],
   ["الحسابات والإدارة", [
-    { id: "treasury", icon: "cash", label: "الحسابات والخزينة", perm: ["treasury.read", "purchasing.approve", "finance.read"], hideForPlatform: true },
+    { id: "treasury", icon: "cash", label: "الحسابات والخزينة", perm: ["treasury.read", "purchasing.approve", "finance.read", "collections.confirm"], hideForPlatform: true },
     { id: "hr", icon: "idcard", label: "الموارد البشرية", perm: "hr.read", hideForPlatform: true },
   ]],
   ["الإعداد", [

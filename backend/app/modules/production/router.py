@@ -190,6 +190,12 @@ def from_quotation(body: FromQuotationIn, dc=Depends(require("workorders.create"
     db, ctx = dc
     q = get_or_404(db, Quotation, body.quotation_id)
     ctx.require("workorders.create", q.branch_id)
+    # أمر التصنيع بيدخل من الفاتورة: invoice → deposit confirmed by the accounts → «تحويل لأمر تصنيع»
+    raise Conflict("A work order is made from the invoice once its deposit is confirmed", code="WO_FROM_INVOICE")
+
+
+def order_from_quotation(db, ctx, q: Quotation, body: FromQuotationIn, notify_accounts: bool = True) -> WorkOrder:
+    """The work order of an accepted quotation (not committed)."""
     if q.status != "accepted":
         raise Conflict("Quotation must be accepted first", code="QUOTE_NOT_ACCEPTED")
     if db.scalar(select(WorkOrder).where(WorkOrder.quotation_id == q.id, WorkOrder.deleted_at.is_(None))):
@@ -227,10 +233,13 @@ def from_quotation(body: FromQuotationIn, dc=Depends(require("workorders.create"
     _log_stage(db, ctx, wo, before_stage, "quotation", f"quotation {q.number}")
     audit(db, wo, "create" if before_stage is None else "update")
     from app.modules.notifications.router import alert, customer_name
-    alert(db, ctx, "accounts", wo.branch_id, f"بيعة مستنية تأكيد: {wo.number} بـ {wo.total}",
-          customer_name(db, wo.customer_id), "treasury?tab=sales")
-    db.commit()
-    return _wo_out(db, wo, ctx=ctx)
+    if notify_accounts:
+        alert(db, ctx, "accounts", wo.branch_id, f"بيعة مستنية تأكيد: {wo.number} بـ {wo.total}",
+              customer_name(db, wo.customer_id), "treasury?tab=sales")
+    else:                                       # from an invoice whose deposit the accounts confirmed
+        alert(db, ctx, "production", wo.branch_id, f"أمر تصنيع جديد {wo.number}", customer_name(db, wo.customer_id),
+              f"work-orders/{wo.id}")
+    return wo
 
 
 @router.get("/work-orders/{wo_id}", response_model=WorkOrderOut)

@@ -12,6 +12,7 @@ import { date } from "../lib/format";
 import { ApproveForm } from "./Purchasing";
 import { SALE_STATUS, SaleDecisionForm } from "./WorkOrders";
 import { SalespersonName } from "../components/pickers";
+import { PendingCollections } from "../components/collections";
 import { DeleteBtn } from "../components/actions";
 import { dateTime } from "../lib/format";
 
@@ -22,6 +23,7 @@ export default function Treasury({ route }: PageProps) {
   const s = useSession();
   const tabs = [
     { id: "cash", label: "الخزينة", hidden: !s.can("treasury.read") },
+    { id: "collections", label: "تأكيد التحصيلات", hidden: !s.can("collections.confirm") },
     { id: "sales", label: "تأكيد المبيعات", hidden: !s.can("sales.approve") },
     { id: "approvals", label: "تأكيد المشتريات", hidden: !s.can("purchasing.approve") },
     { id: "profit", label: "الربحية ورأس المال", hidden: !s.can("finance.read") },
@@ -30,7 +32,7 @@ export default function Treasury({ route }: PageProps) {
   return (
     <div className="col" style={{ gap: 14 }}>
       {tabs.length > 1 && <Card flush><Tabs value={tab} onChange={(t) => setQuery({ tab: t })} tabs={tabs} /></Card>}
-      {tab === "cash" ? <Cash /> : tab === "sales" ? <SaleApprovals /> : tab === "approvals" ? <Approvals /> : tab === "profit" ? <Profit /> : null}
+      {tab === "cash" ? <Cash /> : tab === "collections" ? <PendingCollections /> : tab === "sales" ? <SaleApprovals /> : tab === "approvals" ? <Approvals /> : tab === "profit" ? <Profit /> : null}
     </div>
   );
 }

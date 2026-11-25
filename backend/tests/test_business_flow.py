@@ -77,24 +77,11 @@ def test_full_cycle(platform, tenant_a, tenant_b, client):
     assert client.post(f"/api/v1/quotations/{q['id']}/lines", headers=h, json={
         "model_id": model_id, "opening_width_mm": 900, "opening_height_mm": 900}).status_code == 409
 
-    wo = client.post("/api/v1/work-orders/from-quotation", headers=h, json={"quotation_id": q["id"]})
-    assert wo.status_code == 201, wo.text
-    wo = wo.json()
+    # the invoice, its deposit collected and confirmed by the accounts, then the work order
+    from tests.orders import order
+    wo = order(client, h, q)
     assert wo["stage"] == "quotation" and D(wo["deposit_required"]) == (D(q["total"]) * D("0.3")).quantize(D("0.01"))
-    r = client.post(f"/api/v1/work-orders/{wo['id']}/stage", headers=h, json={"version": wo["version"], "to": "approved"})
-    assert r.status_code == 409 and r.json()["error"]["code"] == "SALE_NOT_APPROVED"
-    wo = client.post(f"/api/v1/work-orders/{wo['id']}/approve-sale", headers=h, json={"version": wo["version"]}).json()
-    assert wo["sale_status"] == "approved"
-    r = client.post(f"/api/v1/work-orders/{wo['id']}/stage", headers=h, json={"version": wo["version"], "to": "approved"})
-    assert r.status_code == 409 and r.json()["error"]["code"] == "DEPOSIT_REQUIRED"
-
-    box = client.post("/api/v1/cashboxes", headers=h, json={"code": "CASH1", "name": "خزينة", "branch_id": branch["id"]}).json()
-    tx = client.post("/api/v1/cash-transactions", headers=h, json={
-        "cashbox_id": box["id"], "direction": "in", "amount": wo["deposit_required"], "party_type": "customer",
-        "party_id": customer["id"], "work_order_id": wo["id"]})
-    assert tx.status_code == 201, tx.text
-    wo = client.get(f"/api/v1/work-orders/{wo['id']}", headers=h).json()
-    assert D(wo["paid_amount"]) == D(wo["deposit_required"])
+    assert wo["sale_status"] == "approved" and D(wo["paid_amount"]) == D(wo["deposit_required"])
     wo = client.post(f"/api/v1/work-orders/{wo['id']}/stage", headers=h,
                      json={"version": wo["version"], "to": "approved"}).json()
     assert wo["stage"] == "approved"

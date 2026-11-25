@@ -14,13 +14,18 @@ def _to(client, h, wo, stage):
 
 
 def _made(client, h, wo, branch, customer, code):
-    """approve the sale, pay the deposit and make it: the order is then at «جودة»."""
-    wo = client.post(f"/api/v1/work-orders/{wo['id']}/approve-sale", headers=h, json={"version": wo["version"]}).json()
-    box = client.post("/api/v1/cashboxes", headers=h, json={"code": f"B{code}", "name": "خزينة", "branch_id": branch["id"]}).json()
-    client.post("/api/v1/cash-transactions", headers=h, json={
-        "cashbox_id": box["id"], "direction": "in", "amount": wo["deposit_required"], "party_type": "customer",
-        "party_id": customer["id"], "work_order_id": wo["id"]})
+    """make it (the sale and its deposit came confirmed from the invoice; a changed sale is confirmed again):
+    the order is then at «جودة»."""
     wo = client.get(f"/api/v1/work-orders/{wo['id']}", headers=h).json()
+    if wo["sale_status"] != "approved":
+        wo = client.post(f"/api/v1/work-orders/{wo['id']}/approve-sale", headers=h, json={"version": wo["version"]}).json()
+    if float(wo["paid_amount"]) < float(wo["deposit_required"]):     # the order grew: the rest of the deposit
+        from decimal import Decimal as D
+
+        from tests.orders import collect
+        inv = next(i for i in client.get("/api/v1/invoices", headers=h).json()["items"] if i["work_order_id"] == wo["id"])
+        collect(client, h, inv, D(wo["deposit_required"]) - D(wo["paid_amount"]))
+        wo = client.get(f"/api/v1/work-orders/{wo['id']}", headers=h).json()
     for stage in ("approved", "manufacturing", "assembly", "quality"):
         wo = _to(client, h, wo, stage)
     return wo

@@ -30,7 +30,7 @@ from app.tenancy.context import require
 from app.modules.sales import ownership
 
 router = APIRouter(tags=["invoicing"])
-EDIT_PERM, READ_PERM = "treasury.write", "treasury.read"
+EDIT_PERM, READ_PERM = "treasury.write", "invoices.read"
 
 
 class LineIn(BaseModel):
@@ -120,6 +120,9 @@ class InvoiceOut(Record):
     total: Decimal
     paid_amount: Decimal
     balance: Decimal = Decimal(0)
+    pending_amount: Decimal = Decimal(0)      # recorded by the salesperson, waiting for the accounts
+    collected_pct: Decimal = Decimal(0)       # confirmed money / the total (the indicator over the invoice)
+    deposit_amount: Decimal = Decimal(0)      # needed before it becomes a work order
     notes: str
     terms: str
     cancel_reason: str
@@ -142,6 +145,10 @@ def invoice_out(db, inv) -> InvoiceOut:
     # a payment against such an invoice is booked on the order too, so nothing is counted twice
     out.paid_amount = money(db.get(WorkOrder, inv.work_order_id).paid_amount if inv.work_order_id else _paid(db, inv))
     out.balance = money(inv.total - out.paid_amount) if inv.status != "cancelled" else Decimal(0)
+    from app.modules.invoicing.collections import sums
+    out.pending_amount = sums(db, inv)[1]
+    out.collected_pct = (out.paid_amount * 100 / inv.total).quantize(Decimal("0.1")) if inv.total else Decimal(0)
+    out.deposit_amount = money(inv.total * get_company_settings(db, inv.company_id).deposit_pct / 100)
     return out
 
 
@@ -360,10 +367,10 @@ class VersionIn(BaseModel):
 
 
 @router.post("/invoices/{inv_id}/issue", response_model=InvoiceOut)
-def issue(inv_id: uuid.UUID, body: VersionIn, dc=Depends(require(EDIT_PERM))):
+def issue(inv_id: uuid.UUID, body: VersionIn, dc=Depends(require("invoices.create"))):
     """Give the invoice its sequential number and lock it."""
     db, ctx = dc
-    inv = _get(db, ctx, inv_id, EDIT_PERM)
+    inv = _get(db, ctx, inv_id, "invoices.create")
     check_version(inv, body.version)
     _require_draft(inv)
     if not _lines(db, inv):

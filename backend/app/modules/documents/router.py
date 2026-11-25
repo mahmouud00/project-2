@@ -95,7 +95,7 @@ def _page(template: str, db, ctx, **kw) -> HTMLResponse:
 
 
 @router.get("/invoices/{inv_id}/print", response_class=HTMLResponse)
-def print_invoice(inv_id: uuid.UUID, dc=Depends(require("treasury.read"))):
+def print_invoice(inv_id: uuid.UUID, dc=Depends(require("invoices.read"))):
     from app.modules.invoicing.models import Invoice
     from app.modules.invoicing.router import _lines, invoice_out
     from app.modules.production.models import WorkOrder
@@ -103,7 +103,7 @@ def print_invoice(inv_id: uuid.UUID, dc=Depends(require("treasury.read"))):
 
     db, ctx = dc
     inv = get_or_404(db, Invoice, inv_id)
-    ctx.require("treasury.read", inv.branch_id)
+    ctx.require("invoices.read", inv.branch_id)
     out = invoice_out(db, inv)
     look = _Lookups(db)
     lines = []

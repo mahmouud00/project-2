@@ -7,6 +7,7 @@ from tests.delete_helpers import delete_now
 from tests.test_business_flow import _setup, price_at_top
 from tests.test_field_service import _accepted_order
 from tests.test_org_permissions_locking import _make_user
+from tests.orders import order
 
 
 def _employee(client, h, branch, **kw):
@@ -85,9 +86,9 @@ def test_salesperson_follows_the_sale(platform, tenant_a, client):
     q = price_at_top(client, h, q)
     q = client.post(f"/api/v1/quotations/{q['id']}/status", headers=h, json={"version": q["version"],
                                                                               "status": "accepted"}).json()
-    wo = client.post("/api/v1/work-orders/from-quotation", headers=h, json={"quotation_id": q["id"]}).json()
+    wo = order(client, h, q)
     assert wo["salesperson_id"] == e["id"]
-    inv = client.post("/api/v1/invoices", headers=h, json={"work_order_id": wo["id"]}).json()
+    inv = next(i for i in client.get("/api/v1/invoices", headers=h).json()["items"] if i["work_order_id"] == wo["id"])     # the order came from it
     assert inv["salesperson_id"] == e["id"]
     sales = client.get(f"/api/v1/employees/{e['id']}/sales", headers=h).json()
     assert sales["quotations"]["accepted"] == 1 and sales["work_orders"]["count"] == 1
@@ -141,8 +142,7 @@ def test_assets_profit_and_capital(platform, tenant_a, client):
     today = date.today()
     # a sale (issued invoice), a purchase received, an expense and a paid salary this month
     wo = _accepted_order(client, h, lib, branch, customer, "FIN")
-    inv = client.post("/api/v1/invoices", headers=h, json={"work_order_id": wo["id"]}).json()
-    inv = client.post(f"/api/v1/invoices/{inv['id']}/issue", headers=h, json={"version": inv["version"]}).json()
+    inv = next(i for i in client.get("/api/v1/invoices", headers=h).json()["items"] if i["work_order_id"] == wo["id"])
     sup = client.post("/api/v1/suppliers", headers=h, json={"name": "مورد"}).json()
     po = client.post("/api/v1/purchase-orders", headers=h, json={
         "supplier_id": sup["id"], "branch_id": branch["id"], "lines": [{"sku": "FIN-FRAME-W", "qty": "10",
@@ -196,19 +196,28 @@ def test_sale_needs_accounts_and_notifications_reach_each_section(platform, tena
     client.patch(f"/api/v1/customers/{customer['id']}", headers=h, json={"version": customer["version"], "phone": "01234567890"})
     assert any(customer["name"] in n["title"] for n in inbox(hs)["items"])
     assert inbox(hp)["unread"] == 0 and inbox(hf)["unread"] == 0
-    # a sale waits for the accounts, who are notified
-    wo = _accepted_order(client, h, lib, branch, customer, "NTF")
-    assert wo["sale_status"] == "pending"
-    note = next(n for n in inbox(ha)["items"] if wo["number"] in n["title"])
-    assert note["link"] == "treasury?tab=sales" and note["read_at"] is None
-    pending = client.get("/api/v1/work-orders?sale_status=pending", headers=ha).json()["items"]
-    assert [x["id"] for x in pending] == [wo["id"]]
-    r = client.post(f"/api/v1/work-orders/{wo['id']}/approve-sale", headers=hs, json={"version": wo["version"]})
-    assert r.status_code == 403       # only the accounts confirm a sale
-    wo = client.post(f"/api/v1/work-orders/{wo['id']}/approve-sale", headers=ha,
-                     json={"version": wo["version"], "note": "العربون تمام"}).json()
-    assert wo["sale_status"] == "approved" and wo["sale_approval_note"] == "العربون تمام"
-    assert any("جاهز للتصنيع" in n["title"] for n in inbox(hp)["items"])
+    # money collected on the invoice waits for the accounts, who are notified; only they confirm it
+    from tests.orders import cashbox, invoice_of
+    line = {"model_id": lib["model"]["id"], "opening_width_mm": 1000, "opening_height_mm": 1000, "color_code": "W",
+            "glass_material_code": "NTF-GLASS6"}
+    q = client.post("/api/v1/quotations", headers=h, json={"customer_id": customer["id"], "branch_id": branch["id"],
+                                                         "lines": [line]}).json()
+    q = client.post(f"/api/v1/quotations/{q['id']}/status", headers=h, json={"version": q["version"], "status": "accepted"}).json()
+    inv = invoice_of(client, h, q)
+    c = client.post(f"/api/v1/invoices/{inv['id']}/collections", headers=hs, json={"amount": inv["deposit_amount"]}).json()
+    note = next(n for n in inbox(ha)["items"] if inv["number"] in n["title"])
+    assert note["link"] == "treasury?tab=collections" and note["read_at"] is None
+    assert [x["id"] for x in client.get("/api/v1/collections", headers=ha).json()] == [c["id"]]
+    box = cashbox(client, h, branch["id"])
+    r = client.post(f"/api/v1/collections/{c['id']}/confirm", headers=hs, json={"version": c["version"], "cashbox_id": box["id"]})
+    assert r.status_code == 403       # only the accounts confirm money
+    r = client.post(f"/api/v1/collections/{c['id']}/confirm", headers=ha, json={"version": c["version"], "cashbox_id": box["id"]})
+    assert r.status_code == 200 and r.json()["status"] == "confirmed"
+    assert any("أكدت تحصيل" in n["title"] for n in inbox(hs)["items"])
+    inv = client.get(f"/api/v1/invoices/{inv['id']}", headers=h).json()
+    wo = client.post(f"/api/v1/invoices/{inv['id']}/work-order", headers=h, json={"version": inv["version"]}).json()
+    assert wo["sale_status"] == "approved"
+    assert any(wo["number"] in n["title"] for n in inbox(hp)["items"])          # production hears of the new order
     # the one who acted is not notified of their own change; reading clears the count
     assert not any("أكدت" in n["title"] for n in inbox(ha)["items"])
     n = inbox(hs)

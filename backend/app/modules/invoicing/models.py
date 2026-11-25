@@ -66,3 +66,25 @@ class InvoiceLine(Base, Entity):
     discount_pct: Mapped[Decimal] = mapped_column(Numeric(6, 3), default=Decimal(0))
     discount_amount: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal(0))   # computed
     line_total: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal(0))        # after discount
+
+
+class Collection(Base, Entity):
+    """تحصيل على فاتورة: the salesperson records money received; it is in no cashbox and counts for nothing until
+    the accounts confirm it (then it is a cash receipt on the invoice). A refused one stays, with the reason."""
+    __tablename__ = "collections"
+
+    number: Mapped[str] = mapped_column(String(40))
+    invoice_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("invoices.id"), index=True)
+    customer_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("customers.id"), index=True)
+    branch_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("branches.id"), index=True)
+    owner_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True, index=True)  # the salesperson
+    amount: Mapped[Decimal] = mapped_column(Numeric(14, 2))
+    method: Mapped[str] = mapped_column(String(20), default="cash")       # cash | transfer | cheque | card
+    reference: Mapped[str] = mapped_column(String(100), default="")
+    note: Mapped[str] = mapped_column(Text, default="")
+    status: Mapped[str] = mapped_column(String(12), default="pending")    # pending | confirmed | rejected
+    decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    decided_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    reject_reason: Mapped[str] = mapped_column(Text, default="")
+    cash_transaction_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True),
+                                                                  ForeignKey("cash_transactions.id"), nullable=True)

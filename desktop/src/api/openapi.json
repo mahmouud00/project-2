@@ -14424,6 +14424,349 @@
      }
     ]
    }
+  },
+  "/api/v1/invoices/{inv_id}/collections": {
+   "post": {
+    "tags": [
+     "collections"
+    ],
+    "summary": "Record Collection",
+    "description": "The salesperson received money on the invoice: it waits for the accounts.",
+    "operationId": "record_collection_api_v1_invoices__inv_id__collections_post",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "inv_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Inv Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/CollectionIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CollectionOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "get": {
+    "tags": [
+     "collections"
+    ],
+    "summary": "Invoice Collections",
+    "operationId": "invoice_collections_api_v1_invoices__inv_id__collections_get",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "inv_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Inv Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/CollectionOut"
+         },
+         "title": "Response Invoice Collections Api V1 Invoices  Inv Id  Collections Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/collections": {
+   "get": {
+    "tags": [
+     "collections"
+    ],
+    "summary": "List Collections",
+    "description": "The accounts' list (pending by default); a salesperson sees his own.",
+    "operationId": "list_collections_api_v1_collections_get",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "status",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "default": "pending",
+       "title": "Status"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/CollectionOut"
+         },
+         "title": "Response List Collections Api V1 Collections Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/collections/{coll_id}/confirm": {
+   "post": {
+    "tags": [
+     "collections"
+    ],
+    "summary": "Confirm Collection",
+    "description": "The accounts received it: a cash receipt into the cashbox, on the invoice (and its work order).",
+    "operationId": "confirm_collection_api_v1_collections__coll_id__confirm_post",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "coll_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Coll Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ConfirmIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CollectionOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/collections/{coll_id}/reject": {
+   "post": {
+    "tags": [
+     "collections"
+    ],
+    "summary": "Reject Collection",
+    "operationId": "reject_collection_api_v1_collections__coll_id__reject_post",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "coll_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Coll Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/RejectIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CollectionOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/invoices/{inv_id}/work-order": {
+   "post": {
+    "tags": [
+     "collections"
+    ],
+    "summary": "Invoice To Work Order",
+    "description": "«تحويل لأمر تصنيع»: once the accounts confirmed the deposit on the invoice. The sale counts as confirmed\n(the accounts confirmed its money), and the order's paid amount is what the invoice collected.",
+    "operationId": "invoice_to_work_order_api_v1_invoices__inv_id__work_order_post",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "inv_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Inv Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ToOrderIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
   }
  },
  "components": {
@@ -15670,6 +16013,215 @@
     ],
     "title": "CodeIn"
    },
+   "CollectionIn": {
+    "properties": {
+     "amount": {
+      "anyOf": [
+       {
+        "type": "number",
+        "exclusiveMinimum": 0.0
+       },
+       {
+        "type": "string"
+       }
+      ],
+      "title": "Amount"
+     },
+     "method": {
+      "type": "string",
+      "pattern": "^(cash|transfer|cheque|card)$",
+      "title": "Method",
+      "default": "cash"
+     },
+     "reference": {
+      "type": "string",
+      "maxLength": 100,
+      "title": "Reference",
+      "default": ""
+     },
+     "note": {
+      "type": "string",
+      "maxLength": 1000,
+      "title": "Note",
+      "default": ""
+     }
+    },
+    "type": "object",
+    "required": [
+     "amount"
+    ],
+    "title": "CollectionIn"
+   },
+   "CollectionOut": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Id"
+     },
+     "version": {
+      "type": "integer",
+      "title": "Version"
+     },
+     "created_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Created At"
+     },
+     "updated_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Updated At"
+     },
+     "number": {
+      "type": "string",
+      "title": "Number"
+     },
+     "invoice_id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Invoice Id"
+     },
+     "customer_id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Customer Id"
+     },
+     "branch_id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Branch Id"
+     },
+     "owner_id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "uuid"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Owner Id"
+     },
+     "amount": {
+      "type": "string",
+      "title": "Amount"
+     },
+     "method": {
+      "type": "string",
+      "title": "Method"
+     },
+     "reference": {
+      "type": "string",
+      "title": "Reference"
+     },
+     "note": {
+      "type": "string",
+      "title": "Note"
+     },
+     "status": {
+      "type": "string",
+      "title": "Status"
+     },
+     "decided_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Decided At"
+     },
+     "decided_by": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "uuid"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Decided By"
+     },
+     "reject_reason": {
+      "type": "string",
+      "title": "Reject Reason"
+     },
+     "cash_transaction_id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "uuid"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Cash Transaction Id"
+     },
+     "invoice_number": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Invoice Number"
+     },
+     "invoice_total": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Invoice Total"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "version",
+     "number",
+     "invoice_id",
+     "customer_id",
+     "branch_id",
+     "owner_id",
+     "amount",
+     "method",
+     "reference",
+     "note",
+     "status",
+     "decided_at",
+     "decided_by",
+     "reject_reason",
+     "cash_transaction_id"
+    ],
+    "title": "CollectionOut"
+   },
    "ColorIn": {
     "properties": {
      "code": {
@@ -16231,6 +16783,25 @@
      "version"
     ],
     "title": "CompanyUpdate"
+   },
+   "ConfirmIn": {
+    "properties": {
+     "version": {
+      "type": "integer",
+      "title": "Version"
+     },
+     "cashbox_id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Cashbox Id"
+     }
+    },
+    "type": "object",
+    "required": [
+     "version",
+     "cashbox_id"
+    ],
+    "title": "ConfirmIn"
    },
    "ConstantIn": {
     "properties": {
@@ -19771,6 +20342,21 @@
      "balance": {
       "type": "string",
       "title": "Balance",
+      "default": "0"
+     },
+     "pending_amount": {
+      "type": "string",
+      "title": "Pending Amount",
+      "default": "0"
+     },
+     "collected_pct": {
+      "type": "string",
+      "title": "Collected Pct",
+      "default": "0"
+     },
+     "deposit_amount": {
+      "type": "string",
+      "title": "Deposit Amount",
       "default": "0"
      },
      "notes": {
@@ -25876,6 +26462,26 @@
     ],
     "title": "RefreshIn"
    },
+   "RejectIn": {
+    "properties": {
+     "version": {
+      "type": "integer",
+      "title": "Version"
+     },
+     "reason": {
+      "type": "string",
+      "maxLength": 1000,
+      "minLength": 3,
+      "title": "Reason"
+     }
+    },
+    "type": "object",
+    "required": [
+     "version",
+     "reason"
+    ],
+    "title": "RejectIn"
+   },
    "ReportIn": {
     "properties": {
      "title": {
@@ -28276,6 +28882,31 @@
      "expected"
     ],
     "title": "TestCaseOut"
+   },
+   "ToOrderIn": {
+    "properties": {
+     "version": {
+      "type": "integer",
+      "title": "Version"
+     },
+     "due_date": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Due Date"
+     }
+    },
+    "type": "object",
+    "required": [
+     "version"
+    ],
+    "title": "ToOrderIn"
    },
    "TransferAllIn": {
     "properties": {

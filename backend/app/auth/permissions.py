@@ -36,7 +36,10 @@ PERMISSIONS: dict[str, str] = {
     "workorders.stage": "تغيير مرحلة أمر التصنيع",
     "workorders.delete": "حذف أوامر التصنيع",
     "sales.approve": "تأكيد البيعة (الحسابات) قبل ما أمر التصنيع يتوافق عليه ويدخل تصنيع",
-    "invoices.create": "إضافة فواتير",
+    "invoices.read": "عرض الفواتير",
+    "invoices.create": "عمل الفواتير وإصدارها",
+    "collections.create": "تسجيل تحصيل على فاتورة (بيستنى تأكيد الحسابات)",
+    "collections.confirm": "تأكيد التحصيلات أو رفضها (الحسابات): التحصيل يدخل الخزينة",
     "invoices.delete": "حذف الفواتير (المسودة) وإلغاء الصادرة",
     "purchasing.read": "عرض المشتريات",
     "purchasing.create": "إضافة موردين وأوامر شراء",
@@ -86,18 +89,19 @@ DEFAULT_ROLES: dict[str, dict] = {
     "sales": {"name": "مبيعات", "permissions": [
         "library.read", "engine.calculate", "customers.read", "customers.create", "customers.write", "surveys.read",
         "surveys.create", "surveys.write", "quotes.read", "quotes.create", "quotes.write", "workorders.read",
+        "invoices.read", "invoices.create", "collections.create",
         "maintenance.read", "maintenance.create", "maintenance.write", "field.read"]},
     "production": {"name": "إنتاج", "permissions": [
         "library.read", "engine.calculate", "workorders.read", "workorders.create", "workorders.write",
         "workorders.stage", "surveys.read"]},
     "accounts": {"name": "حسابات", "permissions": [
-        "customers.read", "sales.all", "quotes.read", "workorders.read", "purchasing.read", "purchasing.create", "purchasing.write",
+        "customers.read", "sales.all", "quotes.read", "invoices.read", "collections.create", "collections.confirm", "workorders.read", "purchasing.read", "purchasing.create", "purchasing.write",
         "treasury.read", "treasury.create", "treasury.write", "invoices.create", "purchasing.approve", "finance.read", "hr.read", "hr.payroll", "sales.approve",
         "notify.accounts"]},
     "sales_manager": {"name": "مدير مبيعات", "permissions": [
         "library.read", "engine.calculate", "customers.read", "customers.create", "customers.write", "surveys.read",
         "surveys.create", "surveys.write", "surveys.approve", "quotes.read", "quotes.create", "quotes.write",
-        "quotes.approve_price", "quotes.approve", "sales.all", "sales.transfer",
+        "quotes.approve_price", "quotes.approve", "sales.all", "sales.transfer", "invoices.read", "collections.create",
         "workorders.read", "workorders.create", "invoices.create", "treasury.read", "maintenance.read", "maintenance.create",
         "maintenance.write", "field.read", "notify.sales"]},
     "production_manager": {"name": "مدير تصنيع", "permissions": [

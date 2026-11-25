@@ -7,6 +7,7 @@ from tests.delete_helpers import delete_now
 from tests.test_business_flow import _setup, price_at_top
 from tests.test_org_permissions_locking import _make_user
 from tests.customers import cust as new_customer
+from tests.orders import order
 
 
 def _inbox(client, h):
@@ -79,17 +80,9 @@ def test_same_rules_as_before_and_failures(platform, tenant_a, client):
     q = price_at_top(client, h, q)
     q = client.post(f"/api/v1/quotations/{q['id']}/status", headers=h, json={"version": q["version"],
                                                                               "status": "accepted"}).json()
-    wo = client.post("/api/v1/work-orders/from-quotation", headers=h, json={"quotation_id": q["id"]}).json()
-    rid = client.delete(f"/api/v1/work-orders/{wo['id']}", headers=h).json()["request_id"]
-    box = client.post("/api/v1/cashboxes", headers=h, json={"code": "DLR", "name": "خزنة", "branch_id": branch["id"]}).json()
-    client.post("/api/v1/cash-transactions", headers=h, json={
-        "cashbox_id": box["id"], "direction": "in", "amount": "50", "party_type": "customer",
-        "party_id": customer["id"], "work_order_id": wo["id"]})
-    r = client.post(f"/api/v1/deletions/{rid}/now", headers=h)
+    wo = order(client, h, q)                    # made from the invoice, with its deposit
+    r = client.delete(f"/api/v1/work-orders/{wo['id']}", headers=h)
     assert r.status_code == 409 and r.json()["error"]["code"] == "WO_IN_USE"
-    failed = client.get("/api/v1/deletions?status=failed", headers=h).json()
-    assert any(x["id"] == rid and x["note"] == "WO_IN_USE" for x in failed)
-    assert any(t.endswith("ماتحذفش") and wo["number"] in t for t in _inbox(client, h))    # the one who asked hears
     assert client.get(f"/api/v1/work-orders/{wo['id']}", headers=h).status_code == 200
 
 

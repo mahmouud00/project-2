@@ -111,7 +111,6 @@ function QuotationDetail({ id }: { id: string }) {
   const [allPpm, setAllPpm] = useState(false);
   const [del, setDel] = useState<Line | null>(null);
   const [printing, setPrinting] = useState(false);
-  const [toWo, setToWo] = useState(false);
   const [phase, setPhase] = useState(false);
   const [project, setProject] = useState(false);
   const [header, setHeader] = useState(false);
@@ -180,7 +179,6 @@ function QuotationDetail({ id }: { id: string }) {
             {s.can("quotes.write", quote.branch_id) && (NEXT[quote.status] ?? []).map((n) => (
               <Btn key={n.to} kind={n.kind} busy={busy} onClick={() => setStatus(n.to)}>{n.label}</Btn>
             ))}
-            {quote.status === "accepted" && s.can("workorders.create", quote.branch_id) && <Btn kind="primary" icon="factory" onClick={() => setToWo(true)}>أمر تصنيع</Btn>}
             {quote.status === "accepted" && s.can("invoices.create", quote.branch_id) && <Btn icon="invoice" busy={busy} onClick={makeInvoice}>فاتورة</Btn>}
             {s.can("quotes.create", quote.branch_id) && <Btn icon="plus" onClick={() => setPhase(true)}>مرحلة جديدة</Btn>}
             {s.can("quotes.delete", quote.branch_id) && quote.status !== "ordered" &&
@@ -257,7 +255,6 @@ function QuotationDetail({ id }: { id: string }) {
         onYes={() => run(async () => { q.set(await api.del<Quote>(`/quotation-lines/${del.id}`)); setDel(null); })} />}
       {printing && <PrintPreview path={`/quotations/${id}/print`} title={`عرض سعر ${quote.number}`} onClose={() => setPrinting(false)} />}
       {allPpm && <AllPricePerM2 quote={quote} onClose={() => setAllPpm(false)} onSaved={(x) => q.set(x)} />}
-      {toWo && <ToWorkOrder quote={quote} onClose={() => setToWo(false)} />}
       {phase && <NewPhase quote={quote} onClose={() => setPhase(false)} />}
       {project && quote.project_id && <ProjectView id={quote.project_id} onClose={() => setProject(false)} />}
       {header && <QuoteHeader quote={quote} onClose={() => setHeader(false)} onSaved={(x) => q.set(x)} />}
@@ -480,26 +477,3 @@ function QuoteHeader({ quote, onClose, onSaved }: { quote: Quote; onClose: () =>
   );
 }
 
-function ToWorkOrder({ quote, onClose }: { quote: Quote; onClose: () => void }) {
-  const s = useSession();
-  const toast = useToast();
-  const { busy, run } = useAction(toast.err);
-  const pct = s.company.settings?.deposit_pct ?? "0";
-  const [due, setDue] = useState("");
-  const [deposit, setDeposit] = useState("");
-  return (
-    <Modal title="أمر تصنيع من العرض" onClose={onClose} footer={<>
-      <Btn kind="primary" busy={busy} onClick={() => run(async () => {
-        const wo = await api.post<S<"WorkOrderOut">>("/work-orders/from-quotation", { quotation_id: quote.id, due_date: due || null,
-          deposit_required: deposit || null });
-        toast.ok(`اتعمل أمر التصنيع ${wo.number}.`);
-        go(`work-orders/${wo.id}`);
-      })}>إنشاء أمر التصنيع</Btn><Btn onClick={onClose}>رجوع</Btn></>}>
-      <div className="col">
-        <div className="notice info">البنود بتتنقل بنفس نسخة المعادلات اللي اتحسب بيها العرض، ومش هتتغير لو المعادلات اتحدثت بعدين.</div>
-        <Field label="تاريخ التسليم"><input type="date" className="input" value={due} onChange={(e) => setDue(e.target.value)} /></Field>
-        <Field label="العربون المطلوب" hint={`لو فاضي: ${Number(pct)}% من إجمالي العرض`}><NumIn value={deposit} onChange={setDeposit} /></Field>
-      </div>
-    </Modal>
-  );
-}

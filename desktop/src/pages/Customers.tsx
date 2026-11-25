@@ -140,7 +140,7 @@ function CustomerDetail({ id, tab: tabQuery }: { id: string; tab?: string }) {
   const tab = tabQuery ?? (s.can("surveys.read") ? "surveys" : "quotes");
   const surveys = useLoad(() => when(s.can("surveys.read"), () => api.get<S<"Page_SurveyOut_">>("/surveys", { customer_id: id, limit: 100 })), [id]);
   const quotes = useLoad(() => when(s.can("quotes.read"), () => api.get<S<"Page_QuotationOut_">>("/quotations", { customer_id: id, limit: 100 })), [id]);
-  const invoices = useLoad(() => when(s.can("treasury.read"), () => api.get<S<"Page_InvoiceOut_">>("/invoices", { customer_id: id, limit: 100 })), [id]);
+  const invoices = useLoad(() => when(s.can("invoices.read"), () => api.get<S<"Page_InvoiceOut_">>("/invoices", { customer_id: id, limit: 100 })), [id]);
   const wos = useLoad(() => when(s.can("workorders.read"), () => api.get<S<"Page_WorkOrderOut_">>("/work-orders", { customer_id: id, limit: 100 })), [id]);
   const st = useLoad(() => when(s.can("treasury.read"), () => api.get<Statement>(`/customers/${id}/statement`)), [id]);
   if (c.error) return <ErrorBox text={c.error} onRetry={c.reload} />;
@@ -199,7 +199,7 @@ function CustomerDetail({ id, tab: tabQuery }: { id: string; tab?: string }) {
           { id: "quotes", label: "عروض الأسعار", count: quotes.data?.total, hidden: !s.can("quotes.read") },
           { id: "projects", label: "المشاريع", hidden: !s.can("quotes.read") },
           { id: "orders", label: "أوامر التصنيع", count: wos.data?.total, hidden: !s.can("workorders.read") },
-          { id: "invoices", label: "الفواتير", count: invoices.data?.total, hidden: !s.can("treasury.read") },
+          { id: "invoices", label: "الفواتير", count: invoices.data?.total, hidden: !s.can("invoices.read") },
           { id: "maintenance", label: "الصيانة", hidden: !s.can("maintenance.read") },
           { id: "visits", label: "زيارات الفنيين", hidden: !s.can("field.read") },
           { id: "privacy", label: "البيانات الشخصية", hidden: !s.can("privacy.manage") },

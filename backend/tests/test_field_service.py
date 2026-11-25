@@ -6,6 +6,7 @@ from types import SimpleNamespace
 
 from tests.test_business_flow import _setup, price_at_top
 from tests.test_org_permissions_locking import _make_user
+from tests.orders import order
 
 
 def _accepted_order(client, h, lib, branch, customer, code):
@@ -15,7 +16,7 @@ def _accepted_order(client, h, lib, branch, customer, code):
                                                          "lines": [line]}).json()
     q = price_at_top(client, h, q)
     q = client.post(f"/api/v1/quotations/{q['id']}/status", headers=h, json={"version": q["version"], "status": "accepted"}).json()
-    return client.post("/api/v1/work-orders/from-quotation", headers=h, json={"quotation_id": q["id"]}).json()
+    return order(client, h, q)
 
 
 def test_survey_location_from_map_link(platform, tenant_a, client):
@@ -169,10 +170,7 @@ def test_offcuts_are_kept_and_used_by_the_next_order(platform, tenant_a, client)
     h = tenant_a.h
     start = lambda wo: client.post(f"/api/v1/work-orders/{wo['id']}/stage", headers=h,
                                    json={"version": wo["version"], "to": "manufacturing"})
-    def ready(wo):
-        wo = client.patch(f"/api/v1/work-orders/{wo['id']}", headers=h, json={"version": wo["version"],
-                                                                              "deposit_required": "0"}).json()
-        wo = client.post(f"/api/v1/work-orders/{wo['id']}/approve-sale", headers=h, json={"version": wo["version"]}).json()
+    def ready(wo):                              # sale and deposit came confirmed from the invoice
         return client.post(f"/api/v1/work-orders/{wo['id']}/stage", headers=h,
                            json={"version": wo["version"], "to": "approved"}).json()
     wo1 = ready(_accepted_order(client, h, lib, branch, customer, code))

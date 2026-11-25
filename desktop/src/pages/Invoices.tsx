@@ -8,11 +8,11 @@ import { useToast } from "../state/toast";
 import { Btn, Card, Chip, Confirm, Crumbs, Dim, ErrorBox, Field, Loading, Modal, Money, NumIn, PageHead, Pager, Qty, Select, SizeIn, Table, TextArea, TextIn } from "../components/ui";
 import { BranchName, BranchSelect, ColorName, ColorSelect, CustomerName, CustomerPicker, GlassSelect, ModelSelect, SalespersonName, SalespersonSelect } from "../components/pickers";
 import { Drawing, PrintPreview } from "../components/media";
+import { CollectForm, CollectionBar, InvoiceCollections } from "../components/collections";
 import { DeleteBtn } from "../components/actions";
 import { INVOICE_STATUS } from "../lib/lookups";
 import { go } from "../lib/router";
 import { date } from "../lib/format";
-import { PaymentForm } from "./Treasury";
 
 type Invoice = S<"InvoiceOut">;
 type Line = S<"app__modules__invoicing__router__LineOut">;
@@ -113,6 +113,13 @@ function InvoiceDetail({ id }: { id: string }) {
   if (!inv.data) return <Loading />;
   const v = inv.data;
   const draft = v.status === "draft" && s.can("treasury.write", v.branch_id);
+  const issuable = v.status === "draft" && s.can("invoices.create", v.branch_id);
+  const canOrder = v.status === "issued" && !!v.quotation_id && !v.work_order_id && s.can("workorders.create", v.branch_id);
+  const toOrder = () => run(async () => {
+    const wo = await api.post<{ id: string; number: string }>(`/invoices/${id}/work-order`, { version: v.version });
+    toast.ok(`اتعمل أمر التصنيع ${wo.number}.`);
+    go(`work-orders/${wo.id}`);
+  });
   const lines = v.lines ?? [];
 
   return (
@@ -131,14 +138,19 @@ function InvoiceDetail({ id }: { id: string }) {
             {v.status === "issued" && s.can("treasury.write", v.branch_id) && v.number &&
               <ShareActions kind="invoices" id={id} number={v.number} total={v.total} customerId={v.customer_id} />}
             {draft && <Btn icon="edit" onClick={() => setHeader(true)}>الخصم والضريبة</Btn>}
-            {draft && <Btn kind="primary" icon="check" disabled={!lines.length} onClick={() => setIssue(true)}>إصدار الفاتورة</Btn>}
-            {v.status === "issued" && s.can("treasury.create", v.branch_id) && Number(v.balance) > 0 && <Btn kind="success" icon="cash" onClick={() => setPaying(true)}>تحصيل</Btn>}
+            {issuable && <Btn kind="primary" icon="check" disabled={!lines.length} onClick={() => setIssue(true)}>إصدار الفاتورة</Btn>}
+            {v.status === "issued" && s.can("collections.create", v.branch_id) && Number(v.balance) - Number(v.pending_amount) > 0 &&
+              <Btn kind="success" icon="cash" onClick={() => setPaying(true)}>تسجيل تحصيل</Btn>}
+            {canOrder && <Btn kind="primary" icon="factory" busy={busy} disabled={Number(v.paid_amount) < Number(v.deposit_amount)}
+              title={Number(v.paid_amount) < Number(v.deposit_amount) ? "لازم العربون يتحصّل ويتأكد من الحسابات الأول" : undefined}
+              onClick={toOrder}>تحويل لأمر تصنيع</Btn>}
             {v.status === "issued" && s.can("invoices.delete", v.branch_id) && <Btn kind="danger" icon="ban" onClick={() => { setReason(""); setCancel(true); }}>إلغاء</Btn>}
             {v.status === "draft" && s.can("invoices.delete", v.branch_id) &&
               <DeleteBtn small={false} path={`/invoices/${id}`} what="الفاتورة المسودة" onDone={() => go("invoices")} />}
           </div>
         </div>
         {v.status === "cancelled" && <div className="notice err mt">الفاتورة ملغية: {v.cancel_reason}</div>}
+        {v.status === "issued" && <div className="mt"><CollectionBar invoice={v} /></div>}
       </Card>
 
       <Card title={`البنود (${lines.length})`} flush actions={draft && <Btn small kind="primary" icon="plus" onClick={() => setLine("new")}>إضافة بند</Btn>}>
@@ -195,8 +207,8 @@ function InvoiceDetail({ id }: { id: string }) {
         onYes={() => run(async () => { if (!reason.trim()) throw new Error("اكتب سبب الإلغاء."); inv.set(await api.post<Invoice>(`/invoices/${id}/cancel`, { version: v.version, reason })); setCancel(false); })}>
         <Field label="السبب"><TextIn value={reason} onChange={setReason} autoFocus /></Field>
       </Confirm>}
-      {paying && <PaymentForm onClose={() => setPaying(false)} onSaved={() => inv.reload()}
-        initial={{ direction: "in", party_type: "customer", party_id: v.customer_id, invoice_id: v.id, amount: v.balance }} />}
+      {v.status !== "draft" && <InvoiceCollections invoice={v} onChanged={() => inv.reload()} />}
+      {paying && <CollectForm invoice={v} onClose={() => setPaying(false)} onSaved={() => inv.reload()} />}
     </div>
   );
 }

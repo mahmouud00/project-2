@@ -14,7 +14,6 @@ import { DocView, Drawing, PrintPreview } from "../components/media";
 import { STAGES, STAGE_COLOR, STAGE_NAMES, UNITS, lookups } from "../lib/lookups";
 import { go, setQuery } from "../lib/router";
 import { date, dateTime } from "../lib/format";
-import { PaymentForm } from "./Treasury";
 
 type WO = S<"WorkOrderOut">;
 
@@ -90,7 +89,6 @@ function WorkOrderDetail({ id, tab }: { id: string; tab: string }) {
   const [project, setProject] = useState(false);
   const [recalc, setRecalc] = useState(false);
   const [saleDecision, setSaleDecision] = useState<boolean | null>(null);
-  const [paying, setPaying] = useState(false);
   const [cancel, setCancel] = useState(false);
   const [edit, setEdit] = useState(false);
   const [note, setNote] = useState("");
@@ -147,7 +145,6 @@ function WorkOrderDetail({ id, tab }: { id: string; tab: string }) {
               <Btn kind="success" icon="check" onClick={() => setSaleDecision(true)}>تأكيد البيعة</Btn>
               {w.sale_status !== "rejected" && <Btn kind="danger" onClick={() => setSaleDecision(false)}>رفض البيعة</Btn>}</>}
             {s.can("workorders.write", w.branch_id) && !frozen && <Btn icon="edit" onClick={() => setEdit(true)}>تعديل</Btn>}
-            {s.can("treasury.create", w.branch_id) && w.stage !== "cancelled" && <Btn icon="cash" onClick={() => setPaying(true)}>تحصيل</Btn>}
             {s.can("invoices.create", w.branch_id) && w.stage !== "cancelled" && w.quotation_id && <Btn icon="invoice" busy={busy} onClick={invoice}>فاتورة</Btn>}
             {s.can("workorders.delete", w.branch_id) &&
               <DeleteBtn small={false} path={`/work-orders/${id}`} what={`أمر التصنيع ${w.number}`} onDone={() => go("work-orders")}
@@ -224,8 +221,6 @@ function WorkOrderDetail({ id, tab }: { id: string; tab: string }) {
       {glassOrder && <PrintPreview path={`/work-orders/${id}/print/glass`} title={`طلبية زجاج ${w.number}`} onClose={() => setGlassOrder(false)} />}
       {printing && <PrintPreview path={`/work-orders/${id}/print/cut-list`} title={`كشف تقطيع ${w.number}`} onClose={() => setPrinting(false)} />}
       {saleDecision !== null && <SaleDecisionForm wo={w} approve={saleDecision} onClose={() => setSaleDecision(null)} onSaved={(x) => wo.set(x)} />}
-      {paying && <PaymentForm onClose={() => setPaying(false)} onSaved={() => wo.reload()}
-        initial={{ direction: "in", party_type: "customer", party_id: w.customer_id, work_order_id: w.id }} />}
       {cancel && <Confirm title="إلغاء أمر التصنيع" danger yes="إلغاء الأمر" busy={busy} onClose={() => setCancel(false)}
         onYes={() => { move("cancelled"); setCancel(false); }} text="الأمر هيتلغي ومش هيرجع. الحركات المالية بتفضل وتتصحح بحركة عكسية." />}
       {edit && <WorkOrderEdit wo={w} onClose={() => setEdit(false)} onSaved={(x) => wo.set(x)} />}

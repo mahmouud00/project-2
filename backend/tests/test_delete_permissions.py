@@ -5,6 +5,7 @@ from tests.delete_helpers import delete_now
 from tests.test_business_flow import _setup, price_at_top
 from tests.test_org_permissions_locking import _make_user
 from tests.customers import cust as new_customer
+from tests.orders import order
 
 
 def test_add_and_delete_need_their_own_permission(tenant_a, client):
@@ -47,28 +48,23 @@ def test_what_delete_does(platform, tenant_a, client):
                                                          "lines": [line]}).json()
     q = price_at_top(client, h, q)
     q = client.post(f"/api/v1/quotations/{q['id']}/status", headers=h, json={"version": q["version"], "status": "accepted"}).json()
-    wo = client.post("/api/v1/work-orders/from-quotation", headers=h, json={"quotation_id": q["id"]}).json()
+    wo = order(client, h, q)
     r = delete_now(client, h, f"/api/v1/quotations/{q['id']}")
     assert r.status_code == 409 and r.json()["error"]["code"] == "QUOTE_IN_USE"
-    # the refusal names what blocks it, and says when that one is already counting down to its own deletion
-    assert r.json()["error"]["details"] == [{"kind": "work_order", "id": wo["id"], "number": wo["number"],
-                                             "pending_delete": False}]
-    asked = client.delete(f"/api/v1/work-orders/{wo['id']}", headers=h).json()
-    assert asked["result"] == "scheduled"
-    r = delete_now(client, h, f"/api/v1/quotations/{q['id']}")
-    assert r.status_code == 409 and r.json()["error"]["details"][0]["pending_delete"] is True
-    assert client.post(f"/api/v1/deletions/{asked['request_id']}/cancel", headers=h).status_code == 200
-    box = client.post("/api/v1/cashboxes", headers=h, json={"code": "DB1", "name": "خزنة", "branch_id": branch["id"]}).json()
-    tx = client.post("/api/v1/cash-transactions", headers=h, json={
-        "cashbox_id": box["id"], "direction": "in", "amount": "100", "party_type": "customer",
-        "party_id": customer["id"], "work_order_id": wo["id"]}).json()
+    # the refusal names what blocks it: the work order and the invoice it came from
+    assert {(x["kind"], x["id"]) for x in r.json()["error"]["details"]} >= {("work_order", wo["id"])}
+    assert {x["kind"] for x in r.json()["error"]["details"]} == {"work_order", "invoice"}
+    # the work order got its deposit on the invoice: it stays (cancel it instead)
     r = delete_now(client, h, f"/api/v1/work-orders/{wo['id']}")
     assert r.status_code == 409 and r.json()["error"]["code"] == "WO_IN_USE"
-    assert D(r.json()["error"]["details"]["paid_amount"]) == 100 and r.json()["error"]["details"]["invoices"] == []
+    assert D(r.json()["error"]["details"]["paid_amount"]) == D(wo["paid_amount"]) > 0
+    tx = client.get(f"/api/v1/cash-transactions?work_order_id={wo['id']}", headers=h).json()["items"]
+    tx = tx[0] if tx else client.get("/api/v1/cash-transactions", headers=h).json()["items"][0]
+    box = {"id": tx["cashbox_id"]}
     # money is never deleted: a cashbox with history is deactivated; a transaction is reversed
     assert delete_now(client, h, f"/api/v1/cashboxes/{box['id']}").json()["result"] == "deactivated"
     rev = client.post(f"/api/v1/cash-transactions/{tx['id']}/reverse", headers=h, json={"note": "غلط"})
-    assert rev.status_code == 201 and rev.json()["direction"] == "out" and D(rev.json()["amount"]) == 100
+    assert rev.status_code == 201 and rev.json()["direction"] == "out" and D(rev.json()["amount"]) == D(tx["amount"])
     empty = client.post("/api/v1/cashboxes", headers=h, json={"code": "DB2", "name": "x", "branch_id": branch["id"]}).json()
     assert delete_now(client, h, f"/api/v1/cashboxes/{empty['id']}").json()["result"] == "deleted"
     # invoices: a draft is deleted, an issued one must be cancelled

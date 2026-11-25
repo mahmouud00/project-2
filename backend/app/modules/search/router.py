@@ -97,7 +97,7 @@ def search(q: str = Query(min_length=1, max_length=100), limit: int = Query(6, g
     documents(SiteSurvey, "surveys.read", "surveys", "المعاينات", "معاينة", "surveys")
     documents(Quotation, "quotes.read", "quotations", "عروض الأسعار", "عرض سعر", "quotations")
     documents(WorkOrder, "workorders.read", "work_orders", "أوامر التصنيع", "أمر تصنيع", "work-orders", status_attr="stage")
-    documents(Invoice, "treasury.read", "invoices", "الفواتير", "فاتورة", "invoices")
+    documents(Invoice, "invoices.read", "invoices", "الفواتير", "فاتورة", "invoices")
     if seen_customers:
         log_pii(db, ctx, "customer", seen_customers, "search", ["name", "phone"])
 

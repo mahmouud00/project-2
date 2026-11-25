@@ -116,6 +116,9 @@ def create_tx(body: TxIn, dc=Depends(require("treasury.create"))):
     db, ctx = dc
     box = get_or_404(db, Cashbox, body.cashbox_id)
     ctx.require("treasury.create", box.branch_id)
+    if body.party_type == "customer" and body.direction == "in":
+        # التحصيل من الفاتورة بس: recorded on the invoice and confirmed by the accounts
+        raise Conflict("Customer money is collected on the invoice", code="COLLECT_ON_INVOICE")
     if body.party_type == "customer":
         if body.party_id is None:
             raise ValidationFailed("Customer required", code="PARTY_REQUIRED")

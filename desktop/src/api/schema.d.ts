@@ -4038,6 +4038,105 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/invoices/{inv_id}/collections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Invoice Collections */
+        get: operations["invoice_collections_api_v1_invoices__inv_id__collections_get"];
+        put?: never;
+        /**
+         * Record Collection
+         * @description The salesperson received money on the invoice: it waits for the accounts.
+         */
+        post: operations["record_collection_api_v1_invoices__inv_id__collections_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/collections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Collections
+         * @description The accounts' list (pending by default); a salesperson sees his own.
+         */
+        get: operations["list_collections_api_v1_collections_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/collections/{coll_id}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirm Collection
+         * @description The accounts received it: a cash receipt into the cashbox, on the invoice (and its work order).
+         */
+        post: operations["confirm_collection_api_v1_collections__coll_id__confirm_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/collections/{coll_id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reject Collection */
+        post: operations["reject_collection_api_v1_collections__coll_id__reject_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invoices/{inv_id}/work-order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Invoice To Work Order
+         * @description «تحويل لأمر تصنيع»: once the accounts confirmed the deposit on the invoice. The sale counts as confirmed
+         *     (the accounts confirmed its money), and the order's paid amount is what the invoice collected.
+         */
+        post: operations["invoice_to_work_order_api_v1_invoices__inv_id__work_order_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -4464,6 +4563,81 @@ export interface components {
             /** Code */
             code: string;
         };
+        /** CollectionIn */
+        CollectionIn: {
+            /** Amount */
+            amount: number | string;
+            /**
+             * Method
+             * @default cash
+             */
+            method: string;
+            /**
+             * Reference
+             * @default
+             */
+            reference: string;
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+        };
+        /** CollectionOut */
+        CollectionOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Version */
+            version: number;
+            /** Created At */
+            created_at?: string | null;
+            /** Updated At */
+            updated_at?: string | null;
+            /** Number */
+            number: string;
+            /**
+             * Invoice Id
+             * Format: uuid
+             */
+            invoice_id: string;
+            /**
+             * Customer Id
+             * Format: uuid
+             */
+            customer_id: string;
+            /**
+             * Branch Id
+             * Format: uuid
+             */
+            branch_id: string;
+            /** Owner Id */
+            owner_id: string | null;
+            /** Amount */
+            amount: string;
+            /** Method */
+            method: string;
+            /** Reference */
+            reference: string;
+            /** Note */
+            note: string;
+            /** Status */
+            status: string;
+            /** Decided At */
+            decided_at: string | null;
+            /** Decided By */
+            decided_by: string | null;
+            /** Reject Reason */
+            reject_reason: string;
+            /** Cash Transaction Id */
+            cash_transaction_id: string | null;
+            /** Invoice Number */
+            invoice_number?: string | null;
+            /** Invoice Total */
+            invoice_total?: string | null;
+        };
         /** ColorIn */
         ColorIn: {
             /** Code */
@@ -4698,6 +4872,16 @@ export interface components {
             /** Name */
             name?: string | null;
             settings?: components["schemas"]["CompanySettings"] | null;
+        };
+        /** ConfirmIn */
+        ConfirmIn: {
+            /** Version */
+            version: number;
+            /**
+             * Cashbox Id
+             * Format: uuid
+             */
+            cashbox_id: string;
         };
         /** ConstantIn */
         ConstantIn: {
@@ -5897,6 +6081,21 @@ export interface components {
              * @default 0
              */
             balance: string;
+            /**
+             * Pending Amount
+             * @default 0
+             */
+            pending_amount: string;
+            /**
+             * Collected Pct
+             * @default 0
+             */
+            collected_pct: string;
+            /**
+             * Deposit Amount
+             * @default 0
+             */
+            deposit_amount: string;
             /** Notes */
             notes: string;
             /** Terms */
@@ -8049,6 +8248,13 @@ export interface components {
             /** Refresh Token */
             refresh_token: string;
         };
+        /** RejectIn */
+        RejectIn: {
+            /** Version */
+            version: number;
+            /** Reason */
+            reason: string;
+        };
         /** ReportIn */
         ReportIn: {
             /** Title */
@@ -8845,6 +9051,13 @@ export interface components {
             expected: {
                 [key: string]: unknown;
             };
+        };
+        /** ToOrderIn */
+        ToOrderIn: {
+            /** Version */
+            version: number;
+            /** Due Date */
+            due_date?: string | null;
         };
         /** TransferAllIn */
         TransferAllIn: {
@@ -18399,6 +18612,208 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["TransferAllIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    invoice_collections_api_v1_invoices__inv_id__collections_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                inv_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectionOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    record_collection_api_v1_invoices__inv_id__collections_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                inv_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CollectionIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_collections_api_v1_collections_get: {
+        parameters: {
+            query?: {
+                status?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectionOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    confirm_collection_api_v1_collections__coll_id__confirm_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                coll_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConfirmIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reject_collection_api_v1_collections__coll_id__reject_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                coll_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RejectIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    invoice_to_work_order_api_v1_invoices__inv_id__work_order_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                inv_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ToOrderIn"];
             };
         };
         responses: {
