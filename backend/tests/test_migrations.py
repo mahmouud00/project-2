@@ -211,6 +211,10 @@ def test_upgrade_from_old_revision_keeps_data():
     # 0028: old customers keep their data; the new fields are empty until the customer is next edited
     assert after["customers"] and all(c["name"] and c.get("governorate") is None and c.get("customer_questions") is None
                                       for c in after["customers"].values())
+    # 0029: whoever read quotations still prints them; nobody gets or loses a permission of his own
+    assert "quotes.print" in set(after["roles"][str(p["sales_role"])]["permissions"])
+    assert all(u.get("extra_permissions") in ([], None) and u.get("denied_permissions") in ([], None)
+               for u in after.get("users", {}).values())
     # 0029: no collection is made by the upgrade; whoever read the treasury reads invoices, the admin confirms money
     assert not after.get("collections") and not after.get("integration_keys")
     assert {"invoices.read", "collections.confirm"} <= set(after["roles"][str(p["admin_role"])]["permissions"])

@@ -179,6 +179,8 @@ class UserOut(Record):
     is_active: bool
     must_change_password: bool
     two_factor_enabled: bool = False
+    extra_permissions: list[str] = []
+    denied_permissions: list[str] = []
     assignments: list[AssignmentOut] = []
 
 
@@ -260,6 +262,51 @@ def update_user(user_id: uuid.UUID, body: UserUpdate, dc=Depends(require("users.
         _set_assignments(db, user, body.assignments)
         user.updated_at = datetime.now().astimezone()  # bump version when only roles change
     audit(db, user, "update", before)
+    db.commit()
+    return _user_out(db, user)
+
+
+class UserPermissionsIn(BaseModel):
+    version: int
+    extra_permissions: list[str] = []
+    denied_permissions: list[str] = []
+
+
+@router.get("/users/{user_id}/permissions")
+def user_permissions(user_id: uuid.UUID, dc=Depends(require("users.manage"))):
+    """What his roles give him (any branch), what was added or taken away for him, and the result."""
+    from app.auth.permissions import PERMISSIONS
+
+    db, _ = dc
+    user = get_or_404(db, User, user_id)
+    from_roles = set()
+    for perms in db.scalars(select(Role.permissions).join(UserBranchRole, UserBranchRole.role_id == Role.id)
+                            .where(UserBranchRole.user_id == user.id)):
+        from_roles.update(perms or [])
+    effective = (from_roles | set(user.extra_permissions or [])) - set(user.denied_permissions or [])
+    return {"version": user.version, "from_roles": sorted(from_roles), "extra": sorted(user.extra_permissions or []),
+            "denied": sorted(user.denied_permissions or []), "effective": sorted(effective),
+            "catalog": [{"code": k, "label": v} for k, v in PERMISSIONS.items()]}
+
+
+@router.put("/users/{user_id}/permissions", response_model=UserOut)
+def set_user_permissions(user_id: uuid.UUID, body: UserPermissionsIn, dc=Depends(require("users.manage"))):
+    """تخصيص صلاحيات المستخدم: give him permissions his roles do not, or take some of theirs away."""
+    from app.auth.permissions import PERMISSIONS
+
+    db, ctx = dc
+    user = get_or_404(db, User, user_id)
+    check_version(user, body.version)
+    unknown = (set(body.extra_permissions) | set(body.denied_permissions)) - set(PERMISSIONS)
+    if unknown:
+        raise ValidationFailed("Unknown permission", code="UNKNOWN_PERMISSION", details=sorted(unknown))
+    if user.id == ctx.user_id and "users.manage" in body.denied_permissions:
+        raise Conflict("You would lock yourself out", code="SELF_LOCKOUT")
+    before = snapshot(user)
+    user.extra_permissions = sorted(set(body.extra_permissions) - set(body.denied_permissions))
+    user.denied_permissions = sorted(set(body.denied_permissions))
+    user.updated_at = datetime.now().astimezone()
+    audit(db, user, "update", before, note="تخصيص الصلاحيات")
     db.commit()
     return _user_out(db, user)
 

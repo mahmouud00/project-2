@@ -134,7 +134,7 @@ function InvoiceDetail({ id }: { id: string }) {
           <div><div className="muted small">الاستحقاق</div><span className="num">{date(v.due_date)}</span></div>
           {v.work_order_id && <div><div className="muted small">أمر التصنيع</div><a style={{ cursor: "pointer" }} onClick={() => go(`work-orders/${v.work_order_id}`)}>فتح</a></div>}
           <div className="end row wrap">
-            <Btn icon="print" onClick={() => setPrinting(true)}>طباعة</Btn>
+            {s.can("invoices.print", v.branch_id) && <Btn icon="print" onClick={() => setPrinting(true)}>طباعة</Btn>}
             {v.status === "issued" && s.can("treasury.write", v.branch_id) && v.number &&
               <ShareActions kind="invoices" id={id} number={v.number} total={v.total} customerId={v.customer_id} />}
             {draft && <Btn icon="edit" onClick={() => setHeader(true)}>الخصم والضريبة</Btn>}

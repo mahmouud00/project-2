@@ -966,6 +966,110 @@
     }
    }
   },
+  "/api/v1/users/{user_id}/permissions": {
+   "get": {
+    "tags": [
+     "org"
+    ],
+    "summary": "User Permissions",
+    "description": "What his roles give him (any branch), what was added or taken away for him, and the result.",
+    "operationId": "user_permissions_api_v1_users__user_id__permissions_get",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "user_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "User Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "put": {
+    "tags": [
+     "org"
+    ],
+    "summary": "Set User Permissions",
+    "description": "تخصيص صلاحيات المستخدم: give him permissions his roles do not, or take some of theirs away.",
+    "operationId": "set_user_permissions_api_v1_users__user_id__permissions_put",
+    "security": [
+     {
+      "OAuth2PasswordBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "user_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "User Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/UserPermissionsIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/UserOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/v1/devices": {
    "get": {
     "tags": [
@@ -29926,6 +30030,22 @@
       "title": "Two Factor Enabled",
       "default": false
      },
+     "extra_permissions": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Extra Permissions",
+      "default": []
+     },
+     "denied_permissions": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Denied Permissions",
+      "default": []
+     },
      "assignments": {
       "items": {
        "$ref": "#/components/schemas/AssignmentOut"
@@ -29947,6 +30067,35 @@
      "must_change_password"
     ],
     "title": "UserOut"
+   },
+   "UserPermissionsIn": {
+    "properties": {
+     "version": {
+      "type": "integer",
+      "title": "Version"
+     },
+     "extra_permissions": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Extra Permissions",
+      "default": []
+     },
+     "denied_permissions": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Denied Permissions",
+      "default": []
+     }
+    },
+    "type": "object",
+    "required": [
+     "version"
+    ],
+    "title": "UserPermissionsIn"
    },
    "UserUpdate": {
     "properties": {

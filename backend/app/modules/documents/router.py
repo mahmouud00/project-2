@@ -95,7 +95,7 @@ def _page(template: str, db, ctx, **kw) -> HTMLResponse:
 
 
 @router.get("/invoices/{inv_id}/print", response_class=HTMLResponse)
-def print_invoice(inv_id: uuid.UUID, dc=Depends(require("invoices.read"))):
+def print_invoice(inv_id: uuid.UUID, dc=Depends(require("invoices.print"))):
     from app.modules.invoicing.models import Invoice
     from app.modules.invoicing.router import _lines, invoice_out
     from app.modules.production.models import WorkOrder
@@ -103,7 +103,7 @@ def print_invoice(inv_id: uuid.UUID, dc=Depends(require("invoices.read"))):
 
     db, ctx = dc
     inv = get_or_404(db, Invoice, inv_id)
-    ctx.require("invoices.read", inv.branch_id)
+    ctx.require("invoices.print", inv.branch_id)
     out = invoice_out(db, inv)
     look = _Lookups(db)
     lines = []
@@ -125,14 +125,14 @@ def print_invoice(inv_id: uuid.UUID, dc=Depends(require("invoices.read"))):
 
 
 @router.get("/quotations/{quote_id}/print", response_class=HTMLResponse)
-def print_quotation(quote_id: uuid.UUID, dc=Depends(require("quotes.read"))):
+def print_quotation(quote_id: uuid.UUID, dc=Depends(require("quotes.print"))):
     from app.modules.org.settings import get_company_settings
     from app.modules.sales.models import Quotation, QuotationLine
     from app.modules.sales.pricing import money
 
     db, ctx = dc
     q = get_or_404(db, Quotation, quote_id)
-    ctx.require("quotes.read", q.branch_id)
+    ctx.require("quotes.print", q.branch_id)
     look = _Lookups(db)
     lines, total_area = [], Decimal(0)
     for l in db.scalars(select(QuotationLine).where(QuotationLine.quotation_id == q.id)
@@ -165,7 +165,7 @@ def print_quotation(quote_id: uuid.UUID, dc=Depends(require("quotes.read"))):
 
 
 @router.get("/surveys/{survey_id}/print", response_class=HTMLResponse)
-def print_survey(survey_id: uuid.UUID, dc=Depends(require("surveys.read"))):
+def print_survey(survey_id: uuid.UUID, dc=Depends(require("surveys.print"))):
     """The survey sheet (landscape), the same columns as the paper form; at least 10 rows so an empty
     survey prints as a blank form for the technician."""
     from app.modules.crm.models import SiteSurvey, SurveyOpening
@@ -173,7 +173,7 @@ def print_survey(survey_id: uuid.UUID, dc=Depends(require("surveys.read"))):
     db, ctx = dc
     survey = get_or_404(db, SiteSurvey, survey_id)
     ownership.check(ctx, survey)
-    ctx.require("surveys.read", survey.branch_id)
+    ctx.require("surveys.print", survey.branch_id)
     look = _Lookups(db)
     rows = []
     for o in db.scalars(select(SurveyOpening).where(SurveyOpening.survey_id == survey.id).order_by(SurveyOpening.position)):
@@ -192,13 +192,13 @@ def print_survey(survey_id: uuid.UUID, dc=Depends(require("surveys.read"))):
 
 
 @router.get("/work-orders/{wo_id}/print/cut-list", response_class=HTMLResponse)
-def print_cut_list(wo_id: uuid.UUID, dc=Depends(require("workorders.read"))):
+def print_cut_list(wo_id: uuid.UUID, dc=Depends(require("workorders.print"))):
     from app.modules.production.manufacturing import generate_outputs
     from app.modules.production.models import WorkOrder
 
     db, ctx = dc
     wo = get_or_404(db, WorkOrder, wo_id)
-    ctx.require("workorders.read", wo.branch_id)
+    ctx.require("workorders.print", wo.branch_id)
     outputs = wo.outputs or generate_outputs(db, wo)
     log_pii(db, ctx, "customer", [wo.customer_id], "export", ["name"])
     db.commit()
@@ -207,7 +207,7 @@ def print_cut_list(wo_id: uuid.UUID, dc=Depends(require("workorders.read"))):
 
 
 @router.get("/work-orders/{wo_id}/print/glass", response_class=HTMLResponse)
-def print_glass_order(wo_id: uuid.UUID, dc=Depends(require("workorders.read"))):
+def print_glass_order(wo_id: uuid.UUID, dc=Depends(require("workorders.print"))):
     """طلبية الزجاج: the glass of the order only, grouped by glass type, with the total m² of each type."""
     from decimal import Decimal
 
@@ -219,7 +219,7 @@ def print_glass_order(wo_id: uuid.UUID, dc=Depends(require("workorders.read"))):
 
     db, ctx = dc
     wo = get_or_404(db, WorkOrder, wo_id)
-    ctx.require("workorders.read", wo.branch_id)
+    ctx.require("workorders.print", wo.branch_id)
     outputs = wo.outputs or generate_outputs(db, wo)
     rows = outputs.get("glass") or []
     codes = {g.get("material_code") for g in rows if g.get("material_code")}

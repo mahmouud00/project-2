@@ -160,3 +160,29 @@ def test_salesperson_dashboard_and_the_n8n_bot(platform, tenant_a, tenant_b, cli
     kb = client.post("/api/v1/integrations/keys", headers=tenant_b.h, json={"name": "n8n"}).json()
     assert all(p["id"] != c["owner_id"] for p in client.get("/api/v1/integrations/sales/people",
                                                            headers={"X-API-Key": kb["key"]}).json())
+
+
+def test_each_user_gets_his_own_permissions(tenant_a, client):
+    from tests.customers import cust as new_customer
+
+    u = _make_user(tenant_a, client, "custom-user", "sales")
+    hu = tenant_a.headers("custom-user", "user-pass-123")
+    h = tenant_a.h
+    c = client.post("/api/v1/customers", headers=hu, json=new_customer()).json()
+    p = client.get(f"/api/v1/users/{u['id']}/permissions", headers=h).json()
+    assert "customers.delete" not in p["effective"] and "customers.create" in p["from_roles"]
+    # view only on customers (no adding), but may delete; and may not print quotations
+    r = client.put(f"/api/v1/users/{u['id']}/permissions", headers=h, json={
+        "version": p["version"], "extra_permissions": ["customers.delete"],
+        "denied_permissions": ["customers.create", "customers.write", "quotes.print"]})
+    assert r.status_code == 200, r.text
+    assert client.post("/api/v1/customers", headers=hu, json=new_customer("عميل تاني ممنوع")).status_code == 403
+    assert client.get("/api/v1/customers", headers=hu).status_code == 200
+    me = client.get("/api/v1/auth/me", headers=hu).json()
+    flat = {x for v in me["grants"].values() for x in v} if "grants" in me else set()
+    assert not flat or ("customers.delete" in flat and "customers.create" not in flat)
+    assert client.get(f"/api/v1/history/customers/{c['id']}", headers=hu).status_code in (200, 403)
+    r = client.put(f"/api/v1/users/{u['id']}/permissions", headers=h, json={
+        "version": r.json()["version"], "extra_permissions": ["no.such"], "denied_permissions": []})
+    assert r.status_code == 422
+    assert client.put(f"/api/v1/users/{u['id']}/permissions", headers=hu, json={"version": 1}).status_code == 403

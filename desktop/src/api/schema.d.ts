@@ -347,6 +347,30 @@ export interface paths {
         patch: operations["update_user_api_v1_users__user_id__patch"];
         trace?: never;
     };
+    "/api/v1/users/{user_id}/permissions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * User Permissions
+         * @description What his roles give him (any branch), what was added or taken away for him, and the result.
+         */
+        get: operations["user_permissions_api_v1_users__user_id__permissions_get"];
+        /**
+         * Set User Permissions
+         * @description تخصيص صلاحيات المستخدم: give him permissions his roles do not, or take some of theirs away.
+         */
+        put: operations["set_user_permissions_api_v1_users__user_id__permissions_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/devices": {
         parameters: {
             query?: never;
@@ -9398,10 +9422,35 @@ export interface components {
              */
             two_factor_enabled: boolean;
             /**
+             * Extra Permissions
+             * @default []
+             */
+            extra_permissions: string[];
+            /**
+             * Denied Permissions
+             * @default []
+             */
+            denied_permissions: string[];
+            /**
              * Assignments
              * @default []
              */
             assignments: components["schemas"]["AssignmentOut"][];
+        };
+        /** UserPermissionsIn */
+        UserPermissionsIn: {
+            /** Version */
+            version: number;
+            /**
+             * Extra Permissions
+             * @default []
+             */
+            extra_permissions: string[];
+            /**
+             * Denied Permissions
+             * @default []
+             */
+            denied_permissions: string[];
         };
         /** UserUpdate */
         UserUpdate: {
@@ -10646,6 +10695,72 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["UserUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    user_permissions_api_v1_users__user_id__permissions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_user_permissions_api_v1_users__user_id__permissions_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UserPermissionsIn"];
             };
         };
         responses: {

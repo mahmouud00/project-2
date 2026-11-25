@@ -34,10 +34,13 @@ def recipients(db, permission: str, branch_id: uuid.UUID | None) -> set[uuid.UUI
     """Active users holding `permission` in that branch (or in every branch)."""
     stmt = (select(UserBranchRole.user_id).join(Role, Role.id == UserBranchRole.role_id)
             .join(User, User.id == UserBranchRole.user_id)
-            .where(literal(permission) == any_(Role.permissions), User.is_active.is_(True)))
+            .where(literal(permission) == any_(Role.permissions), User.is_active.is_(True),
+                   ~(literal(permission) == any_(User.denied_permissions))))
     if branch_id is not None:
         stmt = stmt.where(or_(UserBranchRole.branch_id.is_(None), UserBranchRole.branch_id == branch_id))
-    return set(db.scalars(stmt))
+    extra = select(User.id).where(literal(permission) == any_(User.extra_permissions), User.is_active.is_(True),
+                                  User.deleted_at.is_(None))       # given to the user himself
+    return set(db.scalars(stmt)) | set(db.scalars(extra))
 
 
 def alert(db, ctx, category: str, branch_id: uuid.UUID | None, title: str, body: str = "", link: str = "",

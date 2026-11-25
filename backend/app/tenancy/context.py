@@ -79,6 +79,7 @@ def get_db_and_ctx(request: Request, token: str | None = Depends(oauth2)) -> Ite
         for branch_id, perms in rows:
             grants.setdefault(branch_id, set()).update(perms or [])
         _delegated(db, user_id, grants)
+        apply_overrides(grants, user)
         _seen(db, user)
         db.info["device_id"] = device_id
         ctx = RequestContext(company_id, user_id, device_id, grants,
@@ -90,6 +91,16 @@ def get_db_and_ctx(request: Request, token: str | None = Depends(oauth2)) -> Ite
         # Endpoints commit explicitly; anything left uncommitted is discarded.
         db.rollback()
         db.close()
+
+
+def apply_overrides(grants: dict, user) -> None:
+    """The user's own additions (every branch) and removals (win over his roles and over a delegation)."""
+    if user.extra_permissions:
+        grants.setdefault(None, set()).update(user.extra_permissions)
+    if user.denied_permissions:
+        denied = set(user.denied_permissions)
+        for perms in grants.values():
+            perms -= denied
 
 
 def _delegated(db, user_id, grants: dict) -> None:

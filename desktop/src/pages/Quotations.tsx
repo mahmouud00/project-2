@@ -171,7 +171,7 @@ function QuotationDetail({ id }: { id: string }) {
           <div><div className="muted small">التاريخ</div><span className="num">{date(quote.issue_date ?? quote.created_at)}</span></div>
           <div><div className="muted small">صالح لحد</div><span className="num">{date(quote.valid_until)}</span></div>
           <div className="end row wrap">
-            <Btn icon="print" onClick={() => setPrinting(true)}>طباعة</Btn>
+            {s.can("quotes.print", quote.branch_id) && <Btn icon="print" onClick={() => setPrinting(true)}>طباعة</Btn>}
             {(quote.status === "draft" || quote.status === "sent") && s.can("quotes.write", quote.branch_id) &&
               <ShareActions kind="quotations" id={id} number={quote.number} total={quote.total} customerId={quote.customer_id} onChanged={() => q.reload()} />}
             {editable && <Btn icon="refresh" busy={busy} onClick={recalc}>إعادة حساب</Btn>}

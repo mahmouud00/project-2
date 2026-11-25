@@ -59,6 +59,9 @@ class User(Base, Entity, SoftDeleteMixin):
     totp_enabled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     totp_last_step: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
     last_seen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)   # آخر ظهور
+    # تخصيص الصلاحيات لكل مستخدم: added to his roles' permissions, or taken away from them (in every branch)
+    extra_permissions: Mapped[list[str]] = mapped_column(ARRAY(String), default=list, server_default="{}")
+    denied_permissions: Mapped[list[str]] = mapped_column(ARRAY(String), default=list, server_default="{}")
 
 
 class UserBranchRole(Base, IdMixin, TenantMixin):

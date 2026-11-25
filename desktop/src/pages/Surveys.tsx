@@ -164,7 +164,7 @@ function SurveyDetail({ id }: { id: string }) {
               <Chip color={SURVEY_STATUS[survey.status]?.[1]}>{SURVEY_STATUS[survey.status]?.[0] ?? survey.status}</Chip>
             </div>
             <div className="row wrap" style={{ justifyContent: "flex-end" }}>
-              <Btn icon="print" onClick={() => setPrinting(true)}>طباعة</Btn>
+              {s.can("surveys.print", survey.branch_id) && <Btn icon="print" onClick={() => setPrinting(true)}>طباعة</Btn>}
               {s.can("surveys.write", survey.branch_id) && <Btn icon="edit" onClick={() => setHeader(true)}>البيانات</Btn>}
               {editable && <Btn kind="success" busy={busy} onClick={() => setStatus("done")}>المعاينة خلصت</Btn>}
               <ApprovalBar kind="surveys" rec={survey} onSaved={(x) => sv.set(x)} />

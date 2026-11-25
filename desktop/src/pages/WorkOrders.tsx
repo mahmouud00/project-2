@@ -135,8 +135,8 @@ function WorkOrderDetail({ id, tab }: { id: string; tab: string }) {
           <div style={{ minWidth: 170 }}><div className="muted small">الإنجاز{w.expected_delivery ? ` · متوقع ${date(w.expected_delivery)}` : ""}</div>
             <Progress pct={w.progress_pct} late={w.late} /></div>
           <div className="end row wrap">
-            <Btn icon="print" onClick={() => setPrinting(true)}>كشف التقطيع</Btn>
-            <Btn icon="print" onClick={() => setGlassOrder(true)}>طلبية الزجاج</Btn>
+            {s.can("workorders.print", w.branch_id) && <Btn icon="print" onClick={() => setPrinting(true)}>كشف التقطيع</Btn>}
+            {s.can("workorders.print", w.branch_id) && <Btn icon="print" onClick={() => setGlassOrder(true)}>طلبية الزجاج</Btn>}
             {s.can("workorders.write", w.branch_id) && <Btn onClick={() => setGlassEdit(true)}>نوع الزجاج</Btn>}
             {s.can("purchasing.create", w.branch_id) && w.stage !== "cancelled" && <Btn icon="cart" onClick={() => setOrdering(true)}>طلبية بضاعة</Btn>}
             {s.can("field.manage", w.branch_id) && w.stage === "installation" &&

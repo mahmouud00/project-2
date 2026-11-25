@@ -66,6 +66,9 @@ python -m pytest                                   # لازم كله يعدّي 
 - `app/modules/library` المكتبة، النشر، الحساب، الحزم · `app/modules/org` · `app/modules/system`
 - `app/modules/{crm,sales,production,purchasing,treasury,invoicing,privacy}` النواة الإدارية (مفيش مخازن: اتشالت في 0011)
 - `app/modules/crm/rules.py` بيانات العميل الإجبارية (الاسم الثلاثي، الموبايل والواتساب، المحافظة، طريقة التواصل وأسئلة العميل)
+- `app/modules/sales/approvals.py` تأكيد مدير المبيعات للمعاينة وعرض السعر · `ownership.py` شغل كل موظف مبيعات (`owner_id`، `sales.all`) · `team.py` النقل · `insights.py` داش بورد المبيعات
+- `app/modules/invoicing/collections.py` التحصيل من الفاتورة بتأكيد الحسابات، و«تحويل لأمر تصنيع» · `app/modules/integrations` مفاتيح n8n (`docs/N8N.md`)
+- صلاحيات كل مستخدم: `users.extra_permissions`/`denied_permissions` فوق أدواره (`apply_overrides` في `tenancy/context.py`)
 - `app/modules/sales/router.py` التسعير الأوتوماتيك (`_auto_prices`، `openings_changed`)، طلب الخصم وسعر مدير المبيعات؛ التكلفة بتظهر بس لـ`finance.read` (`sees_costs`)
 - `app/modules/hr` الموظفين والحوافز والسلف والإجازات وكشوف المرتبات، و`attendance.py` البصمات من جهاز ZKTeco (`/iclock`)، و`policy.py`/`payrules.py` سياسات المرتبات والحضور (شوف `docs/ATTENDANCE.md`) · `app/modules/finance` الأصول والربحية ورأس المال
 - `app/modules/field` الصيانة ومهام الفنيين والتتبع

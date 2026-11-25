@@ -3,6 +3,14 @@
 All notable changes are listed here. Versions follow Semantic Versioning (MAJOR.MINOR.PATCH).
 
 ## [Unreleased]
+### Added (the sales workflow, migration 0029)
+- The sales manager confirms a survey before a quotation is made from it, and a quotation before it is sent or shared («ابعت لمدير المبيعات للتأكيد» → a notification → «تأكيد»); a change needs a new confirmation; whoever may confirm does not wait for himself.
+- Each salesperson sees only his own customers, surveys, quotations and invoices (and finds only them in the search); the sales manager or the administrator moves a customer with everything of it, or all of one person's work, to another salesperson. New permissions «sales.all» and «sales.transfer».
+- Collections on the invoice only: the salesperson records money on the issued invoice; it counts and enters a cashbox only when the accounts confirm it (or refuse it with a reason). The invoice shows its collection percentage, what waits for the accounts and the deposit. Customer receipts straight into the treasury are refused.
+- A work order is made from the invoice («تحويل لأمر تصنيع») once the confirmed money reaches the deposit (the sale counts as confirmed); no more work orders straight from a quotation, and no collecting on a work order.
+- «داش بورد المبيعات» per salesperson (customers, surveys, quotations, conversion, sales, open balance, collections, follow-ups, top customers, 6 months) and the team table for the manager.
+- n8n: company integration keys that read the salespeople and their reports and send them tips (docs/N8N.md, tools/n8n/sales-coach.json).
+- Per-user permissions: on top of his roles, each user can be given or denied any permission (a matrix: يشوف / يضيف / يعدّل / يطبع / يحذف per section); printing has its own permissions now (surveys, quotations, invoices, work orders).
 ### Changed
 - Automatic quotation pricing (migration 0028): one price per m² on every window = the quotation's whole cost (materials with waste, arches, running cost per m²) + the company's profit margin («هامش ربح الشركة» in the settings; no more fair / top), over all the billed m², rounded up to 10. The salesperson cannot type a price or a discount: «طلب خصم» notifies the sales manager, who sets his own price per m² and / or a discount (an amount or a percentage) and closes it; the salesperson sees it at once. Any change to the openings takes the price back to automatic. Older sent / accepted quotations keep their prices; an old draft becomes automatic when its openings are next changed.
 - The company's costs (unit cost, quotation cost, the survey's cost and margin, a work order's material costs) are no longer sent to anyone without «عرض ربحية الشركة» (purchasing still sees material prices). The quotation column «التكلفة» (it was the line's total) is now «الإجمالي».

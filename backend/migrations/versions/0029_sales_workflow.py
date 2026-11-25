@@ -2,6 +2,9 @@
 
 Surveys and quotations get their confirmation; every existing one counts as confirmed (nothing waits after the
 upgrade). Whoever may set the price (the sales manager, the administrator) may also confirm.
+Per-user permissions: each user may get permissions beyond his roles or lose some of theirs (two new empty
+columns: nobody changes). Printing gets its own permissions: whoever could read surveys, quotations, invoices or work
+orders keeps printing them.
 A company key for n8n (integration_keys, new table): reads the sales reports and sends the salespeople tips.
 Collections (تحصيل) on an invoice: recorded by the salesperson, counted only once the accounts confirm them
 (new table; the money already received stays as it is). Invoices get their own read permission: whoever could read
@@ -83,6 +86,11 @@ def upgrade() -> None:
     op.create_index(op.f('ix_integration_keys_company_id'), 'integration_keys', ['company_id'])
     rls.enable(op, "integration_keys")
     _grant('integrations.manage', "is_builtin AND code = 'admin'")
+    op.add_column('users', sa.Column('extra_permissions', sa.ARRAY(sa.String()), server_default='{}', nullable=False))
+    op.add_column('users', sa.Column('denied_permissions', sa.ARRAY(sa.String()), server_default='{}', nullable=False))
+    for read, prnt in (('surveys.read', 'surveys.print'), ('quotes.read', 'quotes.print'),
+                       ('invoices.read', 'invoices.print'), ('workorders.read', 'workorders.print')):
+        _grant(prnt, f"'{read}' = ANY(permissions) OR (is_builtin AND code = 'admin')")
     _grant('invoices.read', "'treasury.read' = ANY(permissions) OR 'invoices.create' = ANY(permissions) "
                             "OR (is_builtin AND code IN ('sales', 'sales_manager', 'admin'))")
     _grant('invoices.create', "is_builtin AND code = 'sales'")
@@ -111,6 +119,10 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    for perm in ('surveys.print', 'quotes.print', 'invoices.print', 'workorders.print'):
+        op.execute(f"UPDATE roles SET permissions = array_remove(permissions, '{perm}')")
+    op.drop_column('users', 'denied_permissions')
+    op.drop_column('users', 'extra_permissions')
     for perm in ('invoices.read', 'collections.create', 'collections.confirm'):
         op.execute(f"UPDATE roles SET permissions = array_remove(permissions, '{perm}')")
     op.execute("UPDATE roles SET permissions = array_remove(permissions, 'invoices.create') WHERE is_builtin AND code = 'sales'")

@@ -4,7 +4,7 @@ import { useTitle, type PageProps } from "../lib/title";
 import { useAction, useLoad } from "../lib/hooks";
 import { useSession } from "../state/session";
 import { useToast } from "../state/toast";
-import { Btn, Card, Check, Chip, Confirm, Field, Modal, PageHead, Pager, Select, Table, Tabs, TextIn } from "../components/ui";
+import { Btn, Card, Check, Chip, Confirm, ErrorBox, Field, Loading, Modal, PageHead, Pager, Select, Table, Tabs, TextIn } from "../components/ui";
 import { invalidate, lookups } from "../lib/lookups";
 import { setQuery } from "../lib/router";
 
@@ -27,6 +27,7 @@ function UserList() {
   const [offset, setOffset] = useState(0);
   const [edit, setEdit] = useState<Partial<User> | null>(null);
   const [reset, setReset] = useState<User | null>(null);
+  const [perms, setPerms] = useState<User | null>(null);
   const toast = useToast();
   const list = useLoad(() => api.get<S<"Page_UserOut_">>("/users", { limit: 50, offset }), [offset]);
   const roles = useLoad(() => lookups.roles(), []);
@@ -44,6 +45,10 @@ function UserList() {
         { key: "r", label: "الأدوار", render: (u) => <div className="row wrap" style={{ gap: 4 }}>{(u.assignments ?? []).map((a, i) =>
           <Chip key={i} color="blue">{roleName(a.role_id)} · {branchName(a.branch_id)}</Chip>)}</div> },
         { key: "s", label: "الحالة", render: (u) => u.is_active ? <Chip color="green">نشط</Chip> : <Chip color="red">متوقف</Chip> },
+        { key: "p", label: "الصلاحيات", render: (u) => <span className="row" style={{ gap: 6 }}>
+          {(u.extra_permissions?.length || u.denied_permissions?.length)
+            ? <Chip color="violet">متخصصة (+{u.extra_permissions?.length ?? 0} / −{u.denied_permissions?.length ?? 0})</Chip> : null}
+          <Btn small icon="shield" onClick={(e) => { e.stopPropagation(); setPerms(u); }}>تخصيص</Btn></span> },
         { key: "t", label: "التأكيد بخطوتين", render: (u) => u.two_factor_enabled
           ? <span className="row" style={{ gap: 6 }}><Chip color="green">شغّال</Chip><Btn small onClick={(e) => { e.stopPropagation(); setReset(u); }}>إلغاؤه (موبايل ضاع)</Btn></span>
           : <span className="faint small">—</span> },
@@ -53,6 +58,7 @@ function UserList() {
         onYes={async () => { try { await api.post(`/users/${reset.id}/2fa/reset`); toast.ok("اتلغى."); list.reload(); } catch (e) { toast.err(errorText(e)); } setReset(null); }} />}
       {list.data && <Pager total={list.data.total} limit={50} offset={offset} onChange={setOffset} />}
       {edit && <UserForm user={edit} onClose={() => setEdit(null)} onSaved={list.reload} />}
+      {perms && <UserPermissions user={perms} onClose={() => setPerms(null)} onSaved={list.reload} />}
     </div>
   );
 }
@@ -123,9 +129,10 @@ function RoleList() {
 const GROUP_NAMES: Record<string, string> = { org: "الشركة", users: "المستخدمين", library: "مكتبة القطاعات", engine: "الحسابات",
   customers: "العملاء", surveys: "المعاينات", quotes: "عروض الأسعار", workorders: "أوامر التصنيع",
   invoices: "الفواتير", notify: "الإشعارات", sales: "المبيعات", hr: "الموارد البشرية", finance: "الربحية ورأس المال", purchasing: "المشتريات", treasury: "الخزينة", privacy: "البيانات الشخصية",
-  audit: "سجل التعديلات", system: "السيستم", maintenance: "الصيانة", field: "الفنيين والتتبع", delete: "الحذف" };
+  audit: "سجل التعديلات", system: "السيستم", maintenance: "الصيانة", field: "الفنيين والتتبع", delete: "الحذف",
+  collections: "التحصيلات", integrations: "الربط مع برامج تانية" };
 // read, then add, edit, delete: the order a factory owner thinks in
-const ACTION_ORDER = ["read", "self", "create", "write", "manage", "stage", "approve", "payroll", "calculate", "import", "delete", "permanent"];
+const ACTION_ORDER = ["read", "self", "create", "write", "print", "manage", "stage", "approve", "payroll", "calculate", "import", "delete", "permanent"];
 
 function RoleForm({ role, perms, onClose, onSaved }: { role: Partial<Role>; perms: { code: string; name: string }[]; onClose: () => void; onSaved: () => void }) {
   const toast = useToast();
@@ -159,6 +166,72 @@ function RoleForm({ role, perms, onClose, onSaved }: { role: Partial<Role>; perm
             ))}
           </div>
         ))}
+      </div>
+    </Modal>
+  );
+}
+
+
+type PermState = { version: number; from_roles: string[]; extra: string[]; denied: string[]; effective: string[];
+  catalog: { code: string; label: string }[] };
+// the columns of the matrix; anything else in a section is listed under «صلاحيات تانية»
+const MATRIX: [string, string][] = [["read", "يشوف"], ["create", "يضيف"], ["write", "يعدّل"], ["print", "يطبع"], ["delete", "يحذف"]];
+
+/** تخصيص صلاحيات المستخدم: what he sees, adds, edits, prints, deletes in each section, on top of his roles. A box
+ * ticked by his roles and cleared here is taken away from him only; one added here is his only. */
+function UserPermissions({ user, onClose, onSaved }: { user: User; onClose: () => void; onSaved: () => void }) {
+  const toast = useToast();
+  const { busy, run } = useAction(toast.err);
+  const st = useLoad(() => api.get<PermState>(`/users/${user.id}/permissions`), [user.id]);
+  const [on, setOn] = useState<Set<string> | null>(null);
+  if (st.error) return <Modal title="الصلاحيات" onClose={onClose}><ErrorBox text={st.error} onRetry={st.reload} /></Modal>;
+  if (!st.data) return <Modal title="الصلاحيات" onClose={onClose}><Loading /></Modal>;
+  const data = st.data;
+  const roles = new Set(data.from_roles);
+  const cur = on ?? new Set(data.effective);
+  const set = (code: string, v: boolean) => setOn(() => { const n = new Set(cur); v ? n.add(code) : n.delete(code); return n; });
+  const label = new Map(data.catalog.map((p) => [p.code, p.label]));
+  const groups = new Map<string, string[]>();
+  for (const p of data.catalog) {
+    const g = p.code.split(".")[0];
+    groups.set(g, [...(groups.get(g) ?? []), p.code]);
+  }
+  const save = () => run(async () => {
+    const extra = [...cur].filter((c) => !roles.has(c));
+    const denied = [...roles].filter((c) => !cur.has(c) && label.has(c));
+    await api.put(`/users/${user.id}/permissions`, { version: data.version, extra_permissions: extra, denied_permissions: denied });
+    toast.ok("اتحفظت صلاحيات المستخدم. بتشتغل من أول طلب جاي ليه.");
+    onSaved(); onClose();
+  });
+  const mark = (code: string) => {
+    const mine = cur.has(code), role = roles.has(code);
+    return mine && !role ? " (متضافة له)" : !mine && role ? " (متشالة منه)" : "";
+  };
+  return (
+    <Modal title={`صلاحيات ${user.full_name}`} size="wide" onClose={onClose} footer={<>
+      <Btn kind="primary" busy={busy} onClick={save}>حفظ</Btn>
+      <Btn busy={busy} onClick={() => setOn(new Set(data.from_roles))}>رجوع لصلاحيات الأدوار</Btn>
+      <Btn onClick={onClose}>رجوع</Btn></>}>
+      <div className="notice info small mb">العلامة جاية من أدواره. شيلها عشان تمنعها عنه هو بس، أو علّم على حاجة مش في أدواره عشان تديهاله هو بس. «يشوف» من غير «يعدّل» يعني يشوف بس.</div>
+      <div style={{ overflowX: "auto" }}>
+        <table className="table">
+          <thead><tr><th>القسم</th>{MATRIX.map(([, l]) => <th key={l} style={{ textAlign: "center" }}>{l}</th>)}<th>صلاحيات تانية</th></tr></thead>
+          <tbody>
+            {[...groups.entries()].filter(([g]) => g !== "platform").map(([g, codes]) => (
+              <tr key={g}>
+                <td className="bold">{GROUP_NAMES[g] ?? g}</td>
+                {MATRIX.map(([a]) => {
+                  const code = `${g}.${a}`;
+                  return <td key={a} style={{ textAlign: "center" }}>{label.has(code)
+                    ? <span title={(label.get(code) ?? "") + mark(code)} style={{ outline: mark(code) ? "2px solid var(--violet)" : undefined, borderRadius: 4, display: "inline-block" }}>
+                        <Check checked={cur.has(code)} onChange={(v) => set(code, v)} label="" /></span>
+                    : <span className="faint">—</span>}</td>;
+                })}
+                <td>{codes.filter((c) => !MATRIX.some(([a]) => c === `${g}.${a}`)).map((c) => (
+                  <div key={c} className={"small" + (mark(c) ? " bold" : "")}><Check checked={cur.has(c)} onChange={(v) => set(c, v)} label={(label.get(c) ?? c) + mark(c)} /></div>))}</td>
+              </tr>))}
+          </tbody>
+        </table>
       </div>
     </Modal>
   );
