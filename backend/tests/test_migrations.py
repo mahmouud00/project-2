@@ -212,7 +212,7 @@ def test_upgrade_from_old_revision_keeps_data():
     assert after["customers"] and all(c["name"] and c.get("governorate") is None and c.get("customer_questions") is None
                                       for c in after["customers"].values())
     # 0029: no collection is made by the upgrade; whoever read the treasury reads invoices, the admin confirms money
-    assert not after.get("collections")
+    assert not after.get("collections") and not after.get("integration_keys")
     assert {"invoices.read", "collections.confirm"} <= set(after["roles"][str(p["admin_role"])]["permissions"])
     # 0029: every role keeps seeing everyone's work except the built-in salesperson; records belong to their maker
     assert "sales.all" in set(after["roles"][str(p["sales_role"])]["permissions"])          # a custom role keeps it

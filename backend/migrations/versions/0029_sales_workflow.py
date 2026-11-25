@@ -2,6 +2,7 @@
 
 Surveys and quotations get their confirmation; every existing one counts as confirmed (nothing waits after the
 upgrade). Whoever may set the price (the sales manager, the administrator) may also confirm.
+A company key for n8n (integration_keys, new table): reads the sales reports and sends the salespeople tips.
 Collections (تحصيل) on an invoice: recorded by the salesperson, counted only once the accounts confirm them
 (new table; the money already received stays as it is). Invoices get their own read permission: whoever could read
 the treasury or make invoices keeps it; the built-in salesperson may now read and make his invoices and record what
@@ -63,6 +64,25 @@ def upgrade() -> None:
     for c in ('company_id', 'invoice_id', 'customer_id', 'branch_id', 'owner_id'):
         op.create_index(op.f(f'ix_collections_{c}'), 'collections', [c])
     rls.enable(op, "collections")
+
+    op.create_table('integration_keys',
+    sa.Column('name', sa.String(length=120), nullable=False),
+    sa.Column('key_hash', sa.String(length=64), nullable=False),
+    sa.Column('prefix', sa.String(length=12), nullable=False),
+    sa.Column('last_used_at', sa.DateTime(timezone=True), nullable=True),
+    sa.Column('revoked_at', sa.DateTime(timezone=True), nullable=True),
+    sa.Column('acting_user_id', sa.UUID(), nullable=True),
+    sa.Column('id', sa.UUID(), nullable=False), sa.Column('company_id', sa.UUID(), nullable=False),
+    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.Column('created_by', sa.UUID(), nullable=True), sa.Column('updated_by', sa.UUID(), nullable=True),
+    sa.Column('version', sa.Integer(), nullable=False),
+    sa.ForeignKeyConstraint(['company_id'], ['companies.id'], name=op.f('fk_integration_keys_company_id_companies')),
+    sa.PrimaryKeyConstraint('id', name=op.f('pk_integration_keys')),
+    sa.UniqueConstraint('key_hash', name=op.f('uq_integration_keys_key_hash')))
+    op.create_index(op.f('ix_integration_keys_company_id'), 'integration_keys', ['company_id'])
+    rls.enable(op, "integration_keys")
+    _grant('integrations.manage', "is_builtin AND code = 'admin'")
     _grant('invoices.read', "'treasury.read' = ANY(permissions) OR 'invoices.create' = ANY(permissions) "
                             "OR (is_builtin AND code IN ('sales', 'sales_manager', 'admin'))")
     _grant('invoices.create', "is_builtin AND code = 'sales'")
@@ -94,6 +114,8 @@ def downgrade() -> None:
     for perm in ('invoices.read', 'collections.create', 'collections.confirm'):
         op.execute(f"UPDATE roles SET permissions = array_remove(permissions, '{perm}')")
     op.execute("UPDATE roles SET permissions = array_remove(permissions, 'invoices.create') WHERE is_builtin AND code = 'sales'")
+    op.drop_table('integration_keys')
+    op.execute("UPDATE roles SET permissions = array_remove(permissions, 'integrations.manage')")
     op.drop_table('collections')
     for perm in ('sales.all', 'sales.transfer'):
         op.execute(f"UPDATE roles SET permissions = array_remove(permissions, '{perm}')")

@@ -1,5 +1,6 @@
 const P: Record<string, string> = {
   home: '<path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/>',
+  chart: '<path d="M3 20h18"/><path d="M6 20v-6M11 20V8M16 20v-9M21 20V4"/>',
   users: '<circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 4.5a3 3 0 010 6M21 20c0-2.6-1.6-4.8-4-5.6"/>',
   ruler: '<path d="M3 17L17 3l4 4L7 21z"/><path d="M7 13l2 2M10 10l2 2M13 7l2 2"/>',
   quote: '<path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4M9 12h7M9 16h7M9 8h3"/>',

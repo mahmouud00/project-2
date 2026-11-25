@@ -23,6 +23,7 @@ export const NAV: [string, NavItem[]][] = [
   ["", [{ id: "dashboard", icon: "home", label: "لوحة التحكم", hideForPlatform: true },
     { id: "chat", icon: "send", label: "الشات والتفويض", hideForPlatform: true }]],
   ["المبيعات", [
+    { id: "sales-dashboard", icon: "chart", label: "داش بورد المبيعات", perm: "quotes.read", hideForPlatform: true },
     { id: "customers", icon: "users", label: "العملاء", perm: "customers.read", hideForPlatform: true },
     { id: "surveys", icon: "ruler", label: "المعاينات", perm: "surveys.read", hideForPlatform: true },
     { id: "quotations", icon: "quote", label: "عروض الأسعار", perm: "quotes.read", hideForPlatform: true },

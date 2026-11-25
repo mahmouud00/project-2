@@ -19,6 +19,7 @@ export default function System({ route }: PageProps) {
         { id: "updates", label: "تحديث السيرفر", hidden: !s.can("system.manage") || (s.info.mode === "online" && !s.isPlatform) },
         { id: "devices", label: "الأجهزة", hidden: s.isPlatform }, { id: "audit", label: "سجل التعديلات", hidden: !s.can("audit.read") },
         { id: "privacy", label: "سجل الوصول للبيانات الشخصية", hidden: !s.can("privacy.manage") },
+        { id: "n8n", label: "الربط مع n8n", hidden: !s.can("integrations.manage") || s.isPlatform },
       ]} />
       <div className="card-b">
         {tab === "license" && <License />}
@@ -27,6 +28,7 @@ export default function System({ route }: PageProps) {
         {tab === "devices" && <Devices />}
         {tab === "audit" && <Audit />}
         {tab === "privacy" && <AccessLog />}
+        {tab === "n8n" && <IntegrationKeys />}
       </div>
     </Card>
   );
@@ -309,6 +311,42 @@ function ServerUpdate() {
           setFile(null); setStarted(out.version);
           setTimeout(() => s.reload().catch(() => undefined), 180000);
         })} />}
+    </div>
+  );
+}
+
+
+type Key = { id: string; name: string; prefix: string; last_used_at: string | null; revoked_at: string | null; key?: string | null };
+
+/** مفاتيح الربط: a key lets n8n read the sales reports and send the salespeople tips (docs/N8N.md). */
+function IntegrationKeys() {
+  const toast = useToast();
+  const { busy, run } = useAction(toast.err);
+  const keys = useLoad(() => api.get<Key[]>("/integrations/keys"), []);
+  const [name, setName] = useState("n8n");
+  const [made, setMade] = useState<string | null>(null);
+  const make = () => run(async () => {
+    const k = await api.post<Key>("/integrations/keys", { name });
+    setMade(k.key ?? null);
+    keys.reload();
+  });
+  const stop = (k: Key) => run(async () => { await api.post(`/integrations/keys/${k.id}/revoke`); keys.reload(); toast.ok("المفتاح اتوقف."); });
+  return (
+    <div className="col">
+      <div className="notice info small">بوت n8n بيقرا تقرير شغل كل موظف مبيعات، يحلله بالذكاء الاصطناعي، ويبعتله نصايح بتوصله إشعار.
+        المفتاح بيقرا تقارير المبيعات ويبعت نصايح بس، ومابيشوفش تليفونات العملاء ولا عناوينهم. الخطوات في الدليل (N8N.md)، والـ workflow الجاهز في tools/n8n/sales-coach.json.</div>
+      <div className="row" style={{ gap: 8, alignItems: "flex-end" }}>
+        <Field label="اسم المفتاح"><TextIn value={name} onChange={setName} /></Field>
+        <Btn kind="primary" icon="plus" busy={busy} disabled={name.trim().length < 2} onClick={make}>مفتاح جديد</Btn>
+      </div>
+      {made && <div className="notice warn">انسخ المفتاح ده دلوقتي، مش هيظهر تاني: <b className="code" style={{ userSelect: "all" }}>{made}</b>
+        <Btn small icon="copy" onClick={() => { navigator.clipboard?.writeText(made); toast.ok("اتنسخ."); }}>نسخ</Btn></div>}
+      <Table rows={keys.data ?? []} empty="مفيش مفاتيح" columns={[
+        { key: "n", label: "الاسم", render: (k) => <b>{k.name}</b> },
+        { key: "p", label: "بيبدأ بـ", render: (k) => <span className="code">{k.prefix}…</span> },
+        { key: "u", label: "آخر استخدام", render: (k) => <span className="num small">{k.last_used_at ? dateTime(k.last_used_at) : "—"}</span> },
+        { key: "s", label: "", render: (k) => k.revoked_at ? <Chip color="red">متوقف</Chip> : <Btn small kind="danger" busy={busy} onClick={() => stop(k)}>إيقاف</Btn> },
+      ]} />
     </div>
   );
 }

@@ -73,6 +73,7 @@ PERMISSIONS: dict[str, str] = {
     "audit.read": "عرض سجل التعديلات",
     "delete.permanent": "الحذف النهائي فورًا من غير ما يستنى ٣٠ يوم، والتراجع عن حذف أي حد",
     "system.manage": "النسخ الاحتياطي والتحديثات والأجهزة",
+    "integrations.manage": "مفاتيح الربط مع برامج تانية (بوت n8n للمبيعات)",
 }
 
 # Platform (vendor) only — granted to users of PLATFORM_COMPANY_ID.

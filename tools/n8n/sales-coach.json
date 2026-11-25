@@ -1,0 +1,38 @@
+{
+  "name": "MYTech · مدرّب المبيعات",
+  "nodes": [
+    {
+      "parameters": {"rule": {"interval": [{"field": "weeks", "triggerAtDay": [0], "triggerAtHour": 9}]}},
+      "name": "كل أسبوع (الأحد 9 الصبح)", "type": "n8n-nodes-base.scheduleTrigger", "typeVersion": 1.2, "position": [0, 0]
+    },
+    {
+      "parameters": {"url": "={{$env.MYTECH_URL}}/api/v1/integrations/sales/people", "sendHeaders": true,
+        "headerParameters": {"parameters": [{"name": "X-API-Key", "value": "={{$env.MYTECH_KEY}}"}]}},
+      "name": "موظفين المبيعات", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [220, 0]
+    },
+    {
+      "parameters": {"url": "={{$env.MYTECH_URL}}/api/v1/integrations/sales/report", "sendQuery": true,
+        "queryParameters": {"parameters": [{"name": "user_id", "value": "={{$json.id}}"}]}, "sendHeaders": true,
+        "headerParameters": {"parameters": [{"name": "X-API-Key", "value": "={{$env.MYTECH_KEY}}"}]}},
+      "name": "تقرير الموظف", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [440, 0]
+    },
+    {
+      "parameters": {"promptType": "define",
+        "text": "=انت مدرّب مبيعات في مصنع شبابيك وأبواب (UPVC وألوميتال وشيش). ده تقرير شغل موظف المبيعات {{$json.name}} من {{$json.from}} لـ {{$json.to}} بصيغة JSON:\n{{JSON.stringify($json)}}\n\nاكتب بالعامية المصرية، في 5 نقط قصيرة بالكتير: إيه اللي ماشي كويس، وإيه اللي محتاج يتحسن (نسبة التحويل، العروض اللي محتاجة متابعة، التحصيل المتأخر، طلبات الخصم)، وخطوة عملية واحدة يعملها الأسبوع ده. ماتخترعش أرقام مش موجودة في التقرير."},
+      "name": "تحليل ونصايح (AI)", "type": "@n8n/n8n-nodes-langchain.agent", "typeVersion": 1.7, "position": [660, 0]
+    },
+    {
+      "parameters": {"method": "POST", "url": "={{$env.MYTECH_URL}}/api/v1/integrations/sales/tips", "sendHeaders": true,
+        "headerParameters": {"parameters": [{"name": "X-API-Key", "value": "={{$env.MYTECH_KEY}}"}]},
+        "sendBody": true, "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ user_id: $('تقرير الموظف').item.json.user_id, title: 'نصايح الأسبوع', body: $json.output }) }}"},
+      "name": "ابعت النصايح للموظف", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [880, 0]
+    }
+  ],
+  "connections": {
+    "كل أسبوع (الأحد 9 الصبح)": {"main": [[{"node": "موظفين المبيعات", "type": "main", "index": 0}]]},
+    "موظفين المبيعات": {"main": [[{"node": "تقرير الموظف", "type": "main", "index": 0}]]},
+    "تقرير الموظف": {"main": [[{"node": "تحليل ونصايح (AI)", "type": "main", "index": 0}]]},
+    "تحليل ونصايح (AI)": {"main": [[{"node": "ابعت النصايح للموظف", "type": "main", "index": 0}]]}
+  }
+}

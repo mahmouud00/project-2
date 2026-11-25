@@ -121,6 +121,8 @@ MODULE_ROUTERS: list[str] = [
     "app.modules.chat.router",
     "app.modules.sales.team",
     "app.modules.invoicing.collections",
+    "app.modules.sales.insights",
+    "app.modules.integrations.router",
 ]
 
 app = create_app()

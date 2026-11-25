@@ -17,6 +17,7 @@ import Settings from "./Settings";
 import System from "./System";
 import FieldPage from "./Field";
 import Chat from "./Chat";
+import SalesDashboard from "./SalesDashboard";
 
 export const PAGES: Record<string, ComponentType<PageProps>> = {
   dashboard: Dashboard,
@@ -36,4 +37,5 @@ export const PAGES: Record<string, ComponentType<PageProps>> = {
   system: System,
   field: FieldPage,
   chat: Chat,
+  "sales-dashboard": SalesDashboard,
 };

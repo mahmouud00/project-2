@@ -98,3 +98,65 @@ def test_each_salesperson_sees_his_own_work_and_work_moves(platform, tenant_a, c
     # all of one person's work at once
     r = client.post("/api/v1/sales/transfer", headers=manager, json={"from_user_id": owner2, "to_user_id": c1["owner_id"]})
     assert r.json()["moved"]["customers"] == 2 and names(two) == set() and len(names(one)) == 2
+
+
+def test_salesperson_dashboard_and_the_n8n_bot(platform, tenant_a, tenant_b, client):
+    from decimal import Decimal as D
+
+    from tests.customers import cust as new_customer
+    from tests.orders import collect, invoice_of
+
+    lib, branch, _, _ = _setup(client, platform, tenant_a, "DSH")
+    seller, manager = _people(client, tenant_a, branch, "dsh")
+    h = tenant_a.h
+    c = client.post("/api/v1/customers", headers=seller, json=new_customer(national_id="29001011234567")).json()
+    window = {"model_id": lib["model"]["id"], "color_code": "W", "glass_material_code": "DSH-GLASS6",
+              "opening_width_mm": 1000, "opening_height_mm": 1000}
+    q = client.post("/api/v1/quotations", headers=seller, json={"customer_id": c["id"], "branch_id": branch["id"],
+                                                               "lines": [window]}).json()
+    client.post(f"/api/v1/quotations/{q['id']}/approve", headers=manager)
+    q = client.get(f"/api/v1/quotations/{q['id']}", headers=seller).json()
+    q = client.post(f"/api/v1/quotations/{q['id']}/status", headers=seller, json={"version": q["version"], "status": "accepted"}).json()
+    inv = invoice_of(client, seller, q)
+    collect(client, seller, inv, "1000", confirm_h=h)
+    client.post(f"/api/v1/invoices/{inv['id']}/collections", headers=seller, json={"amount": "500"})
+
+    d = client.get("/api/v1/sales/dashboard", headers=seller).json()
+    assert d["customers"]["total"] == 1 and d["customers"]["new"] == 1
+    assert d["quotations"]["made"] == 1 and d["quotations"]["accepted_count"] == 1
+    assert D(d["invoices"]["sales_value"]) == D(inv["total"])
+    assert D(d["collections"]["confirmed"]) == 1000 and D(d["collections"]["pending_amount"]) == 500
+    assert D(d["invoices"]["open_balance"]) == D(inv["total"]) - 1000 and len(d["months"]) == 6
+    # his own only; the manager opens anyone's and the team table
+    assert client.get(f"/api/v1/sales/dashboard?user_id={c['owner_id']}", headers=manager).json()["customers"]["total"] == 1
+    other = client.get(f"/api/v1/sales/dashboard?user_id={d['user_id']}", headers=manager).status_code
+    assert other == 200
+    me_manager = client.get("/api/v1/auth/me", headers=manager).json()
+    mid = me_manager.get("id") or me_manager.get("user", {}).get("id")
+    if mid:
+        assert client.get(f"/api/v1/sales/dashboard?user_id={mid}", headers=seller).status_code == 403
+    team = client.get("/api/v1/sales/team", headers=manager).json()["people"]
+    assert any(p["user_id"] == c["owner_id"] and D(p["collected"]) == 1000 for p in team)
+    assert client.get("/api/v1/sales/team", headers=seller).status_code == 403
+
+    # n8n: a company key reads the salespeople and their reports, and sends tips
+    assert client.post("/api/v1/integrations/keys", headers=seller, json={"name": "n8n"}).status_code == 403
+    k = client.post("/api/v1/integrations/keys", headers=h, json={"name": "n8n"}).json()
+    key = {"X-API-Key": k["key"]}
+    assert k["key"].startswith("mtk_") and "key" not in client.get("/api/v1/integrations/keys", headers=h).json()[0] or \
+        client.get("/api/v1/integrations/keys", headers=h).json()[0]["key"] is None
+    people = client.get("/api/v1/integrations/sales/people", headers=key).json()
+    assert any(p["id"] == c["owner_id"] for p in people)
+    rep = client.get(f"/api/v1/integrations/sales/report?user_id={c['owner_id']}", headers=key).json()
+    assert D(rep["collections"]["confirmed"]) == 1000
+    r = client.post("/api/v1/integrations/sales/tips", headers=key,
+                    json={"user_id": c["owner_id"], "title": "تابع عروضك", "body": "عندك عرض مستني رد من أسبوع"})
+    assert r.status_code == 201
+    assert any(n["title"] == "نصيحة: تابع عروضك" for n in client.get("/api/v1/notifications", headers=seller).json()["items"])
+    assert client.get("/api/v1/integrations/sales/people", headers={"X-API-Key": "mtk_wrong"}).status_code == 401
+    client.post(f"/api/v1/integrations/keys/{k['id']}/revoke", headers=h)
+    assert client.get("/api/v1/integrations/sales/people", headers=key).status_code == 401
+    # another company's key never reaches this company's people
+    kb = client.post("/api/v1/integrations/keys", headers=tenant_b.h, json={"name": "n8n"}).json()
+    assert all(p["id"] != c["owner_id"] for p in client.get("/api/v1/integrations/sales/people",
+                                                           headers={"X-API-Key": kb["key"]}).json())
