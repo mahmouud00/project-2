@@ -363,14 +363,23 @@ def sync_from_quotation(db, q: Quotation) -> WorkOrder | None:
                              unit_price=line.unit_price, calc=line.calc))
     db.flush()
     who = customer_name(db, wo.customer_id)
-    if wo.total != q.total:
+    # its issued invoice follows the quotation too (its services stay): the order's total is the invoice's
+    from app.modules.invoicing.models import Invoice
+    from app.modules.invoicing.router import follow_quotation
+    inv = db.scalar(select(Invoice).where(Invoice.work_order_id == wo.id, Invoice.status == "issued",
+                                          Invoice.deleted_at.is_(None)))
+    new_total = q.total
+    if inv is not None:
+        follow_quotation(db, inv, q)
+        new_total = inv.total
+    if wo.total != new_total:
         if wo.total:
-            wo.deposit_required = money(wo.deposit_required * q.total / wo.total)
-        wo.total = q.total
+            wo.deposit_required = money(wo.deposit_required * new_total / wo.total)
+        wo.total = new_total
         if wo.sale_status == "approved":
-            wo.sale_status, wo.sale_approval_note = "pending", f"عرض السعر {q.number} اتعدل: الإجمالي الجديد {q.total}"
-        alert(db, ctx, "accounts", wo.branch_id, f"أمر {wo.number} اتعدل: الإجمالي بقى {q.total}", who,
-              "treasury?tab=sales")
+            wo.sale_status, wo.sale_approval_note = "pending", f"عرض السعر {q.number} اتعدل: الإجمالي الجديد {new_total}"
+        alert(db, ctx, "accounts", wo.branch_id, f"أمر {wo.number} اتعدل: الإجمالي بقى {new_total}"
+              + (f" (والفاتورة {inv.number} اتعدلت معاه)" if inv is not None else ""), who, "treasury?tab=sales")
     if wo.stage in FROZEN_STAGES:
         history = [{"at": utcnow().isoformat(), "quotation": q.number, "outputs": wo.outputs}] + list(wo.outputs_history or [])
         wo.outputs_history = history[:3]

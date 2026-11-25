@@ -362,6 +362,37 @@ def delete_line(line_id: uuid.UUID, dc=Depends(require(EDIT_PERM))):
     return invoice_out(db, inv)
 
 
+def follow_quotation(db, inv: Invoice, q: Quotation) -> None:
+    """The accepted quotation changed after its invoice was issued (its work order is not delivered): the invoice
+    follows it. Its windows are taken again from the quotation; lines added by hand (services) and their discounts
+    stay; the quotation's discount goes with it. The number and the money collected stay."""
+    before = snapshot(inv)
+    old_total = inv.total
+    kept = [l for l in _lines(db, inv) if l.kind != "product"]
+    for l in _lines(db, inv):
+        if l.kind == "product":
+            db.delete(l)
+    db.flush()
+    pos = 0
+    for l in db.scalars(select(QuotationLine).where(QuotationLine.quotation_id == q.id)
+                        .order_by(QuotationLine.position, QuotationLine.parent_line_id.is_not(None))):
+        pos += 1
+        line = _line_from_calc(pos, location=l.location, model_id=l.model_id, opening_w=l.opening_width_mm,
+                               opening_h=l.opening_height_mm, color=l.color_code, glass=l.glass_material_code,
+                               params=l.params, qty=l.qty, unit_price=l.unit_price, calc=l.calc, db=db)
+        line.invoice_id = inv.id
+        db.add(line)
+    for l in kept:
+        pos += 1
+        l.position = pos
+    inv.discount_amount = q.discount_amount
+    inv.tax_pct = q.tax_pct
+    db.flush()
+    _totals(db, inv)
+    inv.version += 1
+    audit(db, inv, "update", before, note=f"اتعدلت مع عرض السعر {q.number}: من {old_total} لـ {inv.total}")
+
+
 class VersionIn(BaseModel):
     version: int
 

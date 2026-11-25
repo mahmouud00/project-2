@@ -3,6 +3,8 @@
 All notable changes are listed here. Versions follow Semantic Versioning (MAJOR.MINOR.PATCH).
 
 ## [Unreleased]
+### Changed
+- An accepted quotation changed after its invoice was issued (its work order not delivered): the issued invoice follows it, keeping its number, its service lines and the money collected; the order's total and deposit follow the invoice, and the accounts are told.
 ### Added (the sales workflow, migration 0029)
 - The sales manager confirms a survey before a quotation is made from it, and a quotation before it is sent or shared («ابعت لمدير المبيعات للتأكيد» → a notification → «تأكيد»); a change needs a new confirmation; whoever may confirm does not wait for himself.
 - Each salesperson sees only his own customers, surveys, quotations and invoices (and finds only them in the search); the sales manager or the administrator moves a customer with everything of it, or all of one person's work, to another salesperson. New permissions «sales.all» and «sales.transfer».

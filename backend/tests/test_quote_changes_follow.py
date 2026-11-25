@@ -40,6 +40,11 @@ def test_order_follows_its_quotation(platform, tenant_a, client):
     w = _wo(client, h, wo)
     assert all(D(i["opening_width_mm"]) == 1500 for i in w["items"])
     assert D(w["total"]) == D(r.json()["total"])
+    # its issued invoice follows too: same number, new windows and total, the money collected kept
+    inv = next(i for i in client.get("/api/v1/invoices", headers=h).json()["items"] if i["work_order_id"] == wo["id"])
+    assert inv["status"] == "issued" and D(inv["total"]) == D(r.json()["total"]) == D(w["total"])
+    assert all(D(l["opening_width_mm"]) == 1500 for l in inv["lines"] if l["kind"] == "product")
+    assert D(inv["paid_amount"]) > 0 and D(inv["balance"]) == D(inv["total"]) - D(inv["paid_amount"])
     outputs, _ = _saved(tenant_a, wo["id"])
     assert all(D(d["opening_width_mm"]) == 1500 for d in outputs["drawings"])
 
