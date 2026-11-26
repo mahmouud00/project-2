@@ -1,4 +1,4 @@
-// CI only: gives every build its own version, <major>.<minor>.<build number> from VERSION (0.1.0 -> 0.1.57), and writes
+// Gives every build its own version (tools/release/deploy.ps1 on the PC, or CI), <major>.<minor>.<build number> from VERSION (0.1.0 -> 0.1.57), and writes
 // it everywhere a program reports its version (server VERSION, desktop package.json, tauri.conf.json, Cargo.toml).
 // The programs compare these numbers to offer an update, so two builds must never share one.
 // usage: node tools/release/stamp_version.mjs <build number>

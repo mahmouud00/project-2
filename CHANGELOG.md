@@ -3,6 +3,8 @@
 All notable changes are listed here. Versions follow Semantic Versioning (MAJOR.MINOR.PATCH).
 
 ## [Unreleased]
+### Added
+- Updating without GitHub (docs/LOCAL_BUILD.md): `tools/release/setup-build-pc.ps1` (once) and `tools/release/deploy.ps1` build the desktop program on the PC, send the code to the VPS and run `deploy/vps/update-from-upload.sh` there (backup, new code, server rebuilt). The phone app is built on the VPS (`deploy/vps/build-apk.sh`, Docker) and always signed with one fixed key kept in /opt/mytech-keys (and copied to the PC): the earlier builds used a temporary key each time, so phones could not update over them.
 ### Changed
 - An accepted quotation changed after its invoice was issued (its work order not delivered): the issued invoice follows it, keeping its number, its service lines and the money collected; the order's total and deposit follow the invoice, and the accounts are told.
 ### Added (the sales workflow, migration 0029)
