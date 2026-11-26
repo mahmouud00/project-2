@@ -50,7 +50,9 @@ Run "الرفع" { scp (Get-ChildItem $out -File | ForEach-Object FullName) "${S
 
 Write-Host "== 4) تحديث الـVPS (الموبايل بيتبني هناك)" -ForegroundColor Cyan
 $skip = if ($NoApk) { "SKIP_APK=1 " } else { "" }
-Run "تحديث الـVPS" { ssh -t $Server "${skip}bash /opt/mytech/deploy/vps/update-from-upload.sh" }
+# the update scripts themselves come first from the upload (a VPS installed before them has none yet)
+$first = "cd /opt/mytech && tar -xzf /opt/mytech-upload/mytech-src.tar.gz ./deploy/vps/update-from-upload.sh ./deploy/vps/build-apk.sh ./deploy/vps/android"
+Run "تحديث الـVPS" { ssh -t $Server "$first && ${skip}bash /opt/mytech/deploy/vps/update-from-upload.sh" }
 Set-Content $saved $build
 # a copy of the phone app's signing key on this PC too (without it no phone takes an update): once
 $keys = Join-Path $HOME "MYTech-keys"
